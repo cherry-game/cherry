@@ -1,9 +1,9 @@
 package cherryLogger
 
 import (
+	"github.com/cherry-game/cherry/utils"
 	json "github.com/json-iterator/go"
 	rotateLogs "github.com/lestrrat-go/file-rotatelogs"
-	"github.com/phantacix/cherry/utils"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"

@@ -2,11 +2,11 @@ package mocks
 
 import (
 	"context"
+	"github.com/cherry-game/cherry/handler"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/message"
 	"github.com/golang/protobuf/proto"
-	"github.com/phantacix/cherry/handler"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/net/message"
 )
 
 func NewTestHandler() *TestHandler {

@@ -1,7 +1,7 @@
 package cherryCluster
 
 import (
-	"github.com/phantacix/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 )
 
 type NodeDiscovery interface {

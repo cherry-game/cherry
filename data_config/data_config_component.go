@@ -1,9 +1,9 @@
 package cherryDataConfig
 
 import (
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/utils"
 )
 
 type DefaultComponent struct {

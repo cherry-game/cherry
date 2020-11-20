@@ -2,10 +2,10 @@ package cherryComponents
 
 import (
 	"fmt"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/profile"
 	"github.com/json-iterator/go"
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/profile"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )

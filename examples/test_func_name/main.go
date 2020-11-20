@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/utils"
 )
 
 type FunStruct struct {

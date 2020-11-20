@@ -2,7 +2,7 @@ package cherryNetMessage
 
 import (
 	"encoding/binary"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/utils"
 )
 
 // Encoder interface

@@ -1,9 +1,9 @@
 package cherryConnector
 
 import (
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/session"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/session"
 )
 
 type SimpleComponentOptions struct {

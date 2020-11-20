@@ -2,10 +2,10 @@ package cherrySession
 
 import (
 	"fmt"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/net/pomelo_packet"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/pomelo_packet"
+	"github.com/cherry-game/cherry/utils"
 	"net"
 	"sync/atomic"
 	"time"

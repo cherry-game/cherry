@@ -1,7 +1,7 @@
 package cherryConst
 
 import (
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 	"testing"
 )
 

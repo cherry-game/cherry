@@ -2,14 +2,14 @@ package main
 
 import (
 	"flag"
-	"github.com/phantacix/cherry"
-	"github.com/phantacix/cherry/components"
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/examples/test1/mocks"
-	"github.com/phantacix/cherry/handler"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/net"
-	"github.com/phantacix/cherry/session"
+	"github.com/cherry-game/cherry"
+	"github.com/cherry-game/cherry/components"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/examples/test1/mocks"
+	"github.com/cherry-game/cherry/handler"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net"
+	"github.com/cherry-game/cherry/session"
 	"strings"
 	"time"
 )

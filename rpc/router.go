@@ -1,8 +1,8 @@
 package cherryRPC
 
 import (
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/utils"
 	"hash/crc32"
 	"math"
 	"math/rand"

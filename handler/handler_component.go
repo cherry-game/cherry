@@ -1,12 +1,12 @@
 package cherryHandler
 
 import (
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/net"
-	"github.com/phantacix/cherry/net/message"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net"
+	"github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/utils"
 	"reflect"
 	"strings"
 )

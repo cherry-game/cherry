@@ -1,9 +1,9 @@
 package cherrySession
 
 import (
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/utils"
 	"net"
 	"sync/atomic"
 )

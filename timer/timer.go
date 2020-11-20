@@ -21,7 +21,7 @@
 package cherryTimer
 
 import (
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 	"sync"
 	"sync/atomic"
 	"time"

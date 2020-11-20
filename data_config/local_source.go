@@ -1,9 +1,9 @@
 package cherryDataConfig
 
 import (
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/profile"
 	"github.com/fsnotify/fsnotify"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/profile"
 	"hash/crc32"
 	"io/ioutil"
 	"path"

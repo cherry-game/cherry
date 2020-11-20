@@ -2,7 +2,7 @@ package cherryConnector
 
 import (
 	"crypto/tls"
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 	"net"
 	"net/http"
 )

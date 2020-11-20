@@ -1,8 +1,8 @@
 package cherryNet
 
 import (
+	"github.com/cherry-game/cherry/utils"
 	"github.com/golang/protobuf/proto"
-	"github.com/phantacix/cherry/utils"
 )
 
 var (

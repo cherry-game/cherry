@@ -2,7 +2,7 @@ package cherryConst
 
 import (
 	"fmt"
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 )
 
 // component name

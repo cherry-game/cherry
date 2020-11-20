@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 )
 
 func main() {

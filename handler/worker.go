@@ -1,9 +1,9 @@
 package cherryHandler
 
 import (
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/profile"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/profile"
 	"reflect"
 )
 

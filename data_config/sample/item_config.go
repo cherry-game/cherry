@@ -1,7 +1,7 @@
 package cherryDataConfigSample
 
 import (
-	"github.com/phantacix/cherry/data_config"
+	"github.com/cherry-game/cherry/data_config"
 )
 
 var (

@@ -1,7 +1,7 @@
 package cherryNetMessage
 
 import (
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/utils"
 )
 
 // Type represents the type of message, which could be Request/Notify/Response/Push

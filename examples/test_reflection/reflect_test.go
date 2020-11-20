@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"github.com/phantacix/cherry/examples/test1/mocks"
-	"github.com/phantacix/cherry/handler"
-	"github.com/phantacix/cherry/interfaces"
+	"github.com/cherry-game/cherry/examples/test1/mocks"
+	"github.com/cherry-game/cherry/handler"
+	"github.com/cherry-game/cherry/interfaces"
 	"reflect"
 	"testing"
 )

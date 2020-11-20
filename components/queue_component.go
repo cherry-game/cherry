@@ -1,9 +1,9 @@
 package cherryComponents
 
 import (
-	"github.com/phantacix/cherry/const"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
 )
 
 //QueueComponent queue component

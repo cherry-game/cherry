@@ -1,7 +1,7 @@
 package cherrySimplePacket
 
 import (
-	"github.com/phantacix/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 )
 
 type Decoder struct {

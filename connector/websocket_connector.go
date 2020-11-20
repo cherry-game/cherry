@@ -1,9 +1,9 @@
 package cherryConnector
 
 import (
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
 	"github.com/gorilla/websocket"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
 	"io"
 	"net"
 	"net/http"

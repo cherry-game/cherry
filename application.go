@@ -1,11 +1,11 @@
 package cherry
 
 import (
-	"github.com/phantacix/cherry/cluster"
-	"github.com/phantacix/cherry/handler"
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
-	"github.com/phantacix/cherry/utils"
+	"github.com/cherry-game/cherry/cluster"
+	"github.com/cherry-game/cherry/handler"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/utils"
 	"os"
 	"os/signal"
 	"syscall"

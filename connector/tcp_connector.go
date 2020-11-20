@@ -1,8 +1,8 @@
 package cherryConnector
 
 import (
-	"github.com/phantacix/cherry/interfaces"
-	"github.com/phantacix/cherry/logger"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
 	"net"
 )
 

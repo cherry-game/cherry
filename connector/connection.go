@@ -1,7 +1,7 @@
 package cherryConnector
 
 import (
-	"github.com/phantacix/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 	"sync"
 	"sync/atomic"
 )

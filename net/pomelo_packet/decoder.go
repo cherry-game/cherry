@@ -3,7 +3,7 @@ package cherryPomeloPacket
 import (
 	"bytes"
 	"errors"
-	"github.com/phantacix/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 )
 
 // ErrWrongPomeloPacketType represents a wrong packet type.

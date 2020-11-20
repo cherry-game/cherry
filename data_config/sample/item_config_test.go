@@ -2,8 +2,8 @@ package cherryDataConfigSample
 
 import (
 	"fmt"
+	"github.com/cherry-game/cherry/data_config"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/phantacix/cherry/data_config"
 	"reflect"
 	"strconv"
 	"testing"
