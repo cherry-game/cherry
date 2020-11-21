@@ -34,7 +34,8 @@ func New(configPath, profileName, nodeId string) *Application {
 
 	nodeType, err := cherryCluster.Nodes().GetType(nodeId)
 	if err != nil {
-		panic(err)
+		cherryLogger.Panic(err)
+		return nil
 	}
 
 	app := &Application{

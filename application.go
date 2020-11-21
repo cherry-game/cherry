@@ -18,7 +18,7 @@ type Application struct {
 	startTime        int64                           // application start time
 	running          bool                            // is running
 	die              chan bool                       // wait for end application
-	components       []cherryInterfaces.IComponent   //all components
+	components       []cherryInterfaces.IComponent   // all components
 	handlerComponent *cherryHandler.HandlerComponent // handler component
 }
 
