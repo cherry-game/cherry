@@ -35,20 +35,21 @@ func app(configPath, profileName, nodeId string) {
 		}
 	})
 
-	testApp.Handlers().SetNameFunc(strings.ToUpper)
+	handlers := cherryHandler.NewComponent()
+	handlers.SetNameFunc(strings.ToLower)
 
-	testApp.Handlers().BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
+	handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Infof("test before filter....")
 		return true
 	})
 
-	testApp.Handlers().AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
+	handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Infof("test after filter....")
 		return true
 	})
 
 	//add TestHandler
-	testApp.Handlers().Register(mocks.NewTestHandler())
+	handlers.Register(mocks.NewTestHandler())
 
 	testApp.Startup(
 		cherryComponents.NewQueue(),
