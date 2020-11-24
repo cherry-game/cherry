@@ -1,7 +1,6 @@
 package main
 
 import (
-	"flag"
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/components"
 	"github.com/cherry-game/cherry/const"
@@ -15,14 +14,8 @@ import (
 )
 
 func main() {
-	var configPath, profileName, nodeId string
 
-	flag.StringVar(&configPath, "path", "./config", "-path=~/git/cherry/examples/config")
-	flag.StringVar(&profileName, "profile", "local", "-profile=local")
-	flag.StringVar(&nodeId, "node", "web-1", "-node=web-1")
-	flag.Parse()
-
-	app(configPath, profileName, nodeId)
+	app(cherry.GetDefaultValue())
 }
 
 func app(configPath, profileName, nodeId string) {
