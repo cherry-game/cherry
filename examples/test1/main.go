@@ -35,34 +35,27 @@ func app(configPath, profileName, nodeId string) {
 		}
 	})
 
-	handlerComponent := func() *cherryHandler.HandlerComponent {
-		handlers := cherryHandler.NewComponent()
-
-		handlers.SetNameFunc(strings.ToLower)
-
-		handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
-			cherryLogger.Infof("test before filter....")
-			return true
-		})
-		handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
-			cherryLogger.Infof("test after filter....")
-			return true
-		})
-
-		//add TestHandler
-		handlers.Register(mocks.NewTestHandler())
-
-		return handlers
-	}()
+	handlers := cherryHandler.NewComponent()
+	handlers.SetNameFunc(strings.ToLower)
+	handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
+		cherryLogger.Infof("test before filter....")
+		return true
+	})
+	handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
+		cherryLogger.Infof("test after filter....")
+		return true
+	})
+	//add TestHandler
+	handlers.Register(mocks.NewTestHandler())
 
 	testApp.Startup(
-		handlerComponent,
+		handlers,
 		cherryComponents.NewQueue(),
 	)
 
-	go mockRequestMsg1(handlerComponent)
-	go mockRequestMsg2(handlerComponent)
-	go mockEventMsg(handlerComponent)
+	go mockRequestMsg1(handlers)
+	go mockRequestMsg2(handlers)
+	go mockEventMsg(handlers)
 }
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
