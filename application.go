@@ -2,7 +2,6 @@ package cherry
 
 import (
 	"github.com/cherry-game/cherry/cluster"
-	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/utils"
@@ -13,13 +12,12 @@ import (
 
 // Application
 type Application struct {
-	nodeId           string                          // current node id
-	nodeType         string                          // current node type
-	startTime        int64                           // application start time
-	running          bool                            // is running
-	die              chan bool                       // wait for end application
-	components       []cherryInterfaces.IComponent   // all components
-	handlerComponent *cherryHandler.HandlerComponent // handler component
+	nodeId     string                        // current node id
+	nodeType   string                        // current node type
+	startTime  int64                         // application start time
+	running    bool                          // is running
+	die        chan bool                     // wait for end application
+	components []cherryInterfaces.IComponent // all components
 }
 
 func (a *Application) NodeId() string {
@@ -70,11 +68,6 @@ func (a *Application) Remove(name string) cherryInterfaces.IComponent {
 
 func (a *Application) All() []cherryInterfaces.IComponent {
 	return a.components
-}
-
-//PostEvent
-func (a *Application) PostEvent(e cherryInterfaces.IEvent) {
-	a.Handlers().PostEvent(e)
 }
 
 // Startup
@@ -163,17 +156,9 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 	}
 }
 
-func (a *Application) Handlers() *cherryHandler.HandlerComponent {
-	return a.handlerComponent
-}
-
 // filter(filter IHandlerfilter)  before after  这个过滤器可以放到Acceptor里去
 // globalFilter()  全局过滤器，也可以放Acceptor里去
 // rpcBefore()  rpc过滤器
-// beforeStopHook 服务器停止之前执行函数  BeforeStopHookFunction
-// AddServers
-// RemoveServers
-// ReplaceServers
 // addCrons
 // removeCrons
 // rpc UserRpc

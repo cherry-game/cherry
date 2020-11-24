@@ -35,50 +35,55 @@ func app(configPath, profileName, nodeId string) {
 		}
 	})
 
-	handlers := cherryHandler.NewComponent()
-	handlers.SetNameFunc(strings.ToLower)
+	handlerComponent := func() *cherryHandler.HandlerComponent {
+		handlers := cherryHandler.NewComponent()
 
-	handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Infof("test before filter....")
-		return true
-	})
+		handlers.SetNameFunc(strings.ToLower)
 
-	handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Infof("test after filter....")
-		return true
-	})
+		handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
+			cherryLogger.Infof("test before filter....")
+			return true
+		})
+		handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
+			cherryLogger.Infof("test after filter....")
+			return true
+		})
 
-	//add TestHandler
-	handlers.Register(mocks.NewTestHandler())
+		//add TestHandler
+		handlers.Register(mocks.NewTestHandler())
+
+		return handlers
+	}()
 
 	testApp.Startup(
+		handlerComponent,
 		cherryComponents.NewQueue(),
 	)
 
-	go mockRequestMsg1(testApp)
-	go mockRequestMsg2(testApp)
-	go mockEventMsg(testApp)
+	go mockRequestMsg1(handlerComponent)
+	go mockRequestMsg2(handlerComponent)
+	go mockEventMsg(handlerComponent)
 }
 
-func mockRequestMsg1(app *cherry.Application) {
+func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryNet.NewByName("web.testHandler.test11111")
-		app.Handlers().InHandle(route, &cherrySession.Session{}, nil)
+		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}
 }
 
-func mockRequestMsg2(app *cherry.Application) {
+func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryNet.NewByName("web.testHandler.test222")
-		app.Handlers().InHandle(route, &cherrySession.Session{}, nil)
+		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}
 }
 
-func mockEventMsg(app *cherry.Application) {
+func mockEventMsg(handler *cherryHandler.HandlerComponent) {
 	for {
-		app.PostEvent(mocks.NewTestEvent())
+		handler.PostEvent(mocks.NewTestEvent())
 		time.Sleep(time.Millisecond * 5)
 	}
 }

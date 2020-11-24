@@ -39,9 +39,6 @@ type IApplication interface {
 	//All all components
 	All() []IComponent
 
-	//PostEvent
-	PostEvent(e IEvent)
-
 	//Startup
 	Startup(components ...IComponent)
 

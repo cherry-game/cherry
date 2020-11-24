@@ -1,6 +1,7 @@
 package cherryHandler
 
 import (
+	cherryConst "github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
@@ -21,6 +22,7 @@ type (
 		queueSize         uint                                    // size of each channel
 		workerHashFunc    func(msg interface{}) uint              // goroutine hash function
 		workerExecuteFunc cherryInterfaces.WorkerExecuteFunc      // worker execute function
+		handlerComponent  *HandlerComponent                       // handler component
 	}
 )
 
@@ -49,6 +51,8 @@ func (h *Handler) Init() {
 	//
 	//h.Worker = NewWorker(component, h)
 	//h.Worker.Start()
+
+	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
 }
 
 func (h *Handler) WorkerSize() uint {
@@ -163,7 +167,11 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 }
 
 func (h *Handler) PostEvent(e cherryInterfaces.IEvent) {
-	h.App().PostEvent(e)
+	if h.handlerComponent == nil {
+		cherryLogger.Warnf("not found HandlerComponent. event post fail. event = %s", e)
+		return
+	}
+	h.handlerComponent.PostEvent(e)
 }
 
 //RegisterEvent

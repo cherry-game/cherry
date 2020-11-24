@@ -16,3 +16,7 @@ type NodeListener interface {
 	Add(node cherryInterfaces.INode)
 	Remove(node cherryInterfaces.INode)
 }
+
+// AddServers
+// RemoveServers
+// ReplaceServers
