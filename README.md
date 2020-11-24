@@ -28,6 +28,7 @@ cherry game server engine for golang
 - tcp
 - websocket
 - kcp
+- http
 
 
 ### 数据配表
@@ -45,4 +46,5 @@ cherry game server engine for golang
 
 ### 自带组件
 - mysql db队列
+- nat消息队列
 
