@@ -6,12 +6,14 @@ import (
 )
 
 var (
-	Compression = &compression{}
-	Crypto      = &crypto{}
-	File        = &file{}
-	Reflect     = &reflection{}
-	Timer       = &timer{}
-	Strings     = &strings{}
+	Compress = &compress{}
+	Crypto   = &crypto{}
+	File     = &file{}
+	Reflect  = &reflection{}
+	Timer    = &timer{}
+	Strings  = &strings{}
+	Json     = &json{}
+	Net      = &net{}
 )
 
 func Error(text string) error {

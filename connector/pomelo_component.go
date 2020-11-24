@@ -248,7 +248,7 @@ func (p *PomeloComponent) initHandshakeData() {
 	}
 
 	if p.DataCompression {
-		compressedData, err := cherryUtils.Compression.DeflateData(data)
+		compressedData, err := cherryUtils.Compress.DeflateData(data)
 		if err != nil {
 			panic(err)
 		}

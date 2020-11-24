@@ -6,7 +6,7 @@ import (
 	"github.com/cherry-game/cherry/utils"
 )
 
-type DefaultComponent struct {
+type DataConfigComponent struct {
 	cherryInterfaces.BaseComponent
 
 	dataSource  IDataSource
@@ -15,15 +15,15 @@ type DefaultComponent struct {
 	serviceList []IConfigService
 }
 
-func NewComponent() *DefaultComponent {
-	return &DefaultComponent{}
+func NewComponent() *DataConfigComponent {
+	return &DataConfigComponent{}
 }
 
-func (d *DefaultComponent) Init() {
+func (d *DataConfigComponent) Init() {
 	d.initModels()
 }
 
-func (d *DefaultComponent) initModels() {
+func (d *DataConfigComponent) initModels() {
 	for _, model := range d.models {
 		bytes, err := d.dataSource.GetContent(model.FileName())
 		if err != nil {
@@ -37,7 +37,10 @@ func (d *DefaultComponent) initModels() {
 		}
 
 		var list []IConfigModel
-		d.dataParse.Parse(bytes, &list)
+		if err := d.dataParse.Parse(bytes, &list); err != nil {
+			cherryLogger.Errorf("data parse error. error = %s", err)
+			return
+		}
 
 		if len(list) < 1 {
 			cherryLogger.Errorf("fileName=%s parse to list is empty.", model.FileName())
@@ -51,27 +54,27 @@ func (d *DefaultComponent) initModels() {
 	}
 }
 
-func (d *DefaultComponent) GetFirst(index *IndexObject, params ...interface{}) interface{} {
+func (d *DataConfigComponent) GetFirst(index *IndexObject, params ...interface{}) interface{} {
 	return nil
 }
 
-func (d *DefaultComponent) GetList(tableName string) interface{} {
+func (d *DataConfigComponent) GetList(tableName string) interface{} {
 	return nil
 }
 
-func (d *DefaultComponent) GetIndexList(index *IndexObject, params ...interface{}) interface{} {
+func (d *DataConfigComponent) GetIndexList(index *IndexObject, params ...interface{}) interface{} {
 	return nil
 }
 
-func (d *DefaultComponent) Reload(fileName string, text []byte) error {
+func (d *DataConfigComponent) Reload(fileName string, text []byte) error {
 	return nil
 }
 
-func (d *DefaultComponent) CheckFileName(fileNames string, text []byte) error {
+func (d *DataConfigComponent) CheckFileName(fileNames string, text []byte) error {
 	return nil
 }
 
-func (d *DefaultComponent) RegisterModel(models ...IConfigModel) error {
+func (d *DataConfigComponent) RegisterModel(models ...IConfigModel) error {
 	for _, model := range models {
 
 		if len(model.FileName()) < 1 {
@@ -87,6 +90,6 @@ func (d *DefaultComponent) RegisterModel(models ...IConfigModel) error {
 	return nil
 }
 
-func (d *DefaultComponent) RegisterService(service IConfigService) {
+func (d *DataConfigComponent) RegisterService(service IConfigService) {
 	d.serviceList = append(d.serviceList, service)
 }
