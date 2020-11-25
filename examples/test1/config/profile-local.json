@@ -29,19 +29,6 @@
         }
       }
     ],
-    "center": [
-      {
-        "nodeId": "center-1",
-        "address": "10830",
-        "rpcAddress": "127.0.0.1:20830",
-        "__settings__": {
-          "maintainState": 2,
-          "dbs": [
-            "center_db"
-          ]
-        }
-      }
-    ],
     "game": [
       {
         "nodeId": "game-1",

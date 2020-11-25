@@ -1,0 +1,12 @@
+{
+  "debug": true,
+  "logger": {
+    "path": "logs/",
+    "suffix": ".log",
+    "level": "debug",
+    "isWriteFile": false,
+    "maxAge": 7,
+    "rotationHour": 1,
+    "timeFormat": "15:04:05.000"
+  }
+}

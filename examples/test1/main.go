@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	app(cherry.GetDefaultValue())
+	app(cherry.DefaultAppParameters())
 }
 
 func app(configPath, profileName, nodeId string) {

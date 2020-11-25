@@ -9,16 +9,16 @@ import (
 	"time"
 )
 
-func GetDefaultValue() (configPath, profile, nodeId string) {
+func DefaultAppParameters() (configPath, profile, nodeId string) {
 	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
 	flag.StringVar(&profile, "profile", "local", "-profile=local")
-	flag.StringVar(&nodeId, "node", "web-1", "-node=web-1")
+	flag.StringVar(&nodeId, "node", "game-1", "-node=game-1")
 	flag.Parse()
 	return configPath, profile, nodeId
 }
 
 func DefaultApp() *Application {
-	return NewApp(GetDefaultValue())
+	return NewApp(DefaultAppParameters())
 }
 
 // NewApp create new application instance
