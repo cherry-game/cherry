@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/components"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/db"
 	"github.com/cherry-game/cherry/examples/test1/mocks"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
@@ -19,7 +19,7 @@ func main() {
 }
 
 func app(configPath, profileName, nodeId string) {
-	testApp := cherry.CreateApp(configPath, profileName, nodeId)
+	testApp := cherry.NewApp(configPath, profileName, nodeId)
 
 	defer testApp.Shutdown(func() {
 		c := testApp.Find(cherryConst.HandlerComponent)

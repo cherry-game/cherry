@@ -33,13 +33,13 @@ func Config() jsoniter.Any {
 	return config
 }
 
-func Init(configPath, profileName string) error {
+func Init(configPath, env string) error {
 	if configPath == "" {
 		return cherryUtils.Error("configPath parameter is null.")
 	}
 
-	if profileName == "" {
-		return cherryUtils.Error("profileName parameter is null.")
+	if env == "" {
+		return cherryUtils.Error("env parameter is null.")
 	}
 
 	judgeDir, ok := judgeConfigPath(configPath)
@@ -47,7 +47,7 @@ func Init(configPath, profileName string) error {
 		return cherryUtils.ErrorFormat("configPath = %s not found.", configPath)
 	}
 
-	profileFilePath := path.Join(judgeDir, fmt.Sprintf(cherryConst.ProfileFileName, profileName))
+	profileFilePath := path.Join(judgeDir, fmt.Sprintf(cherryConst.ProfileFileName, env))
 	_, err := os.Stat(profileFilePath)
 	if err != nil {
 		return err
@@ -58,7 +58,7 @@ func Init(configPath, profileName string) error {
 		return err
 	}
 
-	name = profileName
+	name = env
 	configDir = judgeDir
 	config = jsoniter.Get(bytes)
 	debug = config.Get("debug").ToBool()

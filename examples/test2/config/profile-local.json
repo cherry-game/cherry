@@ -1,0 +1,103 @@
+{
+  "debug": true,
+  "logger": {
+    "path": "logs/",
+    "suffix": ".log",
+    "level": "debug",
+    "isWriteFile": false,
+    "maxAge": 7,
+    "rotationHour": 1,
+    "timeFormat" : "15:04:05.000"
+  },
+  "cluster": {
+    "mode": "nodes",
+    "nodes": {
+
+    },
+    "etcd": {
+
+    }
+  },
+  "nodes": {
+    "web": [
+      {
+        "nodeId": "web-1",
+        "address": ":10820",
+        "rpcAddress": "127.0.0.1:20820",
+        "__settings__": {
+          "maintainState": 2
+        }
+      }
+    ],
+    "center": [
+      {
+        "nodeId": "center-1",
+        "address": "10830",
+        "rpcAddress": "127.0.0.1:20830",
+        "__settings__": {
+          "maintainState": 2,
+          "dbs": [
+            "center_db"
+          ]
+        }
+      }
+    ],
+    "game": [
+      {
+        "nodeId": "game-1",
+        "address": ":10860",
+        "rpcAddress": "127.0.0.1:20860",
+        "__settings__": {
+          "maintainState": 2,
+          "dbs": [
+            "x_game-1"
+          ],
+          "lackConfigFileIsExit": false
+        }
+      }
+    ]
+  },
+  "dataConfig": {
+    "dataSource": "file",
+    "file": {
+      "filePath": "/dataconfig",
+      "reloadFlushTime": 3000
+    },
+    "redis": {
+      "redisKey": "config:server:xgame"
+    }
+  },
+  "dbQueue": {
+    "dbPoolSize": "4",
+    "tableSubmitFrequency": "1000",
+    "tableSubmitNum": "200",
+    "shutdownTableSubmitFrequency": "1000",
+    "shutdownTableSubmitNum": "200"
+  },
+  "db": [
+    {
+      "enable": true,
+      "groupId": "center_db",
+      "id": "center_db",
+      "dbName": "dev_xgame_center",
+      "host": "192.168.1.20",
+      "userName": "gameserver",
+      "password": "password",
+      "maxIdleConnect": 4,
+      "maxOpenConnect": 8,
+      "logMode": true
+    },
+    {
+      "enable": true,
+      "groupId": "game_db",
+      "id": "game_db_1",
+      "dbName": "game_db_1",
+      "host": "192.168.1.20",
+      "userName": "gameserver",
+      "password": "password",
+      "maxIdleConnect": 4,
+      "maxOpenConnect": 8,
+      "logMode": true
+    }
+  ]
+}

@@ -23,7 +23,7 @@ type SimpleComponent struct {
 }
 
 func (t *SimpleComponent) Name() string {
-	return "connector.simple"
+	return "connector_simple_component"
 }
 
 func (t *SimpleComponent) Init() {

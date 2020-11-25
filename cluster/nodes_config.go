@@ -10,11 +10,9 @@ import (
 
 var (
 	nodesConfig = newNodesConfig() //nodesConfig config
-
 )
 
 type (
-
 	// {key:nodeType,value:{key:nodeId,value:NodeConfig}}
 	NodeMap map[string]map[string]cherryInterfaces.INode
 )

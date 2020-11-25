@@ -130,7 +130,7 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 			//set running flag
 			a.running = false
 
-			cherryLogger.Infof("------- [nodeId = %s] application is stopping... -------", a.NodeId())
+			cherryLogger.Infof("------- [nodeId = %s] application is shutting... -------", a.NodeId())
 
 			if beforeStopHook != nil {
 				for _, f := range beforeStopHook {
@@ -149,7 +149,7 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 				cherryLogger.Debugf("[component = %s] executed Stop().", a.components[i].Name())
 			}
 
-			cherryLogger.Infof("------- [nodeId = %s] application is stopped... -------", a.NodeId())
+			cherryLogger.Infof("------- [nodeId = %s] application is shutdown... -------", a.NodeId())
 
 			close(a.die)
 		}
