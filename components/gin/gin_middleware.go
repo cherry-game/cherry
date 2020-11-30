@@ -1,5 +1,5 @@
 //from https://github.com/gin-contrib/zap/
-package cherryGin
+package cherryComponentsGin
 
 import (
 	"github.com/gin-gonic/gin"

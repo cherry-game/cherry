@@ -1,4 +1,4 @@
-package cherryComponents
+package cherryComponentsOrm
 
 import (
 	"fmt"

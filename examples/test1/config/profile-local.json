@@ -4,87 +4,85 @@
     "path": "logs/",
     "suffix": ".log",
     "level": "debug",
-    "isWriteFile": false,
-    "maxAge": 7,
-    "rotationHour": 1,
-    "timeFormat" : "15:04:05.000"
+    "is_write_file": false,
+    "max_age": 7,
+    "rotation_hour": 1,
+    "time_format": "15:04:05.000"
   },
   "cluster": {
     "mode": "nodes",
     "nodes": {
-
+      "web": [
+        {
+          "enable": true,
+          "node_id": "web-1",
+          "address": ":10820",
+          "rpc_address": "127.0.0.1:20820",
+          "__settings__": {
+            "maintain_state": 2
+          }
+        }
+      ],
+      "game": [
+        {
+          "enable": true,
+          "node_id": "game-1",
+          "address": ":10860",
+          "rpc_address": "127.0.0.1:20860",
+          "__settings__": {
+            "maintain_state": 2,
+            "dbs": [
+              "x_game-1"
+            ],
+            "lack_config_files_is_exit": false
+          }
+        }
+      ]
     },
     "etcd": {
-
     }
   },
-  "nodes": {
-    "web": [
-      {
-        "nodeId": "web-1",
-        "address": ":10820",
-        "rpcAddress": "127.0.0.1:20820",
-        "__settings__": {
-          "maintainState": 2
-        }
-      }
-    ],
-    "game": [
-      {
-        "nodeId": "game-1",
-        "address": ":10860",
-        "rpcAddress": "127.0.0.1:20860",
-        "__settings__": {
-          "maintainState": 2,
-          "dbs": [
-            "x_game-1"
-          ],
-          "lackConfigFileIsExit": false
-        }
-      }
-    ]
-  },
-  "dataConfig": {
-    "dataSource": "file",
+  "data_config": {
+    "data_source": "file",
     "file": {
-      "filePath": "/dataconfig",
-      "reloadFlushTime": 3000
+      "file_path": "/dataconfig",
+      "reload_flush_time": 3000
     },
     "redis": {
-      "redisKey": "config:server:xgame"
+      "redis_key": "config:server:xgame"
     }
   },
-  "dbQueue": {
-    "dbPoolSize": "4",
-    "tableSubmitFrequency": "1000",
-    "tableSubmitNum": "200",
-    "shutdownTableSubmitFrequency": "1000",
-    "shutdownTableSubmitNum": "200"
+  "db_queue": {
+    "db_pool_size": "4",
+    "table_submit_frequency": "1000",
+    "table_submit_num": "200",
+    "shutdown_table_submit_frequency": "1000",
+    "shutdown_table_submit_num": "200"
   },
   "db": [
     {
       "enable": true,
-      "groupId": "center_db",
+      "group_id": "center_db",
       "id": "center_db",
-      "dbName": "dev_xgame_center",
+      "db_name": "dev_xgame_center",
       "host": "192.168.1.20",
-      "userName": "gameserver",
+      "user_name": "gameserver",
       "password": "password",
-      "maxIdleConnect": 4,
-      "maxOpenConnect": 8,
-      "logMode": true
+      "max_idle_connect": 4,
+      "max_open_connect": 8,
+      "log_mode": true
     },
     {
       "enable": true,
-      "groupId": "game_db",
+      "group_id": "game_db",
       "id": "game_db_1",
-      "dbName": "game_db_1",
+      "db_name": "game_db_1",
       "host": "192.168.1.20",
-      "userName": "gameserver",
+      "user_name": "gameserver",
       "password": "password",
-      "maxIdleConnect": 4,
-      "maxOpenConnect": 8,
-      "logMode": true
+      "max_idle_connect": 4,
+      "max_open_connect": 8,
+      "log_mode": true
     }
   ]
 }

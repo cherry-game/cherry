@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"io"
-	p "path"
+	goPath "path"
 	"strings"
 	"time"
 )
@@ -48,20 +48,20 @@ func SetLogger(cfg json.Any) {
 			level = logConfig.Get("level").ToString()
 		}
 
-		if logConfig.Get("isWriteFile") != nil {
-			isWriteFile = logConfig.Get("isWriteFile").ToBool()
+		if logConfig.Get("is_write_file") != nil {
+			isWriteFile = logConfig.Get("is_write_file").ToBool()
 		}
 
-		if logConfig.Get("maxAge") != nil {
-			maxAge = logConfig.Get("maxAge").ToInt()
+		if logConfig.Get("max_age") != nil {
+			maxAge = logConfig.Get("max_age").ToInt()
 		}
 
-		if logConfig.Get("rotationHour") != nil {
-			rotationHour = logConfig.Get("rotationHour").ToInt()
+		if logConfig.Get("rotation_hour") != nil {
+			rotationHour = logConfig.Get("rotation_hour").ToInt()
 		}
 
-		if logConfig.Get("timeFormat") != nil {
-			timeFormat = logConfig.Get("timeFormat").ToString()
+		if logConfig.Get("time_format") != nil {
+			timeFormat = logConfig.Get("time_format").ToString()
 		}
 	}
 
@@ -116,7 +116,7 @@ func EncodeTime(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 }
 
 func GetWriter(filePath, fileName string, maxAge, rotationHour int) io.Writer {
-	f := p.Join(filePath, fileName)
+	f := goPath.Join(filePath, fileName)
 	hook, err := rotateLogs.New(
 		f+".%Y%m%d%H%M",
 		rotateLogs.WithLinkName(f),

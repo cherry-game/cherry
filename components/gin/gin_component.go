@@ -1,4 +1,4 @@
-package cherryGin
+package cherryComponentsGin
 
 import (
 	"context"
@@ -14,7 +14,7 @@ func init() {
 	gin.SetMode(gin.ReleaseMode)
 }
 
-type GinHttpComponentOptions struct {
+type GinComponentOptions struct {
 	name              string        // component name
 	ReadTimeout       time.Duration // http server parameter
 	ReadHeaderTimeout time.Duration
@@ -23,8 +23,8 @@ type GinHttpComponentOptions struct {
 	MaxHeaderBytes    int
 }
 
-// GinHttpComponent wrapper gin
-type GinHttpComponent struct {
+// GinComponent wrapper gin
+type GinComponent struct {
 	cherryInterfaces.BaseComponent
 	*gin.Engine
 	server   *http.Server
@@ -34,8 +34,8 @@ type GinHttpComponent struct {
 	keyFile  string
 }
 
-func New(name string) *GinHttpComponent {
-	component := NewWithOptions(GinHttpComponentOptions{
+func New(name string) *GinComponent {
+	component := NewWithOptions(GinComponentOptions{
 		name:         name,
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
@@ -52,8 +52,8 @@ func New(name string) *GinHttpComponent {
 	return component
 }
 
-func NewWithOptions(options GinHttpComponentOptions) *GinHttpComponent {
-	return &GinHttpComponent{
+func NewWithOptions(options GinComponentOptions) *GinComponent {
+	return &GinComponent{
 		Engine: gin.New(),
 		name:   options.name,
 		server: &http.Server{
@@ -66,16 +66,16 @@ func NewWithOptions(options GinHttpComponentOptions) *GinHttpComponent {
 	}
 }
 
-func (g *GinHttpComponent) Run(addr string) {
+func (g *GinComponent) Run(addr string) {
 	g.addr = addr
 }
 
 // Name unique components name
-func (g *GinHttpComponent) Name() string {
+func (g *GinComponent) Name() string {
 	return g.name
 }
 
-func (g *GinHttpComponent) Init() {
+func (g *GinComponent) Init() {
 	if g.addr == "" {
 		cherryLogger.Infof("[%s] no set addr value.", g.name)
 		return
@@ -102,15 +102,15 @@ func (g *GinHttpComponent) Init() {
 	}()
 }
 
-func (g *GinHttpComponent) AfterInit() {
+func (g *GinComponent) AfterInit() {
 
 }
 
-func (g *GinHttpComponent) BeforeStop() {
+func (g *GinComponent) BeforeStop() {
 
 }
 
-func (g *GinHttpComponent) Stop() {
+func (g *GinComponent) Stop() {
 	err := g.server.Shutdown(context.Background())
 	cherryLogger.Infof("[%s] shutdown gin http component on %s", g.name, g.addr)
 
@@ -119,20 +119,20 @@ func (g *GinHttpComponent) Stop() {
 	}
 }
 
-func (g *GinHttpComponent) RunTLS(addr, certFile, keyFile string) {
+func (g *GinComponent) RunTLS(addr, certFile, keyFile string) {
 	g.addr = addr
 	g.certFile = certFile
 	g.keyFile = keyFile
 }
 
-func (g *GinHttpComponent) RunUnix(file string) {
+func (g *GinComponent) RunUnix(file string) {
 	cherryLogger.Panicf("[%s] not implemented. file = %s", g.name, file)
 }
 
-func (g *GinHttpComponent) RunFd(fd int) {
+func (g *GinComponent) RunFd(fd int) {
 	cherryLogger.Panicf("[%s] not implemented. fd = %d", g.name, fd)
 }
 
-func (g *GinHttpComponent) RunListener(listener net.Listener) {
+func (g *GinComponent) RunListener(listener net.Listener) {
 	cherryLogger.Panicf("[%s] not implemented. listener = %s", g.name, listener)
 }

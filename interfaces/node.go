@@ -7,5 +7,5 @@ type INode interface {
 	Address() string
 	RpcAddress() string
 	Settings() jsoniter.Any
-	IsDisabled() bool
+	Enabled() bool
 }

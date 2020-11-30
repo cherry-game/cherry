@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
+	cherryQueue "github.com/cherry-game/cherry/components/queue"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/db"
 	"github.com/cherry-game/cherry/examples/test1/mocks"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
@@ -43,7 +43,7 @@ func app(configPath, profileName, nodeId string) {
 
 	testApp.Startup(
 		handlers,
-		cherryComponents.NewQueue(),
+		cherryQueue.NewQueue(),
 	)
 
 	go mockRequestMsg1(handlers)
@@ -53,7 +53,7 @@ func app(configPath, profileName, nodeId string) {
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	for {
-		route := cherryNet.NewByName("web.testHandler.test11111")
+		route := cherryNet.NewByName("game.testHandler.test11111")
 		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}
@@ -61,7 +61,7 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 
 func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	for {
-		route := cherryNet.NewByName("web.testHandler.test222")
+		route := cherryNet.NewByName("game.testHandler.test222")
 		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}

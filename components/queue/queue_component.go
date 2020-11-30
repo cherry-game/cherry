@@ -1,4 +1,4 @@
-package cherryComponents
+package cherryComponentsQueue
 
 import (
 	"github.com/cherry-game/cherry/const"
