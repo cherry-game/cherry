@@ -9,8 +9,6 @@ import (
 
 // websocket client http://www.websocket-test.com/
 func TestNewWSConnector(t *testing.T) {
-	cherryLogger.DefaultSet()
-
 	connector := NewWSConnector(":9071")
 
 	connector.OnConnect(func(conn net.Conn) {

@@ -7,8 +7,6 @@ import (
 )
 
 func main() {
-	cherryLogger.DefaultSet()
-
 	t := cherryTimer.NewTimer(func() {
 		//time.Sleep(time.Second * 3)
 		cherryLogger.Infof("execute func....")

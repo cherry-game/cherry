@@ -5,9 +5,6 @@ import (
 )
 
 func main() {
-
-	cherryLogger.DefaultSet()
-
 	cherryLogger.Debugf("aaaaaaaaaaaaaa %s", "aaaaa args.......")
 
 	cherryLogger.Infow("failed to fetch URL.", "url", "http://example.com")

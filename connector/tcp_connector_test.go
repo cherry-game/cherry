@@ -8,8 +8,6 @@ import (
 )
 
 func TestNewTCPConnector(t *testing.T) {
-	cherryLogger.DefaultSet()
-
 	connector := NewTCPConnector(":9071")
 
 	connector.OnConnect(func(conn net.Conn) {

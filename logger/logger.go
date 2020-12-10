@@ -13,8 +13,6 @@ import (
 )
 
 var (
-	logger *zap.SugaredLogger
-
 	path         = "log/"
 	suffix       = ".log"
 	level        = "debug"
@@ -22,14 +20,16 @@ var (
 	maxAge       = 7 //day
 	rotationHour = 1
 	timeFormat   = "2006-01-02 15:04:05.000"
+
+	logger = initLogger()
 )
 
 func Logger() *zap.SugaredLogger {
 	return logger
 }
 
-func DefaultSet() {
-	logger = NewConsoleLogger(zapcore.DebugLevel, zap.AddCallerSkip(1))
+func initLogger() *zap.SugaredLogger {
+	return NewConsoleLogger(zapcore.DebugLevel, zap.AddCallerSkip(1))
 }
 
 func SetLogger(cfg json.Any) {
