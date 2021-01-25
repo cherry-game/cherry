@@ -12,7 +12,7 @@ func main() {
 	testApp := cherry.DefaultApp()
 	defer testApp.Shutdown()
 
-	httpServer := cherryComponentsGin.New("http_server_1")
+	httpServer := cherryGin.New("http_server_1")
 	httpServer.GET("/", func(c *gin.Context) {
 		c.String(http.StatusOK, "this is index...")
 	})

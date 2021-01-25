@@ -9,21 +9,19 @@ import (
 	"time"
 )
 
-func DefaultAppParameters() (configPath, profile, nodeId string) {
+func DefaultApp() *Application {
+	var configPath, profile, nodeId string
 	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
 	flag.StringVar(&profile, "profile", "local", "-profile=local")
 	flag.StringVar(&nodeId, "node", "game-1", "-node=game-1")
 	flag.Parse()
-	return configPath, profile, nodeId
-}
 
-func DefaultApp() *Application {
-	return NewApp(DefaultAppParameters())
+	return NewApp(configPath, profile, nodeId)
 }
 
 // NewApp create new application instance
-func NewApp(configPath, profileEnv, nodeId string) *Application {
-	err := cherryProfile.Init(configPath, profileEnv)
+func NewApp(configPath, profile, nodeId string) *Application {
+	err := cherryProfile.Init(configPath, profile)
 	if err != nil {
 		panic(err)
 	}

@@ -1,4 +1,4 @@
-package cherryComponentsGin
+package cherryGin
 
 import (
 	cherryInterfaces "github.com/cherry-game/cherry/interfaces"

@@ -1,4 +1,4 @@
-package cherryComponentsGin
+package cherryGin
 
 import (
 	"context"

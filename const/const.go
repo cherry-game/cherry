@@ -7,10 +7,11 @@ import (
 
 // component name
 const (
-	HandlerComponent = "handler_component"
-	SessionComponent = "session_component"
-	ORMComponent     = "db_orm_component"
-	QueueComponent   = "db_queue_component"
+	HandlerComponent   = "handler_component"
+	SessionComponent   = "session_component"
+	ORMComponent       = "db_orm_component"
+	QueueComponent     = "db_queue_component"
+	SnowflakeComponent = "snow_flake_component"
 )
 
 const (

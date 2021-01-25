@@ -24,3 +24,7 @@ func (s *strings) CutLastString(text, beginChar, endChar string) string {
 
 	return string(textRune[beginIndex+1 : endIndex])
 }
+
+func (s *strings) IsBlank(value string) bool {
+	return value == ""
+}
