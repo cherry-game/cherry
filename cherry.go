@@ -2,9 +2,9 @@ package cherry
 
 import (
 	"flag"
-	"github.com/cherry-game/cherry/cluster"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/cluster"
 	"github.com/cherry-game/cherry/profile"
 	"time"
 )

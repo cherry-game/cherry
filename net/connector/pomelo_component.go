@@ -80,7 +80,7 @@ func NewPomeloWithOpts(opts PomeloComponentOptions) *PomeloComponent {
 }
 
 func (p *PomeloComponent) Name() string {
-	return "connector_pomelo_component"
+	return cherryConst.ConnectorPomeloComponent
 }
 
 func (p *PomeloComponent) Init() {

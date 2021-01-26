@@ -19,7 +19,7 @@ type WebSocketConnector struct {
 	onConnectListener cherryInterfaces.IConnectListener
 }
 
-func NewWSConnector(address string) *WebSocketConnector {
+func NewWebSocketConnector(address string) *WebSocketConnector {
 	if address == "" {
 		cherryLogger.Warn("create websocket fail. address is null.")
 		return nil
