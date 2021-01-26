@@ -74,7 +74,10 @@ func (w *WebSocketConnector) Start() {
 
 	defer w.Stop()
 
-	http.Serve(w.listener, w)
+	err = http.Serve(w.listener, w)
+	if err != nil {
+		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
+	}
 }
 
 func (w *WebSocketConnector) OnConnect(listener cherryInterfaces.IConnectListener) {

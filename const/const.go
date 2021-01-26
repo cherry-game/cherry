@@ -35,7 +35,7 @@ var versionInfo = `game sever framework@v%s
 `
 
 func PrintVersion() {
-	cherryLogger.Info(logo, fmt.Sprintf(versionInfo, version))
+	cherryLogger.Info(logo, fmt.Sprintf(versionInfo, Version()))
 }
 
 func Version() string {

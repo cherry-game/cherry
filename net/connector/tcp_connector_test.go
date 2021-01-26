@@ -18,7 +18,10 @@ func TestNewTCPConnector(t *testing.T) {
 		session.OnMessage(func(bytes []byte) (err error) {
 			cherryLogger.Infof("session id=%d bytes=[%s]", session.SID(), bytes)
 
-			session.Send(bytes)
+			err = session.Send(bytes)
+			if err != nil {
+				return err
+			}
 
 			if len(bytes) == 1 && bytes[0] == 3 {
 				session.Closed()
