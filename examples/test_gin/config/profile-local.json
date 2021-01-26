@@ -17,7 +17,7 @@
           "enable": true,
           "node_id": "web-1",
           "address": ":10820",
-          "rpc_address": "127.0.0.1:20820",
+          "rpc_address": ":20820",
           "__settings__": {
             "maintain_state": 2
           }

@@ -27,22 +27,23 @@ cherry game server engine for golang
 ### 网络协议
 - tcp
 - websocket
+- http server
+- http client
 - kcp
-- http
 
 
 ### 数据配表
 - 本地加载配表
-- redis加载配表
+- 第三方数据源加载配表(redis)
 - 热更新配表
 - 类型检测
-- 条件查询
+- 条件查询(go-linq)
 
 
 ### 集群
 - 配置方式加载结点
 - etcd方式加载&更新结点
-- rpc
+- grpc
 
 ### 自带组件
 - mysql db队列
