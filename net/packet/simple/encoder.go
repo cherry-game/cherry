@@ -1,4 +1,4 @@
-package cherrySimplePacket
+package cherryPacketSimple
 
 type Encoder struct {
 }

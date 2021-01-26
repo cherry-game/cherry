@@ -1,9 +1,9 @@
 package cherryDataConfig
 
 import (
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/utils"
 )
 
 type DataConfigComponent struct {

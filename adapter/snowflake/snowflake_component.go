@@ -1,15 +1,14 @@
 package cherrySnowflake
 
 import (
-	cherryConst "github.com/cherry-game/cherry/const"
-	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/utils/snowflake"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/logger"
 )
 
 type SnowFlakeComponent struct {
 	cherryInterfaces.BaseComponent
-	snowflake *snowflake.Node
+	snowflake *Node
 }
 
 func (s *SnowFlakeComponent) Name() string {
@@ -20,7 +19,7 @@ func New(node int64) *SnowFlakeComponent {
 	c := &SnowFlakeComponent{}
 
 	var err error
-	c.snowflake, err = snowflake.NewNode(node)
+	c.snowflake, err = NewNode(node)
 	if err != nil {
 		cherryLogger.Warnf("create snowflake component fail. node=%d", node)
 		panic(err)

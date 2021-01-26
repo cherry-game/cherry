@@ -1,21 +1,21 @@
-package cherryPomeloPacket
+package cherryPacketPomelo
 
 import (
 	"errors"
 )
 
 const (
-	INITED = iota
-	WAIT_ACK
-	WORKING
-	CLOSED
+	Inited = iota
+	WaitAck
+	Working
+	Closed
 )
 
 var SessionStatus = map[int]string{
-	INITED:   "inited",
-	WAIT_ACK: "wait_ack",
-	WORKING:  "working",
-	CLOSED:   "closed",
+	Inited:  "inited",
+	WaitAck: "wait_ack",
+	Working: "working",
+	Closed:  "closed",
 }
 
 const (

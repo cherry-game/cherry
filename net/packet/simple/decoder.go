@@ -1,4 +1,4 @@
-package cherrySimplePacket
+package cherryPacketSimple
 
 import (
 	"github.com/cherry-game/cherry/interfaces"

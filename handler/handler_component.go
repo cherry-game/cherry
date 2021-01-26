@@ -2,11 +2,11 @@ package cherryHandler
 
 import (
 	"github.com/cherry-game/cherry/const"
+	cherryUtils "github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net"
 	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/net/route"
 	"reflect"
 	"strings"
 )
@@ -28,8 +28,8 @@ type (
 
 	UnhandledMessage struct {
 		Session cherryInterfaces.ISession
-		Route   *cherryNet.Route
-		Msg     *cherryNetMessage.Message
+		Route   *cherryRoute.Route
+		Msg     *cherryMessage.Message
 	}
 
 	FilterFunc func(msg UnhandledMessage) bool
@@ -127,7 +127,7 @@ func convert2Handler(handler cherryInterfaces.IHandler) *Handler {
 	return nil
 }
 
-func (h *HandlerComponent) InHandle(route *cherryNet.Route, session cherryInterfaces.ISession, message *cherryNetMessage.Message) {
+func (h *HandlerComponent) InHandle(route *cherryRoute.Route, session cherryInterfaces.ISession, message *cherryMessage.Message) {
 	if route.NodeType() != h.App().NodeType() {
 		return
 	}
@@ -152,7 +152,7 @@ func (h *HandlerComponent) InHandle(route *cherryNet.Route, session cherryInterf
 	worker.PutMessage(msg)
 }
 
-func (h *HandlerComponent) GetWorker(route *cherryNet.Route) *Worker {
+func (h *HandlerComponent) GetWorker(route *cherryRoute.Route) *Worker {
 	worker := h.workers[h.nameFunc(route.HandlerName())]
 	if worker == nil {
 		cherryLogger.Warnf("could not find handle worker for Route = %h", route)

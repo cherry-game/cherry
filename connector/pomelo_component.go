@@ -3,15 +3,16 @@ package cherryConnector
 import (
 	"encoding/json"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net"
 	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/pomelo_packet"
+	"github.com/cherry-game/cherry/net/packet/pomelo"
+	"github.com/cherry-game/cherry/net/route"
+	"github.com/cherry-game/cherry/net/serializer"
+	"github.com/cherry-game/cherry/net/session"
 	"github.com/cherry-game/cherry/profile"
-	"github.com/cherry-game/cherry/session"
-	"github.com/cherry-game/cherry/utils"
 	"net"
 )
 
@@ -52,9 +53,9 @@ type PomeloComponent struct {
 func NewPomelo() *PomeloComponent {
 	s := &PomeloComponent{
 		PomeloComponentOptions: PomeloComponentOptions{
-			PacketEncode:        cherryPomeloPacket.NewEncoder(),
-			PacketDecode:        cherryPomeloPacket.NewDecoder(),
-			Serializer:          cherryNet.NewJSON(),
+			PacketEncode:        cherryPacketPomelo.NewEncoder(),
+			PacketDecode:        cherryPacketPomelo.NewDecoder(),
+			Serializer:          cherrySerializer.NewJSON(),
 			BlackListFunc:       nil,
 			BlackList:           nil,
 			ForwardMessage:      false,
@@ -155,38 +156,38 @@ func (p *PomeloComponent) initSession(conn net.Conn) {
 
 func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *cherryInterfaces.Packet) error {
 	switch pkg.Type {
-	case cherryPomeloPacket.Handshake:
+	case cherryPacketPomelo.Handshake:
 		if err := session.Send(hrd); err != nil {
 			return err
 		}
-		session.SetStatus(cherryPomeloPacket.WAIT_ACK)
+		session.SetStatus(cherryPacketPomelo.WaitAck)
 
 		cherryLogger.Debugf("[Handshake] session=[%session]", session)
 
-	case cherryPomeloPacket.HandshakeAck:
-		if session.Status() != cherryPomeloPacket.WAIT_ACK {
+	case cherryPacketPomelo.HandshakeAck:
+		if session.Status() != cherryPacketPomelo.WaitAck {
 			cherryLogger.Warnf("[HandshakeAck] session=[%session]", session)
 			session.Closed()
 			return nil
 		}
 
-		session.SetStatus(cherryPomeloPacket.WORKING)
+		session.SetStatus(cherryPacketPomelo.Working)
 		if cherryProfile.Debug() {
 			cherryLogger.Debugf("[HandshakeAck] session=[%session]", session)
 		}
 
-	case cherryPomeloPacket.Data:
-		if session.Status() != cherryPomeloPacket.WORKING {
+	case cherryPacketPomelo.Data:
+		if session.Status() != cherryPacketPomelo.Working {
 			return cherryUtils.ErrorFormat("[Msg] status error. session=[%session]", session)
 		}
 
-		msg, err := cherryNetMessage.Decode(pkg.Data)
+		msg, err := cherryMessage.Decode(pkg.Data)
 		if err != nil {
 			p.handleMessage(session, msg)
 		}
 
-	case cherryPomeloPacket.Heartbeat:
-		d, err := p.PacketEncode.Encode(cherryPomeloPacket.Heartbeat, nil)
+	case cherryPacketPomelo.Heartbeat:
+		d, err := p.PacketEncode.Encode(cherryPacketPomelo.Heartbeat, nil)
 		if err != nil {
 			return err
 		}
@@ -199,8 +200,8 @@ func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *
 	return nil
 }
 
-func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *cherryNetMessage.Message) {
-	r, err := cherryNet.Decode(msg.Route)
+func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *cherryMessage.Message) {
+	r, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
 		cherryLogger.Warnf("failed to decode route:%s", err.Error())
 		return
@@ -238,7 +239,7 @@ func (p *PomeloComponent) initHandshakeData() {
 		"code": 200,
 		"sys": map[string]interface{}{
 			"heartbeat":   p.Heartbeat,
-			"dict":        cherryNetMessage.GetDictionary(),
+			"dict":        cherryMessage.GetDictionary(),
 			"ISerializer": "protobuf",
 		},
 	}
@@ -258,7 +259,7 @@ func (p *PomeloComponent) initHandshakeData() {
 		}
 	}
 
-	hrd, err = p.PacketEncode.Encode(cherryPomeloPacket.Handshake, data)
+	hrd, err = p.PacketEncode.Encode(cherryPacketPomelo.Handshake, data)
 	if err != nil {
 		panic(err)
 	}
@@ -266,7 +267,7 @@ func (p *PomeloComponent) initHandshakeData() {
 
 func (p *PomeloComponent) initHeartbeatData() {
 	var err error
-	hbd, err = p.PacketEncode.Encode(cherryPomeloPacket.Heartbeat, nil)
+	hbd, err = p.PacketEncode.Encode(cherryPacketPomelo.Heartbeat, nil)
 	if err != nil {
 		panic(err)
 	}

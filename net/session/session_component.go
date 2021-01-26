@@ -2,8 +2,8 @@ package cherrySession
 
 import (
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
-	"github.com/cherry-game/cherry/utils"
 	"net"
 	"sync/atomic"
 )

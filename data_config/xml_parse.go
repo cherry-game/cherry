@@ -1,7 +1,7 @@
 package cherryDataConfig
 
 import (
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 )
 
 type Xml struct {

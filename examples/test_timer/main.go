@@ -1,8 +1,8 @@
 package main
 
 import (
+	"github.com/cherry-game/cherry/extend/timer"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/timer"
 	"time"
 )
 

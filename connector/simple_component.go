@@ -3,7 +3,7 @@ package cherryConnector
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/interfaces"
-	"github.com/cherry-game/cherry/session"
+	"github.com/cherry-game/cherry/net/session"
 )
 
 type SimpleComponentOptions struct {

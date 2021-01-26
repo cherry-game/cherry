@@ -2,24 +2,24 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryQueue "github.com/cherry-game/cherry/components/queue"
+	"github.com/cherry-game/cherry/adapter/queue"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/examples/test1/mocks"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net"
-	"github.com/cherry-game/cherry/session"
+	"github.com/cherry-game/cherry/net/route"
+	"github.com/cherry-game/cherry/net/session"
 	"strings"
 	"time"
 )
 
 func main() {
 
-	app(cherry.DefaultAppParameters())
+	app()
 }
 
-func app(configPath, profileName, nodeId string) {
-	testApp := cherry.NewApp(configPath, profileName, nodeId)
+func app() {
+	testApp := cherry.DefaultApp()
 
 	defer testApp.Shutdown(func() {
 		c := testApp.Find(cherryConst.HandlerComponent)
@@ -53,7 +53,7 @@ func app(configPath, profileName, nodeId string) {
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	for {
-		route := cherryNet.NewByName("game.testHandler.test11111")
+		route := cherryRoute.NewByName("game.testHandler.test11111")
 		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}
@@ -61,7 +61,7 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 
 func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	for {
-		route := cherryNet.NewByName("game.testHandler.test222")
+		route := cherryRoute.NewByName("game.testHandler.test222")
 		handler.InHandle(route, &cherrySession.Session{}, nil)
 		time.Sleep(time.Millisecond * 5)
 	}

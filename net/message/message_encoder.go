@@ -1,8 +1,8 @@
-package cherryNetMessage
+package cherryMessage
 
 import (
 	"encoding/binary"
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 )
 
 // Encoder interface

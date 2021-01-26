@@ -12,7 +12,7 @@ import (
 type file struct {
 }
 
-func (file) IsDir(path string) bool {
+func (f *file) IsDir(path string) bool {
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
 		return true
@@ -20,7 +20,7 @@ func (file) IsDir(path string) bool {
 	return false
 }
 
-func (file) GetMainFuncDir() string {
+func (f *file) GetMainFuncDir() string {
 	var buf [2 << 16]byte
 	stack := string(buf[:runtime.Stack(buf[:], true)])
 
@@ -31,7 +31,7 @@ func (file) GetMainFuncDir() string {
 	return path
 }
 
-func (file) GetWorkPath() string {
+func (f *file) GetWorkPath() string {
 	p, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -39,7 +39,7 @@ func (file) GetWorkPath() string {
 	return p
 }
 
-func (file) CheckPath(path string) {
+func (f *file) CheckPath(path string) {
 	_, err := os.Stat(path)
 	if err != nil {
 		err = os.Mkdir(path, os.ModePerm)

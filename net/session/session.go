@@ -2,10 +2,10 @@ package cherrySession
 
 import (
 	"fmt"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/pomelo_packet"
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/net/packet/pomelo"
 	"net"
 	"sync/atomic"
 	"time"
@@ -204,7 +204,7 @@ func (s *Session) String() string {
 	return fmt.Sprintf("sid = %d, uid = %d, status=%s, address = %s, running = %v",
 		s.sid,
 		s.uid,
-		cherryPomeloPacket.SessionStatus[s.status],
+		cherryPacketPomelo.SessionStatus[s.status],
 		s.conn.RemoteAddr().String(),
 		s.running)
 }

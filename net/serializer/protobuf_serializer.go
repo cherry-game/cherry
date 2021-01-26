@@ -1,7 +1,7 @@
-package cherryNet
+package cherrySerializer
 
 import (
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/golang/protobuf/proto"
 )
 

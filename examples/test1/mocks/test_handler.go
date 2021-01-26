@@ -34,16 +34,16 @@ func (t *TestHandler) Init() {
 
 }
 
-func (t *TestHandler) testMethod1(session cherryInterfaces.ISession, message *cherryNetMessage.Message) {
+func (t *TestHandler) testMethod1(session cherryInterfaces.ISession, message *cherryMessage.Message) {
 	//CherryLogger.Info(session, message)
 	cherryLogger.Info("execute test_handler.go in testMethod1.")
 }
 
-func (t *TestHandler) testMethod2(session cherryInterfaces.ISession, message *cherryNetMessage.Message) {
+func (t *TestHandler) testMethod2(session cherryInterfaces.ISession, message *cherryMessage.Message) {
 	cherryLogger.Info(session, message)
 }
 
-func (t *TestHandler) testMethod(session cherryInterfaces.ISession, message *cherryNetMessage.Message) {
+func (t *TestHandler) testMethod(session cherryInterfaces.ISession, message *cherryMessage.Message) {
 	cherryLogger.Info(session, message)
 }
 

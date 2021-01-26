@@ -2,7 +2,7 @@ package cherryConnector
 
 import (
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/session"
+	"github.com/cherry-game/cherry/net/session"
 	"net"
 	"testing"
 )

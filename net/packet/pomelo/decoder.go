@@ -1,4 +1,4 @@
-package cherryPomeloPacket
+package cherryPacketPomelo
 
 import (
 	"bytes"

@@ -14,6 +14,7 @@ var (
 	Strings  = &strings{}
 	Json     = &json{}
 	Net      = &net{}
+	Slice    = &slice{}
 )
 
 func Error(text string) error {

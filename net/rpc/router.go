@@ -1,8 +1,8 @@
 package cherryRPC
 
 import (
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
-	"github.com/cherry-game/cherry/utils"
 	"hash/crc32"
 	"math"
 	"math/rand"

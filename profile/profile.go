@@ -3,7 +3,7 @@ package cherryProfile
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 	"os"

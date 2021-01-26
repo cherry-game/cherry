@@ -1,7 +1,7 @@
 package cherryGin
 
 import (
-	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 	"github.com/gin-gonic/gin"
 )
 

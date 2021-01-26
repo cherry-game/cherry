@@ -1,7 +1,7 @@
-package cherryNetMessage
+package cherryMessage
 
 import (
-	"github.com/cherry-game/cherry/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 )
 
 // Type represents the type of message, which could be Request/Notify/Response/Push

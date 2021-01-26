@@ -1,4 +1,4 @@
-package cherryNetMessage
+package cherryMessage
 
 import (
 	"fmt"

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/components/gin"
+	"github.com/cherry-game/cherry/adapter/gin"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

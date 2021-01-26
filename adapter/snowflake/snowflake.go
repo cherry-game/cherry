@@ -1,5 +1,5 @@
 // Package snowflake provides a very simple Twitter snowflake generator and parser.
-package snowflake
+package cherrySnowflake
 
 import (
 	"encoding/base64"
@@ -14,7 +14,7 @@ import (
 var (
 	// Epoch is set to the twitter snowflake epoch of Nov 04 2010 01:42:54 UTC in milliseconds
 	// You may customize this to set a different epoch for your application.
-	Epoch int64 =  1609430400000 // 2021-01-01 00:00:00
+	Epoch int64 = 1609430400000 // 2021-01-01 00:00:00
 	// 1579002621000 2020-01-14 19:50:21
 
 	// NodeBits holds the number of bits to use for Node
@@ -43,7 +43,9 @@ const encodeBase58Map = "123456789abcdefghijkmnopqrstuvwxyzABCDEFGHJKLMNPQRSTUVW
 var decodeBase58Map [256]byte
 
 // A JSONSyntaxError is returned from UnmarshalJSON if an invalid ID is provided.
-type JSONSyntaxError struct{ original []byte }
+type JSONSyntaxError struct {
+	original []byte
+}
 
 func (j JSONSyntaxError) Error() string {
 	return fmt.Sprintf("invalid snowflake ID %q", string(j.original))

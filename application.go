@@ -2,9 +2,9 @@ package cherry
 
 import (
 	"github.com/cherry-game/cherry/cluster"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/utils"
 	"os"
 	"os/signal"
 	"syscall"
