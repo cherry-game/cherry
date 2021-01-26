@@ -45,7 +45,8 @@ cherry game server engine for golang
 - etcd方式加载&更新结点
 - grpc
 
-### 自带组件
+### 其他
 - mysql db队列
 - nat消息队列
+- gopher-lua脚本
 
