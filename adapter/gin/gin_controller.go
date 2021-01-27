@@ -6,5 +6,17 @@ import (
 )
 
 type IController interface {
-	Init(app cherryInterfaces.AppContext, engine *gin.Engine)
+	Init(app cherryInterfaces.IApplication, engine *gin.Engine)
+	Stop()
+}
+
+type BaseIController struct {
+}
+
+func (b *BaseIController) Init(_ cherryInterfaces.IApplication, _ *gin.Engine) {
+
+}
+
+func (b *BaseIController) Stop() {
+
 }

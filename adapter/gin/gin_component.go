@@ -5,7 +5,6 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
-	"net"
 	"net/http"
 	"time"
 )
@@ -15,36 +14,45 @@ func init() {
 }
 
 type GinComponentOptions struct {
-	name              string        // component name
 	ReadTimeout       time.Duration // http server parameter
 	ReadHeaderTimeout time.Duration
 	WriteTimeout      time.Duration
 	IdleTimeout       time.Duration
 	MaxHeaderBytes    int
+	Address           string
+	CertFile          string
+	KeyFile           string
 }
 
 // GinComponent wrapper gin
 type GinComponent struct {
 	cherryInterfaces.BaseComponent
-	*gin.Engine
-	server   *http.Server
-	name     string
-	addr     string
-	certFile string
-	keyFile  string
+	name        string
+	engine      *gin.Engine
+	server      *http.Server
+	options     GinComponentOptions
+	controllers []IController
 }
 
-func New(name string) *GinComponent {
-	component := NewWithOptions(GinComponentOptions{
-		name:         name,
-		ReadTimeout:  5 * time.Second,
-		WriteTimeout: 10 * time.Second,
+func New(address string) *GinComponent {
+	return NewHttp("http_server", address)
+}
+
+func NewHttp(name, address string) *GinComponent {
+	return NewHttps(name, address, "", "")
+}
+
+func NewHttps(name, address, certFile, keyFile string) *GinComponent {
+	component := NewWithOptions(name, GinComponentOptions{
+		Address:  address,
+		CertFile: certFile,
+		KeyFile:  keyFile,
 	})
 
 	logger := cherryLogger.Logger()
 
 	//add default middleware
-	component.Use(
+	component.engine.Use(
 		GinDefaultZap(logger),
 		RecoveryWithZap(logger, false),
 	)
@@ -52,22 +60,21 @@ func New(name string) *GinComponent {
 	return component
 }
 
-func NewWithOptions(options GinComponentOptions) *GinComponent {
+func NewWithOptions(name string, options GinComponentOptions) *GinComponent {
 	return &GinComponent{
-		Engine: gin.New(),
-		name:   options.name,
-		server: &http.Server{
-			ReadTimeout:       options.ReadTimeout,
-			ReadHeaderTimeout: options.ReadHeaderTimeout,
-			WriteTimeout:      options.WriteTimeout,
-			IdleTimeout:       options.IdleTimeout,
-			MaxHeaderBytes:    options.MaxHeaderBytes,
-		},
+		name:    name,
+		engine:  gin.New(),
+		server:  &http.Server{},
+		options: options,
 	}
 }
 
-func (g *GinComponent) Run(addr string) {
-	g.addr = addr
+func (g *GinComponent) Register(controller IController) {
+	g.controllers = append(g.controllers, controller)
+}
+
+func (g *GinComponent) GetEngine() *gin.Engine {
+	return g.engine
 }
 
 // Name unique components name
@@ -76,28 +83,52 @@ func (g *GinComponent) Name() string {
 }
 
 func (g *GinComponent) Init() {
-	if g.addr == "" {
-		cherryLogger.Infof("[%s] no set addr value.", g.name)
+	if g.options.Address == "" {
+		cherryLogger.Infof("[%s] no set address value.", g.name)
 		return
 	}
 
-	g.server.Addr = g.addr
-	g.server.Handler = g.Engine
+	g.server.Handler = g.engine
+	g.server.Addr = g.options.Address
+
+	if g.options.ReadTimeout > 0 {
+		g.server.ReadTimeout = g.options.ReadTimeout
+	}
+
+	if g.options.ReadHeaderTimeout > 0 {
+		g.server.ReadHeaderTimeout = g.options.ReadHeaderTimeout
+	}
+
+	if g.options.WriteTimeout > 0 {
+		g.server.WriteTimeout = g.options.WriteTimeout
+	}
+
+	if g.options.IdleTimeout > 0 {
+		g.server.IdleTimeout = g.options.IdleTimeout
+	}
+
+	if g.options.MaxHeaderBytes > 0 {
+		g.server.MaxHeaderBytes = g.options.MaxHeaderBytes
+	}
+
+	for _, controller := range g.controllers {
+		controller.Init(g.App(), g.engine)
+	}
 
 	go func() {
 		var err error
 
-		if g.certFile != "" && g.keyFile != "" {
+		if g.options.CertFile != "" && g.options.KeyFile != "" {
 			cherryLogger.Infof("[%s] -> https init. address = %s, certFile = %s, keyFile = %s",
-				g.name, g.addr, g.certFile, g.keyFile)
-			err = g.server.ListenAndServeTLS(g.certFile, g.keyFile)
+				g.name, g.options.Address, g.options.CertFile, g.options.KeyFile)
+			err = g.server.ListenAndServeTLS(g.options.CertFile, g.options.KeyFile)
 		} else {
-			cherryLogger.Infof("[%s] -> http init. address = %s", g.name, g.addr)
+			cherryLogger.Infof("[%s] -> http init. address = %s", g.name, g.options.Address)
 			err = g.server.ListenAndServe()
 		}
 
 		if err != nil {
-			cherryLogger.Infof("[%s] run result = %s", g.name, err)
+			cherryLogger.Infof("[%s] run error = %s", g.name, err)
 		}
 	}()
 }
@@ -107,32 +138,16 @@ func (g *GinComponent) AfterInit() {
 }
 
 func (g *GinComponent) BeforeStop() {
-
+	for _, controller := range g.controllers {
+		controller.Stop()
+	}
 }
 
 func (g *GinComponent) Stop() {
 	err := g.server.Shutdown(context.Background())
-	cherryLogger.Infof("[%s] shutdown gin http component on %s", g.name, g.addr)
+	cherryLogger.Infof("[%s] shutdown gin component on %s", g.name, g.options.Address)
 
 	if err != nil {
 		cherryLogger.Info(err.Error())
 	}
-}
-
-func (g *GinComponent) RunTLS(addr, certFile, keyFile string) {
-	g.addr = addr
-	g.certFile = certFile
-	g.keyFile = keyFile
-}
-
-func (g *GinComponent) RunUnix(file string) {
-	cherryLogger.Panicf("[%s] not implemented. file = %s", g.name, file)
-}
-
-func (g *GinComponent) RunFd(fd int) {
-	cherryLogger.Panicf("[%s] not implemented. fd = %d", g.name, fd)
-}
-
-func (g *GinComponent) RunListener(listener net.Listener) {
-	cherryLogger.Panicf("[%s] not implemented. listener = %s", g.name, listener)
 }

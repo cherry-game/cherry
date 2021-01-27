@@ -61,7 +61,6 @@ func TestRace(t *testing.T) {
 
 	go func() {
 		for i := 0; i < 1000000000; i++ {
-
 			NewNode(1)
 		}
 	}()
@@ -474,8 +473,8 @@ func BenchmarkGenerate(b *testing.B) {
 
 func BenchmarkGenerateMaxSequence(b *testing.B) {
 
-	NodeBits = 1
-	StepBits = 21
+	nodeBits = 1
+	stepBits = 21
 	node, _ := NewNode(1)
 
 	b.ReportAllocs()

@@ -2,9 +2,9 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
+	"github.com/cherry-game/cherry/.examples/test1/mocks"
 	"github.com/cherry-game/cherry/adapter/queue"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/examples/test1/mocks"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/route"
