@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/examples/test1/mocks"
+	"github.com/cherry-game/cherry/.examples/test1/mocks"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
 	"reflect"

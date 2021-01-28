@@ -51,7 +51,6 @@ func (h *HandlerComponent) Name() string {
 }
 
 func (h *HandlerComponent) Init() {
-
 	for _, iHandler := range h.iHandlers {
 		iHandler.Set(h.App())
 		iHandler.Init()
@@ -107,6 +106,18 @@ func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterface
 	handler.SetName(name)
 
 	h.iHandlers = append(h.iHandlers, handler)
+}
+
+func (h *HandlerComponent) RegisterHandler(handler cherryInterfaces.IHandler, workerSize int) {
+	if handler == nil {
+		cherryLogger.Warn("[Handler] handler is empty. skipped.")
+		return
+	}
+
+	if workerSize < 1 {
+		cherryLogger.Warn("[Handler] workerSize is less than 1. skipped.")
+		return
+	}
 }
 
 func convert2Handler(handler cherryInterfaces.IHandler) *Handler {
