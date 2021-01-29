@@ -97,16 +97,16 @@ func (w *Worker) DefaultExecuteWorker(handler cherryInterfaces.IHandler, chanInd
 							}
 						}
 
+						if cherryProfile.Debug() {
+							cherryLogger.Debugf("[%s-chan-%d] receive message. route = %s",
+								handler.Name(), chanIndex, msg.Route.String())
+						}
+
 						if method, found := handler.GetLocal(msg.Route.Method()); found {
 							params := make([]reflect.Value, 2)
 							params[0] = reflect.ValueOf(msg.Session)
 							params[1] = reflect.ValueOf(msg.Msg)
 							method.Value.Call(params)
-						}
-
-						if cherryProfile.Debug() {
-							cherryLogger.Debugf("[%s-chan-%d] receive message. route = %s",
-								handler.Name(), chanIndex, msg.Route.String())
 						}
 
 						for _, filter := range component.GetAfterFilter() {
