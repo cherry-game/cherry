@@ -6,23 +6,17 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
-	"hash/crc32"
-	"math/rand"
-	"reflect"
 )
 
 type (
 	Handler struct {
 		cherryInterfaces.AppContext
-		name              string                                  // unique Handler name
-		eventFunc         map[string][]cherryInterfaces.EventFunc // event func
-		localHandlers     map[string]*cherryInterfaces.InvokeFunc // local invoke Handler functions
-		remoteHandlers    map[string]*cherryInterfaces.InvokeFunc // remote invoke Handler functions
-		workerSize        uint                                    // worker size
-		queueSize         uint                                    // size of each channel
-		workerHashFunc    func(msg interface{}) uint              // goroutine hash function
-		workerExecuteFunc cherryInterfaces.WorkerExecuteFunc      // worker execute function
-		handlerComponent  *HandlerComponent                       // handler component
+		Worker
+		name             string                                // unique Handler name
+		eventFn          map[string][]cherryInterfaces.EventFn // event func
+		localHandlers    map[string]*cherryInterfaces.InvokeFn // local invoke Handler functions
+		remoteHandlers   map[string]*cherryInterfaces.InvokeFn // remote invoke Handler functions
+		handlerComponent *HandlerComponent                     // handler component
 	}
 )
 
@@ -35,79 +29,82 @@ func (h *Handler) SetName(name string) {
 }
 
 func (h *Handler) Init() {
-	if h.workerSize < 1 {
-		h.workerSize = 1
-	}
+}
 
+func (h *Handler) AfterInit() {
 	if h.queueSize < 1 {
 		h.queueSize = 1024
 	}
 
-	//if h.workerExecuteFunc == nil {
-	//	h.workerExecuteFunc = h.DefaultExecuteWorker
-	//}
-	//
-	//component := h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
-	//
-	//h.Worker = NewWorker(component, h)
-	//h.Worker.Start()
+	if h.workerSize < 1 {
+		h.workerSize = 1
+	}
 
 	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
+	if h.handlerComponent == nil {
+		cherryLogger.Warn("not find HandlerComponent.")
+		return
+	}
+
+	//init chan
+	h.messageChan = make([]chan interface{}, h.workerSize)
+	for i := 0; i < int(h.workerSize); i++ {
+		h.messageChan[i] = make(chan interface{}, h.queueSize)
+	}
+
+	if h.workerExecuteFn == nil {
+		h.workerExecuteFn = h.DefaultExecuteWorker
+	}
+
+	for i := 0; i < int(h.workerSize); i++ {
+		go h.workerExecuteFn(h, i, h.messageChan[i])
+	}
 }
 
-func (h *Handler) WorkerSize() uint {
-	return h.workerSize
+func (h *Handler) GetEvents() map[string][]cherryInterfaces.EventFn {
+	return h.eventFn
 }
 
-func (h *Handler) SetWorkerSize(size uint) {
-	h.workerSize = size
-}
-
-func (h *Handler) QueueSize() uint {
-	return h.queueSize
-}
-
-func (h *Handler) SetQueueSize(size uint) {
-	h.queueSize = size
-}
-
-func (h *Handler) GetEvents() map[string][]cherryInterfaces.EventFunc {
-	return h.eventFunc
-}
-
-func (h *Handler) GetEvent(name string) ([]cherryInterfaces.EventFunc, bool) {
-	events, found := h.eventFunc[name]
+func (h *Handler) GetEvent(name string) ([]cherryInterfaces.EventFn, bool) {
+	events, found := h.eventFn[name]
 	return events, found
 }
 
-func (h *Handler) GetLocals() map[string]*cherryInterfaces.InvokeFunc {
+func (h *Handler) GetLocals() map[string]*cherryInterfaces.InvokeFn {
 	return h.localHandlers
 }
 
-func (h *Handler) GetLocal(funcName string) (*cherryInterfaces.InvokeFunc, bool) {
+func (h *Handler) GetLocal(funcName string) (*cherryInterfaces.InvokeFn, bool) {
 	invoke, found := h.localHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) GetRemotes() map[string]*cherryInterfaces.InvokeFunc {
+func (h *Handler) GetRemotes() map[string]*cherryInterfaces.InvokeFn {
 	return h.remoteHandlers
 }
 
-func (h *Handler) GetRemote(funcName string) (*cherryInterfaces.InvokeFunc, bool) {
+func (h *Handler) GetRemote(funcName string) (*cherryInterfaces.InvokeFn, bool) {
 	invoke, found := h.remoteHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) GetWorkerExecuteFunc() cherryInterfaces.WorkerExecuteFunc {
-	return h.workerExecuteFunc
-}
-
-func (h *Handler) WorkerHashFunc(message interface{}) uint {
-	return h.workerHashFunc(message)
+func (h *Handler) PutMessage(message interface{}) {
+	if h.workerSize == 1 {
+		h.messageChan[0] <- message
+	} else {
+		index := h.workerHashFn(message)
+		if index > h.workerSize {
+			index = 0
+		}
+		h.messageChan[index] <- message
+	}
 }
 
 func (h *Handler) Stop() {
+}
 
+func (h *Handler) HandlerComponent() *HandlerComponent {
+	return h.handlerComponent
 }
 
 func (h *Handler) RegisterLocals(funcSlice ...interface{}) {
@@ -122,14 +119,14 @@ func (h *Handler) RegisterLocals(funcSlice ...interface{}) {
 }
 
 func (h *Handler) RegisterLocal(name string, fn interface{}) {
-	f, err := getInvokeFunc(name, fn)
+	f, err := cherryUtils.Reflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
 	}
 
 	if h.localHandlers == nil {
-		h.localHandlers = make(map[string]*cherryInterfaces.InvokeFunc)
+		h.localHandlers = make(map[string]*cherryInterfaces.InvokeFn)
 	}
 
 	h.localHandlers[name] = f
@@ -150,14 +147,14 @@ func (h *Handler) RegisterRemotes(funcSlice ...interface{}) {
 }
 
 func (h *Handler) RegisterRemote(name string, fn interface{}) {
-	invokeFunc, err := getInvokeFunc(name, fn)
+	invokeFunc, err := cherryUtils.Reflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
 	}
 
 	if h.remoteHandlers == nil {
-		h.remoteHandlers = make(map[string]*cherryInterfaces.InvokeFunc)
+		h.remoteHandlers = make(map[string]*cherryInterfaces.InvokeFn)
 	}
 
 	h.remoteHandlers[name] = invokeFunc
@@ -175,7 +172,7 @@ func (h *Handler) PostEvent(e cherryInterfaces.IEvent) {
 }
 
 //RegisterEvent
-func (h *Handler) RegisterEvent(eventName string, fn cherryInterfaces.EventFunc) {
+func (h *Handler) RegisterEvent(eventName string, fn cherryInterfaces.EventFn) {
 	if eventName == "" {
 		cherryLogger.Warn("eventName is nil")
 		return
@@ -186,129 +183,16 @@ func (h *Handler) RegisterEvent(eventName string, fn cherryInterfaces.EventFunc)
 		return
 	}
 
-	if h.eventFunc == nil {
-		h.eventFunc = make(map[string][]cherryInterfaces.EventFunc)
+	if h.eventFn == nil {
+		h.eventFn = make(map[string][]cherryInterfaces.EventFn)
 	}
 
-	events := h.eventFunc[eventName]
+	events := h.eventFn[eventName]
 	events = append(events, fn)
 
-	h.eventFunc[eventName] = events
+	h.eventFn[eventName] = events
 
 	if cherryProfile.Debug() {
 		cherryLogger.Debugf("[Handler = %s] register event = %s.", h.name, eventName)
 	}
-}
-
-func (h *Handler) WorkerHash(workerSize uint, hashFunc func(message interface{}) uint) {
-	if workerSize < 1 && hashFunc == nil {
-		return
-	}
-
-	h.workerSize = workerSize
-	h.workerHashFunc = hashFunc
-}
-
-func (h *Handler) WorkerRandHash(workerSize uint) {
-	h.WorkerHash(workerSize, func(_ interface{}) uint {
-		return uint(rand.Uint32()) % h.workerSize
-	})
-}
-
-func (h *Handler) WorkerCRC32Hash(workerSize uint) {
-	h.WorkerHash(workerSize, func(msg interface{}) uint {
-		var hashValue string
-
-		switch m := msg.(type) {
-		case cherryInterfaces.IEvent:
-			{
-				hashValue = m.UniqueId()
-			}
-		case UnhandledMessage:
-			{
-				if m.Session != nil {
-					hashValue = string(m.Session.UID())
-				}
-			}
-		}
-
-		if hashValue == "" {
-			return 0
-		}
-		return uint(crc32.ChecksumIEEE([]byte(hashValue))) % h.workerSize
-	})
-}
-
-func (h *Handler) SetWorkerExecuteFunc(executeFunc cherryInterfaces.WorkerExecuteFunc) {
-	if executeFunc != nil {
-		h.workerExecuteFunc = executeFunc
-	}
-}
-
-//func DefaultWorkerExecute(handler cherryInterfaces.IHandler, chanIndex int, msgChan chan interface{}) {
-//	for {
-//		select {
-//		case msg, found := <-msgChan:
-//			{
-//				if !found && !handler.App().Running() {
-//					break
-//				}
-//				ProcessMessage(handler, chanIndex, msg)
-//			}
-//		}
-//		//case timer
-//	}
-//}
-
-//func (h *Handler) PutMessage(message interface{}) {
-//	//var index uint
-//	//if h.workerSize > 1 {
-//	//	index = h.workerHashFunc(message)
-//	//}
-//	//
-//	//if index > h.workerSize {
-//	//	index = 0
-//	//}
-//	//
-//	//h.messageChan[index] <- message
-//	h.messageChan <- message
-//}
-
-//getInvokeFunc reflect function convert to InvokeFunc
-func getInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFunc, error) {
-	if name == "" {
-		return nil, cherryUtils.Error("func name is nil")
-	}
-
-	if fn == nil {
-		return nil, cherryUtils.ErrorFormat("func is nil. name = %s", name)
-	}
-
-	typ := reflect.TypeOf(fn)
-	val := reflect.ValueOf(fn)
-
-	if typ.Kind() != reflect.Func {
-		return nil, cherryUtils.ErrorFormat("name = %s is not func type.", name)
-	}
-
-	var inArgs []reflect.Type
-	for i := 0; i < typ.NumIn(); i++ {
-		t := typ.In(i)
-		inArgs = append(inArgs, t)
-	}
-
-	var outArgs []reflect.Type
-	for i := 0; i < typ.NumOut(); i++ {
-		t := typ.Out(i)
-		outArgs = append(outArgs, t)
-	}
-
-	invoke := &cherryInterfaces.InvokeFunc{
-		Type:    typ,
-		Value:   val,
-		InArgs:  inArgs,
-		OutArgs: outArgs,
-	}
-
-	return invoke, nil
 }

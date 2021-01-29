@@ -2,28 +2,25 @@ package cherryHandler
 
 import (
 	"github.com/cherry-game/cherry/const"
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
-	"reflect"
-	"strings"
 )
 
 type (
 	//handlerComponent Handler component
 	HandlerComponent struct {
-		cherryInterfaces.BaseComponent                             // base component
-		HandlerComponentOptions                                    // opts
-		iHandlers                      []cherryInterfaces.IHandler // register handlers
-		workers                        map[string]*Worker          // wrap handler for worker
+		cherryInterfaces.BaseComponent                                      // base component
+		HandlerComponentOptions                                             // opts
+		handlers                       map[string]cherryInterfaces.IHandler // key:handlerName, value: Handler
 	}
 
 	HandlerComponentOptions struct {
-		beforeFilters []FilterFunc
-		afterFilters  []FilterFunc
-		nameFunc      func(string) string
+		beforeFilters []FilterFn
+		afterFilters  []FilterFn
+		nameFn        func(string) string
 	}
 
 	UnhandledMessage struct {
@@ -32,16 +29,18 @@ type (
 		Msg     *cherryMessage.Message
 	}
 
-	FilterFunc func(msg UnhandledMessage) bool
+	FilterFn func(msg *UnhandledMessage) bool
 )
 
 func NewComponent() *HandlerComponent {
 	return &HandlerComponent{
-		workers: make(map[string]*Worker),
+		handlers: make(map[string]cherryInterfaces.IHandler),
 		HandlerComponentOptions: HandlerComponentOptions{
-			beforeFilters: make([]FilterFunc, 0),
-			afterFilters:  make([]FilterFunc, 0),
-			nameFunc:      strings.ToLower,
+			beforeFilters: make([]FilterFn, 0),
+			afterFilters:  make([]FilterFn, 0),
+			nameFn: func(s string) string {
+				return s
+			},
 		},
 	}
 }
@@ -51,29 +50,10 @@ func (h *HandlerComponent) Name() string {
 }
 
 func (h *HandlerComponent) Init() {
-	for _, iHandler := range h.iHandlers {
-		iHandler.Set(h.App())
-		iHandler.Init()
-
-		handler := convert2Handler(iHandler)
-		if handler == nil {
-			cherryLogger.Warnf("IHandler convert to Handler fail. name=%s", iHandler.Name())
-			return
-		}
-
-		handlerName := h.nameFunc(handler.name)
-
-		if _, found := h.workers[handlerName]; found {
-			cherryLogger.Errorf("[Handler name = %s] is duplicate!", handler.name)
-			break
-		}
-
+	for _, handler := range h.handlers {
+		handler.Set(h.App())
 		handler.Init()
-
-		worker := NewWorker(h, handler)
-		worker.Start()
-
-		h.workers[handlerName] = worker
+		handler.AfterInit()
 	}
 
 	cherryLogger.Debug("[handlerComponent] init completed.")
@@ -92,6 +72,15 @@ func (h *HandlerComponent) Register(handlers ...cherryInterfaces.IHandler) {
 	}
 }
 
+func (h *HandlerComponent) RegisterHandler(handler cherryInterfaces.IHandler) {
+	if handler == nil {
+		cherryLogger.Warn("[Handler] handler is empty. skipped.")
+		return
+	}
+
+	h.RegisterWithName(handler.Name(), handler)
+}
+
 func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterfaces.IHandler) {
 	if name == "" {
 		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryUtils.Reflect.GetStructName(handler))
@@ -103,43 +92,28 @@ func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterface
 		return
 	}
 
+	name = h.nameFn(name)
+	if name == "" {
+		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryUtils.Reflect.GetStructName(handler))
+		return
+	}
+
 	handler.SetName(name)
 
-	h.iHandlers = append(h.iHandlers, handler)
-}
-
-func (h *HandlerComponent) RegisterHandler(handler cherryInterfaces.IHandler, workerSize int) {
-	if handler == nil {
-		cherryLogger.Warn("[Handler] handler is empty. skipped.")
+	if _, found := h.handlers[name]; found {
+		cherryLogger.Errorf("[Handler name = %s] is duplicate!", handler.Name())
 		return
 	}
 
-	if workerSize < 1 {
-		cherryLogger.Warn("[Handler] workerSize is less than 1. skipped.")
+	h.handlers[name] = handler
+}
+
+func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
+	if msg == nil || msg.Route == nil {
 		return
 	}
-}
 
-func convert2Handler(handler cherryInterfaces.IHandler) *Handler {
-	t := reflect.TypeOf(handler)
-	v := reflect.ValueOf(handler)
-
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-		v = v.Elem()
-	}
-
-	for i := 0; i < t.NumField(); i++ {
-		if v.Field(i).Type() == reflect.TypeOf(Handler{}) {
-			base := v.Field(i).Interface().(Handler)
-			return &base
-		}
-	}
-	return nil
-}
-
-func (h *HandlerComponent) InHandle(route *cherryRoute.Route, session cherryInterfaces.ISession, message *cherryMessage.Message) {
-	if route.NodeType() != h.App().NodeType() {
+	if msg.Route.NodeType() != h.App().NodeType() {
 		return
 	}
 
@@ -148,28 +122,22 @@ func (h *HandlerComponent) InHandle(route *cherryRoute.Route, session cherryInte
 		return
 	}
 
-	worker := h.GetWorker(route)
-	if worker == nil {
-		cherryLogger.Errorf("[Route = %h] not found handle worker.", route)
+	handler := h.GetHandler(msg.Route)
+	if handler == nil {
+		cherryLogger.Errorf("[Route = %h] not found handler.", msg.Route)
 		return
 	}
 
-	msg := UnhandledMessage{
-		Session: session,
-		Route:   route,
-		Msg:     message,
-	}
-
-	worker.PutMessage(msg)
+	handler.PutMessage(msg)
 }
 
-func (h *HandlerComponent) GetWorker(route *cherryRoute.Route) *Worker {
-	worker := h.workers[h.nameFunc(route.HandlerName())]
-	if worker == nil {
-		cherryLogger.Warnf("could not find handle worker for Route = %h", route)
+func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryInterfaces.IHandler {
+	handler := h.handlers[h.nameFn(route.HandlerName())]
+	if handler == nil {
+		cherryLogger.Warnf("could not find handle worker for Route = %v", route)
 		return nil
 	}
-	return worker
+	return handler
 }
 
 // PostEvent 发布事件
@@ -178,40 +146,40 @@ func (h *HandlerComponent) PostEvent(event cherryInterfaces.IEvent) {
 		return
 	}
 
-	for _, worker := range h.workers {
-		if _, found := worker.GetEvent(event.EventName()); found {
-			worker.PutMessage(event)
+	for _, handler := range h.handlers {
+		if _, found := handler.GetEvent(event.EventName()); found {
+			handler.PutMessage(event)
 		}
 	}
 }
 
-func (c *HandlerComponentOptions) GetBeforeFilter() []FilterFunc {
+func (c *HandlerComponentOptions) GetBeforeFilter() []FilterFn {
 	return c.beforeFilters
 }
 
-func (c *HandlerComponentOptions) BeforeFilter(beforeFilters ...FilterFunc) {
+func (c *HandlerComponentOptions) BeforeFilter(beforeFilters ...FilterFn) {
 	if len(beforeFilters) < 1 {
 		return
 	}
 	c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 }
 
-func (c *HandlerComponentOptions) GetAfterFilter() []FilterFunc {
+func (c *HandlerComponentOptions) GetAfterFilter() []FilterFn {
 	return c.afterFilters
 }
 
-func (c *HandlerComponentOptions) AfterFilter(afterFilters ...FilterFunc) {
+func (c *HandlerComponentOptions) AfterFilter(afterFilters ...FilterFn) {
 	if len(afterFilters) < 1 {
 		return
 	}
 	c.afterFilters = append(c.afterFilters, afterFilters...)
 }
 
-func (c *HandlerComponentOptions) SetNameFunc(fn func(string) string) {
+func (c *HandlerComponentOptions) SetNameFn(fn func(string) string) {
 	if fn == nil {
 		return
 	}
-	c.nameFunc = fn
+	c.nameFn = fn
 }
 
 // NodeRoute  结点路由规则 nodeType:结点类型,routeFunc 路由规则

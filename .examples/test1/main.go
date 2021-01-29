@@ -29,12 +29,12 @@ func app() {
 	})
 
 	handlers := cherryHandler.NewComponent()
-	handlers.SetNameFunc(strings.ToLower)
-	handlers.BeforeFilter(func(msg cherryHandler.UnhandledMessage) bool {
+	handlers.SetNameFn(strings.ToLower)
+	handlers.BeforeFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Infof("test before filter....")
 		return true
 	})
-	handlers.AfterFilter(func(msg cherryHandler.UnhandledMessage) bool {
+	handlers.AfterFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Infof("test after filter....")
 		return true
 	})
@@ -54,7 +54,14 @@ func app() {
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test11111")
-		handler.InHandle(route, &cherrySession.Session{}, nil)
+
+		msg := &cherryHandler.UnhandledMessage{
+			Session: &cherrySession.Session{},
+			Route:   route,
+			Msg:     nil,
+		}
+
+		handler.DoHandle(msg)
 		time.Sleep(time.Millisecond * 5)
 	}
 }
@@ -62,7 +69,14 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
-		handler.InHandle(route, &cherrySession.Session{}, nil)
+
+		msg := &cherryHandler.UnhandledMessage{
+			Session: &cherrySession.Session{},
+			Route:   route,
+			Msg:     nil,
+		}
+
+		handler.DoHandle(msg)
 		time.Sleep(time.Millisecond * 5)
 	}
 }

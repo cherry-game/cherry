@@ -2,6 +2,7 @@ package cherryUtils
 
 import (
 	"fmt"
+	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
 	"reflect"
 	"runtime"
 )
@@ -37,4 +38,43 @@ func (r *reflection) IsNil(v reflect.Value) bool {
 		return v.IsNil()
 	}
 	return false
+}
+
+//getInvokeFunc reflect function convert to InvokeFn
+func (r *reflection) GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFn, error) {
+	if name == "" {
+		return nil, Error("func name is nil")
+	}
+
+	if fn == nil {
+		return nil, ErrorFormat("func is nil. name = %s", name)
+	}
+
+	typ := reflect.TypeOf(fn)
+	val := reflect.ValueOf(fn)
+
+	if typ.Kind() != reflect.Func {
+		return nil, ErrorFormat("name = %s is not func type.", name)
+	}
+
+	var inArgs []reflect.Type
+	for i := 0; i < typ.NumIn(); i++ {
+		t := typ.In(i)
+		inArgs = append(inArgs, t)
+	}
+
+	var outArgs []reflect.Type
+	for i := 0; i < typ.NumOut(); i++ {
+		t := typ.Out(i)
+		outArgs = append(outArgs, t)
+	}
+
+	invoke := &cherryInterfaces.InvokeFn{
+		Type:    typ,
+		Value:   val,
+		InArgs:  inArgs,
+		OutArgs: outArgs,
+	}
+
+	return invoke, nil
 }

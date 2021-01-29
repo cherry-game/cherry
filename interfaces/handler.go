@@ -11,40 +11,30 @@ type IHandler interface {
 
 	Init()
 
-	WorkerSize() uint
+	AfterInit()
 
-	SetWorkerSize(size uint)
+	GetEvents() map[string][]EventFn
 
-	QueueSize() uint
+	GetEvent(name string) ([]EventFn, bool)
 
-	SetQueueSize(size uint)
+	GetLocals() map[string]*InvokeFn
 
-	GetEvents() map[string][]EventFunc
+	GetLocal(funcName string) (*InvokeFn, bool)
 
-	GetEvent(name string) ([]EventFunc, bool)
+	GetRemotes() map[string]*InvokeFn
 
-	GetLocals() map[string]*InvokeFunc
+	GetRemote(funcName string) (*InvokeFn, bool)
 
-	GetLocal(funcName string) (*InvokeFunc, bool)
-
-	GetRemotes() map[string]*InvokeFunc
-
-	GetRemote(funcName string) (*InvokeFunc, bool)
-
-	GetWorkerExecuteFunc() WorkerExecuteFunc
-
-	WorkerHashFunc(message interface{}) uint
+	PutMessage(message interface{})
 
 	Stop()
 }
 
-type InvokeFunc struct {
+type InvokeFn struct {
 	Type    reflect.Type
 	Value   reflect.Value
 	InArgs  []reflect.Type
 	OutArgs []reflect.Type
 }
 
-type EventFunc func(e IEvent)
-
-type WorkerExecuteFunc func(handler IHandler, index int, msgChan chan interface{})
+type EventFn func(e IEvent)

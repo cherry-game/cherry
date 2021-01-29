@@ -16,9 +16,9 @@ import (
 	"net"
 )
 
-type BlackListFunction func(list []string)
+type BlackListFn func(list []string)
 
-type CheckClientFunc func(typ string, version string) bool
+type CheckClientFn func(typ string, version string) bool
 
 type PomeloComponentOptions struct {
 	Connector       cherryInterfaces.IConnector
@@ -29,7 +29,7 @@ type PomeloComponentOptions struct {
 	SessionOnClosed cherryInterfaces.SessionListener
 	SessionOnError  cherryInterfaces.SessionListener
 
-	BlackListFunc       BlackListFunction
+	BlackListFunc       BlackListFn
 	BlackList           []string
 	ForwardMessage      bool
 	Heartbeat           int
@@ -38,7 +38,7 @@ type PomeloComponentOptions struct {
 	UseProtobuf         bool
 	UseCrypto           bool
 	UseHostFilter       bool
-	CheckClient         CheckClientFunc
+	CheckClient         CheckClientFn
 	DataCompression     bool
 }
 
@@ -201,22 +201,29 @@ func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *
 }
 
 func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *cherryMessage.Message) {
-	r, err := cherryRoute.Decode(msg.Route)
+	route, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
 		cherryLogger.Warnf("failed to decode route:%s", err.Error())
 		return
 	}
 
-	if r.NodeType() == "" {
+	if route.NodeType() == "" {
 		//TODO ... remove this
 		//r.NodeType = p.IAppContext().NodeType()
 		return
 	}
 
-	if r.NodeType() == p.App().NodeType() {
-		p.handlerComponent.InHandle(r, session, msg)
+	if route.NodeType() == p.App().NodeType() {
+
+		unHandleMessage := &cherryHandler.UnhandledMessage{
+			Session: session,
+			Route:   route,
+			Msg:     msg,
+		}
+
+		p.handlerComponent.DoHandle(unHandleMessage)
 	} else {
-		// forward to target node
+		// TODO forward to target node
 	}
 }
 
