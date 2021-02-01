@@ -52,6 +52,7 @@ func (h *HandlerComponent) Name() string {
 func (h *HandlerComponent) Init() {
 	for _, handler := range h.handlers {
 		handler.Set(h.App())
+		handler.PreInit()
 		handler.Init()
 		handler.AfterInit()
 	}
@@ -62,7 +63,7 @@ func (h *HandlerComponent) Init() {
 func (h *HandlerComponent) Stop() {
 }
 
-func (h *HandlerComponent) Register(handlers ...cherryInterfaces.IHandler) {
+func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
 	for _, handler := range handlers {
 		name := handler.Name()
 		if name == "" {
@@ -70,15 +71,6 @@ func (h *HandlerComponent) Register(handlers ...cherryInterfaces.IHandler) {
 		}
 		h.RegisterWithName(name, handler)
 	}
-}
-
-func (h *HandlerComponent) RegisterHandler(handler cherryInterfaces.IHandler) {
-	if handler == nil {
-		cherryLogger.Warn("[Handler] handler is empty. skipped.")
-		return
-	}
-
-	h.RegisterWithName(handler.Name(), handler)
 }
 
 func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterfaces.IHandler) {

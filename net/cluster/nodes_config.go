@@ -56,7 +56,7 @@ func (n *NodesConfig) GetType(nodeId string) (nodeType string, error error) {
 	return "", cherryUtils.ErrorFormat("nodeId = %s not found. check profile config file please.", nodeId)
 }
 
-// Register nodesConfig config
+// Load nodesConfig config
 func (n *NodesConfig) Load(config jsoniter.Any) {
 	clusterNodes := config.Get("cluster")
 

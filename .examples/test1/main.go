@@ -32,14 +32,14 @@ func app() {
 	handlers.SetNameFn(strings.ToLower)
 	handlers.BeforeFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Info("test before filter.... ")
-		return true
+		return false
 	})
 	handlers.AfterFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Info("test after filter....")
 		return true
 	})
 	//add TestHandler
-	handlers.Register(mocks.NewTestHandler())
+	handlers.Registers(mocks.NewTestHandler())
 
 	testApp.Startup(
 		handlers,
@@ -63,7 +63,6 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 
 		handler.DoHandle(msg)
 		time.Sleep(time.Microsecond * 1)
-		//time.Sleep(time.Millisecond * 1)
 	}
 }
 
@@ -78,13 +77,13 @@ func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 		}
 
 		handler.DoHandle(msg)
-		//time.Sleep(time.Millisecond * 1)
+		time.Sleep(time.Millisecond * 1)
 	}
 }
 
 func mockEventMsg(handler *cherryHandler.HandlerComponent) {
 	for {
 		handler.PostEvent(mocks.NewTestEvent())
-		//time.Sleep(time.Millisecond * 1)
+		time.Sleep(time.Millisecond * 1)
 	}
 }

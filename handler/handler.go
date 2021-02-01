@@ -28,22 +28,36 @@ func (h *Handler) SetName(name string) {
 	h.name = name
 }
 
-func (h *Handler) Init() {
-}
+func (h *Handler) PreInit() {
 
-func (h *Handler) AfterInit() {
-	if h.queueSize < 1 {
-		h.queueSize = 1024
+	if h.eventFn == nil {
+		h.eventFn = make(map[string][]cherryInterfaces.EventFn)
 	}
 
-	if h.workerSize < 1 {
-		h.workerSize = 1
+	if h.localHandlers == nil {
+		h.localHandlers = make(map[string]*cherryInterfaces.InvokeFn)
+	}
+
+	if h.remoteHandlers == nil {
+		h.remoteHandlers = make(map[string]*cherryInterfaces.InvokeFn)
 	}
 
 	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
 	if h.handlerComponent == nil {
 		cherryLogger.Warn("not find HandlerComponent.")
-		return
+	}
+}
+
+func (h *Handler) Init() {
+}
+
+func (h *Handler) AfterInit() {
+	if h.queueSize < 1 {
+		h.queueSize = 32767
+	}
+
+	if h.workerSize < 1 {
+		h.workerSize = 1
 	}
 
 	//init chan
@@ -52,12 +66,12 @@ func (h *Handler) AfterInit() {
 		h.messageChan[i] = make(chan interface{}, h.queueSize)
 	}
 
-	if h.workerExecuteFn == nil {
-		h.workerExecuteFn = h.DefaultExecuteWorker
+	if h.workerExecutorFn == nil {
+		h.workerExecutorFn = DefaultWorkerExecutor
 	}
 
 	for i := 0; i < int(h.workerSize); i++ {
-		go h.workerExecuteFn(h, i, h.messageChan[i])
+		go h.workerExecutorFn(h, i, h.messageChan[i])
 	}
 }
 
@@ -107,8 +121,8 @@ func (h *Handler) HandlerComponent() *HandlerComponent {
 	return h.handlerComponent
 }
 
-func (h *Handler) RegisterLocals(funcSlice ...interface{}) {
-	for _, fn := range funcSlice {
+func (h *Handler) RegisterLocals(sliceFn ...interface{}) {
+	for _, fn := range sliceFn {
 		funcName := cherryUtils.Reflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
@@ -125,18 +139,14 @@ func (h *Handler) RegisterLocal(name string, fn interface{}) {
 		return
 	}
 
-	if h.localHandlers == nil {
-		h.localHandlers = make(map[string]*cherryInterfaces.InvokeFn)
-	}
-
 	h.localHandlers[name] = f
 
 	cherryLogger.Debugf("[Handler = %s] register local func name = %s, numIn = %d, numOut =%d",
 		h.name, name, len(f.InArgs), len(f.OutArgs))
 }
 
-func (h *Handler) RegisterRemotes(funcSlice ...interface{}) {
-	for _, fn := range funcSlice {
+func (h *Handler) RegisterRemotes(sliceFn ...interface{}) {
+	for _, fn := range sliceFn {
 		funcName := cherryUtils.Reflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
@@ -153,10 +163,6 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 		return
 	}
 
-	if h.remoteHandlers == nil {
-		h.remoteHandlers = make(map[string]*cherryInterfaces.InvokeFn)
-	}
-
 	h.remoteHandlers[name] = invokeFunc
 
 	cherryLogger.Debugf("[Handler = %s] register remote func name = %s, numIn = %d, numOut = %d",
@@ -164,10 +170,6 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 }
 
 func (h *Handler) PostEvent(e cherryInterfaces.IEvent) {
-	if h.handlerComponent == nil {
-		cherryLogger.Warnf("not found HandlerComponent. event post fail. event = %s", e)
-		return
-	}
 	h.handlerComponent.PostEvent(e)
 }
 
@@ -181,10 +183,6 @@ func (h *Handler) RegisterEvent(eventName string, fn cherryInterfaces.EventFn) {
 	if fn == nil {
 		cherryLogger.Warn("event function is nil")
 		return
-	}
-
-	if h.eventFn == nil {
-		h.eventFn = make(map[string][]cherryInterfaces.EventFn)
 	}
 
 	events := h.eventFn[eventName]

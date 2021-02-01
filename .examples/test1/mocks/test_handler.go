@@ -19,7 +19,9 @@ type TestHandler struct {
 
 func (t *TestHandler) Init() {
 
-	t.WorkerRandHash(10)
+	t.SetWorkerRandHash(10)
+
+	t.SetWorkerExecutor(cherryHandler.DefaultWorkerExecutor)
 
 	t.RegisterEvent("testEventName", t.testEvent)
 
@@ -31,10 +33,9 @@ func (t *TestHandler) Init() {
 	t.RegisterLocal("testLocalMethod", t.testMethod)
 
 	t.RegisterRemote("testRemoteMethod", t.testRemote)
-
 }
 
-func (t *TestHandler) testMethod1(session cherryInterfaces.ISession, message *cherryMessage.Message) {
+func (t *TestHandler) testMethod1(_ cherryInterfaces.ISession, _ *cherryMessage.Message) {
 	//CherryLogger.Info(session, message)
 	cherryLogger.Info("execute test_handler.go in testMethod1.")
 }

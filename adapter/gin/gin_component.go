@@ -49,12 +49,10 @@ func NewHttps(name, address, certFile, keyFile string) *GinComponent {
 		KeyFile:  keyFile,
 	})
 
-	logger := cherryLogger.Logger()
-
 	//add default middleware
 	component.engine.Use(
-		GinDefaultZap(logger),
-		RecoveryWithZap(logger, false),
+		GinDefaultZap(),
+		RecoveryWithZap(false),
 	)
 
 	return component

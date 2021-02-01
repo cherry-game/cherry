@@ -9,6 +9,8 @@ type IHandler interface {
 
 	SetName(name string)
 
+	PreInit()
+
 	Init()
 
 	AfterInit()
