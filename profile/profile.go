@@ -11,18 +11,18 @@ import (
 )
 
 var (
-	configDir string       //config dir
-	name      string       //profile name
-	config    jsoniter.Any //profile-x.json parse to json object
-	debug     bool         //is debug
+	configPath  string       // profileJson dir
+	profileName string       // profile profileName
+	profileJson jsoniter.Any // profile-x.json parse to json object
+	debug       bool         // is debug
 )
 
-func ConfigDir() string {
-	return configDir
+func ConfigPath() string {
+	return configPath
 }
 
 func Name() string {
-	return name
+	return profileName
 }
 
 func Debug() bool {
@@ -30,58 +30,42 @@ func Debug() bool {
 }
 
 func Config() jsoniter.Any {
-	return config
+	return profileJson
 }
 
-func Init(configPath, profile string) error {
+func Init(configPath, profile string) (jsoniter.Any, error) {
 	if configPath == "" {
-		return cherryUtils.Error("configPath parameter is null.")
+		return nil, cherryUtils.Error("configPath parameter is null.")
 	}
 
 	if profile == "" {
-		return cherryUtils.Error("profile parameter is null.")
+		return nil, cherryUtils.Error("profile parameter is null.")
 	}
 
-	judgeDir, ok := judgeConfigPath(configPath)
+	judgePath, ok := cherryUtils.File.JudgePath(configPath)
 	if !ok {
-		return cherryUtils.ErrorFormat("configPath = %s not found.", configPath)
+		return nil, cherryUtils.Errorf("configPath = %s not found.", configPath)
 	}
 
-	profileFilePath := path.Join(judgeDir, fmt.Sprintf(cherryConst.ProfileFileName, profile))
+	profileFilePath := path.Join(judgePath, fmt.Sprintf(cherryConst.ProfileNameFormat, profile))
 	_, err := os.Stat(profileFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	bytes, err := ioutil.ReadFile(profileFilePath)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	name = profile
-	configDir = judgeDir
-	config = jsoniter.Get(bytes)
-	debug = config.Get("debug").ToBool()
+	profileName = profile
+	configPath = judgePath
+	profileJson = jsoniter.Get(bytes)
+	debug = true
 
-	return nil
-}
-
-func judgeConfigPath(configPath string) (string, bool) {
-	ok := cherryUtils.File.IsDir(configPath)
-	if ok {
-		return configPath, true
+	if profileJson.Get("debug") != nil {
+		debug = profileJson.Get("debug").ToBool()
 	}
 
-	tmpPath := path.Join(cherryUtils.File.GetWorkPath(), configPath)
-	ok = cherryUtils.File.IsDir(tmpPath)
-	if ok {
-		return tmpPath, true
-	}
-
-	tmpPath = path.Join(cherryUtils.File.GetMainFuncDir(), configPath)
-	ok = cherryUtils.File.IsDir(tmpPath)
-	if ok {
-		return tmpPath, true
-	}
-	return "", false
+	return profileJson, nil
 }

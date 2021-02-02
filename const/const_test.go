@@ -5,5 +5,5 @@ import (
 )
 
 func TestVersionPrint(t *testing.T) {
-	PrintVersion()
+	t.Log(GetLOGO())
 }

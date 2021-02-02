@@ -61,6 +61,9 @@ func (h *HandlerComponent) Init() {
 }
 
 func (h *HandlerComponent) Stop() {
+	for _, handler := range h.handlers {
+		handler.Stop()
+	}
 }
 
 func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
@@ -110,7 +113,7 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 	}
 
 	if !h.App().Running() {
-		//ignore IMessage
+		//ignore message
 		return
 	}
 

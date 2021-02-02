@@ -12,6 +12,26 @@ import (
 type file struct {
 }
 
+func (f *file) JudgePath(filePath string) (string, bool) {
+	ok := f.IsDir(filePath)
+	if ok {
+		return filePath, true
+	}
+
+	tmpPath := path.Join(f.GetWorkPath(), filePath)
+	ok = f.IsDir(tmpPath)
+	if ok {
+		return tmpPath, true
+	}
+
+	tmpPath = path.Join(f.GetMainFuncDir(), filePath)
+	ok = f.IsDir(tmpPath)
+	if ok {
+		return tmpPath, true
+	}
+	return "", false
+}
+
 func (f *file) IsDir(path string) bool {
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
@@ -39,14 +59,15 @@ func (f *file) GetWorkPath() string {
 	return p
 }
 
-func (f *file) CheckPath(path string) {
+func (f *file) CheckPath(path string) error {
 	_, err := os.Stat(path)
 	if err != nil {
 		err = os.Mkdir(path, os.ModePerm)
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
+	return nil
 }
 
 func (f *file) GetAllFile(dir string, s []string) []string {

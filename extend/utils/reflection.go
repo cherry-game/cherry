@@ -47,14 +47,14 @@ func (r *reflection) GetInvokeFunc(name string, fn interface{}) (*cherryInterfac
 	}
 
 	if fn == nil {
-		return nil, ErrorFormat("func is nil. name = %s", name)
+		return nil, Errorf("func is nil. name = %s", name)
 	}
 
 	typ := reflect.TypeOf(fn)
 	val := reflect.ValueOf(fn)
 
 	if typ.Kind() != reflect.Func {
-		return nil, ErrorFormat("name = %s is not func type.", name)
+		return nil, Errorf("name = %s is not func type.", name)
 	}
 
 	var inArgs []reflect.Type

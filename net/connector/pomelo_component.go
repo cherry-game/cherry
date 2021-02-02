@@ -178,7 +178,7 @@ func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *
 
 	case cherryPacketPomelo.Data:
 		if session.Status() != cherryPacketPomelo.Working {
-			return cherryUtils.ErrorFormat("[Msg] status error. session=[%session]", session)
+			return cherryUtils.Errorf("[Msg] status error. session=[%session]", session)
 		}
 
 		msg, err := cherryMessage.Decode(pkg.Data)

@@ -78,11 +78,11 @@ func (d *DataConfigComponent) RegisterModel(models ...IConfigModel) error {
 	for _, model := range models {
 
 		if len(model.FileName()) < 1 {
-			return cherryUtils.ErrorFormat("model=%t, fileName() is nil", model)
+			return cherryUtils.Errorf("model=%t, fileName() is nil", model)
 		}
 
 		if _, found := d.models[model.FileName()]; found {
-			return cherryUtils.ErrorFormat("fileName=%s have duplicate.", model)
+			return cherryUtils.Errorf("fileName=%s have duplicate.", model)
 		}
 		d.models[model.FileName()] = model
 	}

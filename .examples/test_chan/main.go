@@ -14,6 +14,8 @@ func main() {
 		c <- i
 	}
 
+	fmt.Println(len(c))
+
 	for i := 0; i <= 2; i++ {
 		go process(i)
 	}

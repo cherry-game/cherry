@@ -7,6 +7,8 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap"
+	"strconv"
 )
 
 func NewTestHandler() *TestHandler {
@@ -15,11 +17,18 @@ func NewTestHandler() *TestHandler {
 
 type TestHandler struct {
 	cherryHandler.Handler
+	logger *zap.SugaredLogger
 }
 
 func (t *TestHandler) Init() {
 
-	t.SetWorkerRandHash(10)
+	t.logger = cherryLogger.NewLogger("test_handler")
+
+	for i := 0; i < 100; i++ {
+		t.logger.Debug("test handler log" + strconv.Itoa(i))
+	}
+
+	t.SetWorkerCRC32Hash(10)
 
 	t.SetWorkerExecutor(cherryHandler.DefaultWorkerExecutor)
 
@@ -31,25 +40,23 @@ func (t *TestHandler) Init() {
 	)
 
 	t.RegisterLocal("testLocalMethod", t.testMethod)
-
 	t.RegisterRemote("testRemoteMethod", t.testRemote)
 }
 
 func (t *TestHandler) testMethod1(_ cherryInterfaces.ISession, _ *cherryMessage.Message) {
-	//CherryLogger.Info(session, message)
-	cherryLogger.Info("execute test_handler.go in testMethod1.")
+	cherryLogger.Debug("execute test_handler.go in testMethod1.")
 }
 
 func (t *TestHandler) testMethod2(session cherryInterfaces.ISession, message *cherryMessage.Message) {
-	cherryLogger.Info(session, message)
+	cherryLogger.Debug(session, message)
 }
 
 func (t *TestHandler) testMethod(session cherryInterfaces.ISession, message *cherryMessage.Message) {
-	cherryLogger.Info(session, message)
+	cherryLogger.Debug(session, message)
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {
-	cherryLogger.Info(ctx, msg)
+	cherryLogger.Debug(ctx, msg)
 }
 
 func (t *TestHandler) testEvent(e cherryInterfaces.IEvent) {
@@ -60,12 +67,12 @@ func (t *TestHandler) testEvent(e cherryInterfaces.IEvent) {
 			return
 		}
 
-		cherryLogger.Infof("execute event data. value=%d", event.Abc)
+		cherryLogger.Debug("execute event data. value=%d", event.Abc)
 	} else {
-		cherryLogger.Debug("execute event data is nil")
+		//cherryLogger.Debug("execute event data is nil")
 	}
 }
 
 func (t *TestHandler) testTrigger() {
-	cherryLogger.Info("test trigger " + t.Name())
+	cherryLogger.Debug("test trigger " + t.Name())
 }

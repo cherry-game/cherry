@@ -1,7 +1,7 @@
 package main
 
 import (
-	cherryGin "github.com/cherry-game/cherry/adapter/gin"
+	cherryGin "github.com/cherry-game/cherry/component/gin"
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
 	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
 	"github.com/gin-gonic/gin"

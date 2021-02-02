@@ -1,63 +1,76 @@
 package cherryLogger
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
-	json "github.com/json-iterator/go"
-	rotateLogs "github.com/lestrrat-go/file-rotatelogs"
+	"github.com/cherry-game/cherry/interfaces"
+	cherryProfile "github.com/cherry-game/cherry/profile"
+	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"io"
-	goPath "path"
 	"strings"
 	"time"
 )
 
 var (
-	path         = "log/"
-	suffix       = ".log"
-	level        = "debug"
-	isWriteFile  = false
-	maxAge       = 7 //day
-	rotationHour = 1
-	timeFormat   = "2006-01-02 15:04:05.000"
-
-	logger = initLogger()
+	timeFormat = "2006-01-02 15:04:05.000"
+	logger     = NewConsoleLogger(zapcore.DebugLevel, zap.AddCallerSkip(1))
 )
 
-func Logger() *zap.SugaredLogger {
+func DefaultLogger() *zap.SugaredLogger {
 	return logger
 }
 
-func initLogger() *zap.SugaredLogger {
-	return NewConsoleLogger(zapcore.DebugLevel, zap.AddCallerSkip(1))
+func SetNodeLogger(node cherryInterfaces.INode) {
+	refLogger := node.Settings().Get("ref_logger").ToString()
+
+	if refLogger == "" {
+		logger.Infof("refLogger config not found, used default console logger.")
+	}
+
+	//global logger
+	logger = NewLogger(refLogger)
 }
 
-func SetLogger(cfg json.Any) {
-	logConfig := cfg.Get("logger")
+func NewLogger(refLoggerName string) *zap.SugaredLogger {
+	isWriteFile := false
+	filePath := "log/game.log"
+	level := "debug"
+	maxSize := 256
+	maxAge := 7
+	maxBackups := 0
+	compress := false
 
-	if logConfig != nil {
-		if logConfig.Get("path") != nil {
-			path = logConfig.Get("path").ToString()
+	config := cherryProfile.Config()
+
+	// logger -> ref_logger
+	logConfig := config.Get("logger", refLoggerName)
+	if logConfig.LastError() == nil {
+
+		if logConfig.Get("is_write_file") != nil {
+			isWriteFile = logConfig.Get("is_write_file").ToBool()
 		}
 
-		if logConfig.Get("suffix") != nil {
-			suffix = logConfig.Get("suffix").ToString()
+		if logConfig.Get("file_path") != nil {
+			filePath = logConfig.Get("file_path").ToString()
 		}
 
 		if logConfig.Get("level") != nil {
 			level = logConfig.Get("level").ToString()
 		}
 
-		if logConfig.Get("is_write_file") != nil {
-			isWriteFile = logConfig.Get("is_write_file").ToBool()
+		if logConfig.Get("max_size") != nil {
+			maxSize = logConfig.Get("max_size").ToInt()
 		}
 
 		if logConfig.Get("max_age") != nil {
 			maxAge = logConfig.Get("max_age").ToInt()
 		}
 
-		if logConfig.Get("rotation_hour") != nil {
-			rotationHour = logConfig.Get("rotation_hour").ToInt()
+		if logConfig.Get("max_backups") != nil {
+			maxBackups = logConfig.Get("max_backups").ToInt()
+		}
+
+		if logConfig.Get("compress") != nil {
+			compress = logConfig.Get("compress").ToBool()
 		}
 
 		if logConfig.Get("time_format") != nil {
@@ -66,10 +79,23 @@ func SetLogger(cfg json.Any) {
 	}
 
 	if isWriteFile {
-		logger = NewFileLogger(path, level+suffix, maxAge, rotationHour, LogLevel(level), zap.AddCallerSkip(1))
-	} else {
-		logger = NewConsoleLogger(LogLevel(level), zap.AddCallerSkip(1))
+		writer := &lumberjack.Logger{
+			Filename:   filePath,
+			MaxSize:    maxSize,
+			MaxAge:     maxAge,
+			MaxBackups: maxBackups,
+			Compress:   compress,
+		}
+
+		options := []zap.Option{
+			zap.AddCallerSkip(1),
+			zap.AddCaller(),
+		}
+
+		return NewFileLogger(zapcore.AddSync(writer), LogLevel(level), options...)
 	}
+
+	return NewConsoleLogger(LogLevel(level), zap.AddCallerSkip(1))
 }
 
 func NewConsoleLogger(level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
@@ -85,49 +111,46 @@ func NewConsoleLogger(level zapcore.Level, opts ...zap.Option) *zap.SugaredLogge
 	return builder.Sugar()
 }
 
-func NewFileLogger(filePath, fileName string, maxAge, rotationHour int, level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
-	cherryUtils.File.CheckPath(filePath)
-
-	encoder := zapcore.NewConsoleEncoder(zapcore.EncoderConfig{
-		TimeKey:      "ts",
-		LevelKey:     "level",
-		MessageKey:   "msg",
-		CallerKey:    "file",
-		EncodeLevel:  zapcore.CapitalLevelEncoder,
-		EncodeTime:   EncodeTime,
-		EncodeCaller: zapcore.ShortCallerEncoder,
+func NewFileLogger(writer zapcore.WriteSyncer, level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
+	config := zapcore.EncoderConfig{
+		TimeKey:       "time",
+		LevelKey:      "level",
+		NameKey:       "logger",
+		MessageKey:    "msg",
+		StacktraceKey: "stacktrace",
+		CallerKey:     "file",
+		EncodeLevel:   zapcore.CapitalLevelEncoder,
+		EncodeTime:    EncodeTime,
+		EncodeCaller:  zapcore.ShortCallerEncoder,
+		EncodeName:    zapcore.FullNameEncoder,
 		EncodeDuration: func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendInt64(int64(d) / 1000000)
 		},
-	})
+	}
 
-	return zap.New(
-		zapcore.NewTee(
-			zapcore.NewCore(encoder,
-				zapcore.AddSync(GetWriter(filePath, fileName, maxAge, rotationHour)),
-				zap.NewAtomicLevelAt(level),
-			),
-		), opts...,
-	).Sugar()
+	return NewConfigFileLogger(config, writer, level, opts...)
+}
+
+func NewConfigFileLogger(
+	config zapcore.EncoderConfig,
+	writer zapcore.WriteSyncer,
+	level zapcore.Level,
+	opts ...zap.Option,
+) *zap.SugaredLogger {
+
+	core := zapcore.NewCore(
+		zapcore.NewConsoleEncoder(config),
+		zapcore.AddSync(writer),
+		zap.NewAtomicLevelAt(level),
+	)
+
+	zapLogger := zap.New(core, opts...)
+
+	return zapLogger.Sugar()
 }
 
 func EncodeTime(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.Format(timeFormat))
-}
-
-func GetWriter(filePath, fileName string, maxAge, rotationHour int) io.Writer {
-	f := goPath.Join(filePath, fileName)
-	hook, err := rotateLogs.New(
-		f+".%Y%m%d%H%M",
-		rotateLogs.WithLinkName(f),
-		rotateLogs.WithMaxAge(time.Hour*24*time.Duration(maxAge)),
-		rotateLogs.WithRotationTime(time.Minute*time.Duration(rotationHour)), //Hour
-	)
-
-	if err != nil {
-		panic(err)
-	}
-	return hook
 }
 
 func LogLevel(level string) zapcore.Level {

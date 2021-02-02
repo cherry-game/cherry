@@ -21,29 +21,30 @@ func DefaultApp() *Application {
 
 // NewApp create new application instance
 func NewApp(configPath, profile, nodeId string) *Application {
-	err := cherryProfile.Init(configPath, profile)
+	config, err := cherryProfile.Init(configPath, profile)
 	if err != nil {
 		panic(err)
 	}
 
-	//set logger
-	cherryLogger.SetLogger(cherryProfile.Config())
-
-	//print version info
-	cherryConst.PrintVersion()
-
-	//load nodes from config file
-	cherryCluster.LoadNodes(cherryProfile.Config())
-
-	nodeType, err := cherryCluster.Nodes().GetType(nodeId)
+	err = cherryCluster.Load(config)
 	if err != nil {
-		cherryLogger.Panic(err)
-		return nil
+		panic(err)
 	}
+
+	node, err := cherryCluster.GetNode(nodeId)
+	if err != nil {
+		panic(err)
+	}
+
+	// set logger
+	cherryLogger.SetNodeLogger(node)
+
+	// print version info
+	cherryLogger.Info(cherryConst.GetLOGO())
 
 	app := &Application{
 		nodeId:    nodeId,
-		nodeType:  nodeType,
+		nodeType:  node.NodeType(),
 		startTime: time.Now().Unix(),
 		running:   false,
 		die:       make(chan bool),

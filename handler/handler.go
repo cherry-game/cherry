@@ -6,12 +6,13 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
+	"time"
 )
 
 type (
 	Handler struct {
 		cherryInterfaces.AppContext
-		Worker
+		WorkerGroup
 		name             string                                // unique Handler name
 		eventFn          map[string][]cherryInterfaces.EventFn // event func
 		localHandlers    map[string]*cherryInterfaces.InvokeFn // local invoke Handler functions
@@ -52,27 +53,8 @@ func (h *Handler) Init() {
 }
 
 func (h *Handler) AfterInit() {
-	if h.queueSize < 1 {
-		h.queueSize = 32767
-	}
-
-	if h.workerSize < 1 {
-		h.workerSize = 1
-	}
-
-	//init chan
-	h.messageChan = make([]chan interface{}, h.workerSize)
-	for i := 0; i < int(h.workerSize); i++ {
-		h.messageChan[i] = make(chan interface{}, h.queueSize)
-	}
-
-	if h.workerExecutorFn == nil {
-		h.workerExecutorFn = DefaultWorkerExecutor
-	}
-
-	for i := 0; i < int(h.workerSize); i++ {
-		go h.workerExecutorFn(h, i, h.messageChan[i])
-	}
+	h.initWorkerGroup()
+	h.runWorker(h)
 }
 
 func (h *Handler) GetEvents() map[string][]cherryInterfaces.EventFn {
@@ -103,18 +85,36 @@ func (h *Handler) GetRemote(funcName string) (*cherryInterfaces.InvokeFn, bool) 
 }
 
 func (h *Handler) PutMessage(message interface{}) {
-	if h.workerSize == 1 {
-		h.messageChan[0] <- message
-	} else {
-		index := h.workerHashFn(message)
-		if index > h.workerSize {
-			index = 0
-		}
-		h.messageChan[index] <- message
+	worker := h.GetWorker(message)
+	if worker != nil {
+		worker.MessageChan <- message
 	}
 }
 
+func (h *Handler) GetWorker(message interface{}) *Worker {
+	if h.workerSize == 1 {
+		return h.workerMap[0]
+	}
+
+	index := h.workerHashFn(message)
+	if index > h.workerSize {
+		index = 0
+	}
+	return h.workerMap[index]
+}
+
 func (h *Handler) Stop() {
+	for _, worker := range h.workerMap {
+		for {
+			size := len(worker.MessageChan)
+			cherryLogger.Infof("[%s-chan-%d] waiting goroutine is empty. len(chan)=%d", h.name, worker.Index, size)
+
+			if size == 0 {
+				break
+			}
+			time.Sleep(time.Millisecond * 100)
+		}
+	}
 }
 
 func (h *Handler) HandlerComponent() *HandlerComponent {

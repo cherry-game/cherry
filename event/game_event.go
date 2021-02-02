@@ -1,4 +1,4 @@
-package cherryEvents
+package cherryEvent
 
 type GameEvent struct {
 	Name string

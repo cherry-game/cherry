@@ -13,26 +13,29 @@ func init() {
 	gin.SetMode(gin.ReleaseMode)
 }
 
-type GinComponentOptions struct {
-	ReadTimeout       time.Duration // http server parameter
-	ReadHeaderTimeout time.Duration
-	WriteTimeout      time.Duration
-	IdleTimeout       time.Duration
-	MaxHeaderBytes    int
-	Address           string
-	CertFile          string
-	KeyFile           string
-}
+type (
+	GinComponentOptions struct {
+		ReadTimeout       time.Duration // http server parameter
+		ReadHeaderTimeout time.Duration
+		WriteTimeout      time.Duration
+		IdleTimeout       time.Duration
+		MaxHeaderBytes    int
+		Address           string
+		CertFile          string
+		KeyFile           string
+	}
 
-// GinComponent wrapper gin
-type GinComponent struct {
-	cherryInterfaces.BaseComponent
-	name        string
-	engine      *gin.Engine
-	server      *http.Server
-	options     GinComponentOptions
-	controllers []IController
-}
+	// GinComponent wrapper gin
+
+	GinComponent struct {
+		cherryInterfaces.BaseComponent
+		name        string
+		engine      *gin.Engine
+		server      *http.Server
+		options     GinComponentOptions
+		controllers []IController
+	}
+)
 
 func New(address string) *GinComponent {
 	return NewHttp("http_server", address)

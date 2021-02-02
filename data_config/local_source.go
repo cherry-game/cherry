@@ -33,7 +33,7 @@ func (l *LocalSource) Init() {
 	if filePath == "" {
 		filePath = "/dataconfig"
 	}
-	l.filePath = path.Join(cherryProfile.ConfigDir(), filePath)
+	l.filePath = path.Join(cherryProfile.ConfigPath(), filePath)
 
 	reloadFlushTime := fileNode.Get("reloadFlushTime").ToInt()
 	if reloadFlushTime < 1 {

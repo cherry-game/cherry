@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/.examples/test1/mocks"
-	"github.com/cherry-game/cherry/adapter/queue"
+	"github.com/cherry-game/cherry/component/queue"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
@@ -14,7 +14,6 @@ import (
 )
 
 func main() {
-
 	app()
 }
 
@@ -31,11 +30,11 @@ func app() {
 	handlers := cherryHandler.NewComponent()
 	handlers.SetNameFn(strings.ToLower)
 	handlers.BeforeFilter(func(msg *cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Info("test before filter.... ")
+		cherryLogger.Debug("test before filter.... ")
 		return false
 	})
 	handlers.AfterFilter(func(msg *cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Info("test after filter....")
+		cherryLogger.Debug("test after filter....")
 		return true
 	})
 	//add TestHandler
@@ -62,7 +61,7 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 		}
 
 		handler.DoHandle(msg)
-		time.Sleep(time.Microsecond * 1)
+		//time.Sleep(time.Microsecond * 1)
 	}
 }
 

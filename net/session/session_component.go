@@ -47,11 +47,11 @@ func (s *SessionComponent) Bind(sid cherryInterfaces.SID, uid cherryInterfaces.U
 	session := s.sidMap[sid]
 
 	if session == nil {
-		return cherryUtils.ErrorFormat("sessionComponent does not exist, sid:%d", sid)
+		return cherryUtils.Errorf("sessionComponent does not exist, sid:%d", sid)
 	}
 
 	if session.UID() < 1 && session.UID() == uid {
-		return cherryUtils.ErrorFormat("sessionComponent has already bound with %d", session.UID())
+		return cherryUtils.Errorf("sessionComponent has already bound with %d", session.UID())
 	}
 
 	sessions := s.uidMap[uid]

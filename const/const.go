@@ -2,7 +2,6 @@ package cherryConst
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/logger"
 )
 
 // component name
@@ -16,8 +15,8 @@ const (
 )
 
 const (
-	ProfileFileName = "profile-%s.json"
-	version         = "1.0.0"
+	ProfileNameFormat = "profile-%s.json"
+	version           = "1.0.0"
 )
 
 var logo = `
@@ -27,14 +26,13 @@ var logo = `
 ██║░░██╗██╔══██║██╔══╝░░██╔══██╗██╔══██╗░░╚██╔╝░░
 ╚█████╔╝██║░░██║███████╗██║░░██║██║░░██║░░░██║░░░
 ░╚════╝░╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░
-`
 
-var versionInfo = `game sever framework@v%s
+game sever framework@v%s
 -------------------------------------------------
 `
 
-func PrintVersion() {
-	cherryLogger.Info(logo, fmt.Sprintf(versionInfo, Version()))
+func GetLOGO() string {
+	return fmt.Sprintf(logo, version)
 }
 
 func Version() string {

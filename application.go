@@ -29,7 +29,8 @@ func (a *Application) NodeType() string {
 }
 
 func (a *Application) ThisNode() cherryInterfaces.INode {
-	return cherryCluster.Nodes().Get(a.nodeType, a.nodeId)
+	node, _ := cherryCluster.GetNode(a.nodeId)
+	return node
 }
 
 func (a *Application) Running() bool {
@@ -121,15 +122,14 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 //
 func (a *Application) Shutdown(beforeStopHook ...func()) {
 	sg := make(chan os.Signal)
-	signal.Notify(sg, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	signal.Notify(sg, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGQUIT)
 
 	select {
-	case <-a.die:
+	//case <-a.die:
 	case <-sg:
 		{
 			//set running flag
 			a.running = false
-
 			cherryLogger.Infof("------- [nodeId = %s] application is shutting... -------", a.NodeId())
 
 			if beforeStopHook != nil {
@@ -150,8 +150,6 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 			}
 
 			cherryLogger.Infof("------- [nodeId = %s] application is shutdown... -------", a.NodeId())
-
-			close(a.die)
 		}
 	}
 }

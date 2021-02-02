@@ -1,17 +1,17 @@
 package mocks
 
 import (
-	"github.com/cherry-game/cherry/events"
+	"github.com/cherry-game/cherry/event"
 )
 
 type TestEvent struct {
-	cherryEvents.GameEvent
+	cherryEvent.GameEvent
 	Abc int
 }
 
 func NewTestEvent() *TestEvent {
 	return &TestEvent{
-		GameEvent: cherryEvents.GameEvent{
+		GameEvent: cherryEvent.GameEvent{
 			Name: "testEventName",
 			Id:   "",
 		},

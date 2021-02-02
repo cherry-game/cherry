@@ -12,7 +12,7 @@ import (
 func DefaultRoute(session cherryInterfaces.ISession, msg RpcMsg, context RouteContextClass, cb Callback) {
 	list := context.GetNodesByType(msg.NodeType())
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.ErrorFormat("can not find node info for type:%s", msg.NodeType()), "")
+		cb(cherryUtils.Errorf("can not find node info for type:%s", msg.NodeType()), "")
 		return
 	}
 
@@ -25,7 +25,7 @@ func DefaultRoute(session cherryInterfaces.ISession, msg RpcMsg, context RouteCo
 func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.ErrorFormat("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
@@ -36,7 +36,7 @@ func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.ErrorFormat("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
@@ -55,7 +55,7 @@ func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback)
 func WeightRoundRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.ErrorFormat("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
