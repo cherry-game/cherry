@@ -3,8 +3,8 @@ package linq
 import (
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/mitchellh/mapstructure"
-	_ "github.com/mitchellh/mapstructure"
 	"log"
 	"testing"
 )
@@ -21,6 +21,19 @@ func TestIntSlice(t *testing.T) {
 const (
 	size = 1000000
 )
+
+func TestJSON(t *testing.T) {
+	list1 := GetCompanyByCountry("USA")
+	t.Log(fmt.Printf("%x", &list1))
+	t.Log(list1)
+
+	j, _ := jsoniter.MarshalToString(&list1)
+	t.Log(j)
+
+	var list11 []Company
+	jsoniter.UnmarshalFromString(j, &list11)
+	t.Log(list11)
+}
 
 func TestQueryCompany(t *testing.T) {
 
