@@ -10,7 +10,6 @@ import (
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
-	"time"
 )
 
 func main() {
@@ -76,13 +75,13 @@ func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 		}
 
 		handler.DoHandle(msg)
-		time.Sleep(time.Millisecond * 1)
+		//time.Sleep(time.Millisecond * 1)
 	}
 }
 
 func mockEventMsg(handler *cherryHandler.HandlerComponent) {
 	for {
 		handler.PostEvent(mocks.NewTestEvent())
-		time.Sleep(time.Millisecond * 1)
+		//time.Sleep(time.Millisecond * 1)
 	}
 }

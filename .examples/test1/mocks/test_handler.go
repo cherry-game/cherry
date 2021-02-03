@@ -28,7 +28,7 @@ func (t *TestHandler) Init() {
 		t.logger.Debug("test handler log" + strconv.Itoa(i))
 	}
 
-	t.SetWorkerCRC32Hash(10)
+	t.SetWorkerCRC32Hash(1)
 
 	t.SetWorkerExecutor(cherryHandler.DefaultWorkerExecutor)
 
@@ -67,7 +67,7 @@ func (t *TestHandler) testEvent(e cherryInterfaces.IEvent) {
 			return
 		}
 
-		cherryLogger.Debug("execute event data. value=%d", event.Abc)
+		cherryLogger.Debugf("execute event data. value=%d", event.Abc)
 	} else {
 		//cherryLogger.Debug("execute event data is nil")
 	}

@@ -77,8 +77,9 @@ func (w *WorkerGroup) SetWorkerExecutor(workerExecuteFn WorkerExecuteFn) {
 }
 
 func (w *WorkerGroup) SetWorkerHash(workerSize int, hashFn WorkerHashFn) {
-	if workerSize < 1 {
+	if workerSize <= 1 {
 		workerSize = 1
+		hashFn = nil
 	}
 
 	if workerSize > 1 && hashFn == nil {
