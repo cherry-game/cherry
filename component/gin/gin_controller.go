@@ -30,3 +30,11 @@ func (b *BaseIController) Init() {
 func (b *BaseIController) Stop() {
 
 }
+
+func (b *BaseIController) BindHandle(handler func(ctx *GinContext)) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		context := new(GinContext)
+		context.Context = c
+		handler(context)
+	}
+}

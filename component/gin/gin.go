@@ -70,8 +70,11 @@ func NewWithOptions(name string, options GinComponentOptions) *GinComponent {
 	}
 }
 
-func (g *GinComponent) Register(controller IController) {
-	g.controllers = append(g.controllers, controller)
+func (g *GinComponent) Register(controllers ...IController) *GinComponent {
+	for _, controller := range controllers {
+		g.controllers = append(g.controllers, controller)
+	}
+	return g
 }
 
 func (g *GinComponent) GetEngine() *gin.Engine {

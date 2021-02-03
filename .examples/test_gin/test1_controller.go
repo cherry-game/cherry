@@ -12,14 +12,15 @@ type Test1Controller struct {
 }
 
 func (t *Test1Controller) Init() {
-	t.Engine.GET("/", t.index)
+
+	t.Engine.GET("/", t.BindHandle(t.index))
 	t.Engine.GET("/panic", t.panic)
 
 	cherrySnowflake.SetDefaultNode(1)
 }
 
-func (t *Test1Controller) index(c *gin.Context) {
-	c.String(http.StatusOK, "this is index... "+cherrySnowflake.Next().String())
+func (t *Test1Controller) index(c *cherryGin.GinContext) {
+	c.RenderHTML("this is index... " + cherrySnowflake.Next().String())
 }
 
 func (t *Test1Controller) panic(c *gin.Context) {
