@@ -6,14 +6,24 @@ import (
 )
 
 type IController interface {
-	Init(app cherryInterfaces.IApplication, engine *gin.Engine)
+	PreInit(app cherryInterfaces.IApplication, engine *gin.Engine)
+
+	Init()
+
 	Stop()
 }
 
 type BaseIController struct {
+	App    cherryInterfaces.IApplication
+	Engine *gin.Engine
 }
 
-func (b *BaseIController) Init(_ cherryInterfaces.IApplication, _ *gin.Engine) {
+func (b *BaseIController) PreInit(app cherryInterfaces.IApplication, engine *gin.Engine) {
+	b.App = app
+	b.Engine = engine
+}
+
+func (b *BaseIController) Init() {
 
 }
 

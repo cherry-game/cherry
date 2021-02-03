@@ -3,20 +3,17 @@ package main
 import (
 	cherryGin "github.com/cherry-game/cherry/component/gin"
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
-	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
 
 type Test1Controller struct {
 	cherryGin.BaseIController
-	app cherryInterfaces.IApplication
 }
 
-func (t *Test1Controller) Init(app cherryInterfaces.IApplication, engine *gin.Engine) {
-	t.app = app
-	engine.GET("/", t.index)
-	engine.GET("/panic", t.panic)
+func (t *Test1Controller) Init() {
+	t.Engine.GET("/", t.index)
+	t.Engine.GET("/panic", t.panic)
 
 	cherrySnowflake.SetDefaultNode(1)
 }

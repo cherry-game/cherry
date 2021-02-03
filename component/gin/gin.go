@@ -113,7 +113,8 @@ func (g *GinComponent) Init() {
 	}
 
 	for _, controller := range g.controllers {
-		controller.Init(g.App(), g.engine)
+		controller.PreInit(g.App(), g.engine)
+		controller.Init()
 	}
 
 	go func() {
