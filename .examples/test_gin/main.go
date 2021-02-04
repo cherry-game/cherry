@@ -7,7 +7,7 @@ import (
 
 func main() {
 
-	testApp := cherry.DefaultApp()
+	testApp := cherry.NewDefaultApp()
 	defer testApp.Shutdown()
 
 	httpServer := cherryGin.NewHttp("http_server_1", testApp.ThisNode().Address())

@@ -17,7 +17,7 @@ func App() *Application {
 	return thisApp
 }
 
-func DefaultApp() *Application {
+func NewDefaultApp() *Application {
 	var configPath, profile, nodeId string
 	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
 	flag.StringVar(&profile, "profile", "local", "-profile=local")

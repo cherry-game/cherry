@@ -17,7 +17,7 @@ func main() {
 }
 
 func app() {
-	testApp := cherry.DefaultApp()
+	testApp := cherry.NewDefaultApp()
 
 	defer testApp.Shutdown(func() {
 		c := testApp.Find(cherryConst.HandlerComponent)
