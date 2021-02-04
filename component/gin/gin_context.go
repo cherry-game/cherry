@@ -10,13 +10,6 @@ type GinContext struct {
 	*gin.Context
 }
 
-func (g *GinContext) JSON(value interface{}) {
-	g.Context.JSON(http.StatusOK, gin.H{
-		"code": 0,
-		"msg":  value,
-	})
-}
-
 func (g *GinContext) GetInt(name string, defaultValue int) int {
 	if value, ok := g.GetQuery(name); ok {
 		if v, e := strconv.Atoi(value); e == nil {
