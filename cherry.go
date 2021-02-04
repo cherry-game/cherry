@@ -9,6 +9,14 @@ import (
 	"time"
 )
 
+var (
+	thisApp *Application
+)
+
+func App() *Application {
+	return thisApp
+}
+
 func DefaultApp() *Application {
 	var configPath, profile, nodeId string
 	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
@@ -42,12 +50,12 @@ func NewApp(configPath, profile, nodeId string) *Application {
 	// print version info
 	cherryLogger.Info(cherryConst.GetLOGO())
 
-	app := &Application{
+	thisNode := &Application{
 		nodeId:    nodeId,
 		nodeType:  node.NodeType(),
 		startTime: time.Now().Unix(),
 		running:   false,
 		die:       make(chan bool),
 	}
-	return app
+	return thisNode
 }
