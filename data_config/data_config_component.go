@@ -27,6 +27,8 @@ func (d *DataConfigComponent) Name() string {
 }
 
 func (d *DataConfigComponent) Init() {
+	d.configFiles = make(map[string]interface{})
+
 	// read data_config node in profile-x.json
 	configNode := cherryProfile.Config().Get("data_config")
 	if configNode.LastError() != nil {

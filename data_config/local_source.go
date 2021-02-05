@@ -8,6 +8,7 @@ import (
 	"hash/crc32"
 	"io/ioutil"
 	"path"
+	"path/filepath"
 )
 
 type FileSource struct {
@@ -58,7 +59,7 @@ func (l *FileSource) loadFile(fileName string) {
 
 	l.filesCRC[fileName] = crc32.ChecksumIEEE(bytes)
 	l.dataConfig.Load(fileName, bytes)
-	cherryLogger.Infof("[%s] data config file load complete.%s", fileName)
+	cherryLogger.Infof("[%s] file load complete.", fileName)
 }
 
 func (l *FileSource) check() bool {
@@ -109,7 +110,8 @@ func (l *FileSource) watchEvent() {
 			{
 				if ev.Op&fsnotify.Write == fsnotify.Write {
 					cherryLogger.Infof("%s file change", ev.Name)
-					l.loadFile(ev.Name)
+					fileName := filepath.Base(ev.Name)
+					l.loadFile(fileName)
 				}
 			}
 		case err := <-l.watch.Errors:
