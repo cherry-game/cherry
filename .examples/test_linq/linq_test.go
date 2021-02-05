@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/ahmetb/go-linq/v3"
 	jsoniter "github.com/json-iterator/go"
-	"github.com/mitchellh/mapstructure"
-	"log"
 	"testing"
 )
 
@@ -140,85 +138,5 @@ func (q MyQuery) GreaterThan(threshold int) linq.Query {
 				return
 			}
 		},
-	}
-}
-
-func TestMapStructure(t *testing.T) {
-	test1()
-}
-
-func BenchmarkTest1(b *testing.B) {
-	for n := 0; n < b.N; n++ {
-		test1()
-	}
-}
-
-func test1() {
-	type Person struct {
-		Name   string
-		Age    int
-		Emails []string
-		Extra  map[string]string
-	}
-	input := map[string]interface{}{
-		"name":   "Mitchell",
-		"age":    91,
-		"emails": []string{"one", "two", "three"},
-		"extra": map[string]string{
-			"twitter": "mitchellh",
-		},
-	}
-	// map 转struct
-	var result Person
-	err := mapstructure.Decode(input, &result)
-	if err != nil {
-		panic(err)
-	}
-
-	var users = make([]Person, 2)
-
-	var names []string
-
-	var names2 []struct {
-		name string
-		age  int
-	}
-
-	users = append(users, result)
-
-	// linq 使用
-	linq.From(users).Where(func(u interface{}) bool {
-		p := u.(Person)
-		return p.Age > 10
-	}).SelectT(func(p Person) string {
-		return p.Name
-	}).ToSlice(&names)
-
-	for _, name := range names {
-		log.Println(name)
-	}
-
-	linq.From(users).Where(func(u interface{}) bool {
-		p := u.(Person)
-		return p.Age > 10
-	}).Select(func(p interface{}) interface{} {
-		person := p.(Person)
-		return struct {
-			name string
-			age  int
-		}{
-			name: person.Name,
-			age:  person.Age,
-		}
-	}).ToSlice(&names2)
-
-	for _, name := range names2 {
-		log.Println(name)
-	}
-
-	// 测试自定义query
-	results := MyQuery(linq.Range(1, 100)).GreaterThan(97).Results()
-	for _, result := range results {
-		log.Println(result)
 	}
 }
