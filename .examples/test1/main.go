@@ -4,7 +4,8 @@ import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/.examples/test1/mocks"
 	"github.com/cherry-game/cherry/component/queue"
-	"github.com/cherry-game/cherry/const"
+	cherryConst "github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/data_config"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/route"
@@ -39,14 +40,18 @@ func app() {
 	//add TestHandler
 	handlers.Registers(mocks.NewTestHandler())
 
+	dataConfig := cherryDataConfig.NewComponent()
+	dataConfig.Register(new(mocks.DropConfig))
+
 	testApp.Startup(
 		handlers,
+		dataConfig,
 		cherryQueue.NewQueue(),
 	)
 
-	go mockRequestMsg1(handlers)
-	go mockRequestMsg2(handlers)
-	go mockEventMsg(handlers)
+	//go mockRequestMsg1(handlers)
+	//go mockRequestMsg2(handlers)
+	//go mockEventMsg(handlers)
 }
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {

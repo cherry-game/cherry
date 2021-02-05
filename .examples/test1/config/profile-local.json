@@ -1,21 +1,21 @@
 {
   "debug": true,
-  "logger" : {
-    "game_log" : {
+  "logger": {
+    "game_log": {
       "is_write_file": false,
       "file_path": "logs/game.log",
       "level": "debug",
-      "max_size" : 128,
+      "max_size": 128,
       "max_age": 7,
       "max_backups": 0,
       "compress": false,
       "time_format": "15:04:05.000"
     },
-    "test_handler" : {
+    "test_handler": {
       "is_write_file": true,
       "file_path": "logs/test_handler.log",
       "level": "debug",
-      "max_size" : 128,
+      "max_size": 128,
       "max_age": 7,
       "max_backups": 0,
       "compress": false,
@@ -57,10 +57,11 @@
     }
   },
   "data_config": {
+    "enable": true,
+    "parser": "json",
     "data_source": "file",
     "file": {
-      "file_path": "/dataconfig",
-      "reload_flush_time": 3000
+      "file_path": "data_config/"
     },
     "redis": {
       "redis_key": "config:server:xgame"

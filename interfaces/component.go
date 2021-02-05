@@ -22,7 +22,7 @@ type BaseComponent struct {
 }
 
 func (*BaseComponent) Name() string {
-	panic("implement `Name()` please.")
+	return ""
 }
 
 func (*BaseComponent) Init() {

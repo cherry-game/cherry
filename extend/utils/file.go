@@ -59,6 +59,16 @@ func (f *file) GetWorkPath() string {
 	return p
 }
 
+func (f *file) JoinPath(elem ...string) (string, error) {
+	path := path.Join(elem...)
+
+	err := f.CheckPath(path)
+	if err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
 func (f *file) CheckPath(path string) error {
 	_, err := os.Stat(path)
 	if err != nil {

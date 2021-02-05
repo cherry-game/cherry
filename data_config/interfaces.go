@@ -1,47 +1,26 @@
 package cherryDataConfig
 
-type IDataConfig interface {
-	GetFirst(index *IndexObject, params ...interface{}) interface{}
+type (
+	IDataConfig interface {
+		Register(file IConfigFile)         // 注册文件
+		GetFiles() []IConfigFile           // 获取注册的文件列表
+		Get(fileName string) interface{}   // 获取原始的数据
+		Load(fileName string, data []byte) // 加载数据流
+	}
 
-	GetList(tableName string) interface{}
+	// IDataSource 配置文件数据源
+	IDataSource interface {
+		Name() string                // 数据源名称
+		Init(dataConfig IDataConfig) // 函数初始化时
+		Destroy()                    // 函数销毁时
+	}
 
-	GetIndexList(index *IndexObject, params ...interface{}) interface{}
+	Parser func(text []byte, v interface{}) error // 文件格式解析器
 
-	Reload(fileName string, text []byte) error
-
-	CheckFileName(fileName string, text []byte) error
-
-	RegisterModel(models ...IConfigModel) error
-
-	RegisterService(service IConfigService)
-}
-
-type IDataParse interface {
-	Parse(text []byte, v interface{}) error
-}
-
-type IDataSource interface {
-	Name() string
-
-	Init()
-
-	Destroy()
-
-	SetParse(parse IDataParse)
-
-	GetContent(fileName string) ([]byte, error)
-
-	GetConfigNames() []string
-}
-
-type IConfigModel interface {
-	FileName() string
-
-	Init()
-}
-
-type IConfigService interface {
-	Clean(typ interface{})
-
-	Init(dataConfig IDataConfig)
-}
+	// IConfigFile 配置文件接口
+	IConfigFile interface {
+		FileName() string // 文件名
+		Init()            // 文件序列化后，执行该函数
+		Reload()          // 文件重加载后，先执行Init(),再执行该函数
+	}
+)

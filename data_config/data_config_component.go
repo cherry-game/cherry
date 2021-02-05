@@ -1,95 +1,79 @@
 package cherryDataConfig
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
+	"fmt"
+	cherryUtils "github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
-	"github.com/cherry-game/cherry/logger"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/profile"
 )
 
 type DataConfigComponent struct {
 	cherryInterfaces.BaseComponent
 
-	dataSource  IDataSource
-	dataParse   IDataParse
-	models      map[string]IConfigModel
-	serviceList []IConfigService
+	register    []IConfigFile
+	configFiles map[string]interface{}
+	source      IDataSource
+	parser      Parser
 }
 
 func NewComponent() *DataConfigComponent {
 	return &DataConfigComponent{}
 }
 
+//Name unique components name
+func (d *DataConfigComponent) Name() string {
+	return "data_config_component"
+}
+
 func (d *DataConfigComponent) Init() {
-	d.initModels()
-}
-
-func (d *DataConfigComponent) initModels() {
-	for _, model := range d.models {
-		bytes, err := d.dataSource.GetContent(model.FileName())
-		if err != nil {
-			cherryLogger.Error(err)
-			continue
-		}
-
-		if len(bytes) < 1 {
-			cherryLogger.Errorf("fileName=%s content is null", model.FileName())
-			continue
-		}
-
-		var list []IConfigModel
-		if err := d.dataParse.Parse(bytes, &list); err != nil {
-			cherryLogger.Errorf("data parse error. error = %s", err)
-			return
-		}
-
-		if len(list) < 1 {
-			cherryLogger.Errorf("fileName=%s parse to list is empty.", model.FileName())
-			continue
-		}
-
-		for _, m := range list {
-			m.Init()
-		}
-
-	}
-}
-
-func (d *DataConfigComponent) GetFirst(index *IndexObject, params ...interface{}) interface{} {
-	return nil
-}
-
-func (d *DataConfigComponent) GetList(tableName string) interface{} {
-	return nil
-}
-
-func (d *DataConfigComponent) GetIndexList(index *IndexObject, params ...interface{}) interface{} {
-	return nil
-}
-
-func (d *DataConfigComponent) Reload(fileName string, text []byte) error {
-	return nil
-}
-
-func (d *DataConfigComponent) CheckFileName(fileNames string, text []byte) error {
-	return nil
-}
-
-func (d *DataConfigComponent) RegisterModel(models ...IConfigModel) error {
-	for _, model := range models {
-
-		if len(model.FileName()) < 1 {
-			return cherryUtils.Errorf("model=%t, fileName() is nil", model)
-		}
-
-		if _, found := d.models[model.FileName()]; found {
-			return cherryUtils.Errorf("fileName=%s have duplicate.", model)
-		}
-		d.models[model.FileName()] = model
+	// read data_config node in profile-x.json
+	configNode := cherryProfile.Config().Get("data_config")
+	if configNode.LastError() != nil {
+		panic(fmt.Sprintf("not found `data_config` node in `%s` file.", cherryProfile.FilePath()))
 	}
 
-	return nil
+	// get data source
+	sourceName := configNode.Get("data_source").ToString()
+	d.source = GetDataSource(sourceName)
+	if d.source == nil {
+		panic(fmt.Sprintf("data source not found. sourceName = %s", sourceName))
+	}
+
+	// get file parser
+	parserName := configNode.Get("parser").ToString()
+	d.parser = GetParser(parserName)
+	if d.parser == nil {
+		panic(fmt.Sprintf("parser not found. sourceName = %s", parserName))
+	}
+
+	cherryUtils.Try(func() {
+		d.source.Init(d)
+	}, func(errString string) {
+		cherryLogger.Warn(errString)
+	})
 }
 
-func (d *DataConfigComponent) RegisterService(service IConfigService) {
-	d.serviceList = append(d.serviceList, service)
+func (d *DataConfigComponent) Register(file IConfigFile) {
+	d.register = append(d.register, file)
+}
+
+func (d *DataConfigComponent) GetFiles() []IConfigFile {
+	return d.register
+}
+
+func (d *DataConfigComponent) Get(fileName string) interface{} {
+	return d.configFiles[fileName]
+}
+
+func (d *DataConfigComponent) Load(fileName string, data []byte) {
+	cherryUtils.Try(func() {
+		var v interface{}
+		d.parser(data, &v)
+
+		d.configFiles[fileName] = v
+
+	}, func(errString string) {
+		cherryLogger.Warn(errString)
+	})
 }

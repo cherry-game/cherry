@@ -1,9 +1,5 @@
 package cherryDataConfigSample
 
-import (
-	"github.com/cherry-game/cherry/data_config"
-)
-
 var (
 	ITEM_CONFIG = "itemConfig"
 )
@@ -21,12 +17,12 @@ func (i *ItemConfig) Init() {
 
 }
 
-func (i *ItemConfig) ReadItem(item cherryDataConfig.IConfigModel) interface{} {
-	return item.(*ItemConfig)
-}
-
-func (i ItemConfig) AddIndex() []*cherryDataConfig.IndexObject {
-	var idx []*cherryDataConfig.IndexObject
-	idx = append(idx, cherryDataConfig.NewIndex("itemConfig", "id"))
-	return idx
-}
+//func (i *ItemConfig) ReadItem(item cherryDataConfig.IConfigModel) interface{} {
+//	return item.(*ItemConfig)
+//}
+//
+//func (i ItemConfig) AddIndex() []*cherryDataConfig.IndexObject {
+//	var idx []*cherryDataConfig.IndexObject
+//	idx = append(idx, cherryDataConfig.NewIndex("itemConfig", "id"))
+//	return idx
+//}

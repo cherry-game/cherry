@@ -73,6 +73,12 @@ func (a *Application) All() []cherryInterfaces.IComponent {
 
 // Startup
 func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
+	defer func() {
+		if r := recover(); r != nil {
+			cherryLogger.Error(r)
+		}
+	}()
+
 	if a.running {
 		cherryLogger.Errorf("[nodeId = %s] application has running.", a.nodeId)
 		return
@@ -86,7 +92,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	// add components & init
 	for _, c := range components {
 		if c == nil || c.Name() == "" {
-			cherryLogger.Error("[component] is nil.")
+			cherryLogger.Errorf("[component] is nil. component=%T", c)
 			return
 		}
 

@@ -11,14 +11,19 @@ import (
 )
 
 var (
-	configPath  string       // profileJson dir
-	profileName string       // profile profileName
-	profileJson jsoniter.Any // profile-x.json parse to json object
-	debug       bool         // is debug
+	configDir       string       // config root dir
+	profileFullPath string       // profile file full path
+	profileName     string       // profile profileName
+	profileJson     jsoniter.Any // profile-x.json parse to json object
+	debug           bool         // is debug
 )
 
-func ConfigPath() string {
-	return configPath
+func Dir() string {
+	return configDir
+}
+
+func FilePath() string {
+	return profileFullPath
 }
 
 func Name() string {
@@ -58,8 +63,10 @@ func Init(configPath, profile string) (jsoniter.Any, error) {
 		return nil, err
 	}
 
+	configDir = judgePath
+	profileFullPath = profileFilePath
 	profileName = profile
-	configPath = judgePath
+
 	profileJson = jsoniter.Get(bytes)
 	debug = true
 
