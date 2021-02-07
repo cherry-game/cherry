@@ -13,7 +13,7 @@ type DataConfigComponent struct {
 	register    []IConfigFile
 	configFiles map[string]interface{}
 	source      IDataSource
-	parser      Parser
+	parser      IParser
 }
 
 func NewComponent() *DataConfigComponent {
@@ -56,7 +56,9 @@ func (d *DataConfigComponent) Init() {
 }
 
 func (d *DataConfigComponent) Stop() {
-	d.source.Stop()
+	if d.source != nil {
+		d.source.Stop()
+	}
 }
 
 func (d *DataConfigComponent) Register(file IConfigFile) {
@@ -75,7 +77,7 @@ func (d *DataConfigComponent) Load(fileName string, data []byte) {
 	cherryUtils.Try(func() {
 		var v interface{}
 
-		err := d.parser(data, &v)
+		err := d.parser.Unmarshal(data, &v)
 		if err != nil {
 			cherryLogger.Warn(err)
 			return

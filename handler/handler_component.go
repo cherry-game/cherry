@@ -56,8 +56,6 @@ func (h *HandlerComponent) Init() {
 		handler.Init()
 		handler.AfterInit()
 	}
-
-	cherryLogger.Debug("[handlerComponent] init completed.")
 }
 
 func (h *HandlerComponent) Stop() {

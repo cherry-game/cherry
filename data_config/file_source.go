@@ -15,8 +15,8 @@ import (
 type FileSource struct {
 	dataConfig IDataConfig
 
-	monitorPath string //监控的路径
 	filesCRC    map[string]uint32
+	monitorPath string
 	watcher     *watcher.Watcher
 	reloadTime  int64
 }

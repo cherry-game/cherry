@@ -5,6 +5,7 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/cluster"
+	cherryProfile "github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
 	"syscall"
@@ -87,7 +88,13 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	//is running
 	a.running = true
 
-	cherryLogger.Infof("[nodeId = %s] application is starting.", a.nodeId)
+	cherryLogger.Info("-------------------------------------------------")
+	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.nodeId)
+	cherryLogger.Infof("[profile 	= %s]", cherryProfile.Name())
+	cherryLogger.Infof("[configDir 	= %s]", cherryProfile.Dir())
+	cherryLogger.Infof("[configFile = %s]", cherryProfile.FilePath())
+	cherryLogger.Infof("[debug 		= %v]", cherryProfile.Debug())
+	cherryLogger.Info("-------------------------------------------------")
 
 	// add components & init
 	for _, c := range components {
@@ -110,13 +117,13 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	for _, c := range a.components {
 		c.Set(a)
 		c.Init()
-		cherryLogger.Debugf("[component = %s] executed Init().", c.Name())
+		cherryLogger.Debugf("[component = %s] -> Init().", c.Name())
 	}
 
 	//execute AfterInit()
 	for _, c := range a.components {
 		c.AfterInit()
-		cherryLogger.Debugf("[component = %s] executed AfterInit().", c.Name())
+		cherryLogger.Debugf("[component = %s] -> AfterInit().", c.Name())
 	}
 
 	stringTime := cherryUtils.Timer.UnixTimeToString(a.startTime)
@@ -147,12 +154,12 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 			//all components in reverse order
 			for i := len(a.components) - 1; i >= 0; i-- {
 				a.components[i].BeforeStop()
-				cherryLogger.Debugf("[component = %s] executed BeforeStop().", a.components[i].Name())
+				cherryLogger.Debugf("[component = %s] -> BeforeStop().", a.components[i].Name())
 			}
 
 			for i := len(a.components) - 1; i >= 0; i-- {
 				a.components[i].Stop()
-				cherryLogger.Debugf("[component = %s] executed Stop().", a.components[i].Name())
+				cherryLogger.Debugf("[component = %s] -> Stop().", a.components[i].Name())
 			}
 
 			cherryLogger.Infof("------- [nodeId = %s] application is shutdown... -------", a.NodeId())
