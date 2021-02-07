@@ -1,16 +1,15 @@
-package cherryUtils
+package cherryReflect
 
 import (
 	"fmt"
+	cherryString "github.com/cherry-game/cherry/extend/string"
+	"github.com/cherry-game/cherry/extend/utils"
 	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
 	"reflect"
 	"runtime"
 )
 
-type reflection struct {
-}
-
-func (r *reflection) ReflectTry(f reflect.Value, args []reflect.Value, handler func(interface{})) {
+func ReflectTry(f reflect.Value, args []reflect.Value, handler func(interface{})) {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println("-------------panic recover---------------")
@@ -22,17 +21,17 @@ func (r *reflection) ReflectTry(f reflect.Value, args []reflect.Value, handler f
 	f.Call(args)
 }
 
-func (r *reflection) GetStructName(v interface{}) string {
+func GetStructName(v interface{}) string {
 	return reflect.Indirect(reflect.ValueOf(v)).Type().Name()
 }
 
-func (r *reflection) GetFuncName(fn interface{}) string {
+func GetFuncName(fn interface{}) string {
 	fullName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-	return Strings.CutLastString(fullName, ".", "-")
+	return cherryString.CutLastString(fullName, ".", "-")
 }
 
 // IsNil 返回 reflect.Value 的值是否为 nil，比原生方法更安全
-func (r *reflection) IsNil(v reflect.Value) bool {
+func IsNil(v reflect.Value) bool {
 	switch v.Kind() {
 	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
 		return v.IsNil()
@@ -41,20 +40,20 @@ func (r *reflection) IsNil(v reflect.Value) bool {
 }
 
 //getInvokeFunc reflect function convert to InvokeFn
-func (r *reflection) GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFn, error) {
+func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFn, error) {
 	if name == "" {
-		return nil, Error("func name is nil")
+		return nil, cherryUtils.Error("func name is nil")
 	}
 
 	if fn == nil {
-		return nil, Errorf("func is nil. name = %s", name)
+		return nil, cherryUtils.Errorf("func is nil. name = %s", name)
 	}
 
 	typ := reflect.TypeOf(fn)
 	val := reflect.ValueOf(fn)
 
 	if typ.Kind() != reflect.Func {
-		return nil, Errorf("name = %s is not func type.", name)
+		return nil, cherryUtils.Errorf("name = %s is not func type.", name)
 	}
 
 	var inArgs []reflect.Type

@@ -2,7 +2,7 @@ package cherryHandler
 
 import (
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/reflect"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
@@ -123,7 +123,7 @@ func (h *Handler) HandlerComponent() *HandlerComponent {
 
 func (h *Handler) RegisterLocals(sliceFn ...interface{}) {
 	for _, fn := range sliceFn {
-		funcName := cherryUtils.Reflect.GetFuncName(fn)
+		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
 			continue
@@ -133,7 +133,7 @@ func (h *Handler) RegisterLocals(sliceFn ...interface{}) {
 }
 
 func (h *Handler) RegisterLocal(name string, fn interface{}) {
-	f, err := cherryUtils.Reflect.GetInvokeFunc(name, fn)
+	f, err := cherryReflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -147,7 +147,7 @@ func (h *Handler) RegisterLocal(name string, fn interface{}) {
 
 func (h *Handler) RegisterRemotes(sliceFn ...interface{}) {
 	for _, fn := range sliceFn {
-		funcName := cherryUtils.Reflect.GetFuncName(fn)
+		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
 			continue
@@ -157,7 +157,7 @@ func (h *Handler) RegisterRemotes(sliceFn ...interface{}) {
 }
 
 func (h *Handler) RegisterRemote(name string, fn interface{}) {
-	invokeFunc, err := cherryUtils.Reflect.GetInvokeFunc(name, fn)
+	invokeFunc, err := cherryReflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return

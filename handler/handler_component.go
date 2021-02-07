@@ -2,7 +2,7 @@ package cherryHandler
 
 import (
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/reflect"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
@@ -68,7 +68,7 @@ func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
 	for _, handler := range handlers {
 		name := handler.Name()
 		if name == "" {
-			name = cherryUtils.Reflect.GetStructName(handler)
+			name = cherryReflect.GetStructName(handler)
 		}
 		h.RegisterWithName(name, handler)
 	}
@@ -76,7 +76,7 @@ func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
 
 func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterfaces.IHandler) {
 	if name == "" {
-		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryUtils.Reflect.GetStructName(handler))
+		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
 	}
 
@@ -87,7 +87,7 @@ func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterface
 
 	name = h.nameFn(name)
 	if name == "" {
-		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryUtils.Reflect.GetStructName(handler))
+		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
 	}
 

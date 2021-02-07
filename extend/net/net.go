@@ -1,21 +1,18 @@
-package cherryUtils
+package cherryNet
 
 import (
-	goNet "net"
+	"net"
 	"sync"
 )
 
 var localIPv4Str = "0.0.0.0"
 var localIPv4Once = new(sync.Once)
 
-type net struct {
-}
-
-func (n *net) LocalIPV4() string {
+func LocalIPV4() string {
 	localIPv4Once.Do(func() {
-		if ias, err := goNet.InterfaceAddrs(); err == nil {
+		if ias, err := net.InterfaceAddrs(); err == nil {
 			for _, address := range ias {
-				if ipNet, ok := address.(*goNet.IPNet); ok && !ipNet.IP.IsLoopback() {
+				if ipNet, ok := address.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
 					if ipNet.IP.To4() != nil {
 						localIPv4Str = ipNet.IP.String()
 						return

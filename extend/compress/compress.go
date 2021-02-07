@@ -1,4 +1,4 @@
-package cherryUtils
+package cherryCompress
 
 import (
 	"bytes"
@@ -6,10 +6,7 @@ import (
 	"io/ioutil"
 )
 
-type compress struct {
-}
-
-func (c *compress) DeflateData(data []byte) ([]byte, error) {
+func DeflateData(data []byte) ([]byte, error) {
 	var bb bytes.Buffer
 	z := zlib.NewWriter(&bb)
 	_, err := z.Write(data)
@@ -20,7 +17,7 @@ func (c *compress) DeflateData(data []byte) ([]byte, error) {
 	return bb.Bytes(), nil
 }
 
-func (c *compress) InflateData(data []byte) ([]byte, error) {
+func InflateData(data []byte) ([]byte, error) {
 	zr, err := zlib.NewReader(bytes.NewBuffer(data))
 	if err != nil {
 		return nil, err
@@ -29,7 +26,7 @@ func (c *compress) InflateData(data []byte) ([]byte, error) {
 	return ioutil.ReadAll(zr)
 }
 
-func (c *compress) IsCompressed(data []byte) bool {
+func IsCompressed(data []byte) bool {
 	return len(data) > 2 &&
 		(
 		//zlib

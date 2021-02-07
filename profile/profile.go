@@ -3,6 +3,7 @@ package cherryProfile
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/extend/utils"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
@@ -47,7 +48,7 @@ func Init(configPath, profile string) (jsoniter.Any, error) {
 		return nil, cherryUtils.Error("profile parameter is null.")
 	}
 
-	judgePath, ok := cherryUtils.File.JudgePath(configPath)
+	judgePath, ok := cherryFile.JudgePath(configPath)
 	if !ok {
 		return nil, cherryUtils.Errorf("configPath = %s not found.", configPath)
 	}

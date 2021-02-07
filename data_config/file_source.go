@@ -1,7 +1,7 @@
 package cherryDataConfig
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
@@ -53,7 +53,7 @@ func (l *FileSource) check() bool {
 	}
 
 	var err error
-	l.monitorPath, err = cherryUtils.File.JoinPath(cherryProfile.Dir(), filePath)
+	l.monitorPath, err = cherryFile.JoinPath(cherryProfile.Dir(), filePath)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return false
@@ -76,7 +76,7 @@ func (l *FileSource) loadFile(fileName string) {
 		return
 	}
 
-	fullPath, err := cherryUtils.File.JoinPath(l.monitorPath, fileName)
+	fullPath, err := cherryFile.JoinPath(l.monitorPath, fileName)
 	if err != nil {
 		cherryLogger.Warnf("file not found. err = %v path = %s", err, fullPath)
 		return

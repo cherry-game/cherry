@@ -49,9 +49,9 @@ func app() {
 		cherryQueue.NewQueue(),
 	)
 
-	//go mockRequestMsg1(handlers)
-	//go mockRequestMsg2(handlers)
-	//go mockEventMsg(handlers)
+	go mockRequestMsg1(handlers)
+	go mockRequestMsg2(handlers)
+	go mockEventMsg(handlers)
 }
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {

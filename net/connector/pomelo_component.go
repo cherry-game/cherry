@@ -3,6 +3,7 @@ package cherryConnector
 import (
 	"encoding/json"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/compress"
 	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
@@ -256,7 +257,7 @@ func (p *PomeloComponent) initHandshakeData() {
 	}
 
 	if p.DataCompression {
-		compressedData, err := cherryUtils.Compress.DeflateData(data)
+		compressedData, err := cherryCompress.DeflateData(data)
 		if err != nil {
 			panic(err)
 		}

@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/extend/utils"
+	cherryReflect "github.com/cherry-game/cherry/extend/reflect"
 )
 
 type FunStruct struct {
@@ -15,16 +15,16 @@ func (f *FunStruct) A() string {
 func main() {
 	f := &FunStruct{}
 
-	result0 := cherryUtils.Reflect.GetFuncName(f)
+	result0 := cherryReflect.GetFuncName(f)
 	fmt.Println(result0)
 
-	result1 := cherryUtils.Reflect.GetFuncName(f.A)
+	result1 := cherryReflect.GetFuncName(f.A)
 	fmt.Println(result1)
 
-	result2 := cherryUtils.Reflect.GetFuncName(main)
+	result2 := cherryReflect.GetFuncName(main)
 	fmt.Println(result2)
 
-	result3 := cherryUtils.Reflect.GetFuncName(main1)
+	result3 := cherryReflect.GetFuncName(main1)
 	fmt.Println(result3)
 }
 

@@ -2,7 +2,7 @@ package cherryMessage
 
 import (
 	"encoding/binary"
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/compress"
 )
 
 // Encoder interface
@@ -98,7 +98,7 @@ func (m *MessagesEncoder) Encode(message *Message) ([]byte, error) {
 
 	//对消息体进行二进制压缩 gzip
 	if m.DataCompression {
-		d, err := cherryUtils.Compress.DeflateData(message.Data)
+		d, err := cherryCompress.DeflateData(message.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -178,7 +178,7 @@ func Decode(data []byte) (*Message, error) {
 	m.Data = data[offset:]
 	var err error
 	if flag&gzipMask == gzipMask {
-		m.Data, err = cherryUtils.Compress.InflateData(m.Data)
+		m.Data, err = cherryCompress.InflateData(m.Data)
 		if err != nil {
 			return nil, err
 		}

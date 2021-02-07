@@ -5,18 +5,6 @@ import (
 	"fmt"
 )
 
-var (
-	Compress = &compress{}
-	Crypto   = &crypto{}
-	File     = &file{}
-	Reflect  = &reflection{}
-	Timer    = &timer{}
-	Strings  = &strings{}
-	Json     = &json{}
-	Net      = &net{}
-	Slice    = &slice{}
-)
-
 func Error(text string) error {
 	return errors.New(text)
 }

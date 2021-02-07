@@ -1,16 +1,13 @@
 // file from https://github.com/beego/beego/blob/develop/core/utils/slice.go
-package cherryUtils
+package cherySlice
 
 import (
 	"math/rand"
 	"time"
 )
 
-type slice struct {
-}
-
 // In checks given string in string slice or not.
-func (s *slice) In(v string, sl []string) bool {
+func In(v string, sl []string) bool {
 	for _, vv := range sl {
 		if vv == v {
 			return true

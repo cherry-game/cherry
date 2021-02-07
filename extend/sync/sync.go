@@ -1,4 +1,4 @@
-package cherryUtils
+package cherrySync
 
 import goSync "sync"
 

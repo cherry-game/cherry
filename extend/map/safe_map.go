@@ -1,6 +1,6 @@
 // file from https://github.com/beego/beego/blob/develop/core/utils/safemap.go
 
-package cherryExtend
+package cherrySafeMap
 
 import (
 	"sync"

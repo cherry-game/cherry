@@ -1,11 +1,11 @@
 package cherry
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/cluster"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	"github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
 	"syscall"
@@ -126,7 +126,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 		cherryLogger.Debugf("[component = %s] -> AfterInit().", c.Name())
 	}
 
-	stringTime := cherryUtils.Timer.UnixTimeToString(a.startTime)
+	stringTime := cherryTime.UnixTimeToString(a.startTime)
 
 	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.nodeId, stringTime)
 	cherryLogger.Info("-----------------------------------------")

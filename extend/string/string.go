@@ -1,14 +1,11 @@
-package cherryUtils
+package cherryString
 
 import str "strings"
-
-type strings struct {
-}
 
 //CutLastString 截取字符串中最后一段，以@beginChar开始,@endChar结束的字符
 //@text 文本
 //@beginChar 开始
-func (s *strings) CutLastString(text, beginChar, endChar string) string {
+func CutLastString(text, beginChar, endChar string) string {
 	if text == "" || beginChar == "" || endChar == "" {
 		return ""
 	}
@@ -25,6 +22,6 @@ func (s *strings) CutLastString(text, beginChar, endChar string) string {
 	return string(textRune[beginIndex+1 : endIndex])
 }
 
-func (s *strings) IsBlank(value string) bool {
+func IsBlank(value string) bool {
 	return value == ""
 }
