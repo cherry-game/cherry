@@ -18,6 +18,7 @@ type FileSource struct {
 	monitorPath string //监控的路径
 	filesCRC    map[string]uint32
 	watcher     *watcher.Watcher
+	reloadTime  int64
 }
 
 func (l *FileSource) Name() string {
@@ -36,6 +37,37 @@ func (l *FileSource) Init(dataConfig IDataConfig) {
 	}
 
 	go l.newWatcher()
+}
+
+func (l *FileSource) check() bool {
+	//read data_config->file node
+	fileNode := cherryProfile.Config().Get("data_config", "file")
+	if fileNode == nil {
+		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FilePath())
+		return false
+	}
+
+	filePath := fileNode.Get("file_path").ToString()
+	if filePath == "" {
+		filePath = "data_config/"
+	}
+
+	var err error
+	l.monitorPath, err = cherryUtils.File.JoinPath(cherryProfile.Dir(), filePath)
+	if err != nil {
+		cherryLogger.Warn(err)
+		return false
+	}
+
+	l.reloadTime = fileNode.Get("reload_time").ToInt64()
+	if l.reloadTime < 1 {
+		l.reloadTime = 2000
+	}
+
+	// init
+	l.filesCRC = make(map[string]uint32)
+
+	return true
 }
 
 func (l *FileSource) loadFile(fileName string) {
@@ -70,32 +102,6 @@ func (l *FileSource) loadFile(fileName string) {
 	}
 }
 
-func (l *FileSource) check() bool {
-	//read data_config->file node
-	fileNode := cherryProfile.Config().Get("data_config", "file")
-	if fileNode == nil {
-		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FilePath())
-		return false
-	}
-
-	filePath := fileNode.Get("file_path").ToString()
-	if filePath == "" {
-		filePath = "data_config/"
-	}
-
-	var err error
-	l.monitorPath, err = cherryUtils.File.JoinPath(cherryProfile.Dir(), filePath)
-	if err != nil {
-		cherryLogger.Warn(err)
-		return false
-	}
-
-	// init
-	l.filesCRC = make(map[string]uint32)
-
-	return true
-}
-
 func (l *FileSource) newWatcher() {
 	l.watcher = watcher.New()
 	l.watcher.SetMaxEvents(1)
@@ -127,7 +133,7 @@ func (l *FileSource) newWatcher() {
 		}
 	}()
 
-	if err := l.watcher.Start(time.Millisecond * 100); err != nil {
+	if err := l.watcher.Start(time.Millisecond * time.Duration(l.reloadTime)); err != nil {
 		cherryLogger.Warn(err)
 	}
 }
