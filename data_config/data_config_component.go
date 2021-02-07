@@ -56,7 +56,7 @@ func (d *DataConfigComponent) Init() {
 }
 
 func (d *DataConfigComponent) Stop() {
-	d.source.Destroy()
+	d.source.Stop()
 }
 
 func (d *DataConfigComponent) Register(file IConfigFile) {

@@ -132,7 +132,7 @@ func (l *FileSource) newWatcher() {
 	}
 }
 
-func (l *FileSource) Destroy() {
+func (l *FileSource) Stop() {
 	if l.watcher != nil {
 		err := l.watcher.Remove(l.monitorPath)
 		if err != nil {

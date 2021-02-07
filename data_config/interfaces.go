@@ -12,7 +12,7 @@ type (
 	IDataSource interface {
 		Name() string                // 数据源名称
 		Init(dataConfig IDataConfig) // 函数初始化时
-		Destroy()                    // 函数销毁时
+		Stop()                       // 停止
 	}
 
 	Parser func(text []byte, v interface{}) error // 文件格式解析器
