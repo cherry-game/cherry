@@ -134,7 +134,10 @@ func (l *FileSource) newWatcher() {
 
 func (l *FileSource) Destroy() {
 	if l.watcher != nil {
-		l.watcher.Remove(l.monitorPath)
+		err := l.watcher.Remove(l.monitorPath)
+		if err != nil {
+			cherryLogger.Warn(err)
+		}
 		cherryLogger.Infof("remove watcher [path = %s]", l.monitorPath)
 		l.watcher.Closed <- struct{}{}
 	}
