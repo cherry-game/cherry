@@ -128,7 +128,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 //
 func (a *Application) Shutdown(beforeStopHook ...func()) {
 	sg := make(chan os.Signal)
-	signal.Notify(sg, syscall.SIGINT, syscall.SIGTERM, syscall.SIGKILL, syscall.SIGQUIT)
+	signal.Notify(sg, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	select {
 	//case <-a.die:

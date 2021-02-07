@@ -10,7 +10,6 @@ import (
 
 type DataConfigComponent struct {
 	cherryInterfaces.BaseComponent
-
 	register    []IConfigFile
 	configFiles map[string]interface{}
 	source      IDataSource
@@ -56,6 +55,10 @@ func (d *DataConfigComponent) Init() {
 	})
 }
 
+func (d *DataConfigComponent) Stop() {
+	d.source.Destroy()
+}
+
 func (d *DataConfigComponent) Register(file IConfigFile) {
 	d.register = append(d.register, file)
 }
@@ -71,9 +74,14 @@ func (d *DataConfigComponent) Get(fileName string) interface{} {
 func (d *DataConfigComponent) Load(fileName string, data []byte) {
 	cherryUtils.Try(func() {
 		var v interface{}
-		d.parser(data, &v)
 
-		d.configFiles[fileName] = v
+		err := d.parser(data, &v)
+		if err != nil {
+			cherryLogger.Warn(err)
+			return
+		}
+
+		d.configFiles[fileName] = &v
 
 	}, func(errString string) {
 		cherryLogger.Warn(errString)

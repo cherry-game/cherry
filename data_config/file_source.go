@@ -4,20 +4,20 @@ import (
 	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
-	"github.com/fsnotify/fsnotify"
+	"github.com/radovskyb/watcher"
 	"hash/crc32"
 	"io/ioutil"
 	"path"
 	"path/filepath"
+	"time"
 )
 
 type FileSource struct {
 	dataConfig IDataConfig
 
-	monitorPath  string //监控的路径
-	filesCRC     map[string]uint32
-	watch        *fsnotify.Watcher
-	watchRunning bool
+	monitorPath string //监控的路径
+	filesCRC    map[string]uint32
+	watcher     *watcher.Watcher
 }
 
 func (l *FileSource) Name() string {
@@ -25,7 +25,6 @@ func (l *FileSource) Name() string {
 }
 
 func (l *FileSource) Init(dataConfig IDataConfig) {
-	l.filesCRC = make(map[string]uint32)
 	l.dataConfig = dataConfig
 
 	if l.check() == false {
@@ -36,7 +35,7 @@ func (l *FileSource) Init(dataConfig IDataConfig) {
 		l.loadFile(file.FileName())
 	}
 
-	l.newWatcher()
+	go l.newWatcher()
 }
 
 func (l *FileSource) loadFile(fileName string) {
@@ -53,21 +52,29 @@ func (l *FileSource) loadFile(fileName string) {
 
 	bytes, err := ioutil.ReadFile(fullPath)
 	if err != nil {
-		cherryLogger.Warnf("read file err. err = %v, path = %s", err, fullPath)
+		cherryLogger.Warnf("read file err. err = %v path = %s", err, fullPath)
 		return
 	}
 
-	l.filesCRC[fileName] = crc32.ChecksumIEEE(bytes)
-	l.dataConfig.Load(fileName, bytes)
-	cherryLogger.Infof("[%s] file load complete.", fileName)
+	if len(bytes) < 1 {
+		return
+	}
+
+	newCrc := crc32.ChecksumIEEE(bytes)
+	crcValue := l.filesCRC[fileName]
+
+	if newCrc != crcValue {
+		l.filesCRC[fileName] = newCrc
+		l.dataConfig.Load(fileName, bytes)
+		cherryLogger.Infof("[%s] file load complete.", fileName)
+	}
 }
 
 func (l *FileSource) check() bool {
 	//read data_config->file node
 	fileNode := cherryProfile.Config().Get("data_config", "file")
 	if fileNode == nil {
-		cherryLogger.Warnf("`data_config` node not found in `%s` file.",
-			cherryProfile.FilePath())
+		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FilePath())
 		return false
 	}
 
@@ -83,43 +90,53 @@ func (l *FileSource) check() bool {
 		return false
 	}
 
+	// init
+	l.filesCRC = make(map[string]uint32)
+
 	return true
 }
 
 func (l *FileSource) newWatcher() {
-	if l.watch == nil {
-		l.watch, _ = fsnotify.NewWatcher()
+	l.watcher = watcher.New()
+	l.watcher.SetMaxEvents(1)
+	l.watcher.FilterOps(watcher.Write)
+
+	err := l.watcher.AddRecursive(l.monitorPath)
+	if err != nil {
+		cherryLogger.Warn("new watcher error. path=%s, err=%v", l.monitorPath, err)
+		return
 	}
 
-	l.watch.Add(l.monitorPath)
-	l.watchRunning = true
-
 	//new goroutine
-	go l.watchEvent()
-}
-
-func (l *FileSource) Destroy() {
-	l.watchRunning = false
-	l.watch.Remove(l.monitorPath)
-}
-
-func (l *FileSource) watchEvent() {
-	for l.watchRunning {
-		select {
-		case ev := <-l.watch.Events:
-			{
-				if ev.Op&fsnotify.Write == fsnotify.Write {
-					cherryLogger.Infof("%s file change", ev.Name)
-					fileName := filepath.Base(ev.Name)
+	go func() {
+		for {
+			select {
+			case ev := <-l.watcher.Event:
+				{
+					fileName := filepath.Base(ev.Name())
 					l.loadFile(fileName)
 				}
-			}
-		case err := <-l.watch.Errors:
-			{
-				cherryLogger.Error(err)
+			case err := <-l.watcher.Error:
+				{
+					cherryLogger.Error(err)
+					return
+				}
+			case <-l.watcher.Closed:
 				return
 			}
 		}
+	}()
+
+	if err := l.watcher.Start(time.Millisecond * 100); err != nil {
+		cherryLogger.Warn(err)
+	}
+}
+
+func (l *FileSource) Destroy() {
+	if l.watcher != nil {
+		l.watcher.Remove(l.monitorPath)
+		cherryLogger.Infof("remove watcher [path = %s]", l.monitorPath)
+		l.watcher.Closed <- struct{}{}
 	}
 }
 
