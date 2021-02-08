@@ -34,7 +34,7 @@ var (
 )
 
 func init() {
-
+	// default
 	RegisterParser(new(JsonParser))
 	RegisterDataSource(new(FileSource))
 }

@@ -39,10 +39,8 @@ func NewLogger(refLoggerName string) *zap.SugaredLogger {
 	maxBackups := 0
 	compress := false
 
-	config := cherryProfile.Config()
-
 	// logger -> ref_logger
-	logConfig := config.Get("logger", refLoggerName)
+	logConfig := cherryProfile.ConfigAny("logger", refLoggerName)
 	if logConfig.LastError() == nil {
 
 		if logConfig.Get("is_write_file") != nil {

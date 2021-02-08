@@ -62,7 +62,7 @@ func (s *ORMComponent) Name() string {
 }
 
 func (s *ORMComponent) Init() {
-	rootJson := cherryProfile.Config().Get("db")
+	rootJson := cherryProfile.ConfigAny("db")
 
 	for i := 0; i < rootJson.Size(); i++ {
 		item := rootJson.Get(i)
