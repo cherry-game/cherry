@@ -72,6 +72,10 @@ func (l *FileSource) loadFile(fileName string) {
 		return
 	}
 
+	if cherryFile.IsDir(fileName) {
+		return
+	}
+
 	fullPath, err := cherryFile.JoinPath(l.monitorPath, fileName)
 	if err != nil {
 		cherryLogger.Warnf("file not found. err = %v path = %s", err, fullPath)
@@ -103,7 +107,7 @@ func (l *FileSource) newWatcher() {
 	l.watcher.SetMaxEvents(1)
 	l.watcher.FilterOps(watcher.Write)
 
-	err := l.watcher.AddRecursive(l.monitorPath)
+	err := l.watcher.Add(l.monitorPath)
 	if err != nil {
 		cherryLogger.Warn("new watcher error. path=%s, err=%v", l.monitorPath, err)
 		return

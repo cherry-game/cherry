@@ -66,13 +66,11 @@ func JoinPath(elem ...string) (string, error) {
 
 func CheckPath(path string) error {
 	_, err := os.Stat(path)
-	if err != nil {
-		err = os.Mkdir(path, os.ModePerm)
-		if err != nil {
-			return err
-		}
+	if err == nil {
+		return nil
 	}
-	return nil
+
+	return err
 }
 
 //func GetAllFile(dir string, s []string) []string {
