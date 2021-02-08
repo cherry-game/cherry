@@ -57,11 +57,11 @@
     }
   },
   "data_config": {
-    "enable": true,
     "parser": "json",
     "data_source": "file",
     "file": {
       "file_path": "data_config/",
+      "ext_name": ".json",
       "reload_time": 3000
     },
     "redis": {

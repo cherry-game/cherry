@@ -17,6 +17,7 @@ type FileSource struct {
 	monitorPath string
 	watcher     *watcher.Watcher
 	reloadTime  int64
+	extName     string
 }
 
 func (l *FileSource) Name() string {
@@ -32,7 +33,7 @@ func (l *FileSource) Init(dataConfig IDataConfig) {
 	}
 
 	for _, file := range dataConfig.GetFiles() {
-		l.loadFile(file.FileName())
+		l.loadFile(file.Name() + l.extName)
 	}
 
 	go l.newWatcher()
@@ -49,6 +50,11 @@ func (l *FileSource) check() bool {
 	filePath := fileNode.Get("file_path").ToString()
 	if filePath == "" {
 		filePath = "data_config/"
+	}
+
+	l.extName = fileNode.Get("ext_name").ToString()
+	if l.extName == "" {
+		l.extName = ".json"
 	}
 
 	var err error

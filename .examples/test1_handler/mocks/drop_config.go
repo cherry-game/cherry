@@ -9,8 +9,8 @@ type DropConfig struct {
 	dropValue int `json:dropValue`
 }
 
-func (d *DropConfig) FileName() string {
-	return "dropConfig.json"
+func (d *DropConfig) Name() string {
+	return "dropConfig"
 }
 
 func (d *DropConfig) Init() {

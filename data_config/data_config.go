@@ -16,15 +16,15 @@ type (
 	}
 
 	IParser interface {
-		Name() string                               //注册名称
+		TypeName() string                           //注册名称
 		Unmarshal(text []byte, v interface{}) error //文件格式解析器
 	}
 
 	// IConfigFile 配置文件接口
 	IConfigFile interface {
-		FileName() string // 文件名
-		Init()            // 文件序列化后，执行该函数
-		Reload()          // 文件重加载后，先执行Init(),再执行该函数
+		Name() string // 配置名称
+		Init()        // 配置序列化后，执行该函数
+		Reload()      // 配置重加载后，先执行Init(),再执行该函数
 	}
 )
 
@@ -44,7 +44,7 @@ func GetParser(name string) IParser {
 }
 
 func RegisterParser(parser IParser) {
-	parserMap[parser.Name()] = parser
+	parserMap[parser.TypeName()] = parser
 }
 
 func GetDataSource(name string) IDataSource {

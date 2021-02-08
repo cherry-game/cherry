@@ -5,7 +5,7 @@ import jsoniter "github.com/json-iterator/go"
 type JsonParser struct {
 }
 
-func (j *JsonParser) Name() string {
+func (j *JsonParser) TypeName() string {
 	return "json"
 }
 

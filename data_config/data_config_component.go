@@ -12,10 +12,11 @@ import (
 type DataConfigComponent struct {
 	cherryInterfaces.BaseComponent
 	sync.Mutex
-	register    []IConfigFile
-	configFiles map[string]interface{}
-	source      IDataSource
-	parser      IParser
+	register      []IConfigFile
+	configFiles   map[string]interface{}
+	source        IDataSource
+	parser        IParser
+	parserExtName string
 }
 
 func NewComponent() *DataConfigComponent {
