@@ -2,7 +2,7 @@ package cherryLogger
 
 import (
 	"github.com/cherry-game/cherry/interfaces"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	"github.com/cherry-game/cherry/profile"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
