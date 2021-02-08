@@ -7,14 +7,12 @@ import (
 	"github.com/radovskyb/watcher"
 	"hash/crc32"
 	"io/ioutil"
-	"path"
 	"path/filepath"
 	"time"
 )
 
 type FileSource struct {
-	dataConfig IDataConfig
-
+	dataConfig  IDataConfig
 	filesCRC    map[string]uint32
 	monitorPath string
 	watcher     *watcher.Watcher
@@ -26,6 +24,7 @@ func (l *FileSource) Name() string {
 }
 
 func (l *FileSource) Init(dataConfig IDataConfig) {
+	l.filesCRC = make(map[string]uint32)
 	l.dataConfig = dataConfig
 
 	if l.check() == false {
@@ -63,9 +62,6 @@ func (l *FileSource) check() bool {
 	if l.reloadTime < 1 {
 		l.reloadTime = 2000
 	}
-
-	// init
-	l.filesCRC = make(map[string]uint32)
 
 	return true
 }
@@ -147,8 +143,4 @@ func (l *FileSource) Stop() {
 		cherryLogger.Infof("remove watcher [path = %s]", l.monitorPath)
 		l.watcher.Closed <- struct{}{}
 	}
-}
-
-func (l *FileSource) getFullPath(fileName string) string {
-	return path.Join(l.monitorPath, fileName)
 }

@@ -6,10 +6,12 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
+	"sync"
 )
 
 type DataConfigComponent struct {
 	cherryInterfaces.BaseComponent
+	sync.Mutex
 	register    []IConfigFile
 	configFiles map[string]interface{}
 	source      IDataSource
@@ -75,13 +77,16 @@ func (d *DataConfigComponent) Get(fileName string) interface{} {
 
 func (d *DataConfigComponent) Load(fileName string, data []byte) {
 	cherryUtils.Try(func() {
-		var v interface{}
 
+		var v interface{}
 		err := d.parser.Unmarshal(data, &v)
 		if err != nil {
 			cherryLogger.Warn(err)
 			return
 		}
+
+		defer d.Unlock()
+		d.Lock()
 
 		d.configFiles[fileName] = &v
 
