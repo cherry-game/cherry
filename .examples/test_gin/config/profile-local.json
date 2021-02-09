@@ -59,7 +59,7 @@
   "data_config": {
     "data_source": "file",
     "file": {
-      "file_path": "/dataconfig",
+      "file_path": "/data_config",
       "reload_flush_time": 3000
     },
     "redis": {
