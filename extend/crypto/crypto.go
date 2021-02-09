@@ -18,6 +18,14 @@ func Base64Encode(value string) string {
 	return base64.StdEncoding.EncodeToString(data)
 }
 
+func Base64Decode(value string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(value)
+	if err != nil {
+		return "", err
+	}
+	return string(data), nil
+}
+
 func CRC32(value string) uint {
 	return uint(int(crc32.ChecksumIEEE([]byte(value))))
 }
