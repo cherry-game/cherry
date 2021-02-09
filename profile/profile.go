@@ -35,12 +35,11 @@ func Debug() bool {
 	return debug
 }
 
-func Config() jsoniter.Any {
+func Config(path ...interface{}) jsoniter.Any {
+	if len(path) > 0 {
+		return profileJson.Get(path...)
+	}
 	return profileJson
-}
-
-func ConfigAny(path ...interface{}) jsoniter.Any {
-	return profileJson.Get(path...)
 }
 
 func Init(configPath, profile string) (jsoniter.Any, error) {

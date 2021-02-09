@@ -41,7 +41,7 @@ func (l *FileSource) Init(dataConfig IDataConfig) {
 
 func (l *FileSource) check() bool {
 	//read data_config->file node
-	fileNode := cherryProfile.ConfigAny("data_config", "file")
+	fileNode := cherryProfile.Config("data_config", "file")
 	if fileNode == nil {
 		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FilePath())
 		return false
