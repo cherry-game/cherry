@@ -3,16 +3,14 @@ package cherryLogger
 import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/profile"
-	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"strings"
-	"time"
+	"gopkg.in/natefinch/lumberjack.v2"
+	"os"
 )
 
 var (
-	timeFormat = "2006-01-02 15:04:05.000"
-	logger     = NewConsoleLogger(zapcore.DebugLevel, zap.AddCallerSkip(1))
+	logger = NewConsoleLogger(NewConsoleConfig())
 )
 
 func DefaultLogger() *zap.SugaredLogger {
@@ -31,105 +29,69 @@ func SetNodeLogger(node cherryInterfaces.INode) {
 }
 
 func NewLogger(refLoggerName string) *zap.SugaredLogger {
-	isWriteFile := false
-	filePath := "log/game.log"
-	level := "debug"
-	maxSize := 256
-	maxAge := 7
-	maxBackups := 0
-	compress := false
-
-	// logger -> ref_logger
-	logConfig := cherryProfile.Config("logger", refLoggerName)
-	if logConfig.LastError() == nil {
-
-		if logConfig.Get("is_write_file") != nil {
-			isWriteFile = logConfig.Get("is_write_file").ToBool()
-		}
-
-		if logConfig.Get("file_path") != nil {
-			filePath = logConfig.Get("file_path").ToString()
-		}
-
-		if logConfig.Get("level") != nil {
-			level = logConfig.Get("level").ToString()
-		}
-
-		if logConfig.Get("max_size") != nil {
-			maxSize = logConfig.Get("max_size").ToInt()
-		}
-
-		if logConfig.Get("max_age") != nil {
-			maxAge = logConfig.Get("max_age").ToInt()
-		}
-
-		if logConfig.Get("max_backups") != nil {
-			maxBackups = logConfig.Get("max_backups").ToInt()
-		}
-
-		if logConfig.Get("compress") != nil {
-			compress = logConfig.Get("compress").ToBool()
-		}
-
-		if logConfig.Get("time_format") != nil {
-			timeFormat = logConfig.Get("time_format").ToString()
-		}
+	if refLoggerName == "" {
+		return nil
 	}
 
-	if isWriteFile {
-		writer := &lumberjack.Logger{
-			Filename:   filePath,
-			MaxSize:    maxSize,
-			MaxAge:     maxAge,
-			MaxBackups: maxBackups,
-			Compress:   compress,
-		}
+	jsonConfig := cherryProfile.Config("logger", refLoggerName)
+	config := NewConfig(jsonConfig)
 
-		options := []zap.Option{
-			zap.AddCallerSkip(1),
-			zap.AddCaller(),
-		}
-
-		return NewFileLogger(zapcore.AddSync(writer), LogLevel(level), options...)
-	}
-
-	return NewConsoleLogger(LogLevel(level), zap.AddCallerSkip(1))
+	return NewConsoleLogger(config)
 }
 
-func NewConsoleLogger(level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
-	config := zap.NewDevelopmentConfig()
-	config.Level = zap.NewAtomicLevelAt(level)
-	config.EncoderConfig.EncodeTime = EncodeTime
-	config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
-
-	builder, err := config.Build(opts...)
-	if err != nil {
-		panic(err)
-	}
-	return builder.Sugar()
-}
-
-func NewFileLogger(writer zapcore.WriteSyncer, level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
-	config := zapcore.EncoderConfig{
-		TimeKey:       "time",
-		LevelKey:      "level",
-		NameKey:       "logger",
-		MessageKey:    "msg",
-		StacktraceKey: "stacktrace",
-		CallerKey:     "file",
-		EncodeLevel:   zapcore.CapitalLevelEncoder,
-		EncodeTime:    EncodeTime,
-		EncodeCaller:  zapcore.ShortCallerEncoder,
-		EncodeName:    zapcore.FullNameEncoder,
-		EncodeDuration: func(d time.Duration, enc zapcore.PrimitiveArrayEncoder) {
-			enc.AppendInt64(int64(d) / 1000000)
-		},
+func NewConsoleLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
+	encoderConfig := zapcore.EncoderConfig{
+		MessageKey:     "msg",
+		NameKey:        "name",
+		StacktraceKey:  "stack",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeDuration: zapcore.StringDurationEncoder,
 	}
 
-	return NewConfigFileLogger(config, writer, level, opts...)
+	if config.PrintTime {
+		encoderConfig.TimeKey = "ts"
+		encoderConfig.EncodeTime = config.TimeEncoder()
+	}
+
+	if config.PrintLevel {
+		encoderConfig.LevelKey = "level"
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
+
+	if config.PrintCaller {
+		encoderConfig.CallerKey = "caller"
+		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		encoderConfig.EncodeName = zapcore.FullNameEncoder
+		encoderConfig.FunctionKey = zapcore.OmitKey
+
+		opts = append(opts, zap.AddCaller())
+	}
+
+	var writers []zapcore.WriteSyncer
+	if config.EnableWriteFile && config.FilePath != "" {
+		lumberjack := zapcore.AddSync(&lumberjack.Logger{
+			Filename:   config.FilePath,
+			MaxSize:    config.MaxSize,
+			MaxAge:     config.MaxAge,
+			MaxBackups: config.MaxBackups,
+			Compress:   config.Compress,
+		})
+		writers = append(writers, lumberjack)
+	}
+
+	if config.EnableConsole {
+		writers = append(writers, zapcore.AddSync(os.Stderr))
+	}
+
+	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
+	opts = append(opts, zap.AddCallerSkip(1))
+
+	level := GetLevel(config.Level)
+
+	return NewSugaredLogger(encoderConfig, zapcore.NewMultiWriteSyncer(writers...), level, opts...)
 }
 
-func NewConfigFileLogger(
+func NewSugaredLogger(
 	config zapcore.EncoderConfig,
 	writer zapcore.WriteSyncer,
 	level zapcore.Level,
@@ -145,29 +107,6 @@ func NewConfigFileLogger(
 	zapLogger := zap.New(core, opts...)
 
 	return zapLogger.Sugar()
-}
-
-func EncodeTime(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
-	enc.AppendString(t.Format(timeFormat))
-}
-
-func LogLevel(level string) zapcore.Level {
-	switch strings.ToLower(level) {
-	case "debug":
-		return zapcore.DebugLevel
-	case "info":
-		return zapcore.InfoLevel
-	case "warn":
-		return zapcore.WarnLevel
-	case "error":
-		return zapcore.ErrorLevel
-	case "panic":
-		return zapcore.PanicLevel
-	case "fatal":
-		return zapcore.FatalLevel
-	default:
-		return zapcore.FatalLevel
-	}
 }
 
 func Debug(args ...interface{}) {

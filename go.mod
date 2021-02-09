@@ -14,7 +14,7 @@ require (
 	github.com/radovskyb/watcher v1.0.7
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gorm.io/driver/mysql v1.0.2
 	gorm.io/gorm v1.20.5
 )

@@ -7,8 +7,6 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/golang/protobuf/proto"
-	"go.uber.org/zap"
-	"strconv"
 )
 
 func NewTestHandler() *TestHandler {
@@ -17,16 +15,9 @@ func NewTestHandler() *TestHandler {
 
 type TestHandler struct {
 	cherryHandler.Handler
-	logger *zap.SugaredLogger
 }
 
 func (t *TestHandler) Init() {
-
-	t.logger = cherryLogger.NewLogger("test_handler")
-
-	for i := 0; i < 100; i++ {
-		t.logger.Debug("test handler log" + strconv.Itoa(i))
-	}
 
 	t.SetWorkerCRC32Hash(1)
 
