@@ -2,9 +2,9 @@ package cherryReflect
 
 import (
 	"fmt"
-	cherryString "github.com/cherry-game/cherry/extend/string"
+	"github.com/cherry-game/cherry/extend/string"
 	"github.com/cherry-game/cherry/extend/utils"
-	cherryInterfaces "github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/interfaces"
 	"reflect"
 	"runtime"
 )
