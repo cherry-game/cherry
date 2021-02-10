@@ -25,6 +25,8 @@ func app() {
 		if c != nil {
 			cherryLogger.Debugf("--------[component = %s] is find! --------", c.Name())
 		}
+	}, func() {
+		cherryLogger.DefaultLogger().Sync()
 	})
 
 	handlers := cherryHandler.NewComponent()
