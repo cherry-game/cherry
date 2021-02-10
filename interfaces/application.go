@@ -1,47 +1,28 @@
 package cherryInterfaces
 
 type IAppContext interface {
-	Set(ctx IApplication)
+	Set(app IApplication)
 	App() IApplication
 }
 
 type AppContext struct {
-	ctx IApplication
+	app IApplication
 }
 
-func (b *AppContext) Set(ctx IApplication) {
-	b.ctx = ctx
+func (b *AppContext) Set(app IApplication) {
+	b.app = app
 }
 
 func (b *AppContext) App() IApplication {
-	return b.ctx
+	return b.app
 }
 
 type IApplication interface {
-	//NodeId current nodeId
-	NodeId() string
-
-	//NodeType current nodeType
-	NodeType() string
-
-	//ThisNode current node info
-	ThisNode() INode
-
-	//Running is running
-	Running() bool
-
-	//Find find a component
-	Find(name string) IComponent
-
-	//Remove remove a component
-	Remove(name string) IComponent
-
-	//All all components
-	All() []IComponent
-
-	//Startup
-	Startup(components ...IComponent)
-
-	//Shutdown
-	Shutdown(beforeStopHook ...func())
+	INode                              // current node info
+	Running() bool                     // is running
+	Find(name string) IComponent       // find a component
+	Remove(name string) IComponent     // remove a component
+	All() []IComponent                 // all components
+	Startup(components ...IComponent)  // startup
+	Shutdown(beforeStopHook ...func()) // shutdown
 }

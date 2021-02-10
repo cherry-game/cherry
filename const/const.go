@@ -32,7 +32,7 @@ game sever framework@v%s
 `
 
 func GetLOGO() string {
-	return fmt.Sprintf(logo, version)
+	return fmt.Sprintf(logo, Version())
 }
 
 func Version() string {

@@ -4,7 +4,6 @@ import (
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/cluster"
 	"github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
@@ -13,25 +12,15 @@ import (
 
 // Application
 type Application struct {
-	nodeId     string                        // current node id
-	nodeType   string                        // current node type
-	startTime  int64                         // application start time
-	running    bool                          // is running
-	die        chan bool                     // wait for end application
-	components []cherryInterfaces.IComponent // all components
-}
-
-func (a *Application) NodeId() string {
-	return a.nodeId
-}
-
-func (a *Application) NodeType() string {
-	return a.nodeType
+	cherryInterfaces.INode                               // current node info
+	startTime              int64                         // application start time
+	running                bool                          // is running
+	die                    chan bool                     // wait for end application
+	components             []cherryInterfaces.IComponent // all components
 }
 
 func (a *Application) ThisNode() cherryInterfaces.INode {
-	node, _ := cherryCluster.GetNode(a.nodeId)
-	return node
+	return a.INode
 }
 
 func (a *Application) Running() bool {
@@ -72,6 +61,10 @@ func (a *Application) All() []cherryInterfaces.IComponent {
 	return a.components
 }
 
+func (a *Application) StartTime() string {
+	return cherryTime.UnixTimeToString(a.startTime)
+}
+
 // Startup
 func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	defer func() {
@@ -81,22 +74,20 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	}()
 
 	if a.running {
-		cherryLogger.Errorf("[nodeId = %s] application has running.", a.nodeId)
+		cherryLogger.Errorf("[nodeId = %s] application has running.", a.NodeId())
 		return
 	}
 
 	//is running
 	a.running = true
 
-	startStringTime := cherryTime.UnixTimeToString(a.startTime)
-
 	cherryLogger.Info("-------------------------------------------------")
-	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.nodeId)
+	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.NodeId())
 	cherryLogger.Infof("[profile 	= %s]", cherryProfile.Name())
 	cherryLogger.Infof("[configDir 	= %s]", cherryProfile.Dir())
 	cherryLogger.Infof("[configFile = %s]", cherryProfile.FilePath())
 	cherryLogger.Infof("[debug 		= %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[startTime 	= %s]", startStringTime)
+	cherryLogger.Infof("[startTime 	= %s]", a.StartTime())
 	cherryLogger.Infof("[pid	 	= %d]", os.Getpid())
 	cherryLogger.Info("-------------------------------------------------")
 
@@ -130,12 +121,11 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 		cherryLogger.Debugf("[component = %s] -> AfterInit().", c.Name())
 	}
 
-	cherryLogger.Infof("[nodeId = %s] application is running. startStringTime = %s", a.nodeId, startStringTime)
+	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.NodeId(), a.StartTime())
 	cherryLogger.Info("-----------------------------------------")
 }
 
-//
-func (a *Application) Shutdown(beforeStopHook ...func()) {
+func (a *Application) Shutdown(beforeStopFn ...func()) {
 	sg := make(chan os.Signal)
 	signal.Notify(sg, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
@@ -147,8 +137,8 @@ func (a *Application) Shutdown(beforeStopHook ...func()) {
 			a.running = false
 			cherryLogger.Infof("------- [nodeId = %s] application is shutting... -------", a.NodeId())
 
-			if beforeStopHook != nil {
-				for _, f := range beforeStopHook {
+			if beforeStopFn != nil {
+				for _, f := range beforeStopFn {
 					f()
 				}
 			}

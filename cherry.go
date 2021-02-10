@@ -51,8 +51,7 @@ func NewApp(configPath, profile, nodeId string) *Application {
 	cherryLogger.Info(cherryConst.GetLOGO())
 
 	thisNode := &Application{
-		nodeId:    nodeId,
-		nodeType:  node.NodeType(),
+		INode:     node,
 		startTime: cherryTime.NowSecond(),
 		running:   false,
 		die:       make(chan bool),
