@@ -62,7 +62,7 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test11111")
 
-		handlerLogger.Infow("mockRequestMsg1", "route", route.String())
+		handlerLogger.Infow("", "route", route.String())
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},
@@ -81,7 +81,7 @@ func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
 
-		handlerLogger.Infow("mockRequestMsg2", "route", route.String())
+		handlerLogger.Infow("", "route", route.String())
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},

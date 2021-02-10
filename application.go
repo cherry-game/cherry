@@ -87,7 +87,8 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 
 	//is running
 	a.running = true
-	startTime := cherryTime.UnixTimeToString(a.startTime)
+
+	startStringTime := cherryTime.UnixTimeToString(a.startTime)
 
 	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.nodeId)
@@ -95,7 +96,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	cherryLogger.Infof("[configDir 	= %s]", cherryProfile.Dir())
 	cherryLogger.Infof("[configFile = %s]", cherryProfile.FilePath())
 	cherryLogger.Infof("[debug 		= %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[startTime 	= %s]", startTime)
+	cherryLogger.Infof("[startTime 	= %s]", startStringTime)
 	cherryLogger.Infof("[pid	 	= %d]", os.Getpid())
 	cherryLogger.Info("-------------------------------------------------")
 
@@ -129,7 +130,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 		cherryLogger.Debugf("[component = %s] -> AfterInit().", c.Name())
 	}
 
-	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.nodeId, startTime)
+	cherryLogger.Infof("[nodeId = %s] application is running. startStringTime = %s", a.nodeId, startStringTime)
 	cherryLogger.Info("-----------------------------------------")
 }
 

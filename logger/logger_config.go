@@ -11,11 +11,11 @@ type (
 	Config struct {
 		Level           string // 输出日志等级
 		StackLevel      string // 堆栈输出日志等级
-		EnableWriteFile bool   // 是否写文件
-		EnableConsole   bool   // 是否输出控制台
-		FilePath        string // 日志文件路径
+		EnableWriteFile bool   // 是否输出文件(必需配置FilePath)
+		EnableConsole   bool   // 是否控制台输出
+		FilePath        string // 日志文件输出路径
 		MaxSize         int    // 单个日志文件最大容量(mb)
-		MaxAge          int    // 最大保留天数
+		MaxAge          int    // 最大保留天数  maxAge或MaxBackups任意达到限制，则会被清理
 		MaxBackups      int    // 最大备份时间
 		Compress        bool   // 是否备份压缩
 		TimeFormat      string // 时间输出格式

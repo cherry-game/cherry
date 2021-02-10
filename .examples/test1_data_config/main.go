@@ -5,6 +5,7 @@ import (
 	"github.com/cherry-game/cherry/.examples/test1_handler/mocks"
 	"github.com/cherry-game/cherry/data_config"
 	"github.com/cherry-game/cherry/handler"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 )
 
 func main() {
@@ -25,4 +26,5 @@ func app() {
 		handlers,
 		dataConfig,
 	)
+	cherryLogger.Infow("test", "key", "itemId", "value", 2)
 }

@@ -3,10 +3,10 @@ package cherry
 import (
 	"flag"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/cluster"
 	"github.com/cherry-game/cherry/profile"
-	"time"
 )
 
 var (
@@ -53,7 +53,7 @@ func NewApp(configPath, profile, nodeId string) *Application {
 	thisNode := &Application{
 		nodeId:    nodeId,
 		nodeType:  node.NodeType(),
-		startTime: time.Now().Unix(),
+		startTime: cherryTime.NowSecond(),
 		running:   false,
 		die:       make(chan bool),
 	}
