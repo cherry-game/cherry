@@ -27,6 +27,9 @@ func app() {
 		}
 	}, func() {
 		cherryLogger.DefaultLogger().Sync()
+
+		handlerLogger := cherryLogger.NewLogger("test_handler")
+		handlerLogger.Sync()
 	})
 
 	handlers := cherryHandler.NewComponent()
