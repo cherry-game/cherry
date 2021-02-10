@@ -32,7 +32,7 @@ func NewConsoleConfig() *Config {
 		EnableWriteFile: false,
 		EnableConsole:   true,
 		FilePath:        "",
-		MaxSize:         0,
+		MaxSize:         32,
 		MaxAge:          0,
 		MaxBackups:      0,
 		Compress:        false,

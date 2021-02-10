@@ -15,7 +15,7 @@ func main() {
 	//	)
 	//}
 
-	logger := cherryLogger.NewConsoleLogger(&cherryLogger.Config{
+	logger := cherryLogger.NewConfigLogger(&cherryLogger.Config{
 		Level:           "debug",
 		StackLevel:      "error",
 		EnableWriteFile: false,

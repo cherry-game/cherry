@@ -50,13 +50,17 @@ func app() {
 	)
 
 	go mockRequestMsg1(handlers)
-	//go mockRequestMsg2(handlers)
+	go mockRequestMsg2(handlers)
 	//go mockEventMsg(handlers)
 }
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
+	handlerLogger := cherryLogger.NewLogger("test_handler")
+
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test11111")
+
+		handlerLogger.Infow("mockRequestMsg1", "route", route.String())
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},
@@ -70,8 +74,12 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 }
 
 func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
+	handlerLogger := cherryLogger.NewLogger("test_handler")
+
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
+
+		handlerLogger.Infow("mockRequestMsg2", "route", route.String())
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},
