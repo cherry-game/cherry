@@ -8,6 +8,7 @@ import (
 	"hash/crc32"
 	"math/rand"
 	"reflect"
+	"strconv"
 )
 
 type (
@@ -108,7 +109,7 @@ func (w *WorkerGroup) SetWorkerCRC32Hash(workerSize int) {
 		case *UnhandledMessage:
 			{
 				if m.Session != nil {
-					hashValue = string(m.Session.UID())
+					hashValue = strconv.FormatInt(m.Session.UID(), 10)
 				}
 			}
 		}
