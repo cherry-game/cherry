@@ -20,28 +20,35 @@ func main() {
 func app() {
 	testApp := cherry.NewDefaultApp()
 
-	defer testApp.Shutdown(func() {
-		c := testApp.Find(cherryConst.HandlerComponent)
-		if c != nil {
-			cherryLogger.Debugf("--------[component = %s] is find! --------", c.Name())
-		}
-	}, func() {
-		cherryLogger.DefaultLogger().Sync()
+	defer testApp.Shutdown(
+		func() {
+			c := testApp.Find(cherryConst.HandlerComponent)
+			if c != nil {
+				cherryLogger.Debugf("--------[component = %s] is find! --------", c.Name())
+			}
+		},
+		func() {
+			cherryLogger.DefaultLogger().Sync()
 
-		handlerLogger := cherryLogger.NewLogger("test_handler")
-		handlerLogger.Sync()
-	})
+			handlerLogger := cherryLogger.NewLogger("test_handler")
+			handlerLogger.Sync()
+		},
+	)
 
 	handlers := cherryHandler.NewComponent()
+
 	handlers.SetNameFn(strings.ToLower)
+
 	handlers.BeforeFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Debug("test before filter.... ")
 		return false
 	})
+
 	handlers.AfterFilter(func(msg *cherryHandler.UnhandledMessage) bool {
 		cherryLogger.Debug("test after filter....")
 		return true
 	})
+
 	//add TestHandler
 	handlers.Registers(mocks.NewTestHandler())
 
