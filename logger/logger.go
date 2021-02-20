@@ -61,17 +61,11 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
 		EncodeDuration: zapcore.StringDurationEncoder,
 	}
 
-	if config.PrintTime {
+	if config.PrintCaller {
 		encoderConfig.TimeKey = "ts"
 		encoderConfig.EncodeTime = config.TimeEncoder()
-	}
-
-	if config.PrintLevel {
 		encoderConfig.LevelKey = "level"
 		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	}
-
-	if config.PrintCaller {
 		encoderConfig.CallerKey = "caller"
 		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 		encoderConfig.EncodeName = zapcore.FullNameEncoder
@@ -79,6 +73,9 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
 
 		opts = append(opts, zap.AddCaller())
 	}
+
+	level := GetLevel(config.Level)
+	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
 
 	var writers []zapcore.WriteSyncer
 	if config.EnableWriteFile && config.FilePath != "" {
@@ -91,15 +88,9 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
 		}
 		writers = append(writers, zapcore.AddSync(lumberjack))
 	}
-
 	if config.EnableConsole {
 		writers = append(writers, zapcore.AddSync(os.Stderr))
 	}
-
-	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
-	opts = append(opts)
-
-	level := GetLevel(config.Level)
 
 	return NewSugaredLogger(encoderConfig, zapcore.NewMultiWriteSyncer(writers...), level, opts...)
 }

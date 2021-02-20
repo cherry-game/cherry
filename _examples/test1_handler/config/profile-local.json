@@ -2,31 +2,27 @@
   "debug": true,
   "logger": {
     "game_log": {
+      "level": "debug",
       "enable_write_file": true,
       "enable_console" : true,
       "file_path": "logs/game.log",
-      "level": "debug",
       "max_size": 128,
       "max_age": 7,
       "max_backups": 0,
       "compress": false,
       "time_format": "15:04:05.000",
-      "print_time": true,
-      "print_level": true,
       "print_caller": true
     },
     "test_handler": {
+      "level": "debug",
       "enable_write_file": true,
       "enable_console": false,
       "file_path": "logs/test_handler.log",
-      "level": "debug",
       "max_size": 16,
       "max_age": 7,
       "max_backups": 0,
       "compress": false,
       "time_format": "15:04:05.000",
-      "print_time": false,
-      "print_level": false,
       "print_caller": false
     }
   },

@@ -2,9 +2,9 @@
   "debug": true,
   "logger": {
     "game_log": {
+      "level": "debug",
       "enable_write_file": false,
       "file_path": "logs/game.log",
-      "level": "debug",
       "max_size": 100,
       "max_age": 7,
       "max_backups": 0,
@@ -12,9 +12,9 @@
       "time_format": "15:04:05.000"
     },
     "game_1_log": {
+      "level": "debug",
       "enable_write_file": false,
       "file_path": "logs/game.log",
-      "level": "debug",
       "max_size": 100,
       "max_age": 7,
       "max_backups": 0,

@@ -2,20 +2,14 @@ package main
 
 import (
 	"github.com/cherry-game/cherry/logger"
+	"go.uber.org/zap"
 )
 
 func main() {
 
-	//logger1 := cherryLogger.NewLogger("test_handler")
-	//
-	//for i := 0; i < 10; i++ {
-	//	logger1.Debugw("failed to fetch URL." + strconv.Itoa(i),
-	//		"url", "http://example.com",
-	//		"name", "url name",
-	//	)
-	//}
+	zap.NewProduction()
 
-	logger := cherryLogger.NewConfigLogger(&cherryLogger.Config{
+	config := &cherryLogger.Config{
 		Level:           "debug",
 		StackLevel:      "error",
 		EnableWriteFile: false,
@@ -26,32 +20,26 @@ func main() {
 		MaxBackups:      0,
 		Compress:        false,
 		TimeFormat:      "",
-		PrintTime:       false,
-		PrintLevel:      false,
 		PrintCaller:     false,
-	})
+	}
+
+	logger := cherryLogger.NewConfigLogger(config)
 
 	logger.Info("111111111111111111111111111111")
-
-	cherryLogger.Debugf("aaaaaaaaaaaaaa %s", "aaaaa args.......")
-
-	cherryLogger.Infow("failed to fetch URL.", "url", "http://example.com")
-
-	cherryLogger.Infow("failed to fetch URL.",
+	logger.Debugf("aaaaaaaaaaaaaa %s", "aaaaa args.......")
+	logger.Infow("failed to fetch URL.", "url", "http://example.com")
+	logger.Infow("failed to fetch URL.",
 		"url", "http://example.com",
 		"name", "url name",
 	)
-
-	cherryLogger.Warnw("failed to fetch URL.",
+	logger.Warnw("failed to fetch URL.",
 		"url", "http://example.com",
 		"name", "url name",
 	)
-
-	cherryLogger.Errorw("failed to fetch URL.",
+	logger.Errorw("failed to fetch URL.",
 		"url", "http://example.com",
 		"name", "url name",
 	)
-
-	cherryLogger.Fatal("fdsfdfs")
+	logger.Fatal("fatal fatal fatal fatal fatal")
 
 }

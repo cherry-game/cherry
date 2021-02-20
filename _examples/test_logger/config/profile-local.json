@@ -2,16 +2,14 @@
   "debug": true,
   "logger": {
     "game_log": {
+      "level": "debug",
       "enable_write_file": false,
       "file_path": "logs/game.log",
-      "level": "debug",
       "max_size": 128,
       "max_age": 7,
       "max_backups": 0,
       "compress": false,
       "time_format": "15:04:05.000",
-      "print_time": true,
-      "print_level": true,
       "print_caller": true
     },
     "test_handler": {

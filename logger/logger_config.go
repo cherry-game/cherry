@@ -19,8 +19,6 @@ type (
 		MaxBackups      int    // 最大备份时间
 		Compress        bool   // 是否备份压缩
 		TimeFormat      string // 时间输出格式
-		PrintTime       bool   // 是否打印时间
-		PrintLevel      bool   // 是否打印日志等级
 		PrintCaller     bool   // 是否打印调用函数
 	}
 )
@@ -37,8 +35,6 @@ func NewConsoleConfig() *Config {
 		MaxBackups:      0,
 		Compress:        false,
 		TimeFormat:      "15:04:05.000", //2006-01-02 15:04:05.000
-		PrintTime:       true,
-		PrintLevel:      true,
 		PrintCaller:     true,
 	}
 	return config
@@ -86,14 +82,6 @@ func NewConfig(jsonConfig jsoniter.Any) *Config {
 
 		if jsonConfig.Get("time_format").LastError() == nil {
 			config.TimeFormat = jsonConfig.Get("time_format").ToString()
-		}
-
-		if jsonConfig.Get("print_time").LastError() == nil {
-			config.PrintTime = jsonConfig.Get("print_time").ToBool()
-		}
-
-		if jsonConfig.Get("print_level").LastError() == nil {
-			config.PrintLevel = jsonConfig.Get("print_level").ToBool()
 		}
 
 		if jsonConfig.Get("print_caller").LastError() == nil {
