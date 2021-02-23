@@ -1,0 +1,144 @@
+package cherryTime
+
+// DiffInYears 相差多少年
+func (c CherryTime) DiffInYears(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return c.DiffInMonths(end) / 12
+}
+
+// DiffInYearsWithAbs 相差多少年(绝对值)
+func (c CherryTime) DiffInYearsWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInYears(end))
+}
+
+// DiffInMonths 相差多少月
+func (c CherryTime) DiffInMonths(arg ...CherryTime) int64 {
+	end := c
+
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+
+	dy, dm, dd := end.Year()-c.Year(), end.Month()-c.Month(), end.Day()-c.Day()
+
+	if dd < 0 {
+		dm = dm - 1
+	}
+	if dy == 0 && dm == 0 {
+		return 0
+	}
+	if dy == 0 && dm != 0 && dd != 0 {
+		if int(end.DiffInHoursWithAbs(c)) < c.DaysInMonth()*HoursPerDay {
+			return 0
+		}
+		return int64(dm)
+	}
+
+	return int64(dy*MonthsPerYear + dm)
+}
+
+// DiffInMonthsWithAbs 相差多少月(绝对值)
+func (c CherryTime) DiffInMonthsWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInMonths(end))
+}
+
+// DiffInWeeks 相差多少周
+func (c CherryTime) DiffInWeeks(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return c.DiffInDays(end) / DaysPerWeek
+}
+
+// DiffInWeeksWithAbs 相差多少周(绝对值)
+func (c CherryTime) DiffInWeeksWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInWeeks(end))
+}
+
+// DiffInDays 相差多少天
+func (c CherryTime) DiffInDays(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return c.DiffInSeconds(end) / SecondsPerDay
+}
+
+// DiffInDaysWithAbs 相差多少天(绝对值)
+func (c CherryTime) DiffInDaysWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInDays(end))
+}
+
+// DiffInHours 相差多少小时
+func (c CherryTime) DiffInHours(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return c.DiffInSeconds(end) / SecondsPerHour
+}
+
+// DiffInHoursWithAbs 相差多少小时(绝对值)
+func (c CherryTime) DiffInHoursWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInHours(end))
+}
+
+// DiffInMinutes 相差多少分钟
+func (c CherryTime) DiffInMinutes(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return c.DiffInSeconds(end) / SecondsPerMinute
+}
+
+// DiffInMinutesWithAbs 相差多少分钟(绝对值)
+func (c CherryTime) DiffInMinutesWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInMinutes(end))
+}
+
+// DiffInSeconds 相差多少秒
+func (c CherryTime) DiffInSeconds(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return end.ToTimestamp() - c.ToTimestamp()
+}
+
+// DiffInSecondsWithAbs 相差多少秒(绝对值)
+func (c CherryTime) DiffInSecondsWithAbs(arg ...CherryTime) int64 {
+	end := c
+	if len(arg) > 0 {
+		end = arg[0]
+	}
+	return GetAbsValue(c.DiffInSeconds(end))
+}
