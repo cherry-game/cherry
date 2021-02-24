@@ -52,7 +52,7 @@ func NewApp(configPath, profile, nodeId string) *Application {
 
 	thisNode := &Application{
 		INode:     node,
-		startTime: cherryTime.NowSecond(),
+		startTime: cherryTime.Now(),
 		running:   false,
 		die:       make(chan bool),
 	}

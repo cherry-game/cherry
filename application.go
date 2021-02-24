@@ -13,7 +13,7 @@ import (
 // Application
 type Application struct {
 	cherryInterfaces.INode                               // current node info
-	startTime              int64                         // application start time
+	startTime              cherryTime.CherryTime         // application start time
 	running                bool                          // is running
 	die                    chan bool                     // wait for end application
 	components             []cherryInterfaces.IComponent // all components
@@ -62,7 +62,7 @@ func (a *Application) All() []cherryInterfaces.IComponent {
 }
 
 func (a *Application) StartTime() string {
-	return cherryTime.UnixTimeToString(a.startTime)
+	return a.startTime.ToDateTimeFormat()
 }
 
 // Startup

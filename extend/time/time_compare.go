@@ -139,7 +139,9 @@ func (c CherryTime) IsWeekend() bool {
 
 // IsYesterday 是否是昨天
 func (c CherryTime) IsYesterday() bool {
-	return c.ToDateFormat() == Now().SubDay().ToDateFormat()
+	yesterday := Now()
+	yesterday.SubDay()
+	return c.ToDateFormat() == yesterday.ToDateFormat()
 }
 
 // IsToday 是否是今天
@@ -149,5 +151,7 @@ func (c CherryTime) IsToday() bool {
 
 // IsTomorrow 是否是明天
 func (c CherryTime) IsTomorrow() bool {
-	return c.ToDateFormat() == Now().AddDay().ToDateFormat()
+	tomorrow := Now()
+	tomorrow.AddDay()
+	return c.ToDateFormat() == tomorrow.ToDateFormat()
 }

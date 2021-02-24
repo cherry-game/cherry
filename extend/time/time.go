@@ -2,6 +2,7 @@
 package cherryTime
 
 import (
+	cherryUtils "github.com/cherry-game/cherry/extend/utils"
 	"strconv"
 	"time"
 )
@@ -45,27 +46,30 @@ type CherryTime struct {
 	time.Time
 }
 
-func NewTime(tt time.Time) CherryTime {
+func NewTime(tt time.Time, setGlobal bool) CherryTime {
 	ct := CherryTime{
 		Time: tt,
 	}
-	ct.In(globalLocation)
-	ct.AddSeconds(globalOffsetSecond)
+
+	if setGlobal {
+		ct.In(globalLocation)
+		ct.AddSeconds(globalOffsetSecond)
+	}
 	return ct
 }
 
 func Now() CherryTime {
-	return NewTime(time.Now())
+	return NewTime(time.Now(), true)
 }
 
 func Yesterday() CherryTime {
 	t := time.Now().AddDate(0, 0, -1)
-	return NewTime(t)
+	return NewTime(t, true)
 }
 
 func Tomorrow() CherryTime {
 	t := Now().AddDate(0, 0, 1)
-	return NewTime(t)
+	return NewTime(t, true)
 }
 
 // CreateFromTimestamp 从时间戳创建 Carbon 实例
@@ -85,26 +89,39 @@ func CreateFromTimestamp(timestamp int64) CherryTime {
 	}
 
 	t := time.Unix(ts, 0)
-	return NewTime(t)
+	return NewTime(t, false)
 }
 
 // CreateFromDateTime 从年月日时分秒创建 Carbon 实例
 func CreateFromDateTime(year int, month int, day int, hour int, minute int, second int) CherryTime {
-	now := Now()
-	now.Time = time.Date(year, time.Month(month), day, hour, minute, second, 0, now.Location())
-	return now
+	t := time.Date(year, time.Month(month), day, hour, minute, second, 0, globalLocation)
+	return NewTime(t, false)
 }
 
 // CreateFromDate 从年月日创建 Carbon 实例(默认时区)
 func CreateFromDate(year int, month int, day int) CherryTime {
 	now := Now()
-	now.Time = time.Date(year, time.Month(month), day, now.Hour(), now.Minute(), now.Second(), 0, now.Location())
-	return now
+	t := time.Date(year, time.Month(month), day, now.Hour(), now.Minute(), now.Second(), 0, now.Location())
+	return NewTime(t, false)
 }
 
 // CreateFromTime 从时分秒创建 Carbon 实例(默认时区)
 func CreateFromTime(hour int, minute int, second int) CherryTime {
 	now := Now()
-	now.Time = time.Date(now.Year(), now.Time.Month(), now.Day(), hour, minute, second, 0, now.Location())
-	return now
+	t := time.Date(now.Year(), now.Time.Month(), now.Day(), hour, minute, second, 0, now.Location())
+	return NewTime(t, false)
+}
+
+// parseByDuration 通过持续时间解析
+func ParseByDuration(duration string) (time.Duration, error) {
+	td, err := time.ParseDuration(duration)
+	if err != nil {
+		err = cherryUtils.Errorf("invalid duration %d", duration)
+	}
+	return td, err
+}
+
+// getAbsValue 获取绝对值
+func GetAbsValue(value int64) int64 {
+	return (value ^ value>>31) - value>>31
 }
