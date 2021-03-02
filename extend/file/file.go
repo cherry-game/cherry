@@ -73,25 +73,14 @@ func CheckPath(path string) error {
 	return err
 }
 
-//func GetAllFile(dir string, s []string) []string {
-//	rd, err := ioutil.ReadDir(dir)
-//	if err != nil {
-//		fmt.Println("read dir fail:", err)
-//		return s
-//	}
-//
-//	for _, fi := range rd {
-//		if fi.IsDir() {
-//			fullDir := dir + "/" + fi.Name()
-//			s = GetAllFile(fullDir, s)
-//			if err != nil {
-//				fmt.Println("read dir fail:", err)
-//				return s
-//			}
-//		} else {
-//			fullName := path.Join(dir, fi.Name())
-//			s = append(s, fullName)
-//		}
-//	}
-//	return s
-//}
+func GetFileName(filePath string, removeExt bool) string {
+	fileName := path.Base(filePath)
+	if removeExt == false {
+		return fileName
+	}
+
+	var suffix string
+	suffix = path.Ext(fileName)
+
+	return strings.TrimSuffix(fileName, suffix)
+}

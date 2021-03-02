@@ -8,6 +8,7 @@ import (
 const (
 	HandlerComponent         = "handler_component"
 	SessionComponent         = "session_component"
+	DataConfigComponent      = "data_config_component"
 	ORMComponent             = "db_orm_component"
 	QueueComponent           = "db_queue_component"
 	ConnectorPomeloComponent = "connector_pomelo_component"

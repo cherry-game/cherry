@@ -1,6 +1,8 @@
 package cherryDataConfig
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+)
 
 type JsonParser struct {
 }

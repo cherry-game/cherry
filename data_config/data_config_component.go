@@ -2,36 +2,39 @@ package cherryDataConfig
 
 import (
 	"fmt"
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
+	"github.com/goinggo/mapstructure"
+	"reflect"
 	"sync"
 )
 
 type DataConfigComponent struct {
-	cherryInterfaces.BaseComponent
 	sync.Mutex
-	register      []IConfigFile
-	configFiles   map[string]interface{}
-	source        IDataSource
-	parser        IParser
-	parserExtName string
+	cherryInterfaces.BaseComponent
+	configNames  []string
+	registerMaps map[string]interface{}
+	dataSource   IDataSource
+	parser       IParser
 }
 
 func NewComponent() *DataConfigComponent {
-	return &DataConfigComponent{}
+	return &DataConfigComponent{
+		registerMaps: make(map[string]interface{}),
+		configNames:  []string{},
+	}
 }
 
-//Name unique components name
+// Name unique components name
 func (d *DataConfigComponent) Name() string {
-	return "data_config_component"
+	return cherryConst.DataConfigComponent
 }
 
 func (d *DataConfigComponent) Init() {
-	d.configFiles = make(map[string]interface{})
-
-	// read data_config node in profile-x.json
+	// read data_config node in profile-{env}.json
 	configNode := cherryProfile.Config("data_config")
 	if configNode.LastError() != nil {
 		panic(fmt.Sprintf("not found `data_config` node in `%s` file.", cherryProfile.FilePath()))
@@ -39,59 +42,89 @@ func (d *DataConfigComponent) Init() {
 
 	// get data source
 	sourceName := configNode.Get("data_source").ToString()
-	d.source = GetDataSource(sourceName)
-	if d.source == nil {
+	d.dataSource = GetDataSource(sourceName)
+	if d.dataSource == nil {
 		panic(fmt.Sprintf("data source not found. sourceName = %s", sourceName))
 	}
 
-	// get file parser
+	// get parser
 	parserName := configNode.Get("parser").ToString()
 	d.parser = GetParser(parserName)
 	if d.parser == nil {
-		panic(fmt.Sprintf("parser not found. sourceName = %s", parserName))
+		panic(fmt.Sprintf("parser not found. parserName = %s", parserName))
 	}
 
 	cherryUtils.Try(func() {
-		d.source.Init(d)
+		d.dataSource.Init(d)
+
+		for _, name := range d.configNames {
+			data, found := d.GetBytes(name)
+			if !found {
+				cherryLogger.Warnf("configName = %s not found.", name)
+				continue
+			}
+
+			var val interface{}
+			err := d.parser.Unmarshal(data, &val)
+			if err != nil {
+				cherryLogger.Warnf("unmarshal data error=%v, configName=%s", err, name)
+				continue
+			}
+
+			d.registerMaps[name] = val
+		}
 	}, func(errString string) {
 		cherryLogger.Warn(errString)
 	})
 }
 
 func (d *DataConfigComponent) Stop() {
-	if d.source != nil {
-		d.source.Stop()
+	if d.dataSource != nil {
+		d.dataSource.Stop()
 	}
 }
 
-func (d *DataConfigComponent) Register(file IConfigFile) {
-	d.register = append(d.register, file)
-}
+func (d *DataConfigComponent) Register(configNames ...string) {
+	if len(configNames) < 1 {
+		return
+	}
 
-func (d *DataConfigComponent) GetFiles() []IConfigFile {
-	return d.register
-}
-
-func (d *DataConfigComponent) Get(fileName string) interface{} {
-	return d.configFiles[fileName]
-}
-
-func (d *DataConfigComponent) Load(fileName string, data []byte) {
-	cherryUtils.Try(func() {
-
-		var v interface{}
-		err := d.parser.Unmarshal(data, &v)
-		if err != nil {
-			cherryLogger.Warn(err)
-			return
+	for _, name := range configNames {
+		if name != "" {
+			d.configNames = append(d.configNames, name)
 		}
+	}
+}
 
-		defer d.Unlock()
-		d.Lock()
+func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bool) {
+	data, err := d.dataSource.ReadData(configName)
+	if err != nil {
+		cherryLogger.Warn(err)
+		return nil, false
+	}
 
-		d.configFiles[fileName] = &v
+	return data, true
+}
 
-	}, func(errString string) {
-		cherryLogger.Warn(errString)
-	})
+func (d *DataConfigComponent) Get(configName string, val interface{}) {
+	typ := reflect.TypeOf(val)
+	if typ.Kind() != reflect.Ptr {
+		cherryLogger.Warnf("val must ptr type. configName={}", configName)
+		return
+	}
+
+	result, found := d.registerMaps[configName]
+	if found {
+		if err := mapstructure.Decode(result, val); err != nil {
+			cherryLogger.Warn(err)
+		}
+	}
+}
+
+func (d *DataConfigComponent) GetParser() IParser {
+	return d.parser
+}
+
+func (d *DataConfigComponent) GetDataSource() IDataSource {
+	return d.dataSource
 }

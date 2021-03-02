@@ -2,120 +2,102 @@ package cherryDataConfig
 
 import (
 	"github.com/cherry-game/cherry/extend/file"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
-	"hash/crc32"
 	"io/ioutil"
-	"path/filepath"
 	"time"
 )
 
+// FileSource 本地读取数据配置文件
 type FileSource struct {
-	dataConfig  IDataConfig
-	filesCRC    map[string]uint32
-	monitorPath string
-	watcher     *watcher.Watcher
-	reloadTime  int64
-	extName     string
+	dataConfig   IDataConfig
+	monitorPath  string
+	watcher      *watcher.Watcher
+	reloadTime   int64
+	extName      string
+	changeFileFn ChangeFileFn
 }
 
-func (l *FileSource) Name() string {
+func (f *FileSource) Name() string {
 	return "file"
 }
 
-func (l *FileSource) Init(dataConfig IDataConfig) {
-	l.filesCRC = make(map[string]uint32)
-	l.dataConfig = dataConfig
+func (f *FileSource) Init(dataConfig IDataConfig) {
+	f.dataConfig = dataConfig
 
-	if l.check() == false {
-		return
-	}
-
-	for _, file := range dataConfig.GetFiles() {
-		l.loadFile(file.Name() + l.extName)
-	}
-
-	go l.newWatcher()
-}
-
-func (l *FileSource) check() bool {
 	//read data_config->file node
 	fileNode := cherryProfile.Config("data_config", "file")
 	if fileNode == nil {
 		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FilePath())
-		return false
+		return
 	}
 
 	filePath := fileNode.Get("file_path").ToString()
 	if filePath == "" {
-		filePath = "data_config/"
+		filePath = "data_config/" //default value
 	}
 
-	l.extName = fileNode.Get("ext_name").ToString()
-	if l.extName == "" {
-		l.extName = ".json"
+	f.extName = fileNode.Get("ext_name").ToString()
+	if f.extName == "" {
+		f.extName = ".json" // default value
 	}
 
 	var err error
-	l.monitorPath, err = cherryFile.JoinPath(cherryProfile.Dir(), filePath)
+	f.monitorPath, err = cherryFile.JoinPath(cherryProfile.Dir(), filePath)
 	if err != nil {
 		cherryLogger.Warn(err)
-		return false
+		return
 	}
 
-	l.reloadTime = fileNode.Get("reload_time").ToInt64()
-	if l.reloadTime < 1 {
-		l.reloadTime = 2000
+	f.reloadTime = fileNode.Get("reload_time").ToInt64()
+	if f.reloadTime < 1 {
+		f.reloadTime = 2000 //default value
 	}
 
-	return true
+	// new watcher
+	go f.newWatcher()
 }
 
-func (l *FileSource) loadFile(fileName string) {
-	if fileName == "" {
-		cherryLogger.Warn("file name is empty.")
-		return
+func (f *FileSource) ReadData(configName string) (data []byte, error error) {
+	if configName == "" {
+		return nil, cherryUtils.Error("configName is empty.")
 	}
 
-	if cherryFile.IsDir(fileName) {
-		return
+	fullPath, error := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
+	if error != nil {
+		return nil, cherryUtils.Errorf("file not found. err = %v, fullPath = %s", error, fullPath)
 	}
 
-	fullPath, err := cherryFile.JoinPath(l.monitorPath, fileName)
-	if err != nil {
-		cherryLogger.Warnf("file not found. err = %v path = %s", err, fullPath)
-		return
+	if cherryFile.IsDir(fullPath) {
+		return nil, cherryUtils.Errorf("path is dir. fullPath = %s", error, fullPath)
 	}
 
-	bytes, err := ioutil.ReadFile(fullPath)
-	if err != nil {
-		cherryLogger.Warnf("read file err. err = %v path = %s", err, fullPath)
-		return
+	data, error = ioutil.ReadFile(fullPath)
+	if error != nil {
+		return nil, cherryUtils.Errorf("read file err. err = %v path = %s", error, fullPath)
 	}
 
-	if len(bytes) < 1 {
-		return
+	if len(data) < 1 {
+		return nil, cherryUtils.Error("configName data is error.")
 	}
 
-	newCrc := crc32.ChecksumIEEE(bytes)
-	crcValue := l.filesCRC[fileName]
-
-	if newCrc != crcValue {
-		l.filesCRC[fileName] = newCrc
-		l.dataConfig.Load(fileName, bytes)
-		cherryLogger.Infof("[%s] file load complete.", fileName)
-	}
+	return data, nil
 }
 
-func (l *FileSource) newWatcher() {
-	l.watcher = watcher.New()
-	l.watcher.SetMaxEvents(1)
-	l.watcher.FilterOps(watcher.Write)
+func (f *FileSource) OnChange(changeFileFn ChangeFileFn) {
+	f.changeFileFn = changeFileFn
+}
 
-	err := l.watcher.Add(l.monitorPath)
+func (f *FileSource) newWatcher() {
+	f.watcher = watcher.New()
+	f.watcher.SetMaxEvents(1)
+	f.watcher.FilterOps(watcher.Write)
+
+	err := f.watcher.Add(f.monitorPath)
 	if err != nil {
-		cherryLogger.Warn("new watcher error. path=%s, err=%v", l.monitorPath, err)
+		cherryLogger.Warn("new watcher error. path=%s, err=%v", f.monitorPath, err)
 		return
 	}
 
@@ -123,34 +105,46 @@ func (l *FileSource) newWatcher() {
 	go func() {
 		for {
 			select {
-			case ev := <-l.watcher.Event:
+			case ev := <-f.watcher.Event:
 				{
-					fileName := filepath.Base(ev.Name())
-					l.loadFile(fileName)
+					if ev.IsDir() {
+						return
+					}
+
+					configName := cherryFile.GetFileName(ev.FileInfo.Name(), true)
+
+					data, error := f.ReadData(configName)
+					if error != nil {
+						cherryLogger.Error(error)
+						return
+					}
+
+					f.changeFileFn(configName, data)
+
 				}
-			case err := <-l.watcher.Error:
+			case err := <-f.watcher.Error:
 				{
 					cherryLogger.Error(err)
 					return
 				}
-			case <-l.watcher.Closed:
+			case <-f.watcher.Closed:
 				return
 			}
 		}
 	}()
 
-	if err := l.watcher.Start(time.Millisecond * time.Duration(l.reloadTime)); err != nil {
+	if err := f.watcher.Start(time.Millisecond * time.Duration(f.reloadTime)); err != nil {
 		cherryLogger.Warn(err)
 	}
 }
 
-func (l *FileSource) Stop() {
-	if l.watcher != nil {
-		err := l.watcher.Remove(l.monitorPath)
+func (f *FileSource) Stop() {
+	if f.watcher != nil {
+		err := f.watcher.Remove(f.monitorPath)
 		if err != nil {
 			cherryLogger.Warn(err)
 		}
-		cherryLogger.Infof("remove watcher [path = %s]", l.monitorPath)
-		l.watcher.Closed <- struct{}{}
+		cherryLogger.Infof("remove watcher [path = %s]", f.monitorPath)
+		f.watcher.Closed <- struct{}{}
 	}
 }

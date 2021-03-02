@@ -1,6 +1,6 @@
 package mocks
 
-type DropConfig struct {
+type DropOneConfig struct {
 	DropId    int `json:"dropId"`
 	ItemType  int `json:"itemType"`
 	ItemId    int `json:"itemId"`
@@ -9,14 +9,14 @@ type DropConfig struct {
 	DropValue int `json:"dropValue"`
 }
 
-func (d *DropConfig) Name() string {
-	return "dropConfig"
+func (d *DropOneConfig) Name() string {
+	return "dropOneConfig"
 }
 
-func (d *DropConfig) Init() {
+func (d *DropOneConfig) Init() {
 
 }
 
-func (d *DropConfig) Reload() {
+func (d *DropOneConfig) Reload() {
 
 }

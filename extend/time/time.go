@@ -1,4 +1,4 @@
-//code from github.com/golang-module/carbon
+// code from: https://github.com/golang-module/carbon
 package cherryTime
 
 import (

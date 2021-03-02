@@ -1,4 +1,4 @@
-// file from https://github.com/beego/beego/blob/develop/core/utils/slice.go
+// code from: https://github.com/beego/beego/blob/develop/core/utils/slice.go
 package cherySlice
 
 import (

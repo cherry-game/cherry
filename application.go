@@ -122,7 +122,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	}
 
 	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.NodeId(), a.StartTime())
-	cherryLogger.Info("-----------------------------------------")
+	cherryLogger.Info("-------------------------------------------------")
 }
 
 func (a *Application) Shutdown(beforeStopFn ...func()) {
