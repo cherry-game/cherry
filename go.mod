@@ -3,6 +3,7 @@ module github.com/cherry-game/cherry
 go 1.15
 
 require (
+	github.com/ahmetb/go-linq/v3 v3.2.0 // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/goinggo/mapstructure v0.0.0-20140717182941-194205d9b4a9
 	github.com/golang/protobuf v1.3.3
