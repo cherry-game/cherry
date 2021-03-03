@@ -2,43 +2,46 @@ package cherryProfile
 
 import (
 	"fmt"
-	cherryConst "github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/file"
+	"github.com/cherry-game/cherry/extend/json"
+	"github.com/cherry-game/cherry/extend/string"
 	"github.com/cherry-game/cherry/extend/utils"
 	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
 	"path"
 )
 
 var (
-	configDir   string       // config root dir
-	fileName    string       // profile fileName
-	profileName string       // profile name
-	profileJson jsoniter.Any // profile-x.json parse to json object
-	debug       bool         // is debug
+	env = &struct {
+		dir      string       // config root dir
+		profile  string       // profile name
+		fileName string       // profile fileName
+		json     jsoniter.Any // profile-x.json parse to json object
+		debug    bool         // debug default is true
+	}{}
 )
 
 func Dir() string {
-	return configDir
+	return env.dir
 }
 
 func Name() string {
-	return profileName
+	return env.profile
 }
 
 func FileName() string {
-	return fileName
+	return env.fileName
 }
 
 func Debug() bool {
-	return debug
+	return env.debug
 }
 
 func Config(path ...interface{}) jsoniter.Any {
 	if len(path) > 0 {
-		return profileJson.Get(path...)
+		return env.json.Get(path...)
 	}
-	return profileJson
+	return env.json
 }
 
 func Init(configPath, profile string) (jsoniter.Any, error) {
@@ -55,66 +58,44 @@ func Init(configPath, profile string) (jsoniter.Any, error) {
 		return nil, cherryUtils.Errorf("configPath = %s not found.", configPath)
 	}
 
-	configDir = judgePath
-	profileName = profile
-	fileName = fmt.Sprintf(cherryConst.ProfileNameFormat, profile)
+	env.debug = true
+	env.dir = judgePath
+	env.profile = profile
+	env.fileName = fmt.Sprintf(cherryConst.ProfileNameFormat, profile)
 
-	profileJson = loadProfileFile(configDir, fileName)
-	if profileJson == nil {
+	env.json = loadProfileFile(env.dir, env.fileName)
+	if env.json == nil || env.json.LastError() != nil {
 		return nil, cherryUtils.Errorf("load profile file error. configPath = %s", configPath)
 	}
 
-	debug = true // default debug is true
-	if profileJson.Get("debug") != nil {
-		debug = profileJson.Get("debug").ToBool()
+	if env.json.Get("debug").LastError() == nil {
+		env.debug = env.json.Get("debug").ToBool()
 	}
 
-	return profileJson, nil
+	return env.json, nil
 }
 
-func loadProfileFile(configPath string, profileFilePath string) jsoniter.Any {
-	// read master json file
-	masterBytes, err := ioutil.ReadFile(path.Join(configPath, profileFilePath))
-	if err != nil {
-		panic(err)
-	}
-
-	masterNode := jsoniter.Get(masterBytes)
-	includeNode := masterNode.Get("include")
-	if includeNode.LastError() != nil {
-		// not found include node
-		return masterNode
-	}
-
+func loadProfileFile(configPath string, profileFileName string) jsoniter.Any {
 	// merge include json file
 	var maps = make(map[string]interface{})
-	err = jsoniter.Unmarshal(masterBytes, &maps)
+
+	// read master json file
+	err := cherryJson.ReadMaps(path.Join(configPath, profileFileName), maps)
 	if err != nil {
 		panic(err)
 	}
 
 	// read include json file
-	for i := 0; i < includeNode.Size(); i++ {
-		nodeName := includeNode.Get(i).ToString()
-		err := readMaps(path.Join(configPath, nodeName), maps)
-		if err != nil {
-			panic(err)
+	if v, found := maps["include"].([]interface{}); found {
+		paths := cherryString.ToStringSlice(v)
+		for _, p := range paths {
+			includePath := path.Join(configPath, p)
+			err := cherryJson.ReadMaps(includePath, maps)
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 
-	json, err := jsoniter.Marshal(&maps)
-	if err != nil {
-		panic(err)
-	}
-
-	return jsoniter.Get(json)
-}
-
-func readMaps(includePath string, maps map[string]interface{}) error {
-	bytes, err := ioutil.ReadFile(includePath)
-	if err != nil {
-		return err
-	}
-
-	return jsoniter.Unmarshal(bytes, &maps)
+	return jsoniter.Wrap(maps)
 }

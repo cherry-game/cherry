@@ -41,8 +41,8 @@
         {
           "enable": true,
           "node_id": "game-1",
-          "address": ":10860",
-          "rpc_address": "127.0.0.1:20860",
+          "address": "127.0.0.1:10860",
+          "rpc_address": ":20860",
           "__settings__": {
             "maintain_state": 2,
             "dbs": [

@@ -25,3 +25,14 @@ func CutLastString(text, beginChar, endChar string) string {
 func IsBlank(value string) bool {
 	return value == ""
 }
+
+func ToStringSlice(val []interface{}) []string {
+	var result []string
+	for _, item := range val {
+		v, ok := item.(string)
+		if ok {
+			result = append(result, v)
+		}
+	}
+	return result
+}

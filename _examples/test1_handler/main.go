@@ -51,9 +51,7 @@ func app() {
 
 	//add TestHandler
 	handlers.Registers(mocks.NewTestHandler())
-
 	dataConfig := cherryDataConfig.NewComponent()
-	dataConfig.Register(new(mocks.DropConfig))
 
 	testApp.Startup(
 		handlers,
