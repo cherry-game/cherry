@@ -37,7 +37,7 @@ func (d *DataConfigComponent) Init() {
 	// read data_config node in profile-{env}.json
 	configNode := cherryProfile.Config("data_config")
 	if configNode.LastError() != nil {
-		panic(fmt.Sprintf("not found `data_config` node in `%s` file.", cherryProfile.FilePath()))
+		panic(fmt.Sprintf("not found `data_config` node in `%s` file.", cherryProfile.FileName()))
 	}
 
 	// get data source
@@ -114,6 +114,7 @@ func (d *DataConfigComponent) Get(configName string, val interface{}) {
 	}
 
 	result, found := d.registerMaps[configName]
+
 	if found {
 		if err := mapstructure.Decode(result, val); err != nil {
 			cherryLogger.Warn(err)

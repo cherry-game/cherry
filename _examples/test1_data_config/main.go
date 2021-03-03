@@ -46,5 +46,5 @@ func getDropConfig(app *cherry.Application) {
 
 	var one mocks.DropOneConfig
 	component.Get("dropOneConfig", &one)
-	cherryLogger.Warnf("%p", one)
+	cherryLogger.Warnf("%p", &one)
 }

@@ -86,7 +86,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.NodeId())
 	cherryLogger.Infof("[profile 	= %s]", cherryProfile.Name())
 	cherryLogger.Infof("[configDir 	= %s]", cherryProfile.Dir())
-	cherryLogger.Infof("[configFile = %s]", cherryProfile.FilePath())
+	cherryLogger.Infof("[configFile = %s]", cherryProfile.FileName())
 	cherryLogger.Infof("[debug 		= %v]", cherryProfile.Debug())
 	cherryLogger.Infof("[startTime 	= %s]", a.StartTime())
 	cherryLogger.Infof("[pid	 	= %d]", os.Getpid())
