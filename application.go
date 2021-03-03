@@ -2,6 +2,7 @@ package cherry
 
 import (
 	"github.com/cherry-game/cherry/extend/time"
+	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
@@ -145,13 +146,21 @@ func (a *Application) Shutdown(beforeStopFn ...func()) {
 
 			//all components in reverse order
 			for i := len(a.components) - 1; i >= 0; i-- {
-				a.components[i].BeforeStop()
-				cherryLogger.Debugf("[component = %s] -> BeforeStop().", a.components[i].Name())
+				cherryUtils.Try(func() {
+					a.components[i].BeforeStop()
+					cherryLogger.Debugf("[component = %s] -> BeforeStop().", a.components[i].Name())
+				}, func(errString string) {
+					cherryLogger.Debugf("[component = %s] -> BeforeStop(). error = %s", a.components[i].Name(), errString)
+				})
 			}
 
 			for i := len(a.components) - 1; i >= 0; i-- {
-				a.components[i].Stop()
-				cherryLogger.Debugf("[component = %s] -> Stop().", a.components[i].Name())
+				cherryUtils.Try(func() {
+					a.components[i].Stop()
+					cherryLogger.Debugf("[component = %s] -> Stop().", a.components[i].Name())
+				}, func(errString string) {
+					cherryLogger.Debugf("[component = %s] -> Stop(). error = %s", a.components[i].Name(), errString)
+				})
 			}
 
 			cherryLogger.Infof("------- [nodeId = %s] application is shutdown... -------", a.NodeId())
