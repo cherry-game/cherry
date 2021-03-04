@@ -19,7 +19,7 @@ type TestHandler struct {
 
 func (t *TestHandler) Init() {
 
-	t.SetWorkerCRC32Hash(1)
+	t.SetWorkerCRC32Hash(30)
 
 	t.SetWorkerExecutor(cherryHandler.DefaultWorkerExecutor)
 
