@@ -113,9 +113,9 @@ func (f *FileSource) newWatcher() {
 
 					configName := cherryFile.GetFileName(ev.FileInfo.Name(), true)
 
-					data, error := f.ReadData(configName)
-					if error != nil {
-						cherryLogger.Error(error)
+					data, err := f.ReadData(configName)
+					if err != nil {
+						cherryLogger.Error(err)
 						return
 					}
 

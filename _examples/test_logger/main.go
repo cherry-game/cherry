@@ -2,13 +2,9 @@ package main
 
 import (
 	"github.com/cherry-game/cherry/logger"
-	"go.uber.org/zap"
 )
 
 func main() {
-
-	zap.NewProduction()
-
 	config := &cherryLogger.Config{
 		Level:           "debug",
 		StackLevel:      "error",

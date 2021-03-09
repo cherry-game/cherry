@@ -107,6 +107,10 @@ func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bo
 }
 
 func (d *DataConfigComponent) Get(configName string, val interface{}) {
+	if val == nil {
+		return
+	}
+
 	typ := reflect.TypeOf(val)
 	if typ.Kind() != reflect.Ptr {
 		cherryLogger.Warnf("val must ptr type. configName={}", configName)
@@ -114,11 +118,12 @@ func (d *DataConfigComponent) Get(configName string, val interface{}) {
 	}
 
 	result, found := d.registerMaps[configName]
+	if !found {
+		return
+	}
 
-	if found {
-		if err := mapstructure.Decode(result, val); err != nil {
-			cherryLogger.Warn(err)
-		}
+	if err := mapstructure.Decode(result, val); err != nil {
+		cherryLogger.Warn(err)
 	}
 }
 
