@@ -15,43 +15,43 @@ type IController interface {
 	Stop()
 }
 
-type BaseIController struct {
+type BaseController struct {
 	App    cherryInterfaces.IApplication
 	Engine *gin.Engine
 }
 
-func (b *BaseIController) PreInit(app cherryInterfaces.IApplication, engine *gin.Engine) {
+func (b *BaseController) PreInit(app cherryInterfaces.IApplication, engine *gin.Engine) {
 	b.App = app
 	b.Engine = engine
 }
 
-func (b *BaseIController) Init() {
+func (b *BaseController) Init() {
 
 }
 
-func (b *BaseIController) Stop() {
+func (b *BaseController) Stop() {
 
 }
 
-func (b *BaseIController) Any(relativePath string, handlers ...GinHandlerFunc) {
+func (b *BaseController) Any(relativePath string, handlers ...GinHandlerFunc) {
 	for _, handler := range handlers {
 		b.Engine.Any(relativePath, b.BindHandle(handler))
 	}
 }
 
-func (b *BaseIController) GET(relativePath string, handlers ...GinHandlerFunc) {
+func (b *BaseController) GET(relativePath string, handlers ...GinHandlerFunc) {
 	for _, handler := range handlers {
 		b.Engine.GET(relativePath, b.BindHandle(handler))
 	}
 }
 
-func (b *BaseIController) POST(relativePath string, handlers ...GinHandlerFunc) {
+func (b *BaseController) POST(relativePath string, handlers ...GinHandlerFunc) {
 	for _, handler := range handlers {
 		b.Engine.POST(relativePath, b.BindHandle(handler))
 	}
 }
 
-func (b *BaseIController) BindHandle(handler func(ctx *GinContext)) gin.HandlerFunc {
+func (b *BaseController) BindHandle(handler func(ctx *GinContext)) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		context := new(GinContext)
 		context.Context = c

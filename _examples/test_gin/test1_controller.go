@@ -8,7 +8,7 @@ import (
 )
 
 type Test1Controller struct {
-	cherryGin.BaseIController
+	cherryGin.BaseController
 }
 
 func (t *Test1Controller) Init() {

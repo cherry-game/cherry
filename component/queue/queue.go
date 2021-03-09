@@ -31,14 +31,14 @@ func (s *QueueComponent) AfterInit() {
 	cherryLogger.Infof("[component = %s] is executed AfterInit() method.", s.Name())
 }
 
-func (s *QueueComponent) Test() string {
-	return "call mocks()"
-}
-
 func (s *QueueComponent) BeforeStop() {
 	cherryLogger.Infof("[component = %s] is executed BeforeStop() method.", s.Name())
 }
 
 func (s *QueueComponent) Stop() {
 	cherryLogger.Infof("[component = %s] is executed Stop() method.", s.Name())
+}
+
+func (s *QueueComponent) Test() string {
+	return "call mocks()"
 }
