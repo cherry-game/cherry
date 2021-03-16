@@ -26,7 +26,6 @@ type (
 	}
 
 	// GinComponent wrapper gin
-
 	GinComponent struct {
 		cherryInterfaces.BaseComponent
 		name        string
@@ -88,7 +87,7 @@ func (g *GinComponent) Name() string {
 
 func (g *GinComponent) Init() {
 	if g.options.Address == "" {
-		cherryLogger.Infof("[%s] no set address value.", g.name)
+		cherryLogger.Warnf("[%s] no set address value.", g.name)
 		return
 	}
 

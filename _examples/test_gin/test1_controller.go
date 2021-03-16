@@ -12,8 +12,7 @@ type Test1Controller struct {
 }
 
 func (t *Test1Controller) Init() {
-
-	t.Engine.GET("/", t.BindHandle(t.index))
+	t.GET("/", t.index)
 	t.Engine.GET("/panic", t.panic)
 
 	cherrySnowflake.SetDefaultNode(1)
