@@ -4,7 +4,7 @@ package cherryInterfaces
 type IComponent interface {
 	IAppContext
 
-	//Name unique components name
+	// unique components name
 	Name() string
 
 	Init()
