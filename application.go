@@ -83,13 +83,13 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	a.running = true
 
 	cherryLogger.Info("-------------------------------------------------")
-	cherryLogger.Infof("[nodeId 	= %s] application is starting...", a.NodeId())
-	cherryLogger.Infof("[profile 	= %s]", cherryProfile.Name())
-	cherryLogger.Infof("[configDir 	= %s]", cherryProfile.Dir())
-	cherryLogger.Infof("[configFile = %s]", cherryProfile.FileName())
-	cherryLogger.Infof("[debug 		= %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[startTime 	= %s]", a.StartTime())
-	cherryLogger.Infof("[pid	 	= %d]", os.Getpid())
+	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
+	cherryLogger.Infof("[profile     = %s]", cherryProfile.Name())
+	cherryLogger.Infof("[profileDir  = %s]", cherryProfile.Dir())
+	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
+	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
+	cherryLogger.Infof("[startTime   = %s]", a.StartTime())
+	cherryLogger.Infof("[pid         = %d]", os.Getpid())
 	cherryLogger.Info("-------------------------------------------------")
 
 	// add components & init
@@ -113,7 +113,7 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	for _, c := range a.components {
 		c.Set(a)
 		c.Init()
-		cherryLogger.Debugf("[component = %s] -> Load().", c.Name())
+		cherryLogger.Debugf("[component = %s] -> Init().", c.Name())
 	}
 
 	//execute AfterInit()

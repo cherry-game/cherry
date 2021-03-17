@@ -5,31 +5,35 @@ import (
 	"github.com/cherry-game/cherry/extend/utils"
 )
 
-type DropConfig struct {
-	DropId    int    `json:"dropId"`
-	ItemType  int    `json:"itemType"`
-	ItemId    int    `json:"itemId"`
-	Num       int    `json:"num"`
-	DropType  int    `json:"dropType"`
-	DropValue int    `json:"dropValue"`
-	Desc      string `json:"desc"`
-}
+type (
+	DropConfig struct {
+		DropId    int    `json:"dropId"`
+		ItemType  int    `json:"itemType"`
+		ItemId    int    `json:"itemId"`
+		Num       int    `json:"num"`
+		DropType  int    `json:"dropType"`
+		DropValue int    `json:"dropValue"`
+		Desc      string `json:"desc"`
+	}
 
-type DropConfigList struct {
-	list []*DropConfig
-}
+	DropConfigs struct {
+		list []*DropConfig
+	}
+)
 
-func (d *DropConfigList) Name() string {
+func (d *DropConfigs) Name() string {
 	return "dropConfig"
 }
 
-func (d *DropConfigList) Load(maps interface{}, _ bool) error {
+func (d *DropConfigs) Load(maps interface{}, reload bool) error {
 	list, ok := maps.([]interface{})
 	if ok == false {
 		return cherryUtils.Error("maps convert to []interface{} error.")
 	}
 
-	d.list = d.list[0:0]
+	if reload {
+		d.list = d.list[0:0]
+	}
 
 	for _, data := range list {
 		var item DropConfig
@@ -42,7 +46,7 @@ func (d *DropConfigList) Load(maps interface{}, _ bool) error {
 	return nil
 }
 
-func (d *DropConfigList) Get(dropId int) *DropConfig {
+func (d *DropConfigs) Get(dropId int) *DropConfig {
 	for _, config := range d.list {
 		if config.DropId == dropId {
 			return config

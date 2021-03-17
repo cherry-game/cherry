@@ -6,7 +6,6 @@ import (
 )
 
 func main() {
-
 	testApp := cherry.NewDefaultApp()
 	defer testApp.Shutdown()
 

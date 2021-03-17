@@ -21,7 +21,7 @@ func app() {
 
 	dataConfig := cherryDataConfig.NewComponent()
 
-	dataConfig.Register(&DropConfigList, &DropOneConfig)
+	dataConfig.Register(&DropList, &DropOne)
 
 	testApp.Startup(
 		handlers,
@@ -33,14 +33,12 @@ func app() {
 }
 
 func getDropConfig(_ *cherry.Application) {
-
 	for {
-
-		x1 := DropConfigList.Get(1011)
+		x1 := DropList.Get(1011)
 		//cherryLogger.Info(x1)
 		cherryLogger.Warnf("%p, %v", x1, x1)
 
-		cherryLogger.Warnf("%p, %v", &DropOneConfig, DropOneConfig)
+		cherryLogger.Warnf("%p, %v", &DropOne, DropOne)
 		time.Sleep(1 * time.Second)
 	}
 }
