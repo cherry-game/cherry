@@ -8,22 +8,23 @@ import (
 )
 
 func JudgePath(filePath string) (string, bool) {
-	ok := IsDir(filePath)
+	tmpPath := path.Join(GetMainFuncDir(), filePath)
+	ok := IsDir(tmpPath)
+	if ok {
+		return tmpPath, true
+	}
+
+	tmpPath = path.Join(GetWorkPath(), filePath)
+	ok = IsDir(tmpPath)
+	if ok {
+		return tmpPath, true
+	}
+
+	ok = IsDir(filePath)
 	if ok {
 		return filePath, true
 	}
 
-	tmpPath := path.Join(GetWorkPath(), filePath)
-	ok = IsDir(tmpPath)
-	if ok {
-		return tmpPath, true
-	}
-
-	tmpPath = path.Join(GetMainFuncDir(), filePath)
-	ok = IsDir(tmpPath)
-	if ok {
-		return tmpPath, true
-	}
 	return "", false
 }
 

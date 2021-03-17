@@ -1,7 +1,7 @@
 {
   "debug": true,
   "include": [
-    "profile/logger.json",
+    "common/logger.json",
     "profile-cluster-local.json",
     "profile-data-config-local.json"
   ],

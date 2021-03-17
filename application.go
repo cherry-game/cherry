@@ -109,11 +109,11 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 		cherryLogger.Debugf("[component = %s] is added.", c.Name())
 	}
 
-	// execute Init()
+	// execute Load()
 	for _, c := range a.components {
 		c.Set(a)
 		c.Init()
-		cherryLogger.Debugf("[component = %s] -> Init().", c.Name())
+		cherryLogger.Debugf("[component = %s] -> Load().", c.Name())
 	}
 
 	//execute AfterInit()

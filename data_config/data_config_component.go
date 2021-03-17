@@ -7,24 +7,21 @@ import (
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
-	"github.com/goinggo/mapstructure"
-	"reflect"
 	"sync"
 )
 
 type DataConfigComponent struct {
-	sync.Mutex
+	sync.RWMutex
 	cherryInterfaces.BaseComponent
-	configNames  []string
-	registerMaps map[string]interface{}
-	dataSource   IDataSource
-	parser       IParser
+	dataSource     IDataSource
+	parser         IDataParser
+	configFiles    []IConfigFile
+	configDataMaps map[string]IConfigFile
 }
 
 func NewComponent() *DataConfigComponent {
 	return &DataConfigComponent{
-		registerMaps: make(map[string]interface{}),
-		configNames:  []string{},
+		configDataMaps: make(map[string]IConfigFile),
 	}
 }
 
@@ -57,25 +54,47 @@ func (d *DataConfigComponent) Init() {
 	cherryUtils.Try(func() {
 		d.dataSource.Init(d)
 
-		for _, name := range d.configNames {
-			data, found := d.GetBytes(name)
+		// read register IConfigFile
+		for _, cfg := range d.configFiles {
+			data, found := d.GetBytes(cfg.Name())
 			if !found {
-				cherryLogger.Warnf("configName = %s not found.", name)
+				cherryLogger.Warnf("configName = %s not found.", cfg.Name())
 				continue
 			}
-
-			var val interface{}
-			err := d.parser.Unmarshal(data, &val)
-			if err != nil {
-				cherryLogger.Warnf("unmarshal data error=%v, configName=%s", err, name)
-				continue
-			}
-
-			d.registerMaps[name] = val
+			d.initConfigFile(cfg, data, false)
 		}
+
+		// on change process
+		d.dataSource.OnChange(func(configName string, data []byte) {
+			configFile := d.GetIConfigFile(configName)
+			if configFile != nil {
+				d.initConfigFile(configFile, data, true)
+			}
+		})
+
 	}, func(errString string) {
 		cherryLogger.Warn(errString)
 	})
+}
+
+func (d *DataConfigComponent) initConfigFile(cfg IConfigFile, data []byte, reload bool) {
+	d.Lock()
+	defer d.Unlock()
+
+	var parseObject interface{}
+	err := d.parser.Unmarshal(data, &parseObject)
+	if err != nil {
+		cherryLogger.Warnf("unmarshal data error = %v, configName = %s", err, cfg.Name())
+		return
+	}
+
+	// load data
+	err = cfg.Load(parseObject, reload)
+	if err != nil {
+		cherryLogger.Warnf("read name = %s on init error = %s", cfg.Name(), err)
+	}
+
+	d.configDataMaps[cfg.Name()] = cfg
 }
 
 func (d *DataConfigComponent) Stop() {
@@ -84,20 +103,30 @@ func (d *DataConfigComponent) Stop() {
 	}
 }
 
-func (d *DataConfigComponent) Register(configNames ...string) {
-	if len(configNames) < 1 {
+func (d *DataConfigComponent) Register(configFiles ...IConfigFile) {
+	if len(configFiles) < 1 {
+		cherryLogger.Warnf("IConfigFile size is less than 1.")
 		return
 	}
 
-	for _, name := range configNames {
-		if name != "" {
-			d.configNames = append(d.configNames, name)
+	for _, cfg := range configFiles {
+		if cfg != nil {
+			d.configFiles = append(d.configFiles, cfg)
 		}
 	}
 }
 
+func (d *DataConfigComponent) GetIConfigFile(name string) IConfigFile {
+	for _, file := range d.configFiles {
+		if file.Name() == name {
+			return file
+		}
+	}
+	return nil
+}
+
 func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bool) {
-	data, err := d.dataSource.ReadData(configName)
+	data, err := d.dataSource.ReadBytes(configName)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return nil, false
@@ -106,28 +135,7 @@ func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bo
 	return data, true
 }
 
-func (d *DataConfigComponent) Get(configName string, val interface{}) {
-	if val == nil {
-		return
-	}
-
-	typ := reflect.TypeOf(val)
-	if typ.Kind() != reflect.Ptr {
-		cherryLogger.Warnf("val must ptr type. configName={}", configName)
-		return
-	}
-
-	result, found := d.registerMaps[configName]
-	if !found {
-		return
-	}
-
-	if err := mapstructure.Decode(result, val); err != nil {
-		cherryLogger.Warn(err)
-	}
-}
-
-func (d *DataConfigComponent) GetParser() IParser {
+func (d *DataConfigComponent) GetParser() IDataParser {
 	return d.parser
 }
 

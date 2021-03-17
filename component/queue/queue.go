@@ -3,7 +3,6 @@ package cherryQueue
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/interfaces"
-	"github.com/cherry-game/cherry/logger"
 )
 
 //QueueComponent queue component
@@ -24,19 +23,15 @@ func (s *QueueComponent) Name() string {
 }
 
 func (s *QueueComponent) Init() {
-	cherryLogger.Infof("[component = %s] is executed Init() method.", s.Name())
 }
 
 func (s *QueueComponent) AfterInit() {
-	cherryLogger.Infof("[component = %s] is executed AfterInit() method.", s.Name())
 }
 
 func (s *QueueComponent) BeforeStop() {
-	cherryLogger.Infof("[component = %s] is executed BeforeStop() method.", s.Name())
 }
 
 func (s *QueueComponent) Stop() {
-	cherryLogger.Infof("[component = %s] is executed Stop() method.", s.Name())
 }
 
 func (s *QueueComponent) Test() string {

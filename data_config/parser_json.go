@@ -4,13 +4,13 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-type JsonParser struct {
+type ParserJson struct {
 }
 
-func (j *JsonParser) TypeName() string {
+func (j *ParserJson) TypeName() string {
 	return "json"
 }
 
-func (j *JsonParser) Unmarshal(data []byte, v interface{}) error {
+func (j *ParserJson) Unmarshal(data []byte, v interface{}) error {
 	return jsoniter.Unmarshal(data, v)
 }

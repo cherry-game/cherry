@@ -10,9 +10,8 @@ import (
 	"time"
 )
 
-// FileSource 本地读取数据配置文件
-type FileSource struct {
-	dataConfig   IDataConfig
+// SourceFile 本地读取数据配置文件
+type SourceFile struct {
 	monitorPath  string
 	watcher      *watcher.Watcher
 	reloadTime   int64
@@ -20,12 +19,11 @@ type FileSource struct {
 	changeFileFn ChangeFileFn
 }
 
-func (f *FileSource) Name() string {
+func (f *SourceFile) Name() string {
 	return "file"
 }
 
-func (f *FileSource) Init(dataConfig IDataConfig) {
-	f.dataConfig = dataConfig
+func (f *SourceFile) Init(_ IDataConfig) {
 
 	//read data_config->file node
 	fileNode := cherryProfile.Config("data_config", "file")
@@ -36,12 +34,14 @@ func (f *FileSource) Init(dataConfig IDataConfig) {
 
 	filePath := fileNode.Get("file_path").ToString()
 	if filePath == "" {
-		filePath = "data_config/" //default value
+		//default value
+		filePath = "data_config/"
 	}
 
 	f.extName = fileNode.Get("ext_name").ToString()
 	if f.extName == "" {
-		f.extName = ".json" // default value
+		// default value
+		f.extName = ".json"
 	}
 
 	var err error
@@ -53,44 +53,45 @@ func (f *FileSource) Init(dataConfig IDataConfig) {
 
 	f.reloadTime = fileNode.Get("reload_time").ToInt64()
 	if f.reloadTime < 1 {
-		f.reloadTime = 2000 //default value
+		//default value
+		f.reloadTime = 3000
 	}
 
 	// new watcher
 	go f.newWatcher()
 }
 
-func (f *FileSource) ReadData(configName string) (data []byte, error error) {
+func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 	if configName == "" {
 		return nil, cherryUtils.Error("configName is empty.")
 	}
 
-	fullPath, error := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
-	if error != nil {
-		return nil, cherryUtils.Errorf("file not found. err = %v, fullPath = %s", error, fullPath)
+	fullPath, err := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
+	if err != nil {
+		return nil, cherryUtils.Errorf("file not found. err = %v, fullPath = %s", err, fullPath)
 	}
 
 	if cherryFile.IsDir(fullPath) {
-		return nil, cherryUtils.Errorf("path is dir. fullPath = %s", error, fullPath)
+		return nil, cherryUtils.Errorf("path is dir. fullPath = %s", err, fullPath)
 	}
 
-	data, error = ioutil.ReadFile(fullPath)
-	if error != nil {
-		return nil, cherryUtils.Errorf("read file err. err = %v path = %s", error, fullPath)
+	data, err = ioutil.ReadFile(fullPath)
+	if err != nil {
+		return nil, cherryUtils.Errorf("read file err. err = %v path = %s", err, fullPath)
 	}
 
 	if len(data) < 1 {
-		return nil, cherryUtils.Error("configName data is error.")
+		return nil, cherryUtils.Error("configName data is err.")
 	}
 
 	return data, nil
 }
 
-func (f *FileSource) OnChange(changeFileFn ChangeFileFn) {
+func (f *SourceFile) OnChange(changeFileFn ChangeFileFn) {
 	f.changeFileFn = changeFileFn
 }
 
-func (f *FileSource) newWatcher() {
+func (f *SourceFile) newWatcher() {
 	f.watcher = watcher.New()
 	f.watcher.SetMaxEvents(1)
 	f.watcher.FilterOps(watcher.Write)
@@ -112,15 +113,17 @@ func (f *FileSource) newWatcher() {
 					}
 
 					configName := cherryFile.GetFileName(ev.FileInfo.Name(), true)
+					cherryLogger.Infof("[name = %s] file change.", configName)
 
-					data, err := f.ReadData(configName)
+					data, err := f.ReadBytes(configName)
 					if err != nil {
 						cherryLogger.Error(err)
 						return
 					}
 
-					f.changeFileFn(configName, data)
-
+					if f.changeFileFn != nil {
+						f.changeFileFn(configName, data)
+					}
 				}
 			case err := <-f.watcher.Error:
 				{
@@ -138,7 +141,7 @@ func (f *FileSource) newWatcher() {
 	}
 }
 
-func (f *FileSource) Stop() {
+func (f *SourceFile) Stop() {
 	if f.watcher != nil {
 		err := f.watcher.Remove(f.monitorPath)
 		if err != nil {

@@ -13,20 +13,20 @@ import (
 
 var (
 	env = &struct {
-		dir      string       // config root dir
-		profile  string       // profile name
-		fileName string       // profile fileName
-		json     jsoniter.Any // profile-x.json parse to json object
-		debug    bool         // debug default is true
+		profilePath string       // profile root dir
+		profileName string       // profile name
+		fileName    string       // profile fileName
+		json        jsoniter.Any // profile-x.json parse to json object
+		debug       bool         // debug default is true
 	}{}
 )
 
 func Dir() string {
-	return env.dir
+	return env.profilePath
 }
 
 func Name() string {
-	return env.profile
+	return env.profileName
 }
 
 func FileName() string {
@@ -44,28 +44,28 @@ func Config(path ...interface{}) jsoniter.Any {
 	return env.json
 }
 
-func Init(configPath, profile string) (jsoniter.Any, error) {
-	if configPath == "" {
-		return nil, cherryUtils.Error("configPath parameter is null.")
+func Init(profilePath, profileName string) (jsoniter.Any, error) {
+	if profilePath == "" {
+		return nil, cherryUtils.Error("profilePath parameter is null.")
 	}
 
-	if profile == "" {
-		return nil, cherryUtils.Error("profile parameter is null.")
+	if profileName == "" {
+		return nil, cherryUtils.Error("profileName parameter is null.")
 	}
 
-	judgePath, ok := cherryFile.JudgePath(configPath)
+	judgePath, ok := cherryFile.JudgePath(profilePath)
 	if !ok {
-		return nil, cherryUtils.Errorf("configPath = %s not found.", configPath)
+		return nil, cherryUtils.Errorf("profilePath = %s not found.", profilePath)
 	}
 
 	env.debug = true
-	env.dir = judgePath
-	env.profile = profile
-	env.fileName = fmt.Sprintf(cherryConst.ProfileNameFormat, profile)
+	env.profilePath = judgePath
+	env.profileName = profileName
+	env.fileName = fmt.Sprintf(cherryConst.ProfileNameFormat, profileName)
 
-	env.json = loadProfileFile(env.dir, env.fileName)
+	env.json = loadProfileFile(env.profilePath, env.fileName)
 	if env.json == nil || env.json.LastError() != nil {
-		return nil, cherryUtils.Errorf("load profile file error. configPath = %s", configPath)
+		return nil, cherryUtils.Errorf("load profile file error. profilePath = %s", profilePath)
 	}
 
 	if env.json.Get("debug").LastError() == nil {
@@ -75,12 +75,12 @@ func Init(configPath, profile string) (jsoniter.Any, error) {
 	return env.json, nil
 }
 
-func loadProfileFile(configPath string, profileFileName string) jsoniter.Any {
+func loadProfileFile(profilePath string, profileFullName string) jsoniter.Any {
 	// merge include json file
 	var maps = make(map[string]interface{})
 
 	// read master json file
-	err := cherryJson.ReadMaps(path.Join(configPath, profileFileName), maps)
+	err := cherryJson.ReadMaps(path.Join(profilePath, profileFullName), maps)
 	if err != nil {
 		panic(err)
 	}
@@ -89,7 +89,7 @@ func loadProfileFile(configPath string, profileFileName string) jsoniter.Any {
 	if v, found := maps["include"].([]interface{}); found {
 		paths := cherryString.ToStringSlice(v)
 		for _, p := range paths {
-			includePath := path.Join(configPath, p)
+			includePath := path.Join(profilePath, p)
 			err := cherryJson.ReadMaps(includePath, maps)
 			if err != nil {
 				panic(err)

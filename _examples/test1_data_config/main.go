@@ -2,11 +2,10 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
-	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/data_config"
 	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
+	"time"
 )
 
 func main() {
@@ -22,7 +21,7 @@ func app() {
 
 	dataConfig := cherryDataConfig.NewComponent()
 
-	dataConfig.Register("dropConfig", "dropOneConfig")
+	dataConfig.Register(&DropConfigList, &DropOneConfig)
 
 	testApp.Startup(
 		handlers,
@@ -33,18 +32,15 @@ func app() {
 	go getDropConfig(testApp)
 }
 
-func getDropConfig(app *cherry.Application) {
-	component := app.Find(cherryConst.DataConfigComponent).(*cherryDataConfig.DataConfigComponent)
+func getDropConfig(_ *cherry.Application) {
 
-	var list []mocks.DropConfig
-	component.Get("dropConfig", &list)
-	cherryLogger.Warnf("%p", list)
+	for {
 
-	var list1 []mocks.DropConfig
-	component.Get("dropConfig", &list1)
-	cherryLogger.Warnf("%p", list1)
+		x1 := DropConfigList.Get(1011)
+		//cherryLogger.Info(x1)
+		cherryLogger.Warnf("%p, %v", x1, x1)
 
-	var one mocks.DropOneConfig
-	component.Get("dropOneConfig", &one)
-	cherryLogger.Warnf("%p", &one)
+		cherryLogger.Warnf("%p, %v", &DropOneConfig, DropOneConfig)
+		time.Sleep(1 * time.Second)
+	}
 }
