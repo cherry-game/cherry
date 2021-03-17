@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	cherryReflect "github.com/cherry-game/cherry/extend/reflect"
+	"github.com/cherry-game/cherry/extend/reflect"
 )
 
 type FunStruct struct {

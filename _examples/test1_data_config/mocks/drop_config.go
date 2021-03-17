@@ -1,6 +1,7 @@
 package mocks
 
 import (
+	"github.com/ahmetb/go-linq/v3"
 	"github.com/cherry-game/cherry/extend/mapstructure"
 	"github.com/cherry-game/cherry/extend/utils"
 )
@@ -53,4 +54,14 @@ func (d *DropConfigs) Get(dropId int) *DropConfig {
 		}
 	}
 	return nil
+}
+
+func (d *DropConfigs) GetItemTypeList(itemType int) []*DropConfig {
+	var c []*DropConfig
+
+	linq.From(d.list).Where(func(i interface{}) bool {
+		return i.(*DropConfig).ItemType == itemType
+	}).ToSlice(&c)
+
+	return c
 }

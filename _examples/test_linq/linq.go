@@ -2,9 +2,8 @@ package linq
 
 import (
 	"fmt"
-	"time"
-
 	"github.com/ahmetb/go-linq/v3"
+	"time"
 )
 
 func defaultFor(ids []int) {

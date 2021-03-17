@@ -39,6 +39,10 @@ func getDropConfig(_ *cherry.Application) {
 		cherryLogger.Warnf("%p, %v", x1, x1)
 
 		cherryLogger.Warnf("%p, %v", &DropOne, DropOne)
+
+		itemTypeList := DropList.GetItemTypeList(3)
+		cherryLogger.Warnf("%p, %v", itemTypeList, itemTypeList)
+
 		time.Sleep(1 * time.Second)
 	}
 }
