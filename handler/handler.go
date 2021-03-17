@@ -30,7 +30,6 @@ func (h *Handler) SetName(name string) {
 }
 
 func (h *Handler) PreInit() {
-
 	if h.eventFn == nil {
 		h.eventFn = make(map[string][]cherryInterfaces.EventFn)
 	}
