@@ -2,9 +2,9 @@ package mocks
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/golang/protobuf/proto"
 )

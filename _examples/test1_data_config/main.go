@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/data_config"
-	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/handler"
 	"time"
 )
 

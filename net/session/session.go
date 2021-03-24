@@ -32,7 +32,7 @@ type Session struct {
 	onMessageListener cherryInterfaces.MessageListener
 }
 
-func NewSession(sid cherryInterfaces.SID, conn net.Conn, net cherryInterfaces.INetworkEntity, sessionComponent *SessionComponent) *Session {
+func NewSession(sid cherryInterfaces.SID, conn net.Conn, net cherryInterfaces.INetworkEntity, sc *SessionComponent) *Session {
 	session := &Session{
 		Settings: Settings{
 			data: make(map[string]interface{}),
@@ -44,7 +44,7 @@ func NewSession(sid cherryInterfaces.SID, conn net.Conn, net cherryInterfaces.IN
 		uid:              0,
 		frontendId:       "",
 		net:              net,
-		sessionComponent: sessionComponent,
+		sessionComponent: sc,
 		lastTime:         time.Now().Unix(),
 		sendChan:         make(chan []byte),
 	}

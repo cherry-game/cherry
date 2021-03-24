@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
-	"github.com/cherry-game/cherry/handler"
 	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/net/handler"
 	"reflect"
 	"testing"
 )
