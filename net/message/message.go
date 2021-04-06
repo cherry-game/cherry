@@ -43,7 +43,7 @@ type Message struct {
 	ID         uint   // unique id, zero while notify mode 消息id（request response）
 	Route      string // route for locating service 消息路由
 	Data       []byte // payload  消息体的原始数据
-	compressed bool   // is message compressed 是否启用路由压缩
+	Compressed bool   // is message Compressed 是否启用路由压缩
 	Err        bool   // is an error message
 }
 
@@ -61,7 +61,7 @@ func (t *Message) String() string {
 		types[t.Type],
 		t.ID,
 		t.Route,
-		t.compressed,
+		t.Compressed,
 		t.Err,
 		t.Data,
 		len(t.Data))

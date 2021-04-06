@@ -140,7 +140,7 @@ func (h *HandlerComponent) PostEvent(event cherryInterfaces.IEvent) {
 	}
 
 	for _, handler := range h.handlers {
-		if _, found := handler.GetEvent(event.EventName()); found {
+		if _, found := handler.Event(event.EventName()); found {
 			handler.PutMessage(event)
 		}
 	}

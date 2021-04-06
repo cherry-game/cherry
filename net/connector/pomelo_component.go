@@ -215,7 +215,6 @@ func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *
 	}
 
 	if route.NodeType() == p.App().NodeType() {
-
 		unHandleMessage := &cherryHandler.UnhandledMessage{
 			Session: session,
 			Route:   route,

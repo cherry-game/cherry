@@ -15,17 +15,17 @@ type IHandler interface {
 
 	AfterInit()
 
-	GetEvents() map[string][]EventFn
+	Events() map[string][]EventFn
 
-	GetEvent(name string) ([]EventFn, bool)
+	Event(name string) ([]EventFn, bool)
 
-	GetLocals() map[string]*InvokeFn
+	LocalHandlers() map[string]*InvokeFn
 
-	GetLocal(funcName string) (*InvokeFn, bool)
+	LocalHandler(funcName string) (*InvokeFn, bool)
 
-	GetRemotes() map[string]*InvokeFn
+	RemoteHandlers() map[string]*InvokeFn
 
-	GetRemote(funcName string) (*InvokeFn, bool)
+	RemoteHandler(funcName string) (*InvokeFn, bool)
 
 	PutMessage(message interface{})
 

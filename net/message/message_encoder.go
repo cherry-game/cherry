@@ -156,7 +156,7 @@ func Decode(data []byte) (*Message, error) {
 	if routable(m.Type) {
 		if flag&msgRouteCompressMask == 1 {
 			//读取route code (2byte) 根据code得到route
-			m.compressed = true
+			m.Compressed = true
 			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
 			route, ok := codes[code]
 			if !ok {
@@ -166,7 +166,7 @@ func Decode(data []byte) (*Message, error) {
 			offset += 2
 		} else {
 			//读取一个字节作为字符串长度然后根据读取route字符串
-			m.compressed = false
+			m.Compressed = false
 			rl := data[offset]
 			offset++
 			m.Route = string(data[offset:(offset + int(rl))])

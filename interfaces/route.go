@@ -6,4 +6,4 @@ type IRoute interface {
 	Method() string
 }
 
-type RouteFunction func(session ISession, packet interface{}, ctx IApplication) error
+type RouteFunction func(session ISession, packet interface{}, app IApplication) error

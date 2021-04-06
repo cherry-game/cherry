@@ -18,8 +18,8 @@ type SimpleComponentOptions struct {
 type SimpleComponent struct {
 	cherryInterfaces.BaseComponent
 	SimpleComponentOptions
-	connCount      *Connection
-	sessionService *cherrySession.SessionComponent
+	connCount        *Connection
+	sessionComponent *cherrySession.SessionComponent
 }
 
 func (t *SimpleComponent) Name() string {
@@ -30,8 +30,8 @@ func (t *SimpleComponent) Init() {
 }
 
 func (t *SimpleComponent) AfterInit() {
-	t.sessionService = t.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
-	if t.sessionService == nil {
+	t.sessionComponent = t.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
+	if t.sessionComponent == nil {
 		panic("please load session.SessionComponent")
 	}
 }

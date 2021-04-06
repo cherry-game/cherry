@@ -154,7 +154,7 @@ func DefaultWorkerExecutor(handler cherryInterfaces.IHandler, worker *Worker) {
 								handler.Name(), worker.Index, msg.Route.String())
 						}
 
-						if method, found := handler.GetLocal(msg.Route.Method()); found {
+						if method, found := handler.LocalHandler(msg.Route.Method()); found {
 							params := make([]reflect.Value, 2)
 							params[0] = reflect.ValueOf(msg.Session)
 							params[1] = reflect.ValueOf(msg.Msg)
@@ -174,7 +174,7 @@ func DefaultWorkerExecutor(handler cherryInterfaces.IHandler, worker *Worker) {
 								handler.Name(), worker.Index, reflect.TypeOf(message))
 						}
 
-						calls, found := handler.GetEvent(msg.EventName())
+						calls, found := handler.Event(msg.EventName())
 						if found == false {
 							break
 						}
@@ -189,8 +189,7 @@ func DefaultWorkerExecutor(handler cherryInterfaces.IHandler, worker *Worker) {
 					}
 				}
 			}
+			//case timer
 		}
-
-		//case timer
 	}
 }

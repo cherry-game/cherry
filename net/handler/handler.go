@@ -13,7 +13,7 @@ type (
 	Handler struct {
 		cherryInterfaces.AppContext
 		WorkerGroup
-		name             string                                // unique Handler name
+		name             string                                // unique name
 		eventFn          map[string][]cherryInterfaces.EventFn // event func
 		localHandlers    map[string]*cherryInterfaces.InvokeFn // local invoke Handler functions
 		remoteHandlers   map[string]*cherryInterfaces.InvokeFn // remote invoke Handler functions
@@ -56,38 +56,41 @@ func (h *Handler) AfterInit() {
 	h.runWorker(h)
 }
 
-func (h *Handler) GetEvents() map[string][]cherryInterfaces.EventFn {
+func (h *Handler) Events() map[string][]cherryInterfaces.EventFn {
 	return h.eventFn
 }
 
-func (h *Handler) GetEvent(name string) ([]cherryInterfaces.EventFn, bool) {
+func (h *Handler) Event(name string) ([]cherryInterfaces.EventFn, bool) {
 	events, found := h.eventFn[name]
 	return events, found
 }
 
-func (h *Handler) GetLocals() map[string]*cherryInterfaces.InvokeFn {
+func (h *Handler) LocalHandlers() map[string]*cherryInterfaces.InvokeFn {
 	return h.localHandlers
 }
 
-func (h *Handler) GetLocal(funcName string) (*cherryInterfaces.InvokeFn, bool) {
+func (h *Handler) LocalHandler(funcName string) (*cherryInterfaces.InvokeFn, bool) {
 	invoke, found := h.localHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) GetRemotes() map[string]*cherryInterfaces.InvokeFn {
+func (h *Handler) RemoteHandlers() map[string]*cherryInterfaces.InvokeFn {
 	return h.remoteHandlers
 }
 
-func (h *Handler) GetRemote(funcName string) (*cherryInterfaces.InvokeFn, bool) {
+func (h *Handler) RemoteHandler(funcName string) (*cherryInterfaces.InvokeFn, bool) {
 	invoke, found := h.remoteHandlers[funcName]
 	return invoke, found
 }
 
 func (h *Handler) PutMessage(message interface{}) {
 	worker := h.GetWorker(message)
-	if worker != nil {
-		worker.MessageChan <- message
+	if worker == nil {
+		cherryLogger.Warn("put message is nil")
+		return
 	}
+
+	worker.MessageChan <- message
 }
 
 func (h *Handler) GetWorker(message interface{}) *Worker {
