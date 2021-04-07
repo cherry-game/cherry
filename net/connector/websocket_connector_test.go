@@ -9,7 +9,7 @@ import (
 
 // websocket client http://www.websocket-test.com/
 func TestNewWSConnector(t *testing.T) {
-	connector := NewWebSocketConnector(":9071")
+	connector := NewWSConnector(":9071")
 
 	connector.OnConnect(func(conn net.Conn) {
 		s := cherrySession.NewSession(cherrySession.NextSessionId(), conn, nil, nil)

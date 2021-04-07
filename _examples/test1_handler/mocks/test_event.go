@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"github.com/cherry-game/cherry/event"
+	"github.com/cherry-game/cherry/net/event"
 )
 
 type TestEvent struct {

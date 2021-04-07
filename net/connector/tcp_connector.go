@@ -59,10 +59,7 @@ func (t *TCPConnector) Start() {
 
 	cherryLogger.Debugf("tcp connector listening at address %s", t.address)
 
-	defer t.Stop()
-
 	t.running = true
-
 	for t.running {
 		conn, err := t.listener.Accept()
 		if err != nil {

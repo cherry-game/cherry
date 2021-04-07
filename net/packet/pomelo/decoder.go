@@ -35,7 +35,12 @@ func (p *Decoder) Decode(data []byte) ([]*cherryInterfaces.Packet, error) {
 	}
 
 	for size <= buf.Len() {
-		pkg := &cherryInterfaces.Packet{Type: typ, Length: size, Data: buf.Next(size)}
+		pkg := &cherryInterfaces.Packet{
+			Type:   typ,
+			Length: size,
+			Data:   buf.Next(size),
+		}
+
 		packets = append(packets, pkg)
 
 		if buf.Len() < HeadLength {
@@ -71,5 +76,6 @@ func (p *Decoder) forward(buf *bytes.Buffer) (int, byte, error) {
 	if size > MaxPacketSize {
 		return 0, 0x00, ErrPacketSizeExcced
 	}
+
 	return size, typ, nil
 }

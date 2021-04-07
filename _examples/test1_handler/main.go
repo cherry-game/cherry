@@ -3,8 +3,8 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
+	"github.com/cherry-game/cherry/component/data_config"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/data_config"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"

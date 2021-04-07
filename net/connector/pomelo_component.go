@@ -230,7 +230,6 @@ func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *
 func (p *PomeloComponent) Stop() {
 	if p.Connector != nil {
 		p.Connector.Stop()
-		p.Connector = nil
 	}
 }
 

@@ -75,7 +75,6 @@ func GetType(nodeId string) (nodeType string, error error) {
 
 func loadNodesFromConfigFile(nodesJson jsoniter.Any) {
 	for _, nodeType := range nodesJson.Keys() {
-
 		nodesConfig[nodeType] = make(map[string]cherryInterfaces.INode)
 
 		typeJson := nodesJson.Get(nodeType)
