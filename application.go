@@ -138,28 +138,32 @@ func (a *Application) Shutdown(beforeStopFn ...func()) {
 			a.running = false
 			cherryLogger.Infof("------- [nodeId = %s] application is shutting... -------", a.NodeId())
 
-			if beforeStopFn != nil {
-				for _, f := range beforeStopFn {
-					f()
+			cherryUtils.Try(func() {
+				if beforeStopFn != nil {
+					for _, f := range beforeStopFn {
+						f()
+					}
 				}
-			}
+			}, func(errString string) {
+				cherryLogger.Warnf("[beforeStopFn] error = %s", errString)
+			})
 
 			//all components in reverse order
 			for i := len(a.components) - 1; i >= 0; i-- {
 				cherryUtils.Try(func() {
 					a.components[i].BeforeStop()
-					cherryLogger.Debugf("[component = %s] -> BeforeStop().", a.components[i].Name())
+					cherryLogger.Infof("[component = %s] -> BeforeStop().", a.components[i].Name())
 				}, func(errString string) {
-					cherryLogger.Debugf("[component = %s] -> BeforeStop(). error = %s", a.components[i].Name(), errString)
+					cherryLogger.Warnf("[component = %s] -> BeforeStop(). error = %s", a.components[i].Name(), errString)
 				})
 			}
 
 			for i := len(a.components) - 1; i >= 0; i-- {
 				cherryUtils.Try(func() {
 					a.components[i].Stop()
-					cherryLogger.Debugf("[component = %s] -> Stop().", a.components[i].Name())
+					cherryLogger.Infof("[component = %s] -> Stop().", a.components[i].Name())
 				}, func(errString string) {
-					cherryLogger.Debugf("[component = %s] -> Stop(). error = %s", a.components[i].Name(), errString)
+					cherryLogger.Warnf("[component = %s] -> Stop(). error = %s", a.components[i].Name(), errString)
 				})
 			}
 

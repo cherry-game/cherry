@@ -44,7 +44,7 @@ func (h *Handler) PreInit() {
 
 	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
 	if h.handlerComponent == nil {
-		cherryLogger.Warn("not find HandlerComponent.")
+		cherryLogger.Warn("not found HandlerComponent.")
 	}
 }
 
@@ -84,9 +84,14 @@ func (h *Handler) RemoteHandler(funcName string) (*cherryInterfaces.InvokeFn, bo
 }
 
 func (h *Handler) PutMessage(message interface{}) {
+	if message == nil {
+		cherryLogger.Warn("put message is nil")
+		return
+	}
+
 	worker := h.GetWorker(message)
 	if worker == nil {
-		cherryLogger.Warn("put message is nil")
+		cherryLogger.Warnf("message %v  not found worker.", message)
 		return
 	}
 

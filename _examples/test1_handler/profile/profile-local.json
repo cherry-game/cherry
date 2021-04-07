@@ -23,7 +23,7 @@
       "max_backups": 0,
       "compress": false,
       "time_format": "15:04:05.000",
-      "print_caller": false
+      "print_caller": true
     }
   },
   "cluster": {

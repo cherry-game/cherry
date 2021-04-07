@@ -90,12 +90,12 @@ func (p *PomeloComponent) Init() {
 func (p *PomeloComponent) AfterInit() {
 	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
 	if p.sessionComponent == nil {
-		panic("please preload session.handlerComponent.")
+		panic("please preload session component.")
 	}
 
 	p.handlerComponent = p.App().Find(cherryConst.HandlerComponent).(*cherryHandler.HandlerComponent)
 	if p.handlerComponent == nil {
-		panic("please preload handler.handlerComponent.")
+		panic("please preload handler component.")
 	}
 
 	p.initHandshakeData()

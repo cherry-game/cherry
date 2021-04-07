@@ -102,16 +102,16 @@ func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterface
 }
 
 func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
+	if !h.App().Running() {
+		//ignore message
+		return
+	}
+
 	if msg == nil || msg.Route == nil {
 		return
 	}
 
 	if msg.Route.NodeType() != h.App().NodeType() {
-		return
-	}
-
-	if !h.App().Running() {
-		//ignore message
 		return
 	}
 
@@ -125,7 +125,13 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 }
 
 func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryInterfaces.IHandler {
-	handler := h.handlers[h.nameFn(route.HandlerName())]
+	handlerName := h.nameFn(route.HandlerName())
+	if handlerName == "" {
+		cherryLogger.Warnf("could not find handle name. Route = %v", route)
+		return nil
+	}
+
+	handler := h.handlers[handlerName]
 	if handler == nil {
 		cherryLogger.Warnf("could not find handle worker for Route = %v", route)
 		return nil

@@ -3,9 +3,9 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
-	"github.com/cherry-game/cherry/component/queue"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/data_config"
+	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/route"
@@ -24,53 +24,45 @@ func app() {
 		func() {
 			c := testApp.Find(cherryConst.HandlerComponent)
 			if c != nil {
-				cherryLogger.Debugf("--------[component = %s] is find! --------", c.Name())
+				cherryLogger.Debugf("--------[component = %s] is found! --------", c.Name())
 			}
 		},
 		func() {
 			cherryLogger.DefaultLogger().Sync()
-
 			handlerLogger := cherryLogger.NewLogger("test_handler")
 			handlerLogger.Sync()
+
+			timeLogger := cherryLogger.NewLogger("test_handler")
+			timeLogger.Info(cherryTime.Now().ToMillisecond())
 		},
 	)
 
 	handlers := cherryHandler.NewComponent()
-
 	handlers.SetNameFn(strings.ToLower)
-
-	handlers.BeforeFilter(func(msg *cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Debug("test before filter.... ")
-		return false
-	})
-
-	handlers.AfterFilter(func(msg *cherryHandler.UnhandledMessage) bool {
-		cherryLogger.Debug("test after filter....")
-		return true
-	})
 
 	//add TestHandler
 	handlers.Registers(mocks.NewTestHandler())
+
 	dataConfig := cherryDataConfig.NewComponent()
 
 	testApp.Startup(
 		handlers,
 		dataConfig,
-		cherryQueue.NewQueue(),
 	)
 
 	go mockRequestMsg1(handlers)
-	go mockRequestMsg2(handlers)
+	//go mockRequestMsg2(handlers)
 	//go mockEventMsg(handlers)
 }
 
 func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	handlerLogger := cherryLogger.NewLogger("test_handler")
+	i := 0
+
+	handlerLogger.Info(cherryTime.Now().ToMillisecond())
 
 	for {
-		route := cherryRoute.NewByName("game.testHandler.test11111")
-
-		handlerLogger.Infow("", "route", route.String())
+		route := cherryRoute.NewByName("game.testHandler.testLocalMethod")
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},
@@ -80,16 +72,19 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 
 		handler.DoHandle(msg)
 		//time.Sleep(time.Microsecond * 1)
+
+		i++
+
+		if i%1000000 == 0 {
+			handlerLogger.Infof("count num = %d, time = %d", i, cherryTime.Now().ToMillisecond())
+			break
+		}
 	}
 }
 
 func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
-	handlerLogger := cherryLogger.NewLogger("test_handler")
-
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
-
-		handlerLogger.Infow("", "route", route.String())
 
 		msg := &cherryHandler.UnhandledMessage{
 			Session: &cherrySession.Session{},

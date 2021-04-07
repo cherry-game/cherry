@@ -26,6 +26,6 @@ func Base64Decode(value string) (string, error) {
 	return string(data), nil
 }
 
-func CRC32(value string) uint {
-	return uint(int(crc32.ChecksumIEEE([]byte(value))))
+func CRC32(value string) int {
+	return int(crc32.ChecksumIEEE([]byte(value)))
 }

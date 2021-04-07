@@ -2,8 +2,8 @@
   "debug": true,
   "include": [
     "common/logger.json",
-    "profile-cluster-local.json",
-    "profile-data-config-local.json"
+    "profile-local-cluster.json",
+    "profile-local-data-config.json"
   ],
   "db": [
     {

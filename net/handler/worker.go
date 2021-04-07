@@ -2,13 +2,12 @@ package cherryHandler
 
 import (
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/extend/crypto"
 	"github.com/cherry-game/cherry/interfaces"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
-	"hash/crc32"
 	"math/rand"
 	"reflect"
-	"strconv"
 )
 
 type (
@@ -109,16 +108,17 @@ func (w *WorkerGroup) SetWorkerCRC32Hash(workerSize int) {
 		case *UnhandledMessage:
 			{
 				if m.Session != nil {
-					hashValue = strconv.FormatInt(m.Session.UID(), 10)
+					hashValue = string(m.Session.UID())
 				}
 			}
 		}
 
+		// default index
 		if hashValue == "" {
 			return 0
 		}
 
-		return int(crc32.ChecksumIEEE([]byte(hashValue))) % workerSize
+		return cherryCrypto.CRC32(hashValue) % workerSize
 	})
 }
 

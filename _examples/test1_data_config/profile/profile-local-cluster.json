@@ -10,7 +10,7 @@
           "rpc_address": "127.0.0.1:20820",
           "__settings__": {
             "maintain_state": 2,
-            "ref_logger": "game_log"
+            "@ref_logger": "game_log"
           }
         }
       ],

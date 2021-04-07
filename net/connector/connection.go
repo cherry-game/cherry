@@ -15,7 +15,7 @@ type LoginRecord struct {
 // connCount count
 type Connection struct {
 	sync.RWMutex
-	connCount    int32                                 // net connCount count
+	connCount    int32                                 // connection count
 	loginCount   int32                                 // user login count
 	loginRecords map[cherryInterfaces.UID]*LoginRecord // user login record info
 }

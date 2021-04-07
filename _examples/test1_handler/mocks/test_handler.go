@@ -18,10 +18,7 @@ type TestHandler struct {
 }
 
 func (t *TestHandler) Init() {
-
-	t.SetWorkerCRC32Hash(30)
-
-	t.SetWorkerExecutor(cherryHandler.DefaultWorkerExecutor)
+	t.SetWorkerRandHash(30)
 
 	t.RegisterEvent("testEventName", t.testEvent)
 
@@ -43,7 +40,7 @@ func (t *TestHandler) testMethod2(session cherryInterfaces.ISession, message *ch
 }
 
 func (t *TestHandler) testMethod(session cherryInterfaces.ISession, message *cherryMessage.Message) {
-	cherryLogger.Debug(session, message)
+	//cherryLogger.Debugf("session = %s, message = %s", session, message)
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {

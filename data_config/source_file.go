@@ -25,7 +25,8 @@ func (f *SourceFile) Name() string {
 
 func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
-	fileNode := cherryProfile.Config("data_config", "file")
+	config := cherryProfile.GetConfig("data_config")
+	fileNode := config.Get("file")
 	if fileNode == nil {
 		cherryLogger.Warnf("`data_config` node not found in `%s` file.", cherryProfile.FileName())
 		return

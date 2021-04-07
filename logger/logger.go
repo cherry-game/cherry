@@ -43,7 +43,16 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *zap.SugaredLogger {
 		return logger
 	}
 
-	jsonConfig := cherryProfile.Config("logger", refLoggerName)
+	loggerConfigs := cherryProfile.GetConfig("logger")
+	if loggerConfigs.LastError() != nil {
+		panic(loggerConfigs.LastError())
+	}
+
+	jsonConfig := loggerConfigs.Get(refLoggerName)
+	if jsonConfig.LastError() != nil {
+		panic(jsonConfig.LastError())
+	}
+
 	config := NewConfig(jsonConfig)
 
 	logger := NewConfigLogger(config, opts...)

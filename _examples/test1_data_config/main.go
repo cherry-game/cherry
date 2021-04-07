@@ -20,7 +20,6 @@ func app() {
 	handlers := cherryHandler.NewComponent()
 
 	dataConfig := cherryDataConfig.NewComponent()
-
 	dataConfig.Register(&DropList, &DropOne)
 
 	testApp.Startup(
