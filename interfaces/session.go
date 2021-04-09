@@ -16,19 +16,16 @@ type (
 		FrontendId() FrontendId
 		SetStatus(status int)
 		Status() int
-
 		Data() map[string]interface{}
 		Remove(key string)
 		Set(key string, value interface{})
 		Contains(key string) bool
-
 		Conn() net.Conn
 		OnClose(listener SessionListener)
 		OnError(listener SessionListener)
 		OnMessage(listener MessageListener)
 		Send(msg []byte) error
 		SendBatch(batchMsg ...[]byte)
-
 		Closed()
 	}
 
