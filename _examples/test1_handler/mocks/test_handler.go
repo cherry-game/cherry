@@ -40,7 +40,7 @@ func (t *TestHandler) testMethod2(session cherryInterfaces.ISession, message *ch
 }
 
 func (t *TestHandler) testMethod(session cherryInterfaces.ISession, message *cherryMessage.Message) {
-	//cherryLogger.Debugf("session = %s, message = %s", session, message)
+	cherryLogger.Debugf("session = %s, message = %s", session, message)
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {

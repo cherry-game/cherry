@@ -2,7 +2,7 @@
   "debug": true,
   "logger": {
     "game_log": {
-      "level": "debug",
+      "level": "info",
       "enable_write_file": true,
       "enable_console" : true,
       "file_path": "logs/game.log",
@@ -15,8 +15,8 @@
     },
     "test_handler": {
       "level": "debug",
-      "enable_write_file": true,
-      "enable_console": false,
+      "enable_write_file": false,
+      "enable_console": true,
       "file_path": "logs/test_handler.log",
       "max_size": 16,
       "max_age": 7,

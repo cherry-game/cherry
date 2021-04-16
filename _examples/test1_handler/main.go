@@ -75,9 +75,8 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 
 		i++
 
-		if i%1000000 == 0 {
+		if i%100000 == 1 {
 			handlerLogger.Infof("count num = %d, time = %d", i, cherryTime.Now().ToMillisecond())
-			break
 		}
 	}
 }
