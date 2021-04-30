@@ -11,10 +11,9 @@ import (
 )
 
 var (
-	defaultLogger = NewConfigLogger(NewConsoleConfig())
-
-	loggers = make(map[string]*zap.SugaredLogger)
-	rw      sync.RWMutex
+	defaultLogger = NewConfigLogger(NewConsoleConfig()) // 默认日志对象(控制台输出)
+	loggers       = make(map[string]*zap.SugaredLogger) // 日志实例存储map(key:日志名称,value:日志实例)
+	rw            sync.RWMutex
 )
 
 func DefaultLogger() *zap.SugaredLogger {

@@ -6,13 +6,14 @@ import (
 	"sync/atomic"
 )
 
+// LoginRecord 登陆记录器
 type LoginRecord struct {
 	loginTime int                  // login time
 	uid       cherryInterfaces.UID // uid
 	ip        string               // ip address
 }
 
-// connCount count
+// Connection 连接统计
 type Connection struct {
 	sync.RWMutex
 	connCount    int32                                 // connection count

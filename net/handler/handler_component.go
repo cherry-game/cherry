@@ -121,7 +121,7 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 		return
 	}
 
-	handler.PutMessage(msg)
+	handler.PostMessage(msg)
 }
 
 func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryInterfaces.IHandler {
@@ -147,7 +147,7 @@ func (h *HandlerComponent) PostEvent(event cherryInterfaces.IEvent) {
 
 	for _, handler := range h.handlers {
 		if _, found := handler.Event(event.EventName()); found {
-			handler.PutMessage(event)
+			handler.PostMessage(event)
 		}
 	}
 }

@@ -1,9 +1,7 @@
 package cherryInterfaces
 
+// IEvent 事件接口
 type IEvent interface {
-	// event name
-	EventName() string
-
-	//unique id
-	UniqueId() string
+	EventName() string // 事件名称
+	UniqueId() string  // 事件唯一id(hash用)
 }

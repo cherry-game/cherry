@@ -9,16 +9,16 @@ var (
 	ErrWrongValueType = cherryUtils.Error("protobuf: convert on wrong type value")
 )
 
-// ProtobufSerializer implements the serialize.ProtobufSerializer interface
-type ProtobufSerializer struct{}
+// Protobuf implements the serialize.Protobuf interface
+type Protobuf struct{}
 
-// NewSerializer returns a new ProtobufSerializer.
-func NewProtobuf() *ProtobufSerializer {
-	return &ProtobufSerializer{}
+// NewSerializer returns a new Protobuf.
+func NewProtobuf() *Protobuf {
+	return &Protobuf{}
 }
 
 // Marshal returns the protobuf encoding of v.
-func (p *ProtobufSerializer) Marshal(v interface{}) ([]byte, error) {
+func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
 	pb, ok := v.(proto.Message)
 	if !ok {
 		return nil, ErrWrongValueType
@@ -28,7 +28,7 @@ func (p *ProtobufSerializer) Marshal(v interface{}) ([]byte, error) {
 
 // Unmarshal parses the protobuf-encoded data and stores the result
 // in the value pointed to by v.
-func (p *ProtobufSerializer) Unmarshal(data []byte, v interface{}) error {
+func (p *Protobuf) Unmarshal(data []byte, v interface{}) error {
 	pb, ok := v.(proto.Message)
 	if !ok {
 		return ErrWrongValueType
@@ -37,6 +37,6 @@ func (p *ProtobufSerializer) Unmarshal(data []byte, v interface{}) error {
 }
 
 // Name returns the name of the serializer.
-func (p *ProtobufSerializer) Name() string {
+func (p *Protobuf) Name() string {
 	return "protobuf"
 }

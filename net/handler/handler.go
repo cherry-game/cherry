@@ -13,11 +13,11 @@ type (
 	Handler struct {
 		cherryInterfaces.AppContext
 		WorkerGroup
-		name             string                                // unique name
-		eventFn          map[string][]cherryInterfaces.EventFn // event func
-		localHandlers    map[string]*cherryInterfaces.InvokeFn // local invoke Handler functions
-		remoteHandlers   map[string]*cherryInterfaces.InvokeFn // remote invoke Handler functions
-		handlerComponent *HandlerComponent                     // handler component
+		name             string                                 // unique name
+		eventFn          map[string][]cherryInterfaces.EventFn  // event func
+		localHandlers    map[string]*cherryInterfaces.HandlerFn // local invoke Handler functions
+		remoteHandlers   map[string]*cherryInterfaces.HandlerFn // remote invoke Handler functions
+		handlerComponent *HandlerComponent                      // handler component
 	}
 )
 
@@ -35,11 +35,11 @@ func (h *Handler) PreInit() {
 	}
 
 	if h.localHandlers == nil {
-		h.localHandlers = make(map[string]*cherryInterfaces.InvokeFn)
+		h.localHandlers = make(map[string]*cherryInterfaces.HandlerFn)
 	}
 
 	if h.remoteHandlers == nil {
-		h.remoteHandlers = make(map[string]*cherryInterfaces.InvokeFn)
+		h.remoteHandlers = make(map[string]*cherryInterfaces.HandlerFn)
 	}
 
 	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
@@ -65,25 +65,25 @@ func (h *Handler) Event(name string) ([]cherryInterfaces.EventFn, bool) {
 	return events, found
 }
 
-func (h *Handler) LocalHandlers() map[string]*cherryInterfaces.InvokeFn {
+func (h *Handler) LocalHandlers() map[string]*cherryInterfaces.HandlerFn {
 	return h.localHandlers
 }
 
-func (h *Handler) LocalHandler(funcName string) (*cherryInterfaces.InvokeFn, bool) {
+func (h *Handler) LocalHandler(funcName string) (*cherryInterfaces.HandlerFn, bool) {
 	invoke, found := h.localHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) RemoteHandlers() map[string]*cherryInterfaces.InvokeFn {
+func (h *Handler) RemoteHandlers() map[string]*cherryInterfaces.HandlerFn {
 	return h.remoteHandlers
 }
 
-func (h *Handler) RemoteHandler(funcName string) (*cherryInterfaces.InvokeFn, bool) {
+func (h *Handler) RemoteHandler(funcName string) (*cherryInterfaces.HandlerFn, bool) {
 	invoke, found := h.remoteHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) PutMessage(message interface{}) {
+func (h *Handler) PostMessage(message interface{}) {
 	if message == nil {
 		cherryLogger.Warn("put message is nil")
 		return

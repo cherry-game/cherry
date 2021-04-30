@@ -39,8 +39,8 @@ func IsNil(v reflect.Value) bool {
 	return false
 }
 
-//getInvokeFunc reflect function convert to InvokeFn
-func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFn, error) {
+//getInvokeFunc reflect function convert to HandlerFn
+func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.HandlerFn, error) {
 	if name == "" {
 		return nil, cherryUtils.Error("func name is nil")
 	}
@@ -68,7 +68,7 @@ func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.InvokeFn, err
 		outArgs = append(outArgs, t)
 	}
 
-	invoke := &cherryInterfaces.InvokeFn{
+	invoke := &cherryInterfaces.HandlerFn{
 		Type:    typ,
 		Value:   val,
 		InArgs:  inArgs,

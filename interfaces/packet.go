@@ -2,27 +2,31 @@ package cherryInterfaces
 
 import "fmt"
 
-type PacketDecoder interface {
-	Decode(data []byte) ([]*Packet, error)
-}
+type (
+	// PacketDecoder 网络消息包解码接口
+	PacketDecoder interface {
+		Decode(data []byte) ([]*Packet, error)
+	}
 
-type PacketEncoder interface {
-	Encode(typ byte, buf []byte) ([]byte, error)
-}
+	// PacketEncoder 网络消息包编码接口
+	PacketEncoder interface {
+		Encode(typ byte, buf []byte) ([]byte, error)
+	}
 
-// Packet represents a network packet.
-type Packet struct {
-	Type   byte
-	Length int
-	Data   []byte
-}
+	// Packet 单个网络消息包结构
+	Packet struct {
+		Type   byte   // 包类型
+		Length int    // 包长度
+		Data   []byte // 数据内容
+	}
+)
 
-//New create a Packet instance.
+// New create a Packet instance.
 func New() *Packet {
 	return &Packet{}
 }
 
-//String represents the Packet's in text mode.
+// String represents the Packet's in text mode.
 func (p *Packet) String() string {
 	return fmt.Sprintf("Type: %d, Length: %d, Settings: %s", p.Type, p.Length, string(p.Data))
 }

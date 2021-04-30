@@ -1,19 +1,13 @@
 package cherryInterfaces
 
-//IComponent
+//IComponent 组件接口
 type IComponent interface {
-	IAppContext
-
-	// unique components name
-	Name() string
-
-	Init()
-
-	AfterInit()
-
-	BeforeStop()
-
-	Stop()
+	IAppContext   // IAppContext实例上下文对象
+	Name() string // 组件唯一名称
+	Init()        // 初始化
+	AfterInit()   // 初始化后执行
+	BeforeStop()  // 开始停止
+	Stop()        // 停止
 }
 
 // BaseComponent

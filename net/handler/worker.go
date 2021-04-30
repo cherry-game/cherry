@@ -11,9 +11,10 @@ import (
 )
 
 type (
-	WorkerExecuteFn func(handler cherryInterfaces.IHandler, worker *Worker)
-	WorkerHashFn    func(msg interface{}) int
+	WorkerExecuteFn func(handler cherryInterfaces.IHandler, worker *Worker) // worker执行函数
+	WorkerHashFn    func(msg interface{}) int                               // worker hash函数(根据规则找到具体的worker)
 
+	// WorkerGroup worker组
 	WorkerGroup struct {
 		queueSize        int             // chan size
 		workerSize       int             // worker size
@@ -22,9 +23,10 @@ type (
 		workerExecutorFn WorkerExecuteFn // worker execute function
 	}
 
+	// Worker 单个worker对象
 	Worker struct {
-		Index       int              // index
-		MessageChan chan interface{} // message chan
+		Index       int              // 索引id
+		MessageChan chan interface{} // 消息对列
 	}
 )
 
