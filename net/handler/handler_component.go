@@ -3,7 +3,7 @@ package cherryHandler
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
@@ -12,19 +12,19 @@ import (
 type (
 	//handlerComponent Handler component
 	HandlerComponent struct {
-		cherryInterfaces.BaseComponent                                      // base component
-		HandlerComponentOptions                                             // opts
-		handlers                       map[string]cherryInterfaces.IHandler // key:handlerName, value: Handler
+		cherryFacade.Component                                  // base component
+		HandlerOptions                                          // opts
+		handlers               map[string]cherryFacade.IHandler // key:handlerName, value: Handler
 	}
 
-	HandlerComponentOptions struct {
+	HandlerOptions struct {
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
 	}
 
 	UnhandledMessage struct {
-		Session cherryInterfaces.ISession
+		Session cherryFacade.ISession
 		Route   *cherryRoute.Route
 		Msg     *cherryMessage.Message
 	}
@@ -34,8 +34,8 @@ type (
 
 func NewComponent() *HandlerComponent {
 	return &HandlerComponent{
-		handlers: make(map[string]cherryInterfaces.IHandler),
-		HandlerComponentOptions: HandlerComponentOptions{
+		handlers: make(map[string]cherryFacade.IHandler),
+		HandlerOptions: HandlerOptions{
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn: func(s string) string {
@@ -52,19 +52,19 @@ func (h *HandlerComponent) Name() string {
 func (h *HandlerComponent) Init() {
 	for _, handler := range h.handlers {
 		handler.Set(h.App())
-		handler.PreInit()
-		handler.Init()
-		handler.AfterInit()
+		handler.OnPreInit()
+		handler.OnInit()
+		handler.OnAfterInit()
 	}
 }
 
-func (h *HandlerComponent) Stop() {
+func (h *HandlerComponent) OnStop() {
 	for _, handler := range h.handlers {
-		handler.Stop()
+		handler.OnStop()
 	}
 }
 
-func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
+func (h *HandlerComponent) Registers(handlers ...cherryFacade.IHandler) {
 	for _, handler := range handlers {
 		name := handler.Name()
 		if name == "" {
@@ -74,7 +74,7 @@ func (h *HandlerComponent) Registers(handlers ...cherryInterfaces.IHandler) {
 	}
 }
 
-func (h *HandlerComponent) RegisterWithName(name string, handler cherryInterfaces.IHandler) {
+func (h *HandlerComponent) RegisterWithName(name string, handler cherryFacade.IHandler) {
 	if name == "" {
 		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
@@ -124,7 +124,7 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 	handler.PostMessage(msg)
 }
 
-func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryInterfaces.IHandler {
+func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryFacade.IHandler {
 	handlerName := h.nameFn(route.HandlerName())
 	if handlerName == "" {
 		cherryLogger.Warnf("could not find handle name. Route = %v", route)
@@ -140,7 +140,7 @@ func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryInterfaces
 }
 
 // PostEvent 发布事件
-func (h *HandlerComponent) PostEvent(event cherryInterfaces.IEvent) {
+func (h *HandlerComponent) PostEvent(event cherryFacade.IEvent) {
 	if event == nil {
 		return
 	}
@@ -152,29 +152,29 @@ func (h *HandlerComponent) PostEvent(event cherryInterfaces.IEvent) {
 	}
 }
 
-func (c *HandlerComponentOptions) GetBeforeFilter() []FilterFn {
+func (c *HandlerOptions) GetBeforeFilter() []FilterFn {
 	return c.beforeFilters
 }
 
-func (c *HandlerComponentOptions) BeforeFilter(beforeFilters ...FilterFn) {
+func (c *HandlerOptions) BeforeFilter(beforeFilters ...FilterFn) {
 	if len(beforeFilters) < 1 {
 		return
 	}
 	c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 }
 
-func (c *HandlerComponentOptions) GetAfterFilter() []FilterFn {
+func (c *HandlerOptions) GetAfterFilter() []FilterFn {
 	return c.afterFilters
 }
 
-func (c *HandlerComponentOptions) AfterFilter(afterFilters ...FilterFn) {
+func (c *HandlerOptions) AfterFilter(afterFilters ...FilterFn) {
 	if len(afterFilters) < 1 {
 		return
 	}
 	c.afterFilters = append(c.afterFilters, afterFilters...)
 }
 
-func (c *HandlerComponentOptions) SetNameFn(fn func(string) string) {
+func (c *HandlerOptions) SetNameFn(fn func(string) string) {
 	if fn == nil {
 		return
 	}
@@ -182,6 +182,6 @@ func (c *HandlerComponentOptions) SetNameFn(fn func(string) string) {
 }
 
 // NodeRoute  结点路由规则 nodeType:结点类型,routeFunc 路由规则
-func (*HandlerComponentOptions) NodeRoute(nodeType string, routeFunc cherryInterfaces.RouteFunction) {
+func (*HandlerOptions) NodeRoute(nodeType string, routeFunc cherryFacade.RouteFunction) {
 	cherryLogger.Panic(nodeType, routeFunc)
 }

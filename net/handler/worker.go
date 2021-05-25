@@ -3,18 +3,19 @@ package cherryHandler
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/crypto"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"math/rand"
 	"reflect"
+	"strconv"
 )
 
 type (
-	WorkerExecuteFn func(handler cherryInterfaces.IHandler, worker *Worker) // worker执行函数
-	WorkerHashFn    func(msg interface{}) int                               // worker hash函数(根据规则找到具体的worker)
+	WorkerExecuteFn func(handler cherryFacade.IHandler, worker *Worker) // worker执行函数
+	WorkerHashFn    func(msg interface{}) int                           // worker hash函数(根据规则找到具体的worker)
 
-	// WorkerGroup worker组
+	// WorkerGroup
 	WorkerGroup struct {
 		queueSize        int             // chan size
 		workerSize       int             // worker size
@@ -54,7 +55,7 @@ func (w *WorkerGroup) initWorkerGroup() {
 	}
 }
 
-func (w *WorkerGroup) runWorker(handler cherryInterfaces.IHandler) {
+func (w *WorkerGroup) runWorker(handler cherryFacade.IHandler) {
 	for i := 0; i < w.workerSize; i++ {
 		worker := w.workerMap[i]
 		// new goroutine for worker
@@ -103,14 +104,14 @@ func (w *WorkerGroup) SetWorkerCRC32Hash(workerSize int) {
 	w.SetWorkerHash(workerSize, func(msg interface{}) int {
 		var hashValue string
 		switch m := msg.(type) {
-		case cherryInterfaces.IEvent:
+		case cherryFacade.IEvent:
 			{
 				hashValue = m.UniqueId()
 			}
 		case *UnhandledMessage:
 			{
 				if m.Session != nil {
-					hashValue = string(m.Session.UID())
+					hashValue = strconv.FormatInt(m.Session.UID(), 10)
 				}
 			}
 		}
@@ -125,7 +126,7 @@ func (w *WorkerGroup) SetWorkerCRC32Hash(workerSize int) {
 }
 
 // DefaultWorkerExecutor
-func DefaultWorkerExecutor(handler cherryInterfaces.IHandler, worker *Worker) {
+func DefaultWorkerExecutor(handler cherryFacade.IHandler, worker *Worker) {
 	defer func() {
 		if r := recover(); r != nil {
 			cherryLogger.Warnf("recover in ProcessMessage(). %s", r)
@@ -169,7 +170,7 @@ func DefaultWorkerExecutor(handler cherryInterfaces.IHandler, worker *Worker) {
 							}
 						}
 					}
-				case cherryInterfaces.IEvent:
+				case cherryFacade.IEvent:
 					{
 						if cherryProfile.Debug() {
 							cherryLogger.Debugf("[%s-chan-%d] receive event. msg type = %v",

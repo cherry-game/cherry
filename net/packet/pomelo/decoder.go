@@ -3,7 +3,7 @@ package cherryPacketPomelo
 import (
 	"bytes"
 	"errors"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/net/packet"
 )
 
 // ErrWrongPomeloPacketType represents a wrong packet type.
@@ -16,12 +16,12 @@ func NewDecoder() *Decoder {
 	return &Decoder{}
 }
 
-func (p *Decoder) Decode(data []byte) ([]*cherryInterfaces.Packet, error) {
+func (p *Decoder) Decode(data []byte) ([]*cherryPacket.Packet, error) {
 	buf := bytes.NewBuffer(nil)
 	buf.Write(data)
 
 	var (
-		packets []*cherryInterfaces.Packet
+		packets []*cherryPacket.Packet
 		err     error
 	)
 	// check length
@@ -35,7 +35,7 @@ func (p *Decoder) Decode(data []byte) ([]*cherryInterfaces.Packet, error) {
 	}
 
 	for size <= buf.Len() {
-		pkg := &cherryInterfaces.Packet{
+		pkg := &cherryPacket.Packet{
 			Type:   typ,
 			Length: size,
 			Data:   buf.Next(size),

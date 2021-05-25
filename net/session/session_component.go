@@ -3,7 +3,7 @@ package cherrySession
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"net"
 	"sync/atomic"
 )
@@ -21,15 +21,15 @@ func NextSessionId() int64 {
 
 //SessionComponent session sessionComponent
 type SessionComponent struct {
-	cherryInterfaces.BaseComponent
-	sidMap map[cherryInterfaces.SID]*Session   // sid -> Session
-	uidMap map[cherryInterfaces.UID][]*Session // uid -> Session
+	cherryFacade.Component
+	sidMap map[cherryFacade.SID]*Session   // sid -> Session
+	uidMap map[cherryFacade.UID][]*Session // uid -> Session
 }
 
 func NewService() *SessionComponent {
 	return &SessionComponent{
-		sidMap: make(map[cherryInterfaces.SID]*Session),
-		uidMap: make(map[cherryInterfaces.UID][]*Session),
+		sidMap: make(map[cherryFacade.SID]*Session),
+		uidMap: make(map[cherryFacade.UID][]*Session),
 	}
 }
 
@@ -37,13 +37,13 @@ func (s *SessionComponent) Name() string {
 	return cherryConst.SessionComponent
 }
 
-func (s *SessionComponent) Create(conn net.Conn, net cherryInterfaces.INetworkEntity) *Session {
+func (s *SessionComponent) Create(conn net.Conn, net cherryFacade.INetworkEntity) *Session {
 	newSession := NewSession(NextSessionId(), conn, net, s)
 	s.sidMap[newSession.SID()] = newSession
 	return newSession
 }
 
-func (s *SessionComponent) Bind(sid cherryInterfaces.SID, uid cherryInterfaces.UID) error {
+func (s *SessionComponent) Bind(sid cherryFacade.SID, uid cherryFacade.UID) error {
 	session := s.sidMap[sid]
 
 	if session == nil {
@@ -65,6 +65,6 @@ func (s *SessionComponent) Bind(sid cherryInterfaces.SID, uid cherryInterfaces.U
 	return nil
 }
 
-func (s *SessionComponent) Remove(sid cherryInterfaces.SID) {
+func (s *SessionComponent) Remove(sid cherryFacade.SID) {
 	delete(s.sidMap, sid)
 }

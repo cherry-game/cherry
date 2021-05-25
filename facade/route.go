@@ -1,4 +1,4 @@
-package cherryInterfaces
+package cherryFacade
 
 // IRoute 路由接口
 type IRoute interface {

@@ -20,7 +20,7 @@ func main() {
 func app() {
 	testApp := cherry.NewDefaultApp()
 
-	defer testApp.Shutdown(
+	defer testApp.OnShutdown(
 		func() {
 			c := testApp.Find(cherryConst.HandlerComponent)
 			if c != nil {
@@ -45,7 +45,7 @@ func app() {
 
 	dataConfig := cherryDataConfig.NewComponent()
 
-	testApp.Startup(
+	testApp.OnStartup(
 		handlers,
 		dataConfig,
 	)

@@ -33,5 +33,5 @@ func TestNewTCPConnector(t *testing.T) {
 		session.Start()
 	})
 
-	connector.Start()
+	connector.OnStart()
 }

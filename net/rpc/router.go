@@ -2,14 +2,14 @@ package cherryRPC
 
 import (
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"hash/crc32"
 	"math"
 	"math/rand"
 )
 
 // Calculate route info and return an appropriate node id.
-func DefaultRoute(session cherryInterfaces.ISession, msg RpcMsg, context RouteContextClass, cb Callback) {
+func DefaultRoute(session cherryFacade.ISession, msg RpcMsg, context RouteContextClass, cb Callback) {
 	list := context.GetNodesByType(msg.NodeType())
 	if list == nil || len(list) < 1 {
 		cb(cherryUtils.Errorf("can not find node info for type:%s", msg.NodeType()), "")

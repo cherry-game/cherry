@@ -15,14 +15,14 @@ func main() {
 func app() {
 	testApp := cherry.NewDefaultApp()
 
-	defer testApp.Shutdown()
+	defer testApp.OnShutdown()
 
 	handlers := cherryHandler.NewComponent()
 
 	dataConfig := cherryDataConfig.NewComponent()
 	dataConfig.Register(&DropList, &DropOne)
 
-	testApp.Startup(
+	testApp.OnStartup(
 		handlers,
 		dataConfig,
 	)

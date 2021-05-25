@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"sync"
@@ -12,7 +12,7 @@ import (
 
 type DataConfigComponent struct {
 	sync.RWMutex
-	cherryInterfaces.BaseComponent
+	cherryFacade.Component
 	dataSource     IDataSource
 	parser         IDataParser
 	configFiles    []IConfigFile
@@ -97,7 +97,7 @@ func (d *DataConfigComponent) initConfigFile(cfg IConfigFile, data []byte, reloa
 	d.configDataMaps[cfg.Name()] = cfg
 }
 
-func (d *DataConfigComponent) Stop() {
+func (d *DataConfigComponent) OnStop() {
 	if d.dataSource != nil {
 		d.dataSource.Stop()
 	}

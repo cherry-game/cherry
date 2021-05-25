@@ -1,27 +1,27 @@
 package cherryConnector
 
 import (
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"sync"
 	"sync/atomic"
 )
 
 // LoginRecord 登陆记录器
 type LoginRecord struct {
-	loginTime int                  // login time
-	uid       cherryInterfaces.UID // uid
-	ip        string               // ip address
+	loginTime int              // login time
+	uid       cherryFacade.UID // uid
+	ip        string           // ip address
 }
 
-// Connection 连接统计
-type Connection struct {
+// ConnectStat 连接统计
+type ConnectStat struct {
 	sync.RWMutex
-	connCount    int32                                 // connection count
-	loginCount   int32                                 // user login count
-	loginRecords map[cherryInterfaces.UID]*LoginRecord // user login record info
+	connCount    int32                             // 连接总数
+	loginCount   int32                             // 登陆总数
+	loginRecords map[cherryFacade.UID]*LoginRecord // 用户登陆记录
 }
 
-func (c *Connection) Add(info *LoginRecord) {
+func (c *ConnectStat) Add(info *LoginRecord) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -31,7 +31,7 @@ func (c *Connection) Add(info *LoginRecord) {
 	c.loginRecords[info.uid] = info
 }
 
-func (c *Connection) Remove(uid cherryInterfaces.UID) {
+func (c *ConnectStat) Remove(uid cherryFacade.UID) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -41,14 +41,14 @@ func (c *Connection) Remove(uid cherryInterfaces.UID) {
 	delete(c.loginRecords, uid)
 }
 
-func (c *Connection) IncreaseConn() {
+func (c *ConnectStat) IncreaseConn() {
 	atomic.AddInt32(&c.connCount, 1)
 }
 
-func (c *Connection) DecreaseConn() {
+func (c *ConnectStat) DecreaseConn() {
 	atomic.AddInt32(&c.connCount, -1)
 }
 
-func (c *Connection) List() (connCount int32, loginCount int32, loginRecords map[cherryInterfaces.UID]*LoginRecord) {
+func (c *ConnectStat) List() (connCount int32, loginCount int32, loginRecords map[cherryFacade.UID]*LoginRecord) {
 	return c.connCount, c.loginCount, c.loginRecords
 }

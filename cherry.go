@@ -27,6 +27,10 @@ func NewDefaultApp() *Application {
 	return NewApp(configPath, profile, nodeId)
 }
 
+func NewNodeApp(profileName, nodeId string) *Application {
+	return NewApp("./profile", profileName, nodeId)
+}
+
 // NewApp create new application instance
 func NewApp(profilePath, profileName, nodeId string) *Application {
 	config, err := cherryProfile.Init(profilePath, profileName)

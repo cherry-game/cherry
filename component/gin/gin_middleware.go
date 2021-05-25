@@ -2,7 +2,7 @@
 package cherryGin
 
 import (
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
 	"net"
 	"net/http"

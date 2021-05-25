@@ -2,7 +2,7 @@ package cherryCluster
 
 import (
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -12,7 +12,7 @@ var (
 
 type (
 	// {key:nodeType,value:{key:nodeId,value:NodeConfig}}
-	NodeMap map[string]map[string]cherryInterfaces.INode
+	NodeMap map[string]map[string]cherryFacade.INode
 )
 
 // Load nodesConfig config
@@ -41,7 +41,7 @@ func Map() *NodeMap {
 	return &nodesConfig
 }
 
-func GetNode(nodeId string) (node cherryInterfaces.INode, err error) {
+func GetNode(nodeId string) (node cherryFacade.INode, err error) {
 	nodeType, err := GetType(nodeId)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func GetNode(nodeId string) (node cherryInterfaces.INode, err error) {
 	return Get(nodeType, nodeId)
 }
 
-func Get(nodeType, nodeId string) (cherryInterfaces.INode, error) {
+func Get(nodeType, nodeId string) (cherryFacade.INode, error) {
 	node, found := nodesConfig[nodeType][nodeId]
 	if found {
 		return node, nil
@@ -75,7 +75,7 @@ func GetType(nodeId string) (nodeType string, error error) {
 
 func loadNodesFromConfigFile(nodesJson jsoniter.Any) {
 	for _, nodeType := range nodesJson.Keys() {
-		nodesConfig[nodeType] = make(map[string]cherryInterfaces.INode)
+		nodesConfig[nodeType] = make(map[string]cherryFacade.INode)
 
 		typeJson := nodesJson.Get(nodeType)
 		for i := 0; i < typeJson.Size(); i++ {

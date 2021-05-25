@@ -3,7 +3,7 @@ package cherrySession
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/packet/pomelo"
 	"net"
@@ -20,19 +20,19 @@ type Session struct {
 	status            int
 	conn              net.Conn
 	running           bool
-	sid               cherryInterfaces.SID            // session id
-	uid               cherryInterfaces.UID            // user unique id
-	frontendId        cherryInterfaces.FrontendId     // frontend node id
-	net               cherryInterfaces.INetworkEntity // network opts
-	sessionComponent  *SessionComponent               // session SessionComponent
-	lastTime          int64                           // last update time
+	sid               cherryFacade.SID            // session id
+	uid               cherryFacade.UID            // user unique id
+	frontendId        cherryFacade.FrontendId     // frontend node id
+	net               cherryFacade.INetworkEntity // network opts
+	sessionComponent  *SessionComponent           // session SessionComponent
+	lastTime          int64                       // last update time
 	sendChan          chan []byte
-	onCloseListener   []cherryInterfaces.SessionListener
-	onErrorListener   []cherryInterfaces.SessionListener
-	onMessageListener cherryInterfaces.MessageListener
+	onCloseListener   []cherryFacade.SessionListener
+	onErrorListener   []cherryFacade.SessionListener
+	onMessageListener cherryFacade.MessageListener
 }
 
-func NewSession(sid cherryInterfaces.SID, conn net.Conn, net cherryInterfaces.INetworkEntity, sc *SessionComponent) *Session {
+func NewSession(sid cherryFacade.SID, conn net.Conn, net cherryFacade.INetworkEntity, sc *SessionComponent) *Session {
 	session := &Session{
 		Settings: Settings{
 			data: make(map[string]interface{}),
@@ -49,26 +49,26 @@ func NewSession(sid cherryInterfaces.SID, conn net.Conn, net cherryInterfaces.IN
 		sendChan:         make(chan []byte),
 	}
 
-	session.onCloseListener = append(session.onCloseListener, func(session cherryInterfaces.ISession) {
+	session.onCloseListener = append(session.onCloseListener, func(session cherryFacade.ISession) {
 		cherryLogger.Infof("on closed. %s", session)
 	})
 
-	session.onErrorListener = append(session.onErrorListener, func(session cherryInterfaces.ISession) {
+	session.onErrorListener = append(session.onErrorListener, func(session cherryFacade.ISession) {
 		cherryLogger.Infof("on error. %s", session)
 	})
 
 	return session
 }
 
-func (s *Session) SID() cherryInterfaces.SID {
+func (s *Session) SID() cherryFacade.SID {
 	return s.sid
 }
 
-func (s *Session) UID() cherryInterfaces.UID {
+func (s *Session) UID() cherryFacade.UID {
 	return s.uid
 }
 
-func (s *Session) FrontendId() cherryInterfaces.FrontendId {
+func (s *Session) FrontendId() cherryFacade.FrontendId {
 	return s.frontendId
 }
 
@@ -80,11 +80,11 @@ func (s *Session) Status() int {
 	return s.status
 }
 
-func (s *Session) Net() cherryInterfaces.INetworkEntity {
+func (s *Session) Net() cherryFacade.INetworkEntity {
 	return s.net
 }
 
-func (s *Session) Bind(uid cherryInterfaces.UID) error {
+func (s *Session) Bind(uid cherryFacade.UID) error {
 	if uid < 1 {
 		return IllegalUID
 	}
@@ -97,19 +97,19 @@ func (s *Session) Conn() net.Conn {
 	return s.conn
 }
 
-func (s *Session) OnClose(listener cherryInterfaces.SessionListener) {
+func (s *Session) OnClose(listener cherryFacade.SessionListener) {
 	if listener != nil {
 		s.onCloseListener = append(s.onCloseListener, listener)
 	}
 }
 
-func (s *Session) OnError(listener cherryInterfaces.SessionListener) {
+func (s *Session) OnError(listener cherryFacade.SessionListener) {
 	if listener != nil {
 		s.onErrorListener = append(s.onErrorListener, listener)
 	}
 }
 
-func (s *Session) OnMessage(listener cherryInterfaces.MessageListener) {
+func (s *Session) OnMessage(listener cherryFacade.MessageListener) {
 	if listener != nil {
 		s.onMessageListener = listener
 	}

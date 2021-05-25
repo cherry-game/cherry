@@ -7,10 +7,10 @@ import (
 
 func main() {
 	testApp := cherry.NewDefaultApp()
-	defer testApp.Shutdown()
+	defer testApp.OnShutdown()
 
 	httpServer := cherryGin.NewHttp("http_server_1", testApp.ThisNode().Address())
 	httpServer.Register(new(Test1Controller))
 
-	testApp.Startup(httpServer)
+	testApp.OnStartup(httpServer)
 }

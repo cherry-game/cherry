@@ -1,4 +1,4 @@
-package cherryInterfaces
+package cherryFacade
 
 type RpcFilterFunc func(nodeId string, msg interface{})
 

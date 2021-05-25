@@ -1,7 +1,7 @@
 package cherryLogger
 
 import (
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -20,7 +20,7 @@ func DefaultLogger() *zap.SugaredLogger {
 	return defaultLogger
 }
 
-func SetNodeLogger(node cherryInterfaces.INode) {
+func SetNodeLogger(node cherryFacade.INode) {
 	refLogger := node.Settings().Get("ref_logger").ToString()
 
 	if refLogger == "" {

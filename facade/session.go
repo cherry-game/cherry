@@ -1,4 +1,4 @@
-package cherryInterfaces
+package cherryFacade
 
 import "net"
 
@@ -11,8 +11,8 @@ type (
 
 	// ISession 用户会话接口
 	ISession interface {
-		SID() SID                           // 用户唯一id
-		UID() UID                           // session唯一id
+		SID() SID                           // session自增id
+		UID() UID                           // 用户唯一id
 		FrontendId() FrontendId             // 前端结点id
 		SetStatus(status int)               // 设置session状态
 		Status() int                        // 获取状态

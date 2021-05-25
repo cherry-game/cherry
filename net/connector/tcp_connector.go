@@ -1,7 +1,7 @@
 package cherryConnector
 
 import (
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"net"
 )
@@ -12,7 +12,7 @@ type TCPConnector struct {
 	running           bool
 	certFile          string
 	keyFile           string
-	onConnectListener cherryInterfaces.IConnectListener
+	onConnectListener cherryFacade.IConnectListener
 }
 
 func NewTCPConnector(address string) *TCPConnector {
@@ -44,8 +44,8 @@ func NewTCPConnectorLTS(address, certFile, keyFile string) *TCPConnector {
 	}
 }
 
-// Startup
-func (t *TCPConnector) Start() {
+// OnStartup
+func (t *TCPConnector) OnStart() {
 	if t.onConnectListener == nil {
 		panic("OnConnect() not set.")
 	}
@@ -72,12 +72,12 @@ func (t *TCPConnector) Start() {
 	}
 }
 
-func (t *TCPConnector) OnConnect(listener cherryInterfaces.IConnectListener) {
+func (t *TCPConnector) OnConnect(listener cherryFacade.IConnectListener) {
 	t.onConnectListener = listener
 }
 
-// Shutdown stops the acceptor
-func (t *TCPConnector) Stop() {
+// OnShutdown stops the acceptor
+func (t *TCPConnector) OnStop() {
 	t.running = false
 	err := t.listener.Close()
 	if err != nil {

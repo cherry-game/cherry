@@ -1,15 +1,15 @@
-package cherryInterfaces
+package cherryPacket
 
 import "fmt"
 
 type (
-	// PacketDecoder 网络消息包解码接口
-	PacketDecoder interface {
+	// Decoder 网络消息包解码接口
+	Decoder interface {
 		Decode(data []byte) ([]*Packet, error)
 	}
 
-	// PacketEncoder 网络消息包编码接口
-	PacketEncoder interface {
+	// Encoder 网络消息包编码接口
+	Encoder interface {
 		Encode(typ byte, buf []byte) ([]byte, error)
 	}
 

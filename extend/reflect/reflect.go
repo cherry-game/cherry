@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/cherry-game/cherry/extend/string"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"reflect"
 	"runtime"
 )
@@ -40,7 +40,7 @@ func IsNil(v reflect.Value) bool {
 }
 
 //getInvokeFunc reflect function convert to HandlerFn
-func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.HandlerFn, error) {
+func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error) {
 	if name == "" {
 		return nil, cherryUtils.Error("func name is nil")
 	}
@@ -68,7 +68,7 @@ func GetInvokeFunc(name string, fn interface{}) (*cherryInterfaces.HandlerFn, er
 		outArgs = append(outArgs, t)
 	}
 
-	invoke := &cherryInterfaces.HandlerFn{
+	invoke := &cherryFacade.HandlerFn{
 		Type:    typ,
 		Value:   val,
 		InArgs:  inArgs,

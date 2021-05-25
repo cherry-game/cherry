@@ -1,4 +1,4 @@
-package cherryInterfaces
+package cherryFacade
 
 //ISerializer 消息序列化
 type ISerializer interface {

@@ -3,7 +3,7 @@ package cherryORM
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/profile"
 	"github.com/json-iterator/go"
 	"gorm.io/driver/mysql"
@@ -16,7 +16,7 @@ const (
 
 type (
 	ORMComponent struct {
-		cherryInterfaces.BaseComponent
+		cherryFacade.Component
 
 		// key:groupId,value:{key:id,value:*gorm.Db}
 		ormMap map[string]map[string]*gorm.DB

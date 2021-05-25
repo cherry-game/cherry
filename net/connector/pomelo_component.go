@@ -5,13 +5,14 @@ import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/compress"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/packet/pomelo"
 	"github.com/cherry-game/cherry/net/route"
-	"github.com/cherry-game/cherry/net/serializer"
+	"github.com/cherry-game/cherry/net/serialize"
 	"github.com/cherry-game/cherry/net/session"
 	"github.com/cherry-game/cherry/profile"
 	"net"
@@ -22,13 +23,13 @@ type BlackListFn func(list []string)
 type CheckClientFn func(typ string, version string) bool
 
 type PomeloComponentOptions struct {
-	Connector       cherryInterfaces.IConnector
-	ConnectListener cherryInterfaces.IConnectListener
-	PacketEncode    cherryInterfaces.PacketEncoder
-	PacketDecode    cherryInterfaces.PacketDecoder
-	Serializer      cherryInterfaces.ISerializer
-	SessionOnClosed cherryInterfaces.SessionListener
-	SessionOnError  cherryInterfaces.SessionListener
+	Connector       cherryFacade.IConnector
+	ConnectListener cherryFacade.IConnectListener
+	PacketEncode    cherryPacket.Encoder
+	PacketDecode    cherryPacket.Decoder
+	Serializer      cherryFacade.ISerializer
+	SessionOnClosed cherryFacade.SessionListener
+	SessionOnError  cherryFacade.SessionListener
 
 	BlackListFunc       BlackListFn
 	BlackList           []string
@@ -44,9 +45,9 @@ type PomeloComponentOptions struct {
 }
 
 type PomeloComponent struct {
-	cherryInterfaces.BaseComponent
+	cherryFacade.Component
 	PomeloComponentOptions
-	connCount        *Connection
+	connCount        *ConnectStat
 	sessionComponent *cherrySession.SessionComponent
 	handlerComponent *cherryHandler.HandlerComponent
 }
@@ -56,7 +57,7 @@ func NewPomelo() *PomeloComponent {
 		PomeloComponentOptions: PomeloComponentOptions{
 			PacketEncode:        cherryPacketPomelo.NewEncoder(),
 			PacketDecode:        cherryPacketPomelo.NewDecoder(),
-			Serializer:          cherrySerializer.NewJSON(),
+			Serializer:          cherrySerialize.NewJSON(),
 			BlackListFunc:       nil,
 			BlackList:           nil,
 			ForwardMessage:      false,
@@ -68,7 +69,7 @@ func NewPomelo() *PomeloComponent {
 			UseHostFilter:       false,
 			CheckClient:         nil,
 		},
-		connCount: &Connection{},
+		connCount: &ConnectStat{},
 	}
 	return s
 }
@@ -76,7 +77,7 @@ func NewPomelo() *PomeloComponent {
 func NewPomeloWithOpts(opts PomeloComponentOptions) *PomeloComponent {
 	return &PomeloComponent{
 		PomeloComponentOptions: opts,
-		connCount:              &Connection{},
+		connCount:              &ConnectStat{},
 	}
 }
 
@@ -87,7 +88,7 @@ func (p *PomeloComponent) Name() string {
 func (p *PomeloComponent) Init() {
 }
 
-func (p *PomeloComponent) AfterInit() {
+func (p *PomeloComponent) OnAfterInit() {
 	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
 	if p.sessionComponent == nil {
 		panic("please preload session component.")
@@ -109,7 +110,7 @@ func (p *PomeloComponent) AfterInit() {
 	}
 
 	// new goroutine
-	go p.Connector.Start()
+	go p.Connector.OnStart()
 }
 
 func (p *PomeloComponent) initSession(conn net.Conn) {
@@ -143,7 +144,7 @@ func (p *PomeloComponent) initSession(conn net.Conn) {
 		session.OnClose(p.SessionOnClosed)
 	}
 
-	session.OnClose(func(_ cherryInterfaces.ISession) {
+	session.OnClose(func(_ cherryFacade.ISession) {
 		p.connCount.DecreaseConn()
 	})
 
@@ -155,7 +156,7 @@ func (p *PomeloComponent) initSession(conn net.Conn) {
 	session.Start()
 }
 
-func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *cherryInterfaces.Packet) error {
+func (p *PomeloComponent) processPacket(session cherryFacade.ISession, pkg *cherryPacket.Packet) error {
 	switch pkg.Type {
 	case cherryPacketPomelo.Handshake:
 		if err := session.Send(hrd); err != nil {
@@ -201,7 +202,7 @@ func (p *PomeloComponent) processPacket(session cherryInterfaces.ISession, pkg *
 	return nil
 }
 
-func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *cherryMessage.Message) {
+func (p *PomeloComponent) handleMessage(session cherryFacade.ISession, msg *cherryMessage.Message) {
 	route, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
 		cherryLogger.Warnf("failed to decode route:%s", err.Error())
@@ -227,9 +228,9 @@ func (p *PomeloComponent) handleMessage(session cherryInterfaces.ISession, msg *
 	}
 }
 
-func (p *PomeloComponent) Stop() {
+func (p *PomeloComponent) OnStop() {
 	if p.Connector != nil {
-		p.Connector.Stop()
+		p.Connector.OnStop()
 	}
 }
 

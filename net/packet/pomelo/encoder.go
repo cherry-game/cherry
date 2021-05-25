@@ -1,7 +1,7 @@
 package cherryPacketPomelo
 
 import (
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/net/packet"
 )
 
 type Encoder struct {
@@ -26,7 +26,7 @@ func (p *Encoder) Encode(typ byte, data []byte) ([]byte, error) {
 		return nil, ErrPacketSizeExcced
 	}
 
-	pkg := &cherryInterfaces.Packet{
+	pkg := &cherryPacket.Packet{
 		Type:   typ,
 		Length: len(data),
 	}

@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/net/handler"
 	"reflect"
 	"testing"
@@ -14,7 +14,7 @@ func TestReflectHandler(t *testing.T) {
 	reflectHandler(&handler)
 }
 
-func reflectHandler(u cherryInterfaces.IHandler) {
+func reflectHandler(u cherryFacade.IHandler) {
 	t := reflect.TypeOf(u).Elem()
 	v := reflect.ValueOf(u).Elem()
 

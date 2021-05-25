@@ -1,3 +1,4 @@
+// code from: https://github.com/bwmarrin/snowflake
 // Package snowflake provides a very simple Twitter snowflake generator and parser.
 package cherrySnowflake
 
@@ -60,7 +61,6 @@ var ErrInvalidBase32 = errors.New("invalid base32")
 // Create maps for decoding Base58/Base32.
 // This speeds up the process tremendously.
 func init() {
-
 	for i := 0; i < len(encodeBase58Map); i++ {
 		decodeBase58Map[i] = 0xFF
 	}
@@ -85,7 +85,7 @@ type Node struct {
 	epoch     time.Time
 	time      int64
 	node      int64
-	step      int64 //
+	step      int64
 	nodeMax   int64
 	nodeMask  int64
 	stepMask  int64
@@ -100,7 +100,6 @@ type ID int64
 // NewNode returns a new snowflake node that can be used to generate snowflake
 // IDs
 func NewNode(node int64) (*Node, error) {
-
 	// re-calc in case custom NodeBits or StepBits were set
 	// DEPRECATED: the below block will be removed in a future release.
 	mu.Lock()
@@ -135,9 +134,7 @@ func NewNode(node int64) (*Node, error) {
 // - Make sure your system is keeping accurate system time
 // - Make sure you never have multiple nodes running with the same node ID
 func (n *Node) Generate() ID {
-
 	n.mu.Lock()
-
 	now := time.Since(n.epoch).Nanoseconds() / 1000000
 
 	if now == n.time {

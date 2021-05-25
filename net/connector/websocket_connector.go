@@ -1,7 +1,7 @@
 package cherryConnector
 
 import (
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/gorilla/websocket"
 	"io"
@@ -16,7 +16,7 @@ type WebSocketConnector struct {
 	up                *websocket.Upgrader
 	certFile          string
 	keyFile           string
-	onConnectListener cherryInterfaces.IConnectListener
+	onConnectListener cherryFacade.IConnectListener
 }
 
 func NewWSConnector(address string) *WebSocketConnector {
@@ -52,7 +52,7 @@ func NewWSConnectorLTS(address, certFile, keyFile string) *WebSocketConnector {
 }
 
 // ListenAndServe listens and serve in the specified addr
-func (w *WebSocketConnector) Start() {
+func (w *WebSocketConnector) OnStart() {
 	if w.onConnectListener == nil {
 		panic("onConnectionListener() not set.")
 	}
@@ -72,7 +72,7 @@ func (w *WebSocketConnector) Start() {
 		CheckOrigin:     CheckOrigin,
 	}
 
-	defer w.Stop()
+	defer w.OnStop()
 
 	err = http.Serve(w.listener, w)
 	if err != nil {
@@ -80,11 +80,11 @@ func (w *WebSocketConnector) Start() {
 	}
 }
 
-func (w *WebSocketConnector) OnConnect(listener cherryInterfaces.IConnectListener) {
+func (w *WebSocketConnector) OnConnect(listener cherryFacade.IConnectListener) {
 	w.onConnectListener = listener
 }
 
-func (w *WebSocketConnector) Stop() {
+func (w *WebSocketConnector) OnStop() {
 	err := w.listener.Close()
 	if err != nil {
 		cherryLogger.Errorf("Failed to stop: %s", err.Error())

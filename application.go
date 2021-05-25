@@ -3,7 +3,7 @@ package cherry
 import (
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"os"
@@ -13,14 +13,14 @@ import (
 
 // Application
 type Application struct {
-	cherryInterfaces.INode                               // current node info
-	startTime              cherryTime.CherryTime         // application start time
-	running                bool                          // is running
-	die                    chan bool                     // wait for end application
-	components             []cherryInterfaces.IComponent // all components
+	cherryFacade.INode                           // current node info
+	startTime          cherryTime.CherryTime     // application start time
+	running            bool                      // is running
+	die                chan bool                 // wait for end application
+	components         []cherryFacade.IComponent // all components
 }
 
-func (a *Application) ThisNode() cherryInterfaces.INode {
+func (a *Application) ThisNode() cherryFacade.INode {
 	return a.INode
 }
 
@@ -28,7 +28,7 @@ func (a *Application) Running() bool {
 	return a.running
 }
 
-func (a *Application) Find(name string) cherryInterfaces.IComponent {
+func (a *Application) Find(name string) cherryFacade.IComponent {
 	if name == "" {
 		return nil
 	}
@@ -42,12 +42,12 @@ func (a *Application) Find(name string) cherryInterfaces.IComponent {
 }
 
 // Remove remove component by name
-func (a *Application) Remove(name string) cherryInterfaces.IComponent {
+func (a *Application) Remove(name string) cherryFacade.IComponent {
 	if name == "" {
 		return nil
 	}
 
-	var removeComponent cherryInterfaces.IComponent
+	var removeComponent cherryFacade.IComponent
 	for i := 0; i < len(a.components); i++ {
 		if a.components[i].Name() == name {
 			removeComponent = a.components[i]
@@ -58,7 +58,7 @@ func (a *Application) Remove(name string) cherryInterfaces.IComponent {
 	return removeComponent
 }
 
-func (a *Application) All() []cherryInterfaces.IComponent {
+func (a *Application) All() []cherryFacade.IComponent {
 	return a.components
 }
 
@@ -67,7 +67,7 @@ func (a *Application) StartTime() string {
 }
 
 // Startup
-func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
+func (a *Application) OnStartup(components ...cherryFacade.IComponent) {
 	defer func() {
 		if r := recover(); r != nil {
 			cherryLogger.Error(r)
@@ -113,20 +113,20 @@ func (a *Application) Startup(components ...cherryInterfaces.IComponent) {
 	for _, c := range a.components {
 		c.Set(a)
 		c.Init()
-		cherryLogger.Debugf("[component = %s] -> Init().", c.Name())
+		cherryLogger.Debugf("[component = %s] -> OnInit().", c.Name())
 	}
 
-	//execute AfterInit()
+	//execute OnAfterInit()
 	for _, c := range a.components {
-		c.AfterInit()
-		cherryLogger.Debugf("[component = %s] -> AfterInit().", c.Name())
+		c.OnAfterInit()
+		cherryLogger.Debugf("[component = %s] -> OnAfterInit().", c.Name())
 	}
 
 	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.NodeId(), a.StartTime())
 	cherryLogger.Info("-------------------------------------------------")
 }
 
-func (a *Application) Shutdown(beforeStopFn ...func()) {
+func (a *Application) OnShutdown(beforeStopFn ...func()) {
 	sg := make(chan os.Signal)
 	signal.Notify(sg, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
@@ -151,19 +151,19 @@ func (a *Application) Shutdown(beforeStopFn ...func()) {
 			//all components in reverse order
 			for i := len(a.components) - 1; i >= 0; i-- {
 				cherryUtils.Try(func() {
-					a.components[i].BeforeStop()
-					cherryLogger.Infof("[component = %s] -> BeforeStop().", a.components[i].Name())
+					a.components[i].OnBeforeStop()
+					cherryLogger.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
 				}, func(errString string) {
-					cherryLogger.Warnf("[component = %s] -> BeforeStop(). error = %s", a.components[i].Name(), errString)
+					cherryLogger.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
 				})
 			}
 
 			for i := len(a.components) - 1; i >= 0; i-- {
 				cherryUtils.Try(func() {
-					a.components[i].Stop()
-					cherryLogger.Infof("[component = %s] -> Stop().", a.components[i].Name())
+					a.components[i].OnStop()
+					cherryLogger.Infof("[component = %s] -> OnStop().", a.components[i].Name())
 				}, func(errString string) {
-					cherryLogger.Warnf("[component = %s] -> Stop(). error = %s", a.components[i].Name(), errString)
+					cherryLogger.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
 				})
 			}
 

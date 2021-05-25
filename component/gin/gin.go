@@ -2,7 +2,7 @@ package cherryGin
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/interfaces"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
 	"net/http"
@@ -27,7 +27,7 @@ type (
 
 	// GinComponent wrapper gin
 	GinComponent struct {
-		cherryInterfaces.BaseComponent
+		cherryFacade.Component
 		name        string
 		engine      *gin.Engine
 		server      *http.Server
@@ -137,17 +137,17 @@ func (g *GinComponent) Init() {
 	}()
 }
 
-func (g *GinComponent) AfterInit() {
+func (g *GinComponent) OnAfterInit() {
 
 }
 
-func (g *GinComponent) BeforeStop() {
+func (g *GinComponent) OnBeforeStop() {
 	for _, controller := range g.controllers {
 		controller.Stop()
 	}
 }
 
-func (g *GinComponent) Stop() {
+func (g *GinComponent) OnStop() {
 	err := g.server.Shutdown(context.Background())
 	cherryLogger.Infof("[%s] shutdown gin component on %s", g.name, g.options.Address)
 

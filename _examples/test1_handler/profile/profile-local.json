@@ -50,7 +50,7 @@
           "__settings__": {
             "maintain_state": 2,
             "dbs": [
-              "x_game-1"
+              "game_db_1"
             ],
             "ref_logger": "game_log"
           }

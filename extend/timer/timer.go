@@ -38,7 +38,7 @@ var (
 	// Manager manager for all Timers
 	Manager = &struct {
 		incrementID    int64      // auto increment id
-		timers         sync.Map   // all Timers 并发安全的map
+		timers         sync.Map   // all Timers
 		ChClosingTimer chan int64 // timer for closing
 		ChCreatedTimer chan *Timer
 	}{}
@@ -180,7 +180,7 @@ func Cron() {
 }
 
 // SetTimerBacklog set the timer created/closing channel backlog, A small backlog
-// may cause the logic to be blocked when call NewTimer/NewCountTimer/timer.Stop
+// may cause the logic to be blocked when call NewTimer/NewCountTimer/timer.OnStop
 // in main logic gorontine.
 func SetTimerBacklog(c int) {
 	if c < 16 {
