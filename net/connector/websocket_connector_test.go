@@ -13,7 +13,7 @@ func TestNewWSConnector(t *testing.T) {
 
 	connector.OnConnect(func(conn net.Conn) {
 		s := cherrySession.NewSession(cherrySession.NextSessionId(), conn, nil, nil)
-		cherryLogger.Infof("new session sid = %s, address = %s", s.SID(), s.Conn().RemoteAddr())
+		cherryLogger.Infof("new session sid = %d, address = %s", s.SID(), s.Conn().RemoteAddr().String())
 
 		s.OnMessage(func(bytes []byte) (err error) {
 			text := string(bytes)
