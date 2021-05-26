@@ -34,7 +34,7 @@ func (d *DataConfigComponent) Init() {
 	// read data_config node in profile-{env}.json
 	configNode := cherryProfile.GetConfig("data_config")
 	if configNode.LastError() != nil {
-		panic(fmt.Sprintf("not found `data_config` node in `%s` file.", cherryProfile.FileName()))
+		panic(fmt.Sprintf("`data_config` node in `%s` file not found.", cherryProfile.FileName()))
 	}
 
 	// get data source
