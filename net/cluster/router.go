@@ -1,4 +1,4 @@
-package cherryRPC
+package cherryCluster
 
 import (
 	"github.com/cherry-game/cherry/extend/utils"

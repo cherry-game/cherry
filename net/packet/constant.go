@@ -1,24 +1,12 @@
-package cherryPacketPomelo
+package cherryPacket
 
 import (
 	"errors"
 )
 
 const (
-	Inited = iota
-	WaitAck
-	Working
-	Closed
-)
+	None = 0x00
 
-var SessionStatus = map[int]string{
-	Inited:  "inited",
-	WaitAck: "wait_ack",
-	Working: "working",
-	Closed:  "closed",
-}
-
-const (
 	// Handshake represents a handshake: request(client) <====> handshake response(server)
 	Handshake = 0x01
 
@@ -36,14 +24,14 @@ const (
 )
 
 const (
-	HeadLength    = 4       //4 bytes
-	MaxPacketSize = 1 << 24 //16mb
+	HeadLength = 4 // 4 bytes
 )
 
-//var error
 var (
-	ErrWrongPacketType = errors.New("wrong packet type")
+	MaxPacketSize = 1 << 24 // 16mb
+)
 
-	// ErrPacketSizeExcced is the error used for encode/decode.
+var (
+	ErrWrongPacketType  = errors.New("wrong packet type")
 	ErrPacketSizeExcced = errors.New("codec: packet size exceed")
 )

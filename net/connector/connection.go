@@ -6,7 +6,7 @@ import (
 	"sync/atomic"
 )
 
-// LoginRecord 登陆记录器
+// LoginRecord 登录记录器
 type LoginRecord struct {
 	loginTime int              // login time
 	uid       cherryFacade.UID // uid
@@ -49,6 +49,14 @@ func (c *ConnectStat) DecreaseConn() {
 	atomic.AddInt32(&c.connCount, -1)
 }
 
-func (c *ConnectStat) List() (connCount int32, loginCount int32, loginRecords map[cherryFacade.UID]*LoginRecord) {
-	return c.connCount, c.loginCount, c.loginRecords
+func (c *ConnectStat) ConnCount() int32 {
+	return c.connCount
+}
+
+func (c *ConnectStat) LoginCount() int32 {
+	return c.loginCount
+}
+
+func (c *ConnectStat) LoginRecords() map[cherryFacade.UID]*LoginRecord {
+	return c.loginRecords
 }

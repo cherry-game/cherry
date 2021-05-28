@@ -81,6 +81,6 @@ func (t *TCPConnector) OnStop() {
 	t.running = false
 	err := t.listener.Close()
 	if err != nil {
-		cherryLogger.Errorf("Failed to stop: %s", err.Error())
+		cherryLogger.Errorf("failed to stop: %s", err.Error())
 	}
 }

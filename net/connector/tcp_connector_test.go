@@ -13,7 +13,7 @@ func TestNewTCPConnector(t *testing.T) {
 	connector.OnConnect(func(conn net.Conn) {
 		cherryLogger.Infof("new net.Conn = %s", conn.RemoteAddr())
 
-		session := cherrySession.NewSession(cherrySession.NextSessionId(), conn, nil, nil)
+		session := cherrySession.NewSession(cherrySession.NewSessionId(), conn, nil, nil)
 
 		session.OnMessage(func(bytes []byte) (err error) {
 			cherryLogger.Infof("session id=%d bytes=[%s]", session.SID(), bytes)

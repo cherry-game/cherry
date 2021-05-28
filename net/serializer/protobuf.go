@@ -1,4 +1,4 @@
-package cherrySerialize
+package cherrySerializer
 
 import (
 	"github.com/cherry-game/cherry/extend/utils"

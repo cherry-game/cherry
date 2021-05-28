@@ -7,6 +7,13 @@ import (
 	"net/http"
 )
 
+// GetNetListener 证书构造 net.Listener
+//
+// address 监听地址
+//
+// certFile 证书文件
+//
+// keyFile 公钥文件
 func GetNetListener(address, certFile, keyFile string) (net.Listener, error) {
 	if certFile == "" || keyFile == "" {
 		return net.Listen("tcp", address)
@@ -14,7 +21,7 @@ func GetNetListener(address, certFile, keyFile string) (net.Listener, error) {
 
 	crt, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
+		cherryLogger.Fatalf("failed to listen: %s", err.Error())
 	}
 	tlsCfg := &tls.Config{Certificates: []tls.Certificate{crt}}
 

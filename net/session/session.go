@@ -5,7 +5,6 @@ import (
 	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/packet/pomelo"
 	"net"
 	"sync/atomic"
 	"time"
@@ -13,6 +12,22 @@ import (
 
 var (
 	IllegalUID = cherryUtils.Error("illegal uid")
+)
+
+var (
+	SessionStatus = map[int]string{
+		Init:    "init",
+		WaitAck: "wait_ack",
+		Working: "working",
+		Closed:  "closed",
+	}
+)
+
+const (
+	Init = iota
+	WaitAck
+	Working
+	Closed
 )
 
 type Session struct {
@@ -27,8 +42,8 @@ type Session struct {
 	sessionComponent  *SessionComponent           // session SessionComponent
 	lastTime          int64                       // last update time
 	sendChan          chan []byte
-	onCloseListener   []cherryFacade.SessionListener
-	onErrorListener   []cherryFacade.SessionListener
+	onCloseListeners  []cherryFacade.SessionListener
+	onErrorListeners  []cherryFacade.SessionListener
 	onMessageListener cherryFacade.MessageListener
 }
 
@@ -37,7 +52,7 @@ func NewSession(sid cherryFacade.SID, conn net.Conn, net cherryFacade.INetworkEn
 		Settings: Settings{
 			data: make(map[string]interface{}),
 		},
-		status:           INIT,
+		status:           Init,
 		conn:             conn,
 		running:          false,
 		sid:              sid,
@@ -49,12 +64,12 @@ func NewSession(sid cherryFacade.SID, conn net.Conn, net cherryFacade.INetworkEn
 		sendChan:         make(chan []byte),
 	}
 
-	session.onCloseListener = append(session.onCloseListener, func(session cherryFacade.ISession) {
-		cherryLogger.Infof("on closed. %s", session)
+	session.onCloseListeners = append(session.onCloseListeners, func(session cherryFacade.ISession) {
+		cherryLogger.Debugf("on closed. session:%s", session)
 	})
 
-	session.onErrorListener = append(session.onErrorListener, func(session cherryFacade.ISession) {
-		cherryLogger.Infof("on error. %s", session)
+	session.onErrorListeners = append(session.onErrorListeners, func(session cherryFacade.ISession) {
+		cherryLogger.Debugf("on error. session:%s", session)
 	})
 
 	return session
@@ -99,13 +114,13 @@ func (s *Session) Conn() net.Conn {
 
 func (s *Session) OnClose(listener cherryFacade.SessionListener) {
 	if listener != nil {
-		s.onCloseListener = append(s.onCloseListener, listener)
+		s.onCloseListeners = append(s.onCloseListeners, listener)
 	}
 }
 
 func (s *Session) OnError(listener cherryFacade.SessionListener) {
 	if listener != nil {
-		s.onErrorListener = append(s.onErrorListener, listener)
+		s.onErrorListeners = append(s.onErrorListeners, listener)
 	}
 }
 
@@ -154,7 +169,7 @@ func (s *Session) readPackets(readSize int) {
 	}
 
 	defer func() {
-		for _, listener := range s.onCloseListener {
+		for _, listener := range s.onCloseListeners {
 			listener(s)
 		}
 
@@ -171,7 +186,7 @@ func (s *Session) readPackets(readSize int) {
 		n, err := s.conn.Read(buf)
 		if err != nil {
 			cherryLogger.Warnf("read message error: %s, socket will be closed immediately", err.Error())
-			for _, listener := range s.onErrorListener {
+			for _, listener := range s.onErrorListeners {
 				listener(s)
 			}
 			s.running = false
@@ -192,7 +207,7 @@ func (s *Session) readPackets(readSize int) {
 }
 
 func (s *Session) Closed() {
-	s.status = CLOSED
+	s.status = Closed
 	s.running = false
 
 	if s.sessionComponent != nil {
@@ -204,7 +219,7 @@ func (s *Session) String() string {
 	return fmt.Sprintf("sid = %d, uid = %d, status=%s, address = %s, running = %v",
 		s.sid,
 		s.uid,
-		cherryPacketPomelo.SessionStatus[s.status],
+		SessionStatus[s.status],
 		s.conn.RemoteAddr().String(),
 		s.running)
 }

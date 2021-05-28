@@ -112,6 +112,7 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 	}
 
 	if msg.Route.NodeType() != h.App().NodeType() {
+		//forward to remote server
 		return
 	}
 

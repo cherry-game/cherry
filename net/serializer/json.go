@@ -1,4 +1,4 @@
-package cherrySerialize
+package cherrySerializer
 
 import "encoding/json"
 

@@ -1,4 +1,4 @@
-package cherryRPC
+package cherryCluster
 
 type RpcNodeInfo struct {
 	Id       string

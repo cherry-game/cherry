@@ -9,13 +9,10 @@ import (
 )
 
 var (
-	INIT   = 0
-	CLOSED = 1
-
 	atomicSessionId int64
 )
 
-func NextSessionId() int64 {
+func NewSessionId() int64 {
 	return atomic.AddInt64(&atomicSessionId, 1)
 }
 
@@ -38,7 +35,7 @@ func (s *SessionComponent) Name() string {
 }
 
 func (s *SessionComponent) Create(conn net.Conn, net cherryFacade.INetworkEntity) *Session {
-	newSession := NewSession(NextSessionId(), conn, net, s)
+	newSession := NewSession(NewSessionId(), conn, net, s)
 	s.sidMap[newSession.SID()] = newSession
 	return newSession
 }

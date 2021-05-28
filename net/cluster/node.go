@@ -13,6 +13,8 @@ type Node struct {
 	rpcAddress string
 	settings   jsoniter.Any
 	enabled    bool
+	//isMaster   bool
+	//是否为master结点，如果有多个master结点，则必需做成无状态的master
 }
 
 func (n *Node) NodeId() string {
