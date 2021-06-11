@@ -1,15 +1,15 @@
 package cherryConnector
 
 import (
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	"net"
 	"testing"
 )
 
 func TestNewTCPConnector(t *testing.T) {
 	connector := NewTCP(":9071")
 
-	connector.OnConnect(func(conn net.Conn) {
+	connector.OnConnect(func(conn facade.Conn) {
 		cherryLogger.Infof("new net.Conn = %s", conn.RemoteAddr())
 
 		//session := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)

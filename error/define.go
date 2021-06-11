@@ -21,8 +21,11 @@ var (
 
 // packet
 var (
-	PacketWrongType  = Error("wrong packet type")
-	PacketSizeExceed = Error("codec: packet size exceed")
+	PacketWrongType              = Error("wrong packet type")
+	PacketSizeExceed             = Error("codec: packet size exceed")
+	PacketConnectClosed          = Error("client connection closed")
+	PacketInvalidHeader          = Error("invalid header")
+	PacketMsgSmallerThanExpected = Error("received less data than expected, EOF?")
 )
 
 // message

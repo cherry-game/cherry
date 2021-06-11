@@ -1,8 +1,10 @@
 package cherryConnector
 
 import (
+	cherryError "github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	"github.com/gorilla/websocket"
 	"io"
 	"net"
@@ -64,7 +66,13 @@ func (w *WSConnector) OnStart() {
 		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
 	}
 
-	cherryLogger.Infof("websocket connector listening at address %s", w.address)
+	if w.certFile == "" || w.keyFile == "" {
+		cherryLogger.Infof("websocket connector listening at address ws://%s", w.address)
+	} else {
+		cherryLogger.Infof("websocket connector listening at address wss://%s", w.address)
+		cherryLogger.Infof("certFile = %s", w.certFile)
+		cherryLogger.Infof("keyFile = %s", w.keyFile)
+	}
 
 	w.up = &websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -120,25 +128,48 @@ type wsConn struct {
 // newWSConn return an initialized *wsConn
 func newWSConn(conn *websocket.Conn) (*wsConn, error) {
 	c := &wsConn{conn: conn}
+	return c, nil
+}
 
-	t, r, err := conn.NextReader()
+// GetNextMessage reads the next message available in the stream
+func (c *wsConn) GetNextMessage() (b []byte, err error) {
+	_, msgBytes, err := c.conn.ReadMessage()
+	if err != nil {
+		return nil, err
+	}
+	if len(msgBytes) < cherryPacket.HeadLength {
+		return nil, cherryError.PacketInvalidHeader
+	}
+
+	header := msgBytes[:cherryPacket.HeadLength]
+	msgSize, _, err := cherryPacket.ParseHeader(header)
 	if err != nil {
 		return nil, err
 	}
 
-	c.typ = t
-	c.reader = r
+	dataLen := len(msgBytes[cherryPacket.HeadLength:])
 
-	return c, nil
+	if dataLen < msgSize {
+		return nil, cherryError.PacketMsgSmallerThanExpected
+	} else if dataLen > msgSize {
+		return nil, cherryError.PacketMsgSmallerThanExpected
+	}
+	return msgBytes, err
 }
 
 func (c *wsConn) Read(b []byte) (int, error) {
+	if c.reader == nil {
+		t, r, err := c.conn.NextReader()
+		if err != nil {
+			return 0, err
+		}
+		c.typ = t
+		c.reader = r
+	}
 	n, err := c.reader.Read(b)
 	if err != nil && err != io.EOF {
 		return n, err
-	}
-
-	if err == io.EOF {
+	} else if err == io.EOF {
 		_, r, err := c.conn.NextReader()
 		if err != nil {
 			return 0, err

@@ -1,5 +1,7 @@
 package cherryPacket
 
+import cherryError "github.com/cherry-game/cherry/error"
+
 const (
 	// None
 	None = 0x00
@@ -20,7 +22,24 @@ const (
 	Kick = 0x05 // disconnect message from server
 )
 
-var (
-	HeadLength    = 4       // 4 bytes
-	MaxPacketSize = 1 << 24 // 16mb
-)
+var HeadLength = 4          // 4 bytes
+var MaxPacketSize = 1 << 24 // 16mb
+
+// ParseHeader parses a packet header and returns its dataLen and packetType or an error
+func ParseHeader(header []byte) (int, byte, error) {
+	if len(header) != HeadLength {
+		return 0, 0x00, cherryError.PacketInvalidHeader
+	}
+	typ := header[0]
+	if typ < Handshake || typ > Kick {
+		return 0, 0x00, cherryError.PacketWrongType
+	}
+
+	size := BytesToInt(header[1:])
+
+	if size > MaxPacketSize {
+		return 0, 0x00, cherryError.PacketSizeExceed
+	}
+
+	return size, typ, nil
+}

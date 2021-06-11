@@ -83,6 +83,9 @@ func (g *Component) Name() string {
 }
 
 func (g *Component) Init() {
+}
+
+func (g *Component) OnAfterInit() {
 	if g.options.Address == "" {
 		cherryLogger.Warnf("[%s] no set address value.", g.name)
 		return
@@ -120,11 +123,11 @@ func (g *Component) Init() {
 		var err error
 
 		if g.options.CertFile != "" && g.options.KeyFile != "" {
-			cherryLogger.Infof("[%s] -> https init. address = %s, certFile = %s, keyFile = %s",
+			cherryLogger.Infof("[%s] -> https init. https://%s, certFile = %s, keyFile = %s",
 				g.name, g.options.Address, g.options.CertFile, g.options.KeyFile)
 			err = g.server.ListenAndServeTLS(g.options.CertFile, g.options.KeyFile)
 		} else {
-			cherryLogger.Infof("[%s] -> http init. address = %s", g.name, g.options.Address)
+			cherryLogger.Infof("[%s] -> http init. http://%s", g.name, g.options.Address)
 			err = g.server.ListenAndServe()
 		}
 
@@ -132,10 +135,6 @@ func (g *Component) Init() {
 			cherryLogger.Infof("[%s] run error = %s", g.name, err)
 		}
 	}()
-}
-
-func (g *Component) OnAfterInit() {
-
 }
 
 func (g *Component) OnBeforeStop() {

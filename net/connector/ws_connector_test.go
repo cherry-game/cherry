@@ -1,7 +1,7 @@
 package cherryConnector
 
 import (
-	"net"
+	cherryFacade "github.com/cherry-game/cherry/facade"
 	"testing"
 )
 
@@ -9,7 +9,7 @@ import (
 func TestNewWSConnector(t *testing.T) {
 	connector := NewWebSocket(":9071")
 
-	connector.OnConnect(func(conn net.Conn) {
+	connector.OnConnect(func(conn cherryFacade.Conn) {
 		//s := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
 		//cherryLogger.Infof("new session sid = %d, address = %s", s.SID(), s.Conn().RemoteAddr().String())
 		//

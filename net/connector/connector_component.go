@@ -3,7 +3,6 @@ package cherryConnector
 import (
 	"encoding/json"
 	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/agent"
@@ -13,7 +12,6 @@ import (
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/serializer"
 	"github.com/cherry-game/cherry/net/session"
-	"net"
 )
 
 type (
@@ -109,7 +107,7 @@ func (p *ConnectorComponent) OnAfterInit() {
 
 	// process packet listener
 	if p.PacketListener == nil {
-		p.PacketListener = func(agent *cherryAgent.Agent, packet *cherryPacket.Packet) error {
+		p.PacketListener = func(agent *cherryAgent.Agent, packet *cherryPacket.Packet) {
 			fn, found := p.packetHandles[packet.Type]
 			if found == false {
 				cherryLogger.Errorf("packet type not found. session = %s, packet = %s",
@@ -117,21 +115,12 @@ func (p *ConnectorComponent) OnAfterInit() {
 					packet,
 				)
 			}
-
-			err := fn(agent, packet)
-			if err != nil {
-				cherryLogger.Warnf("process packet error. session = %s, packet = %s, error = %s",
-					agent.Session,
-					packet,
-					err,
-				)
-			}
-			return nil
+			fn(agent, packet)
 		}
 	}
 
 	// default on connect
-	p.connector.OnConnect(func(conn net.Conn) {
+	p.connector.OnConnect(func(conn facade.Conn) {
 		// create new session
 		session := p.sessionComponent.Create(cherrySession.NextSID(), p.App().NodeId())
 
@@ -171,19 +160,21 @@ func (p *ConnectorComponent) SetPacketHandle(typ byte, listener cherryAgent.Pack
 	p.packetHandles[typ] = listener
 }
 
-func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) error {
+func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	data := map[string]interface{}{
 		"code": 200,
 	}
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		return err
+		cherryLogger.Warn(err)
+		return
 	}
 
 	bytes, err := agent.PacketEncoder.Encode(cherryPacket.Handshake, jsonData)
 	if err != nil {
-		return err
+		cherryLogger.Warn(err)
+		return
 	}
 
 	agent.SetStatus(cherryAgent.WaitAck)
@@ -193,22 +184,19 @@ func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket
 	}
 
 	cherryLogger.Debugf("sid:%d request handshake", agent.Session.SID())
-
-	return nil
 }
 
-func (p *ConnectorComponent) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) error {
+func (p *ConnectorComponent) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	agent.SetStatus(cherryAgent.Working)
 
 	cherryLogger.Debugf("sid:%d request handshakeACK", agent.Session.SID())
-
-	return nil
 }
 
-func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) error {
+func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	bytes, err := agent.PacketEncoder.Encode(cherryPacket.Heartbeat, nil)
 	if err != nil {
-		return err
+		cherryLogger.Warn(err)
+		return
 	}
 
 	err = agent.SendRaw(bytes)
@@ -217,23 +205,24 @@ func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket
 	}
 
 	cherryLogger.Debugf("sid:%d request heartbeat", agent.Session.SID())
-
-	return nil
 }
 
-func (p *ConnectorComponent) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) error {
+func (p *ConnectorComponent) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) {
 	if agent.Status() != cherryAgent.Working {
-		return cherryError.Errorf("[Data] status error. session=[%s]", agent.Session)
+		cherryLogger.Warnf("status is not working. session=[%s]", agent.Session)
+		return
 	}
 
 	msg, err := cherryMessage.Decode(pkg.Data)
 	if err != nil {
-		return err
+		cherryLogger.Warn(err)
+		return
 	}
 
 	route, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
-		return cherryError.Errorf("failed to decode route:%s", err.Error())
+		cherryLogger.Errorf("route decode error. session=[%s] message=%s", agent.Session, msg)
+		return
 	}
 
 	unHandleMessage := &cherryHandler.UnhandledMessage{
@@ -243,6 +232,4 @@ func (p *ConnectorComponent) handData(agent *cherryAgent.Agent, pkg *cherryPacke
 	}
 
 	p.handlerComponent.DoHandle(unHandleMessage)
-
-	return nil
 }

@@ -10,4 +10,9 @@ type IConnector interface {
 }
 
 // 建立连接时的监听函数
-type OnConnectListener func(conn net.Conn)
+type OnConnectListener func(conn Conn)
+
+type Conn interface {
+	net.Conn
+	GetNextMessage() (b []byte, err error)
+}

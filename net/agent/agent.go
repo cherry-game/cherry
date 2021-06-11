@@ -32,7 +32,7 @@ type (
 	RpcHandler func(session *cherrySession.Session, msg *cherryMessage.Message, noCopy bool)
 
 	// process packet listener function
-	PacketListener func(agent *Agent, packet *cherryPacket.Packet) error
+	PacketListener func(agent *Agent, packet *cherryPacket.Packet)
 
 	AgentOpt struct {
 		Heartbeat        int                      // heartbeat(sec)
@@ -48,7 +48,7 @@ type (
 	Agent struct {
 		AgentOpt
 		Session    *cherrySession.Session // session
-		Conn       net.Conn               // low-level conn fd
+		Conn       cherryFacade.Conn      // low-level conn fd
 		RpcHandler RpcHandler             // rpc client invoke handler
 		state      int32                  // current session state
 		chDie      chan bool              // wait for close
@@ -69,7 +69,7 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(opt AgentOpt, session *cherrySession.Session, conn net.Conn, rpcHandler RpcHandler) *Agent {
+func NewAgent(opt AgentOpt, session *cherrySession.Session, conn cherryFacade.Conn, rpcHandler RpcHandler) *Agent {
 	agent := &Agent{
 		AgentOpt:   opt,
 		Session:    session,
@@ -222,21 +222,14 @@ func (a *Agent) read() {
 		a.chDie <- true
 	}()
 
-	buf := make([]byte, 2048)
 	for {
-		// TODO 待优化
-		//bytes, err := cherryPacket.GetNextPacket(a.Conn)
-		//if err != nil {
-		//	cherryLogger.Warn(err)
-		//	continue
-		//}
-		n, err := a.Conn.Read(buf)
+		msg, err := a.Conn.GetNextMessage()
 		if err != nil {
-			cherryLogger.Debugf("Read message error: %s, session will be closed immediately", err.Error())
+			cherryLogger.Debugf("error: %s, session will be closed immediately.", err.Error())
 			return
 		}
 
-		packets, err := a.PacketDecoder.Decode(buf[:n])
+		packets, err := a.PacketDecoder.Decode(msg)
 		if err != nil {
 			cherryLogger.Warn(err)
 			continue
@@ -247,10 +240,7 @@ func (a *Agent) read() {
 		}
 
 		for _, packet := range packets {
-			err := a.PacketListener(a, packet)
-			if err != nil {
-				cherryLogger.Error(err)
-			}
+			a.PacketListener(a, packet)
 		}
 	}
 }
