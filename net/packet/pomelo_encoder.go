@@ -1,5 +1,7 @@
 package cherryPacket
 
+import "github.com/cherry-game/cherry/error"
+
 type PomeloEncoder struct {
 }
 
@@ -15,11 +17,11 @@ func NewPomeloEncoder() *PomeloEncoder {
 // 1 byte packet type, 3 bytes packet data length(big end), and data segment
 func (p *PomeloEncoder) Encode(typ byte, data []byte) ([]byte, error) {
 	if typ < Handshake || typ > Kick {
-		return nil, ErrWrongPacketType
+		return nil, cherryError.PacketWrongType
 	}
 
 	if len(data) > MaxPacketSize {
-		return nil, ErrPacketSizeExcced
+		return nil, cherryError.PacketSizeExceed
 	}
 
 	pkg := &Packet{

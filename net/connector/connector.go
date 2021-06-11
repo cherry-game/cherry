@@ -28,7 +28,9 @@ func GetNetListener(address, certFile, keyFile string) (net.Listener, error) {
 	return tls.Listen("tcp", address, tlsCfg)
 }
 
-//CheckOrigin 请求检查函数 防止跨站请求伪造 true则不检查
+//CheckOrigin
+//
+//请求检查函数 防止跨站请求伪造 true则不检查
 func CheckOrigin(_ *http.Request) bool {
 	return true
 }

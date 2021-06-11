@@ -11,7 +11,6 @@ const (
 	DataConfigComponent      = "data_config_component"
 	ORMComponent             = "db_orm_component"
 	ConnectorPomeloComponent = "connector_pomelo_component"
-	ConnectorSimpleComponent = "connector_simple_component"
 )
 
 const (

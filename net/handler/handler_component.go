@@ -7,6 +7,7 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
+	cherrySession "github.com/cherry-game/cherry/net/session"
 )
 
 type (
@@ -15,6 +16,7 @@ type (
 		cherryFacade.Component                                  // base component
 		HandlerOptions                                          // opts
 		handlers               map[string]cherryFacade.IHandler // key:handlerName, value: Handler
+		//rpc client
 	}
 
 	HandlerOptions struct {
@@ -24,7 +26,7 @@ type (
 	}
 
 	UnhandledMessage struct {
-		Session cherryFacade.ISession
+		Session *cherrySession.Session
 		Route   *cherryRoute.Route
 		Msg     *cherryMessage.Message
 	}
@@ -76,25 +78,25 @@ func (h *HandlerComponent) Registers(handlers ...cherryFacade.IHandler) {
 
 func (h *HandlerComponent) RegisterWithName(name string, handler cherryFacade.IHandler) {
 	if name == "" {
-		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryReflect.GetStructName(handler))
+		cherryLogger.Warnf("[Handler = %s] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
 	}
 
 	if handler == nil {
-		cherryLogger.Warnf("[Handler= %s] is empty. skipped.", name)
+		cherryLogger.Warnf("[Handler = %s] is empty. skipped.", name)
 		return
 	}
 
 	name = h.nameFn(name)
 	if name == "" {
-		cherryLogger.Warnf("[Handler= %h] name is empty. skipped.", cherryReflect.GetStructName(handler))
+		cherryLogger.Warnf("[Handler = %s] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
 	}
 
 	handler.SetName(name)
 
 	if _, found := h.handlers[name]; found {
-		cherryLogger.Errorf("[Handler name = %s] is duplicate!", handler.Name())
+		cherryLogger.Errorf("[Handler = %s] is duplicate!", handler.Name())
 		return
 	}
 
@@ -113,20 +115,29 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 
 	if msg.Route.NodeType() != h.App().NodeType() {
 		//forward to remote server
+		h.doForward(msg)
 		return
-	}
+	} else {
+		//TODO 消息过滤器
 
-	handler := h.GetHandler(msg.Route)
-	if handler == nil {
-		cherryLogger.Errorf("[Route = %h] not found handler.", msg.Route)
-		return
-	}
+		handler := h.GetHandler(msg.Route)
+		if handler == nil {
+			cherryLogger.Errorf("[Route = %h] not found handler.", msg.Route)
+			return
+		}
 
-	handler.PostMessage(msg)
+		handler.PostMessage(msg)
+	}
+}
+
+func (h *HandlerComponent) doForward(msg *UnhandledMessage) {
+	// TODO 通过rpc 转发到远程节点
+	// rpc client invoke
+	cherryLogger.Debugf("forward message = %s", msg)
 }
 
 func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryFacade.IHandler {
-	handlerName := h.nameFn(route.HandlerName())
+	handlerName := h.nameFn(route.HandleName())
 	if handlerName == "" {
 		cherryLogger.Warnf("could not find handle name. Route = %v", route)
 		return nil
@@ -182,7 +193,7 @@ func (c *HandlerOptions) SetNameFn(fn func(string) string) {
 	c.nameFn = fn
 }
 
-// NodeRoute  结点路由规则 nodeType:结点类型,routeFunc 路由规则
-func (*HandlerOptions) NodeRoute(nodeType string, routeFunc cherryFacade.RouteFunction) {
-	cherryLogger.Panic(nodeType, routeFunc)
-}
+//// NodeRoute  结点路由规则 nodeType:结点类型,routeFunc 路由规则
+//func (*HandlerOptions) NodeRoute(nodeType string, routeFunc cherryFacade.RouteFunction) {
+//	cherryLogger.Panic(nodeType, routeFunc)
+//}

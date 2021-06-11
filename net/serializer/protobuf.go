@@ -1,12 +1,8 @@
 package cherrySerializer
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
+	cherryError "github.com/cherry-game/cherry/error"
 	"github.com/golang/protobuf/proto"
-)
-
-var (
-	ErrWrongValueType = cherryUtils.Error("protobuf: convert on wrong type value")
 )
 
 // Protobuf implements the serialize.Protobuf interface
@@ -21,7 +17,7 @@ func NewProtobuf() *Protobuf {
 func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
 	pb, ok := v.(proto.Message)
 	if !ok {
-		return nil, ErrWrongValueType
+		return nil, cherryError.ProtobufWrongValueType
 	}
 	return proto.Marshal(pb)
 }
@@ -31,7 +27,7 @@ func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
 func (p *Protobuf) Unmarshal(data []byte, v interface{}) error {
 	pb, ok := v.(proto.Message)
 	if !ok {
-		return ErrWrongValueType
+		return cherryError.ProtobufWrongValueType
 	}
 	return proto.Unmarshal(data, pb)
 }

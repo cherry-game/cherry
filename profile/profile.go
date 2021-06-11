@@ -3,10 +3,10 @@ package cherryProfile
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/const"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/extend/json"
 	"github.com/cherry-game/cherry/extend/string"
-	"github.com/cherry-game/cherry/extend/utils"
 	jsoniter "github.com/json-iterator/go"
 	"path"
 )
@@ -47,16 +47,16 @@ func GetConfig(name string) jsoniter.Any {
 
 func Init(profilePath, profileName string) (jsoniter.Any, error) {
 	if profilePath == "" {
-		return nil, cherryUtils.Error("profilePath parameter is null.")
+		return nil, cherryError.Error("profilePath parameter is null.")
 	}
 
 	if profileName == "" {
-		return nil, cherryUtils.Error("profileName parameter is null.")
+		return nil, cherryError.Error("profileName parameter is null.")
 	}
 
 	judgePath, ok := cherryFile.JudgePath(profilePath)
 	if !ok {
-		return nil, cherryUtils.Errorf("profilePath = %s not found.", profilePath)
+		return nil, cherryError.Errorf("profilePath = %s not found.", profilePath)
 	}
 
 	env.debug = true
@@ -66,7 +66,7 @@ func Init(profilePath, profileName string) (jsoniter.Any, error) {
 
 	env.json = loadProfileFile(env.profilePath, env.fileName)
 	if env.json == nil || env.json.LastError() != nil {
-		return nil, cherryUtils.Errorf("load profile file error. profilePath = %s", profilePath)
+		return nil, cherryError.Errorf("load profile file error. profilePath = %s", profilePath)
 	}
 
 	if env.json.Get("debug").LastError() == nil {

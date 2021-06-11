@@ -14,7 +14,7 @@ func init() {
 }
 
 type (
-	GinComponentOptions struct {
+	ComponentOptions struct {
 		ReadTimeout       time.Duration // http server parameter
 		ReadHeaderTimeout time.Duration
 		WriteTimeout      time.Duration
@@ -25,43 +25,40 @@ type (
 		KeyFile           string
 	}
 
-	// GinComponent wrapper gin
-	GinComponent struct {
+	// Component wrapper gin
+	Component struct {
 		cherryFacade.Component
 		name        string
 		engine      *gin.Engine
 		server      *http.Server
-		options     GinComponentOptions
+		options     ComponentOptions
 		controllers []IController
 	}
 )
 
-func New(address string) *GinComponent {
-	return NewHttp("http_server", address)
+func New(address string, middleware ...gin.HandlerFunc) *Component {
+	return NewHttp("http_server", address, middleware...)
 }
 
-func NewHttp(name, address string) *GinComponent {
-	return NewHttps(name, address, "", "")
+func NewHttp(name, address string, middleware ...gin.HandlerFunc) *Component {
+	return NewHttps(name, address, "", "", middleware...)
 }
 
-func NewHttps(name, address, certFile, keyFile string) *GinComponent {
-	component := NewWithOptions(name, GinComponentOptions{
+func NewHttps(name, address, certFile, keyFile string, middleware ...gin.HandlerFunc) *Component {
+	component := NewWithOptions(name, ComponentOptions{
 		Address:  address,
 		CertFile: certFile,
 		KeyFile:  keyFile,
 	})
 
 	//add default middleware
-	component.engine.Use(
-		GinDefaultZap(),
-		RecoveryWithZap(false),
-	)
+	component.engine.Use(middleware...)
 
 	return component
 }
 
-func NewWithOptions(name string, options GinComponentOptions) *GinComponent {
-	return &GinComponent{
+func NewWithOptions(name string, options ComponentOptions) *Component {
+	return &Component{
 		name:    name,
 		engine:  gin.New(),
 		server:  &http.Server{},
@@ -69,23 +66,23 @@ func NewWithOptions(name string, options GinComponentOptions) *GinComponent {
 	}
 }
 
-func (g *GinComponent) Register(controllers ...IController) *GinComponent {
+func (g *Component) Register(controllers ...IController) *Component {
 	for _, controller := range controllers {
 		g.controllers = append(g.controllers, controller)
 	}
 	return g
 }
 
-func (g *GinComponent) GetEngine() *gin.Engine {
+func (g *Component) GetEngine() *gin.Engine {
 	return g.engine
 }
 
 // Name unique components name
-func (g *GinComponent) Name() string {
+func (g *Component) Name() string {
 	return g.name
 }
 
-func (g *GinComponent) Init() {
+func (g *Component) Init() {
 	if g.options.Address == "" {
 		cherryLogger.Warnf("[%s] no set address value.", g.name)
 		return
@@ -137,17 +134,17 @@ func (g *GinComponent) Init() {
 	}()
 }
 
-func (g *GinComponent) OnAfterInit() {
+func (g *Component) OnAfterInit() {
 
 }
 
-func (g *GinComponent) OnBeforeStop() {
+func (g *Component) OnBeforeStop() {
 	for _, controller := range g.controllers {
 		controller.Stop()
 	}
 }
 
-func (g *GinComponent) OnStop() {
+func (g *Component) OnStop() {
 	err := g.server.Shutdown(context.Background())
 	cherryLogger.Infof("[%s] shutdown gin component on %s", g.name, g.options.Address)
 

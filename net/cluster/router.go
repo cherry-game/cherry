@@ -1,18 +1,18 @@
 package cherryCluster
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/facade"
+	"github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/net/session"
 	"hash/crc32"
 	"math"
 	"math/rand"
 )
 
 // Calculate route info and return an appropriate node id.
-func DefaultRoute(session cherryFacade.ISession, msg RpcMsg, context RouteContextClass, cb Callback) {
+func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteContextClass, cb Callback) {
 	list := context.GetNodesByType(msg.NodeType())
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.Errorf("can not find node info for type:%s", msg.NodeType()), "")
+		cb(cherryError.Errorf("can not find node info for type:%s", msg.NodeType()), "")
 		return
 	}
 
@@ -25,7 +25,7 @@ func DefaultRoute(session cherryFacade.ISession, msg RpcMsg, context RouteContex
 func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
@@ -36,7 +36,7 @@ func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
@@ -55,7 +55,7 @@ func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback)
 func WeightRoundRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
-		cb(cherryUtils.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
+		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
 		return
 	}
 
@@ -85,7 +85,7 @@ func WeightRoundRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback
 			if weight <= 0 {
 				weight = getMaxWeight()
 				if weight <= 0 {
-					cb(cherryUtils.Error("rpc weight round route get invalid weight."), "")
+					cb(cherryError.Error("rpc weight round route get invalid weight."), "")
 					break
 				}
 			}

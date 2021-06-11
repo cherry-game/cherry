@@ -46,7 +46,7 @@ func (s *Settings) Restore(data map[string]interface{}) {
 	s.data = data
 }
 
-// Clear releases all settings related to current sessionComponent
+// Clear releases all settings related to current sc
 func (s *Settings) Clear() {
 	s.Lock()
 	defer s.Unlock()

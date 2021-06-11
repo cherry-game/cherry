@@ -3,7 +3,7 @@ package cherry
 import (
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"os"
@@ -13,14 +13,14 @@ import (
 
 // Application
 type Application struct {
-	cherryFacade.INode                           // current node info
-	startTime          cherryTime.CherryTime     // application start time
-	running            bool                      // is running
-	die                chan bool                 // wait for end application
-	components         []cherryFacade.IComponent // all components
+	facade.INode                       // current node info
+	startTime    cherryTime.CherryTime // application start time
+	running      bool                  // is running
+	die          chan bool             // wait for end application
+	components   []facade.IComponent   // all components
 }
 
-func (a *Application) ThisNode() cherryFacade.INode {
+func (a *Application) ThisNode() facade.INode {
 	return a.INode
 }
 
@@ -28,7 +28,7 @@ func (a *Application) Running() bool {
 	return a.running
 }
 
-func (a *Application) Find(name string) cherryFacade.IComponent {
+func (a *Application) Find(name string) facade.IComponent {
 	if name == "" {
 		return nil
 	}
@@ -42,12 +42,12 @@ func (a *Application) Find(name string) cherryFacade.IComponent {
 }
 
 // Remove remove component by name
-func (a *Application) Remove(name string) cherryFacade.IComponent {
+func (a *Application) Remove(name string) facade.IComponent {
 	if name == "" {
 		return nil
 	}
 
-	var removeComponent cherryFacade.IComponent
+	var removeComponent facade.IComponent
 	for i := 0; i < len(a.components); i++ {
 		if a.components[i].Name() == name {
 			removeComponent = a.components[i]
@@ -58,7 +58,7 @@ func (a *Application) Remove(name string) cherryFacade.IComponent {
 	return removeComponent
 }
 
-func (a *Application) All() []cherryFacade.IComponent {
+func (a *Application) All() []facade.IComponent {
 	return a.components
 }
 
@@ -67,7 +67,7 @@ func (a *Application) StartTime() string {
 }
 
 // Startup
-func (a *Application) OnStartup(components ...cherryFacade.IComponent) {
+func (a *Application) OnStartup(components ...facade.IComponent) {
 	defer func() {
 		if r := recover(); r != nil {
 			cherryLogger.Error(r)
@@ -84,12 +84,15 @@ func (a *Application) OnStartup(components ...cherryFacade.IComponent) {
 
 	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
+	cherryLogger.Infof("[pid         = %d]", os.Getpid())
+	cherryLogger.Infof("[startTime   = %s]", a.StartTime())
 	cherryLogger.Infof("[profile     = %s]", cherryProfile.Name())
 	cherryLogger.Infof("[profileDir  = %s]", cherryProfile.Dir())
 	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
 	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[startTime   = %s]", a.StartTime())
-	cherryLogger.Infof("[pid         = %d]", os.Getpid())
+	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger().Level)
+	cherryLogger.Infof("[stackLevel	 = %s]", cherryLogger.DefaultLogger().StackLevel)
+	cherryLogger.Infof("[writeFile   = %v]", cherryLogger.DefaultLogger().EnableWriteFile)
 	cherryLogger.Info("-------------------------------------------------")
 
 	// add components & init
@@ -122,7 +125,7 @@ func (a *Application) OnStartup(components ...cherryFacade.IComponent) {
 		cherryLogger.Debugf("[component = %s] -> OnAfterInit().", c.Name())
 	}
 
-	cherryLogger.Infof("[nodeId = %s] application is running. startTime = %s", a.NodeId(), a.StartTime())
+	cherryLogger.Infof("[nodeId = %s] application is running.", a.NodeId())
 	cherryLogger.Info("-------------------------------------------------")
 }
 
@@ -171,11 +174,3 @@ func (a *Application) OnShutdown(beforeStopFn ...func()) {
 		}
 	}
 }
-
-// filter(filter IHandlerfilter)  before after  这个过滤器可以放到Acceptor里去
-// globalFilter()  全局过滤器，也可以放Acceptor里去
-// rpcBefore()  rpc过滤器
-// addCrons
-// removeCrons
-// rpc UserRpc
-// sysrpc SysRpc

@@ -1,15 +1,16 @@
 package cherryMessage
 
 import (
+	"encoding/binary"
 	"fmt"
-	"strings"
+	cherryError "github.com/cherry-game/cherry/error"
 )
 
 // message协议的主要作用是封装消息头，包括route和消息类型两部分，
 // 不同的消息类型有着不同的消息头，在消息头里面可能要打入message id(即requestId)和route信息。
 // 由于可能会有route压缩，而且对于服务端push的消息，message id为空，对于客户端请求的响应，route为空
 // 消息头分为三部分，flag，message id，route。
-// 如下所示：
+// 如下图所示：
 // flag(1byte) + message id(0~5byte) + route(0~256bytes)
 // flag位是必须的，占用一个byte，它决定了后面的消息类型和内容的格式;
 // message id和route则是可选的。
@@ -39,78 +40,146 @@ import (
 //
 // Message represents a unmarshaled message or a message which to be marshaled
 type Message struct {
-	Type       Type   // message type 4中消息类型
-	ID         uint   // unique id, zero while notify mode 消息id（request response）
-	Route      string // route for locating service 消息路由
-	Data       []byte // payload  消息体的原始数据
-	Compressed bool   // is message Compressed 是否启用路由压缩
-	Err        bool   // is an error message
+	Type            Type   // message type 4中消息类型
+	ID              uint64 // unique id, zero while notify mode 消息id（request response）
+	Route           string // route for locating service 消息路由
+	Data            []byte // payload  消息体的原始数据
+	routeCompressed bool   // is route Compressed 是否启用路由压缩
 }
 
-func New(err ...bool) *Message {
-	m := &Message{}
-	if len(err) > 0 {
-		m.Err = err[0]
-	}
-	return m
+func New() *Message {
+	return &Message{}
 }
 
 func (t *Message) String() string {
 	return fmt.Sprintf(
-		"Type: %s, ID: %d, Route: %s, Compressed: %t, Error: %t, Settings: %v, BodyLength: %d",
+		"Type: %s, ID: %d, Route: %s, RouteCompressed: %t, Data: %v, BodyLength: %d",
 		types[t.Type],
 		t.ID,
 		t.Route,
-		t.Compressed,
-		t.Err,
+		t.routeCompressed,
 		t.Data,
 		len(t.Data))
 }
 
-func routable(t Type) bool {
-	return t == Request || t == Notify || t == Push
-}
-
-func invalidType(t Type) bool {
-	return t < Request || t > Push
-}
-
-// 启用路由压缩
-// 对于服务端，server会扫描所有的Handler信息
-// 对于客户端，用户需要配置一个路由映射表
-// 通过这两种方式，pitaya会拿到所有的客户端和服务端的路由信息，然后将每一个路由信息都映射为一个小整数，
-// 在客户端与服务器建立连接的握手过程中，服务器会将 整个字典传给客户端，
-// 这样在以后的通信中，对于路由信息，将全部使用定义的小整数进行标记，大大地减少了额外信 息开销
-// SetDictionary set routes map which be used to compress route.
-func SetDictionary(dict map[string]uint16) error {
-	if dict == nil {
-		return nil
+// Encode marshals message to binary format. Different message types is corresponding to
+// different message header, message types is identified by 2-4 bit of flag field. The
+// relationship between message types and message header is presented as follows:
+// ------------------------------------------
+// |   type   |  flag  |       other        |
+// |----------|--------|--------------------|
+// | request  |----000-|<message id>|<route>|
+// | notify   |----001-|<route>             |
+// | response |----010-|<message id>        |
+// | push     |----011-|<route>             |
+// ------------------------------------------
+// The figure above indicates that the bit does not affect the type of message.
+// See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
+// See ref: https://github.com/NetEase/pomelo/wiki/%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F
+func Encode(m *Message) ([]byte, error) {
+	if invalidType(m.Type) {
+		return nil, cherryError.MessageWrongType
 	}
 
-	for route, code := range dict {
-		r := strings.TrimSpace(route) //去掉开头结尾的空格
+	buf := make([]byte, 0)
+	flag := byte(m.Type) << 1
 
-		// duplication check
-		if _, ok := routes[r]; ok {
-			return fmt.Errorf("duplicated route(route: %s, code: %d)", r, code)
-		}
-
-		if _, ok := codes[code]; ok {
-			return fmt.Errorf("duplicated route(route: %s, code: %d)", r, code)
-		}
-
-		// update map, using last value when key duplicated
-		routes[r] = code
-		codes[code] = r
+	code, compressed := routes[m.Route]
+	if compressed {
+		flag |= MsgRouteCompressMask
 	}
-	return nil
+	buf = append(buf, flag)
+
+	if m.Type == TypeRequest || m.Type == TypeResponse {
+		n := m.ID
+		// variant length encode
+		for {
+			b := byte(n % 128)
+			n >>= 7
+			if n != 0 {
+				buf = append(buf, b+128)
+			} else {
+				buf = append(buf, b)
+				break
+			}
+		}
+	}
+
+	if routable(m.Type) {
+		if compressed {
+			buf = append(buf, byte((code>>8)&0xFF))
+			buf = append(buf, byte(code&0xFF))
+		} else {
+			buf = append(buf, byte(len(m.Route)))
+			buf = append(buf, []byte(m.Route)...)
+		}
+	}
+
+	buf = append(buf, m.Data...)
+	return buf, nil
 }
 
-// GetDictionary gets the routes map which is used to compress route.
-func GetDictionary() map[string]uint16 {
-	return routes
-}
+// Decode unmarshal the bytes slice to a message
+// See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
+func Decode(data []byte) (*Message, error) {
+	if len(data) < MsgHeadLength {
+		return nil, cherryError.MessageInvalid
+	}
 
-func (t *Type) String() string {
-	return types[*t]
+	m := New()
+	flag := data[0]
+	offset := 1
+	m.Type = Type((flag >> 1) & MsgTypeMask)
+
+	if invalidType(m.Type) {
+		return nil, cherryError.MessageWrongType
+	}
+
+	if m.Type == TypeRequest || m.Type == TypeResponse {
+		id := uint64(0)
+		// little end byte order
+		// WARNING: must can be stored in 64 bits integer
+		// variant length encode
+		for i := offset; i < len(data); i++ {
+			b := data[i]
+			id += uint64(b&0x7F) << uint64(7*(i-offset))
+			if b < 128 {
+				offset = i + 1
+				break
+			}
+		}
+		m.ID = id
+	}
+
+	if offset >= len(data) {
+		return nil, cherryError.MessageInvalid
+	}
+
+	if routable(m.Type) {
+		if flag&MsgRouteCompressMask == 1 {
+			m.routeCompressed = true
+			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
+			route, ok := codes[code]
+			if !ok {
+				return nil, cherryError.MessageRouteNotFound
+			}
+			m.Route = route
+			offset += 2
+		} else {
+			m.routeCompressed = false
+			rl := data[offset]
+			offset++
+			if offset+int(rl) >= len(data) {
+				return nil, cherryError.MessageInvalid
+			}
+			m.Route = string(data[offset:(offset + int(rl))])
+			offset += int(rl)
+		}
+	}
+
+	if offset >= len(data) {
+		return nil, cherryError.MessageInvalid
+	}
+	m.Data = data[offset:]
+	return m, nil
 }

@@ -1,10 +1,7 @@
 package cherryPacket
 
-import (
-	"errors"
-)
-
 const (
+	// None
 	None = 0x00
 
 	// Handshake represents a handshake: request(client) <====> handshake response(server)
@@ -23,15 +20,7 @@ const (
 	Kick = 0x05 // disconnect message from server
 )
 
-const (
-	HeadLength = 4 // 4 bytes
-)
-
 var (
+	HeadLength    = 4       // 4 bytes
 	MaxPacketSize = 1 << 24 // 16mb
-)
-
-var (
-	ErrWrongPacketType  = errors.New("wrong packet type")
-	ErrPacketSizeExcced = errors.New("codec: packet size exceed")
 )

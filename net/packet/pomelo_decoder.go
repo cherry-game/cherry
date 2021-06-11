@@ -2,6 +2,7 @@ package cherryPacket
 
 import (
 	"bytes"
+	"github.com/cherry-game/cherry/error"
 )
 
 type PomeloDecoder struct {
@@ -22,7 +23,7 @@ func (p *PomeloDecoder) Decode(data []byte) ([]*Packet, error) {
 
 	// check length
 	if buf.Len() < HeadLength {
-		return nil, nil
+		return nil, err
 	}
 
 	size, typ, err := p.forward(buf)
@@ -57,7 +58,7 @@ func (p *PomeloDecoder) forward(buf *bytes.Buffer) (int, byte, error) {
 	typ := header[0]
 
 	if typ < Handshake || typ > Kick {
-		return 0, 0x00, ErrPacketSizeExcced
+		return 0, 0x00, cherryError.PacketSizeExceed
 	}
 
 	// get 2,3,4 byte
@@ -65,7 +66,7 @@ func (p *PomeloDecoder) forward(buf *bytes.Buffer) (int, byte, error) {
 
 	// packet length limitation
 	if size > MaxPacketSize {
-		return 0, 0x00, ErrPacketSizeExcced
+		return 0, 0x00, cherryError.PacketSizeExceed
 	}
 
 	return size, typ, nil

@@ -18,7 +18,7 @@ func (t *Test1Controller) Init() {
 	cherrySnowflake.SetDefaultNode(1)
 }
 
-func (t *Test1Controller) index(c *cherryGin.GinContext) {
+func (t *Test1Controller) index(c *cherryGin.Context) {
 	c.RenderHTML("this is index... " + cherrySnowflake.Next().String())
 }
 

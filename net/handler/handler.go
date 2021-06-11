@@ -3,7 +3,7 @@ package cherryHandler
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"time"
@@ -11,13 +11,13 @@ import (
 
 type (
 	Handler struct {
-		cherryFacade.AppContext
+		facade.AppContext
 		WorkerGroup
-		name             string                             // unique name
-		eventFn          map[string][]cherryFacade.EventFn  // event func
-		localHandlers    map[string]*cherryFacade.HandlerFn // local invoke Handler functions
-		remoteHandlers   map[string]*cherryFacade.HandlerFn // remote invoke Handler functions
-		handlerComponent *HandlerComponent                  // handler component
+		name             string                       // unique name
+		eventFn          map[string][]facade.EventFn  // event func
+		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
+		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
+		handlerComponent *HandlerComponent            // handler component
 	}
 )
 
@@ -31,20 +31,20 @@ func (h *Handler) SetName(name string) {
 
 func (h *Handler) OnPreInit() {
 	if h.eventFn == nil {
-		h.eventFn = make(map[string][]cherryFacade.EventFn)
+		h.eventFn = make(map[string][]facade.EventFn)
 	}
 
 	if h.localHandlers == nil {
-		h.localHandlers = make(map[string]*cherryFacade.HandlerFn)
+		h.localHandlers = make(map[string]*facade.HandlerFn)
 	}
 
 	if h.remoteHandlers == nil {
-		h.remoteHandlers = make(map[string]*cherryFacade.HandlerFn)
+		h.remoteHandlers = make(map[string]*facade.HandlerFn)
 	}
 
 	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
 	if h.handlerComponent == nil {
-		cherryLogger.Warn("not found HandlerComponent.")
+		cherryLogger.Warn("not found handlerComponent.")
 	}
 }
 
@@ -56,29 +56,29 @@ func (h *Handler) OnAfterInit() {
 	h.runWorker(h)
 }
 
-func (h *Handler) Events() map[string][]cherryFacade.EventFn {
+func (h *Handler) Events() map[string][]facade.EventFn {
 	return h.eventFn
 }
 
-func (h *Handler) Event(name string) ([]cherryFacade.EventFn, bool) {
+func (h *Handler) Event(name string) ([]facade.EventFn, bool) {
 	events, found := h.eventFn[name]
 	return events, found
 }
 
-func (h *Handler) LocalHandlers() map[string]*cherryFacade.HandlerFn {
+func (h *Handler) LocalHandlers() map[string]*facade.HandlerFn {
 	return h.localHandlers
 }
 
-func (h *Handler) LocalHandler(funcName string) (*cherryFacade.HandlerFn, bool) {
+func (h *Handler) LocalHandler(funcName string) (*facade.HandlerFn, bool) {
 	invoke, found := h.localHandlers[funcName]
 	return invoke, found
 }
 
-func (h *Handler) RemoteHandlers() map[string]*cherryFacade.HandlerFn {
+func (h *Handler) RemoteHandlers() map[string]*facade.HandlerFn {
 	return h.remoteHandlers
 }
 
-func (h *Handler) RemoteHandler(funcName string) (*cherryFacade.HandlerFn, bool) {
+func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
 	invoke, found := h.remoteHandlers[funcName]
 	return invoke, found
 }
@@ -176,12 +176,12 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 		h.name, name, len(invokeFunc.InArgs), len(invokeFunc.OutArgs))
 }
 
-func (h *Handler) PostEvent(e cherryFacade.IEvent) {
+func (h *Handler) PostEvent(e facade.IEvent) {
 	h.handlerComponent.PostEvent(e)
 }
 
 //RegisterEvent
-func (h *Handler) RegisterEvent(eventName string, fn cherryFacade.EventFn) {
+func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 	if eventName == "" {
 		cherryLogger.Warn("eventName is nil")
 		return

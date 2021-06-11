@@ -11,12 +11,24 @@ import (
 )
 
 var (
-	defaultLogger = NewConfigLogger(NewConsoleConfig()) // 默认日志对象(控制台输出)
-	loggers       = make(map[string]*zap.SugaredLogger) // 日志实例存储map(key:日志名称,value:日志实例)
-	rw            sync.RWMutex
+	// 默认日志对象(控制台输出)
+	defaultLogger *CherryLogger
+	// 日志实例存储map(key:日志名称,value:日志实例)
+	loggers map[string]*CherryLogger
+	rw      sync.RWMutex
 )
 
-func DefaultLogger() *zap.SugaredLogger {
+func init() {
+	defaultLogger = NewConfigLogger(NewConsoleConfig(), zap.AddCallerSkip(1))
+	loggers = make(map[string]*CherryLogger)
+}
+
+type CherryLogger struct {
+	*zap.SugaredLogger
+	*Config
+}
+
+func DefaultLogger() *CherryLogger {
 	return defaultLogger
 }
 
@@ -25,12 +37,13 @@ func SetNodeLogger(node cherryFacade.INode) {
 
 	if refLogger == "" {
 		defaultLogger.Infof("refLogger config not found, used default console logger.")
+		return
 	}
 
 	defaultLogger = NewLogger(refLogger, zap.AddCallerSkip(1))
 }
 
-func NewLogger(refLoggerName string, opts ...zap.Option) *zap.SugaredLogger {
+func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 	if refLoggerName == "" {
 		return nil
 	}
@@ -60,7 +73,7 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *zap.SugaredLogger {
 	return logger
 }
 
-func NewConfigLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
+func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	encoderConfig := zapcore.EncoderConfig{
 		MessageKey:     "msg",
 		NameKey:        "name",
@@ -100,7 +113,12 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *zap.SugaredLogger {
 		writers = append(writers, zapcore.AddSync(os.Stderr))
 	}
 
-	return NewSugaredLogger(encoderConfig, zapcore.NewMultiWriteSyncer(writers...), level, opts...)
+	cl := &CherryLogger{
+		SugaredLogger: NewSugaredLogger(encoderConfig, zapcore.NewMultiWriteSyncer(writers...), level, opts...),
+		Config:        config,
+	}
+
+	return cl
 }
 
 func NewSugaredLogger(

@@ -2,8 +2,8 @@ package mocks
 
 import (
 	"github.com/ahmetb/go-linq/v3"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/mapstructure"
-	"github.com/cherry-game/cherry/extend/utils"
 )
 
 type (
@@ -29,7 +29,7 @@ func (d *DropConfigs) Name() string {
 func (d *DropConfigs) Load(maps interface{}, reload bool) error {
 	list, ok := maps.([]interface{})
 	if ok == false {
-		return cherryUtils.Error("maps convert to []interface{} error.")
+		return cherryError.Error("maps convert to []interface{} error.")
 	}
 
 	if reload {

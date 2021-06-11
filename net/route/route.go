@@ -1,29 +1,24 @@
 package cherryRoute
 
 import (
-	"errors"
 	"fmt"
+	"github.com/cherry-game/cherry/error"
 	"strings"
-)
-
-var (
-	ErrRouteFieldCantEmpty = errors.New("route field can not be empty")
-	ErrInvalidRoute        = errors.New("invalid route")
 )
 
 // Route struct
 type Route struct {
-	nodeType    string //结点类型
-	handlerName string //服务名
-	method      string //方法名
+	nodeType   string //结点类型
+	handleName string //服务名
+	method     string //方法名
 }
 
 func (r *Route) NodeType() string {
 	return r.nodeType
 }
 
-func (r *Route) HandlerName() string {
-	return r.handlerName
+func (r *Route) HandleName() string {
+	return r.handleName
 }
 
 func (r *Route) Method() string {
@@ -31,8 +26,8 @@ func (r *Route) Method() string {
 }
 
 // New create a new route
-func New(nodeType, handlerName, method string) *Route {
-	return &Route{nodeType, handlerName, method}
+func New(nodeType, handleName, method string) *Route {
+	return &Route{nodeType, handleName, method}
 }
 
 func NewByName(routeName string) *Route {
@@ -45,7 +40,7 @@ func NewByName(routeName string) *Route {
 
 // String transforms the route into a string
 func (r *Route) String() string {
-	return fmt.Sprintf("%s.%s.%s", r.nodeType, r.handlerName, r.method)
+	return fmt.Sprintf("%s.%s.%s", r.nodeType, r.handleName, r.method)
 }
 
 // Decode decodes the route
@@ -53,12 +48,12 @@ func Decode(route string) (*Route, error) {
 	r := strings.Split(route, ".")
 	for _, s := range r {
 		if strings.TrimSpace(s) == "" {
-			return nil, ErrRouteFieldCantEmpty
+			return nil, cherryError.RouteFieldCantEmpty
 		}
 	}
 
 	if len(r) != 3 {
-		return nil, ErrInvalidRoute
+		return nil, cherryError.RouteInvalid
 	}
 
 	return New(r[0], r[1], r[2]), nil

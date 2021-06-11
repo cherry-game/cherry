@@ -1,24 +1,24 @@
 package cherryConnector
 
 import (
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"sync"
 	"sync/atomic"
 )
 
 // LoginRecord 登录记录器
 type LoginRecord struct {
-	loginTime int              // login time
-	uid       cherryFacade.UID // uid
-	ip        string           // ip address
+	loginTime int        // login time
+	uid       facade.UID // uid
+	ip        string     // ip address
 }
 
 // ConnectStat 连接统计
 type ConnectStat struct {
 	sync.RWMutex
-	connCount    int32                             // 连接总数
-	loginCount   int32                             // 登陆总数
-	loginRecords map[cherryFacade.UID]*LoginRecord // 用户登陆记录
+	connCount    int32                       // 连接总数
+	loginCount   int32                       // 登陆总数
+	loginRecords map[facade.UID]*LoginRecord // 用户登陆记录
 }
 
 func (c *ConnectStat) Add(info *LoginRecord) {
@@ -31,7 +31,7 @@ func (c *ConnectStat) Add(info *LoginRecord) {
 	c.loginRecords[info.uid] = info
 }
 
-func (c *ConnectStat) Remove(uid cherryFacade.UID) {
+func (c *ConnectStat) Remove(uid facade.UID) {
 	c.Lock()
 	defer c.Unlock()
 
@@ -57,6 +57,6 @@ func (c *ConnectStat) LoginCount() int32 {
 	return c.loginCount
 }
 
-func (c *ConnectStat) LoginRecords() map[cherryFacade.UID]*LoginRecord {
+func (c *ConnectStat) LoginRecords() map[facade.UID]*LoginRecord {
 	return c.loginRecords
 }

@@ -4,10 +4,10 @@ import "net"
 
 // IConnector 网络连接器接口
 type IConnector interface {
-	OnConnect(listener IConnectListener) // 启动前设置连接器监听函数
-	OnStart()                            // 启动
-	OnStop()                             // 停止
+	OnStart()
+	OnStop()
+	OnConnect(listener OnConnectListener) // 启动前设置连接器监听函数
 }
 
-// IConnectListener 网络连接器监听函数
-type IConnectListener func(conn net.Conn)
+// 建立连接时的监听函数
+type OnConnectListener func(conn net.Conn)

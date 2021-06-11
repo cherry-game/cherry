@@ -8,7 +8,6 @@ import (
 	"github.com/cherry-game/cherry/profile"
 	"math/rand"
 	"reflect"
-	"strconv"
 )
 
 type (
@@ -111,7 +110,7 @@ func (w *WorkerGroup) SetWorkerCRC32Hash(workerSize int) {
 		case *UnhandledMessage:
 			{
 				if m.Session != nil {
-					hashValue = strconv.FormatInt(m.Session.UID(), 10)
+					hashValue = m.Session.UID()
 				}
 			}
 		}
@@ -135,7 +134,7 @@ func DefaultWorkerExecutor(handler cherryFacade.IHandler, worker *Worker) {
 
 	component := handler.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
 	if component == nil {
-		cherryLogger.Warn("not find HandlerComponent.")
+		cherryLogger.Warn("not find handlerComponent.")
 		return
 	}
 

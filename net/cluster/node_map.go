@@ -1,7 +1,7 @@
 package cherryCluster
 
 import (
-	"github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -20,18 +20,18 @@ func Load(config jsoniter.Any) error {
 	clusterNodes := config.Get("cluster")
 
 	if clusterNodes.LastError() != nil {
-		return cherryUtils.Error("cluster attribute not found in profile file.")
+		return cherryError.Error("cluster attribute not found in profile file.")
 	}
 
 	mode := clusterNodes.Get("mode").ToString()
 	if mode == "" {
-		return cherryUtils.Error("cluster->mode attribute not found in profile file.")
+		return cherryError.Error("cluster->mode attribute not found in profile file.")
 	}
 
 	if mode == "nodes" {
 		loadNodesFromConfigFile(clusterNodes.Get("nodes"))
 	} else {
-		return cherryUtils.Error("not implemented")
+		return cherryError.Error("not implemented")
 	}
 
 	return nil
@@ -55,12 +55,12 @@ func Get(nodeType, nodeId string) (cherryFacade.INode, error) {
 	if found {
 		return node, nil
 	}
-	return nil, cherryUtils.Errorf("node not found. nodeType=%s, nodeId=%s", nodeType, nodeId)
+	return nil, cherryError.Errorf("node not found. nodeType=%s, nodeId=%s", nodeType, nodeId)
 }
 
 func GetType(nodeId string) (nodeType string, error error) {
 	if nodeId == "" {
-		return "", cherryUtils.Error("nodeId parameter is null.")
+		return "", cherryError.Error("nodeId parameter is null.")
 	}
 
 	for nType, types := range nodesConfig {
@@ -70,7 +70,7 @@ func GetType(nodeId string) (nodeType string, error error) {
 			}
 		}
 	}
-	return "", cherryUtils.Errorf("nodeId = %s not found. check profile config file please.", nodeId)
+	return "", cherryError.Errorf("nodeId = %s not found. check profile config file please.", nodeId)
 }
 
 func loadNodesFromConfigFile(nodesJson jsoniter.Any) {

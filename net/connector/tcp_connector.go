@@ -12,10 +12,10 @@ type TCPConnector struct {
 	running           bool
 	certFile          string
 	keyFile           string
-	onConnectListener cherryFacade.IConnectListener
+	onConnectListener cherryFacade.OnConnectListener
 }
 
-func NewTCPConnector(address string) *TCPConnector {
+func NewTCP(address string) *TCPConnector {
 	if address == "" {
 		cherryLogger.Warn("create tcp socket fail. address is null.")
 		return nil
@@ -26,7 +26,7 @@ func NewTCPConnector(address string) *TCPConnector {
 	}
 }
 
-func NewTCPConnectorLTS(address, certFile, keyFile string) *TCPConnector {
+func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	if address == "" {
 		cherryLogger.Warn("create tcp socket fail. address is null.")
 		return nil
@@ -47,14 +47,14 @@ func NewTCPConnectorLTS(address, certFile, keyFile string) *TCPConnector {
 // OnStartup
 func (t *TCPConnector) OnStart() {
 	if t.onConnectListener == nil {
-		panic("OnConnect() not set.")
+		panic("onConnectListener() not set.")
 	}
 
 	var err error
 
 	t.listener, err = GetNetListener(t.address, t.certFile, t.keyFile)
 	if err != nil {
-		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
+		cherryLogger.Fatalf("failed to listen: %s", err.Error())
 	}
 
 	cherryLogger.Debugf("tcp connector listening at address %s", t.address)
@@ -63,17 +63,13 @@ func (t *TCPConnector) OnStart() {
 	for t.running {
 		conn, err := t.listener.Accept()
 		if err != nil {
-			cherryLogger.Errorf("Failed to accept TCP connection: %s", err.Error())
+			cherryLogger.Errorf("failed to accept TCP connection: %s", err.Error())
 			continue
 		}
 
 		// open goroutine for new connection
 		go t.onConnectListener(conn)
 	}
-}
-
-func (t *TCPConnector) OnConnect(listener cherryFacade.IConnectListener) {
-	t.onConnectListener = listener
 }
 
 // OnShutdown stops the acceptor
@@ -83,4 +79,8 @@ func (t *TCPConnector) OnStop() {
 	if err != nil {
 		cherryLogger.Errorf("failed to stop: %s", err.Error())
 	}
+}
+
+func (t *TCPConnector) OnConnect(listener cherryFacade.OnConnectListener) {
+	t.onConnectListener = listener
 }

@@ -10,28 +10,28 @@ import (
 	"time"
 )
 
-type WebSocketConnector struct {
+type WSConnector struct {
 	address           string
 	listener          net.Listener
 	up                *websocket.Upgrader
 	certFile          string
 	keyFile           string
-	onConnectListener cherryFacade.IConnectListener
+	onConnectListener cherryFacade.OnConnectListener
 }
 
-func NewWSConnector(address string) *WebSocketConnector {
+func NewWebSocket(address string) *WSConnector {
 	if address == "" {
 		cherryLogger.Warn("create websocket fail. address is null.")
 		return nil
 	}
 
-	ws := &WebSocketConnector{
+	ws := &WSConnector{
 		address: address,
 	}
 	return ws
 }
 
-func NewWSConnectorLTS(address, certFile, keyFile string) *WebSocketConnector {
+func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
 	if address == "" {
 		cherryLogger.Warn("create websocket fail. address is null.")
 		return nil
@@ -42,7 +42,7 @@ func NewWSConnectorLTS(address, certFile, keyFile string) *WebSocketConnector {
 		return nil
 	}
 
-	w := &WebSocketConnector{
+	w := &WSConnector{
 		address:  address,
 		certFile: certFile,
 		keyFile:  keyFile,
@@ -52,7 +52,7 @@ func NewWSConnectorLTS(address, certFile, keyFile string) *WebSocketConnector {
 }
 
 // ListenAndServe listens and serve in the specified addr
-func (w *WebSocketConnector) OnStart() {
+func (w *WSConnector) OnStart() {
 	if w.onConnectListener == nil {
 		panic("onConnectionListener() not set.")
 	}
@@ -64,7 +64,7 @@ func (w *WebSocketConnector) OnStart() {
 		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
 	}
 
-	cherryLogger.Debugf("websocket connector listening at address %s", w.address)
+	cherryLogger.Infof("websocket connector listening at address %s", w.address)
 
 	w.up = &websocket.Upgrader{
 		ReadBufferSize:  1024,
@@ -80,11 +80,11 @@ func (w *WebSocketConnector) OnStart() {
 	}
 }
 
-func (w *WebSocketConnector) OnConnect(listener cherryFacade.IConnectListener) {
+func (w *WSConnector) OnConnect(listener cherryFacade.OnConnectListener) {
 	w.onConnectListener = listener
 }
 
-func (w *WebSocketConnector) OnStop() {
+func (w *WSConnector) OnStop() {
 	err := w.listener.Close()
 	if err != nil {
 		cherryLogger.Errorf("Failed to stop: %s", err.Error())
@@ -92,7 +92,7 @@ func (w *WebSocketConnector) OnStop() {
 }
 
 //ServerHTTP server.Handler
-func (w *WebSocketConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	wsConn, err := w.up.Upgrade(rw, r, nil)
 	if err != nil {
 		cherryLogger.Infof("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
@@ -136,7 +136,9 @@ func (c *wsConn) Read(b []byte) (int, error) {
 	n, err := c.reader.Read(b)
 	if err != nil && err != io.EOF {
 		return n, err
-	} else if err == io.EOF {
+	}
+
+	if err == io.EOF {
 		_, r, err := c.conn.NextReader()
 		if err != nil {
 			return 0, err

@@ -2,8 +2,8 @@ package cherryReflect
 
 import (
 	"fmt"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/string"
-	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/facade"
 	"reflect"
 	"runtime"
@@ -42,18 +42,18 @@ func IsNil(v reflect.Value) bool {
 //getInvokeFunc reflect function convert to HandlerFn
 func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error) {
 	if name == "" {
-		return nil, cherryUtils.Error("func name is nil")
+		return nil, cherryError.Error("func name is nil")
 	}
 
 	if fn == nil {
-		return nil, cherryUtils.Errorf("func is nil. name = %s", name)
+		return nil, cherryError.Errorf("func is nil. name = %s", name)
 	}
 
 	typ := reflect.TypeOf(fn)
 	val := reflect.ValueOf(fn)
 
 	if typ.Kind() != reflect.Func {
-		return nil, cherryUtils.Errorf("name = %s is not func type.", name)
+		return nil, cherryError.Errorf("name = %s is not func type.", name)
 	}
 
 	var inArgs []reflect.Type

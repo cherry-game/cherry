@@ -2,7 +2,7 @@
   "debug": true,
   "logger": {
     "game_log": {
-      "level": "info",
+      "level": "debug",
       "enable_write_file": true,
       "enable_console" : true,
       "file_path": "logs/game.log",

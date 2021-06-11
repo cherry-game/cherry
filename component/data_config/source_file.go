@@ -1,8 +1,8 @@
 package cherryDataConfig
 
 import (
+	cherryError "github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/file"
-	"github.com/cherry-game/cherry/extend/utils"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
@@ -63,25 +63,25 @@ func (f *SourceFile) Init(_ IDataConfig) {
 
 func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 	if configName == "" {
-		return nil, cherryUtils.Error("configName is empty.")
+		return nil, cherryError.Error("configName is empty.")
 	}
 
 	fullPath, err := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
 	if err != nil {
-		return nil, cherryUtils.Errorf("file not found. err = %v, fullPath = %s", err, fullPath)
+		return nil, cherryError.Errorf("file not found. err = %v, fullPath = %s", err, fullPath)
 	}
 
 	if cherryFile.IsDir(fullPath) {
-		return nil, cherryUtils.Errorf("path is dir. fullPath = %s", err, fullPath)
+		return nil, cherryError.Errorf("path is dir. fullPath = %s", err, fullPath)
 	}
 
 	data, err = ioutil.ReadFile(fullPath)
 	if err != nil {
-		return nil, cherryUtils.Errorf("read file err. err = %v path = %s", err, fullPath)
+		return nil, cherryError.Errorf("read file err. err = %v path = %s", err, fullPath)
 	}
 
 	if len(data) < 1 {
-		return nil, cherryUtils.Error("configName data is err.")
+		return nil, cherryError.Error("configName data is err.")
 	}
 
 	return data, nil

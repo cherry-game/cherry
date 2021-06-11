@@ -2,7 +2,7 @@
 package cherryTime
 
 import (
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/error"
 	"strconv"
 	"time"
 )
@@ -116,7 +116,7 @@ func CreateFromTime(hour int, minute int, second int) CherryTime {
 func ParseByDuration(duration string) (time.Duration, error) {
 	td, err := time.ParseDuration(duration)
 	if err != nil {
-		err = cherryUtils.Errorf("invalid duration %d", duration)
+		err = cherryError.Errorf("invalid duration %d", duration)
 	}
 	return td, err
 }
