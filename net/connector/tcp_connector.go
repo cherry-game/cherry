@@ -1,10 +1,10 @@
 package cherryConnector
 
 import (
-	cherryError "github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	"github.com/cherry-game/cherry/net/packet"
 	"io"
 	"io/ioutil"
 	"net"

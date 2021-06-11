@@ -1,10 +1,10 @@
 package cherryConnector
 
 import (
-	cherryError "github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	"github.com/cherry-game/cherry/net/packet"
 	"github.com/gorilla/websocket"
 	"io"
 	"net"
@@ -21,7 +21,7 @@ type WSConnector struct {
 	onConnectListener cherryFacade.OnConnectListener
 }
 
-func NewWebSocket(address string) *WSConnector {
+func NewWS(address string) *WSConnector {
 	if address == "" {
 		cherryLogger.Warn("create websocket fail. address is null.")
 		return nil

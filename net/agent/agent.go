@@ -34,7 +34,7 @@ type (
 	// process packet listener function
 	PacketListener func(agent *Agent, packet *cherryPacket.Packet)
 
-	AgentOpt struct {
+	Options struct {
 		Heartbeat        int                      // heartbeat(sec)
 		DataCompression  bool                     // data compression
 		PacketDecoder    cherryPacket.Decoder     // binary packet decoder
@@ -46,7 +46,7 @@ type (
 	}
 
 	Agent struct {
-		AgentOpt
+		Options
 		Session    *cherrySession.Session // session
 		Conn       cherryFacade.Conn      // low-level conn fd
 		RpcHandler RpcHandler             // rpc client invoke handler
@@ -69,9 +69,9 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(opt AgentOpt, session *cherrySession.Session, conn cherryFacade.Conn, rpcHandler RpcHandler) *Agent {
+func NewAgent(opt Options, session *cherrySession.Session, conn cherryFacade.Conn, rpcHandler RpcHandler) *Agent {
 	agent := &Agent{
-		AgentOpt:   opt,
+		Options:    opt,
 		Session:    session,
 		Conn:       conn,
 		RpcHandler: rpcHandler,

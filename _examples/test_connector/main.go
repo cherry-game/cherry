@@ -18,7 +18,7 @@ func main() {
 		cherrySession.NewComponent(),
 		cherryHandler.NewComponent(),
 		httpServer,
-		cherryConnector.NewWebsocketComponent("127.0.0.1:34590"),
+		cherryConnector.NewWSComponent("127.0.0.1:34590"),
 	)
 
 	app.OnShutdown()

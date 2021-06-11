@@ -15,20 +15,20 @@ import (
 )
 
 type (
-	// ConnectorComponent (连接器组件适用于前端节点)
-	ConnectorComponent struct {
+	// Component (连接器组件适用于前端节点)
+	Component struct {
 		facade.Component
-		cherryAgent.AgentOpt
+		cherryAgent.Options
 		ConnectStat      *ConnectStat
 		sessionComponent *cherrySession.SessionComponent
-		handlerComponent *cherryHandler.HandlerComponent
+		handlerComponent *cherryHandler.Component
 		connector        facade.IConnector
 		packetHandles    map[byte]cherryAgent.PacketListener
 	}
 )
 
-func NewTCPComponent(address string) *ConnectorComponent {
-	opt := cherryAgent.AgentOpt{
+func NewTCPComponent(address string) *Component {
+	opt := cherryAgent.Options{
 		Heartbeat:        60,
 		DataCompression:  false,
 		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
@@ -44,8 +44,8 @@ func NewTCPComponent(address string) *ConnectorComponent {
 	return NewConnectorWithOpt(opt, ws)
 }
 
-func NewWebsocketComponent(address string) *ConnectorComponent {
-	opt := cherryAgent.AgentOpt{
+func NewWSComponent(address string) *Component {
+	opt := cherryAgent.Options{
 		Heartbeat:        60,
 		DataCompression:  false,
 		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
@@ -56,38 +56,38 @@ func NewWebsocketComponent(address string) *ConnectorComponent {
 		OnCloseListener:  make([]cherryAgent.SessionListener, 0),
 	}
 
-	ws := NewWebSocket(address)
+	ws := NewWS(address)
 
 	return NewConnectorWithOpt(opt, ws)
 }
 
-func NewConnectorWithOpt(opts cherryAgent.AgentOpt, connector facade.IConnector) *ConnectorComponent {
-	return &ConnectorComponent{
-		AgentOpt:      opts,
+func NewConnectorWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
+	return &Component{
+		Options:       opts,
 		connector:     connector,
 		ConnectStat:   &ConnectStat{},
 		packetHandles: make(map[byte]cherryAgent.PacketListener),
 	}
 }
 
-func (p *ConnectorComponent) Name() string {
+func (p *Component) Name() string {
 	return cherryConst.ConnectorPomeloComponent
 }
 
-func (p *ConnectorComponent) Init() {
+func (p *Component) Init() {
 	p.packetHandles[cherryPacket.Handshake] = p.handshake
 	p.packetHandles[cherryPacket.HandshakeAck] = p.handshakeACK
 	p.packetHandles[cherryPacket.Heartbeat] = p.heartbeat
 	p.packetHandles[cherryPacket.Data] = p.handData
 }
 
-func (p *ConnectorComponent) OnAfterInit() {
+func (p *Component) OnAfterInit() {
 	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
 	if p.sessionComponent == nil {
 		panic("please preload session component.")
 	}
 
-	p.handlerComponent = p.App().Find(cherryConst.HandlerComponent).(*cherryHandler.HandlerComponent)
+	p.handlerComponent = p.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
 	if p.handlerComponent == nil {
 		panic("preload handler component please.")
 	}
@@ -126,7 +126,7 @@ func (p *ConnectorComponent) OnAfterInit() {
 
 		// create agent
 		// TODO  add rpcHandler!
-		agent := cherryAgent.NewAgent(p.AgentOpt, session, conn, nil)
+		agent := cherryAgent.NewAgent(p.Options, session, conn, nil)
 
 		session.SetNetwork(agent)
 
@@ -138,7 +138,7 @@ func (p *ConnectorComponent) OnAfterInit() {
 	go p.connector.OnStart()
 }
 
-func (p *ConnectorComponent) OnStop() {
+func (p *Component) OnStop() {
 	if p.sessionComponent != nil {
 		p.sessionComponent.CloseAll()
 	}
@@ -148,19 +148,19 @@ func (p *ConnectorComponent) OnStop() {
 	}
 }
 
-func (p *ConnectorComponent) OnCreateSession(listener ...cherryAgent.SessionListener) {
+func (p *Component) OnCreateSession(listener ...cherryAgent.SessionListener) {
 	p.OnCreateListener = append(p.OnCreateListener, listener...)
 }
 
-func (p *ConnectorComponent) OnCloseSession(listener ...cherryAgent.SessionListener) {
+func (p *Component) OnCloseSession(listener ...cherryAgent.SessionListener) {
 	p.OnCloseListener = append(p.OnCloseListener, listener...)
 }
 
-func (p *ConnectorComponent) SetPacketHandle(typ byte, listener cherryAgent.PacketListener) {
+func (p *Component) SetPacketHandle(typ byte, listener cherryAgent.PacketListener) {
 	p.packetHandles[typ] = listener
 }
 
-func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
+func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	data := map[string]interface{}{
 		"code": 200,
 	}
@@ -186,13 +186,13 @@ func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket
 	cherryLogger.Debugf("sid = %d request handshake", agent.Session.SID())
 }
 
-func (p *ConnectorComponent) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
+func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	agent.SetStatus(cherryAgent.Working)
 
 	cherryLogger.Debugf("sid = %d request handshakeACK", agent.Session.SID())
 }
 
-func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
+func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	bytes, err := agent.PacketEncoder.Encode(cherryPacket.Heartbeat, nil)
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -207,7 +207,7 @@ func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket
 	cherryLogger.Debugf("sid:%d request heartbeat", agent.Session.SID())
 }
 
-func (p *ConnectorComponent) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) {
+func (p *Component) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) {
 	if agent.Status() != cherryAgent.Working {
 		cherryLogger.Warnf("status is not working. session=[%s]", agent.Session)
 		return

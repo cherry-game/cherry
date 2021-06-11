@@ -36,7 +36,7 @@ func (p *PomeloEncoder) Encode(typ byte, data []byte) ([]byte, error) {
 	buf[0] = pkg.Type
 
 	//2~4 字节 存放消息长度
-	copy(buf[1:HeadLength], intToBytes(pkg.Length))
+	copy(buf[1:HeadLength], IntToBytes(pkg.Length))
 
 	//4字节之后存放的内容是消息体
 	copy(buf[HeadLength:], data)
@@ -45,7 +45,7 @@ func (p *PomeloEncoder) Encode(typ byte, data []byte) ([]byte, error) {
 }
 
 // Encode packet data length to bytes(Big end)
-func intToBytes(n int) []byte {
+func IntToBytes(n int) []byte {
 	buf := make([]byte, 3)
 	buf[0] = byte((n >> 16) & 0xFF)
 	buf[1] = byte((n >> 8) & 0xFF)

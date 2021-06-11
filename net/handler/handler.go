@@ -17,7 +17,7 @@ type (
 		eventFn          map[string][]facade.EventFn  // event func
 		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
 		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
-		handlerComponent *HandlerComponent            // handler component
+		handlerComponent *Component                   // handler component
 	}
 )
 
@@ -42,7 +42,7 @@ func (h *Handler) OnPreInit() {
 		h.remoteHandlers = make(map[string]*facade.HandlerFn)
 	}
 
-	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
+	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*Component)
 	if h.handlerComponent == nil {
 		cherryLogger.Warn("not found handlerComponent.")
 	}
@@ -124,7 +124,7 @@ func (h *Handler) OnStop() {
 	}
 }
 
-func (h *Handler) HandlerComponent() *HandlerComponent {
+func (h *Handler) HandlerComponent() *Component {
 	return h.handlerComponent
 }
 

@@ -132,7 +132,7 @@ func DefaultWorkerExecutor(handler cherryFacade.IHandler, worker *Worker) {
 		}
 	}()
 
-	component := handler.App().Find(cherryConst.HandlerComponent).(*HandlerComponent)
+	component := handler.App().Find(cherryConst.HandlerComponent).(*Component)
 	if component == nil {
 		cherryLogger.Warn("not find handlerComponent.")
 		return

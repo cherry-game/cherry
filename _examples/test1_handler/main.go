@@ -55,7 +55,7 @@ func app() {
 	//go mockEventMsg(handlers)
 }
 
-func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
+func mockRequestMsg1(handler *cherryHandler.Component) {
 	handlerLogger := cherryLogger.NewLogger("test_handler")
 	i := 0
 
@@ -81,7 +81,7 @@ func mockRequestMsg1(handler *cherryHandler.HandlerComponent) {
 	}
 }
 
-func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
+func mockRequestMsg2(handler *cherryHandler.Component) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
 
@@ -96,7 +96,7 @@ func mockRequestMsg2(handler *cherryHandler.HandlerComponent) {
 	}
 }
 
-func mockEventMsg(handler *cherryHandler.HandlerComponent) {
+func mockEventMsg(handler *cherryHandler.Component) {
 	for {
 		handler.PostEvent(mocks.NewTestEvent())
 		//time.Sleep(time.Millisecond * 1)

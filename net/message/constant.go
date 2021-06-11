@@ -19,10 +19,10 @@ const (
 type Type byte
 
 var types = map[Type]string{
-	TypeRequest:  "TYPE_REQUEST",
-	TypeNotify:   "TypeNotify",
-	TypeResponse: "TypeResponse",
-	TypePush:     "TypePush",
+	TypeRequest:  "REQUEST",
+	TypeNotify:   "Notify",
+	TypeResponse: "Response",
+	TypePush:     "Push",
 }
 
 func (t *Type) String() string {

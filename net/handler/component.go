@@ -3,23 +3,23 @@ package cherryHandler
 import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/session"
 )
 
 type (
-	//handlerComponent Handler component
-	HandlerComponent struct {
-		cherryFacade.Component                                  // base component
-		HandlerOptions                                          // opts
-		handlers               map[string]cherryFacade.IHandler // key:handlerName, value: Handler
+	//Component handler component
+	Component struct {
+		facade.Component                            // base component
+		Options                                     // opts
+		handlers         map[string]facade.IHandler // key:handlerName, value: Handler
 		//rpc client
 	}
 
-	HandlerOptions struct {
+	Options struct {
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
@@ -34,10 +34,10 @@ type (
 	FilterFn func(msg *UnhandledMessage) bool
 )
 
-func NewComponent() *HandlerComponent {
-	return &HandlerComponent{
-		handlers: make(map[string]cherryFacade.IHandler),
-		HandlerOptions: HandlerOptions{
+func NewComponent() *Component {
+	return &Component{
+		handlers: make(map[string]facade.IHandler),
+		Options: Options{
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn: func(s string) string {
@@ -47,11 +47,11 @@ func NewComponent() *HandlerComponent {
 	}
 }
 
-func (h *HandlerComponent) Name() string {
+func (h *Component) Name() string {
 	return cherryConst.HandlerComponent
 }
 
-func (h *HandlerComponent) Init() {
+func (h *Component) Init() {
 	for _, handler := range h.handlers {
 		handler.Set(h.App())
 		handler.OnPreInit()
@@ -60,13 +60,13 @@ func (h *HandlerComponent) Init() {
 	}
 }
 
-func (h *HandlerComponent) OnStop() {
+func (h *Component) OnStop() {
 	for _, handler := range h.handlers {
 		handler.OnStop()
 	}
 }
 
-func (h *HandlerComponent) Registers(handlers ...cherryFacade.IHandler) {
+func (h *Component) Registers(handlers ...facade.IHandler) {
 	for _, handler := range handlers {
 		name := handler.Name()
 		if name == "" {
@@ -76,7 +76,7 @@ func (h *HandlerComponent) Registers(handlers ...cherryFacade.IHandler) {
 	}
 }
 
-func (h *HandlerComponent) RegisterWithName(name string, handler cherryFacade.IHandler) {
+func (h *Component) RegisterWithName(name string, handler facade.IHandler) {
 	if name == "" {
 		cherryLogger.Warnf("[Handler = %s] name is empty. skipped.", cherryReflect.GetStructName(handler))
 		return
@@ -103,7 +103,7 @@ func (h *HandlerComponent) RegisterWithName(name string, handler cherryFacade.IH
 	h.handlers[name] = handler
 }
 
-func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
+func (h *Component) DoHandle(msg *UnhandledMessage) {
 	if !h.App().Running() {
 		//ignore message
 		return
@@ -130,13 +130,13 @@ func (h *HandlerComponent) DoHandle(msg *UnhandledMessage) {
 	}
 }
 
-func (h *HandlerComponent) doForward(msg *UnhandledMessage) {
+func (h *Component) doForward(msg *UnhandledMessage) {
 	// TODO 通过rpc 转发到远程节点
 	// rpc client invoke
 	cherryLogger.Debugf("forward message = %s", msg)
 }
 
-func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryFacade.IHandler {
+func (h *Component) GetHandler(route *cherryRoute.Route) facade.IHandler {
 	handlerName := h.nameFn(route.HandleName())
 	if handlerName == "" {
 		cherryLogger.Warnf("could not find handle name. Route = %v", route)
@@ -152,7 +152,7 @@ func (h *HandlerComponent) GetHandler(route *cherryRoute.Route) cherryFacade.IHa
 }
 
 // PostEvent 发布事件
-func (h *HandlerComponent) PostEvent(event cherryFacade.IEvent) {
+func (h *Component) PostEvent(event facade.IEvent) {
 	if event == nil {
 		return
 	}
@@ -164,29 +164,29 @@ func (h *HandlerComponent) PostEvent(event cherryFacade.IEvent) {
 	}
 }
 
-func (c *HandlerOptions) GetBeforeFilter() []FilterFn {
+func (c *Options) GetBeforeFilter() []FilterFn {
 	return c.beforeFilters
 }
 
-func (c *HandlerOptions) BeforeFilter(beforeFilters ...FilterFn) {
+func (c *Options) BeforeFilter(beforeFilters ...FilterFn) {
 	if len(beforeFilters) < 1 {
 		return
 	}
 	c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 }
 
-func (c *HandlerOptions) GetAfterFilter() []FilterFn {
+func (c *Options) GetAfterFilter() []FilterFn {
 	return c.afterFilters
 }
 
-func (c *HandlerOptions) AfterFilter(afterFilters ...FilterFn) {
+func (c *Options) AfterFilter(afterFilters ...FilterFn) {
 	if len(afterFilters) < 1 {
 		return
 	}
 	c.afterFilters = append(c.afterFilters, afterFilters...)
 }
 
-func (c *HandlerOptions) SetNameFn(fn func(string) string) {
+func (c *Options) SetNameFn(fn func(string) string) {
 	if fn == nil {
 		return
 	}
