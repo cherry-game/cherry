@@ -2,11 +2,10 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryGin "github.com/cherry-game/cherry/component/gin"
-	cherryConnector "github.com/cherry-game/cherry/net/connector"
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
-	cherrySession "github.com/cherry-game/cherry/net/session"
-	"net/http"
+	"github.com/cherry-game/cherry/component/gin"
+	"github.com/cherry-game/cherry/net/connector"
+	"github.com/cherry-game/cherry/net/handler"
+	"github.com/cherry-game/cherry/net/session"
 )
 
 func main() {
@@ -15,7 +14,7 @@ func main() {
 	defer app.OnShutdown()
 
 	httpServer := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
-	httpServer.GetEngine().StaticFS("/", http.Dir("F:\\bd\\cherry\\_examples\\test_connector\\web\\"))
+	httpServer.StaticFS("/", "./web/")
 
 	app.OnStartup(
 		cherrySession.NewComponent(),

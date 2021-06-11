@@ -36,15 +36,20 @@ func IsDir(path string) bool {
 	return false
 }
 
+var (
+	mainFuncDir = ""
+)
+
 func GetMainFuncDir() string {
-	var buf [2 << 16]byte
-	stack := string(buf[:runtime.Stack(buf[:], true)])
+	if mainFuncDir == "" {
+		var buf [2 << 16]byte
+		stack := string(buf[:runtime.Stack(buf[:], true)])
 
-	lines := strings.Split(strings.TrimSpace(stack), "\n")
-	lastLine := strings.TrimSpace(lines[len(lines)-1])
-
-	filePath := lastLine[:strings.LastIndex(lastLine, "/")]
-	return filePath
+		lines := strings.Split(strings.TrimSpace(stack), "\n")
+		lastLine := strings.TrimSpace(lines[len(lines)-1])
+		mainFuncDir = lastLine[:strings.LastIndex(lastLine, "/")]
+	}
+	return mainFuncDir
 }
 
 func GetWorkPath() string {

@@ -2,6 +2,7 @@ package cherryGin
 
 import (
 	"context"
+	"github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
@@ -28,8 +29,8 @@ type (
 	// Component wrapper gin
 	Component struct {
 		cherryFacade.Component
+		*gin.Engine
 		name        string
-		engine      *gin.Engine
 		server      *http.Server
 		options     ComponentOptions
 		controllers []IController
@@ -52,7 +53,7 @@ func NewHttps(name, address, certFile, keyFile string, middleware ...gin.Handler
 	})
 
 	//add default middleware
-	component.engine.Use(middleware...)
+	component.Use(middleware...)
 
 	return component
 }
@@ -60,10 +61,11 @@ func NewHttps(name, address, certFile, keyFile string, middleware ...gin.Handler
 func NewWithOptions(name string, options ComponentOptions) *Component {
 	return &Component{
 		name:    name,
-		engine:  gin.New(),
+		Engine:  gin.New(),
 		server:  &http.Server{},
 		options: options,
 	}
+
 }
 
 func (g *Component) Register(controllers ...IController) *Component {
@@ -73,8 +75,13 @@ func (g *Component) Register(controllers ...IController) *Component {
 	return g
 }
 
-func (g *Component) GetEngine() *gin.Engine {
-	return g.engine
+func (g *Component) StaticFS(relativePath string, staticDir string) {
+	dir, ok := cherryFile.JudgePath(staticDir)
+	if !ok {
+		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
+	}
+
+	g.Engine.StaticFS(relativePath, http.Dir(dir))
 }
 
 // Name unique components name
@@ -91,7 +98,7 @@ func (g *Component) OnAfterInit() {
 		return
 	}
 
-	g.server.Handler = g.engine
+	g.server.Handler = g
 	g.server.Addr = g.options.Address
 
 	if g.options.ReadTimeout > 0 {
@@ -115,7 +122,7 @@ func (g *Component) OnAfterInit() {
 	}
 
 	for _, controller := range g.controllers {
-		controller.PreInit(g.App(), g.engine)
+		controller.PreInit(g.App(), g.Engine)
 		controller.Init()
 	}
 
