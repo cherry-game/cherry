@@ -11,8 +11,6 @@ import (
 func main() {
 	app := cherry.NewApp("../test1_handler/profile/", "local", "web-1")
 
-	defer app.OnShutdown()
-
 	httpServer := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
 	httpServer.StaticFS("/", "./web/")
 
@@ -23,4 +21,5 @@ func main() {
 		cherryConnector.NewWebsocketComponent("127.0.0.1:34590"),
 	)
 
+	app.OnShutdown()
 }

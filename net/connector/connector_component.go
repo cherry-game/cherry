@@ -183,13 +183,13 @@ func (p *ConnectorComponent) handshake(agent *cherryAgent.Agent, _ *cherryPacket
 		cherryLogger.Error(err)
 	}
 
-	cherryLogger.Debugf("sid:%d request handshake", agent.Session.SID())
+	cherryLogger.Debugf("sid = %d request handshake", agent.Session.SID())
 }
 
 func (p *ConnectorComponent) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	agent.SetStatus(cherryAgent.Working)
 
-	cherryLogger.Debugf("sid:%d request handshakeACK", agent.Session.SID())
+	cherryLogger.Debugf("sid = %d request handshakeACK", agent.Session.SID())
 }
 
 func (p *ConnectorComponent) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {

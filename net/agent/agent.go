@@ -161,7 +161,7 @@ func (a *Agent) Close() {
 	a.SetStatus(Closed)
 
 	if cherryProfile.Debug() {
-		cherryLogger.Debugf("session closed. %s", a.Session)
+		cherryLogger.Debugf("session closed. [%s]", a.Session)
 	}
 
 	for _, listener := range a.OnCloseListener {

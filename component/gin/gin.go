@@ -79,9 +79,18 @@ func (g *Component) StaticFS(relativePath string, staticDir string) {
 	dir, ok := cherryFile.JudgePath(staticDir)
 	if !ok {
 		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
+		return
 	}
-
 	g.Engine.StaticFS(relativePath, http.Dir(dir))
+}
+
+func (g *Component) StaticFile(relativePath string, staticDir string) {
+	dir, ok := cherryFile.JudgePath(staticDir)
+	if !ok {
+		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
+		return
+	}
+	g.Engine.StaticFile(relativePath, dir)
 }
 
 // Name unique components name
