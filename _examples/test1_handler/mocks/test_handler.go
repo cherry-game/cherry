@@ -41,7 +41,7 @@ func (t *TestHandler) testMethod2(session *cherrySession.Session, message *cherr
 }
 
 func (t *TestHandler) testMethod(session *cherrySession.Session, message *cherryMessage.Message) {
-	cherryLogger.Debugf("session = %s, message = %s", session, message)
+	cherryLogger.Debugf("session[%s], message[%v]", session, message)
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {

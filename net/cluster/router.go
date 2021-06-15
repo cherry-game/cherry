@@ -2,8 +2,8 @@ package cherryCluster
 
 import (
 	"github.com/cherry-game/cherry/error"
+	cherryCrypto "github.com/cherry-game/cherry/extend/crypto"
 	"github.com/cherry-game/cherry/net/session"
-	"hash/crc32"
 	"math"
 	"math/rand"
 )
@@ -16,13 +16,13 @@ func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteConte
 		return
 	}
 
-	hash := crc32.ChecksumIEEE([]byte(string(session.UID())))
-	index := int(hash) % len(list)
+	hash := cherryCrypto.CRC32(session.UID())
+	index := hash % len(list)
 	cb(nil, list[index].Id)
 }
 
 // Random algorithm for calculating node id.
-func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
+func RandomRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
@@ -33,7 +33,7 @@ func RandomRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
 	cb(nil, list[index])
 }
 
-func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
+func RoundRobinRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
@@ -52,7 +52,7 @@ func RoundRobinRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback)
 	client.RoundRobinParam[nodeType] = index
 }
 
-func WeightRoundRoute(client RpcClient, nodeType string, msg RpcMsg, cb Callback) {
+func WeightRoundRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")

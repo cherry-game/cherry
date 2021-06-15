@@ -15,7 +15,7 @@ func NextSID() facade.SID {
 
 type (
 	Session struct {
-		Settings
+		settings
 		entity     facade.INetwork   // network
 		sid        facade.SID        // session id
 		uid        facade.UID        // user unique id
@@ -25,7 +25,7 @@ type (
 
 func NewSession(sid facade.SID, frontendId facade.FrontendId) *Session {
 	session := &Session{
-		Settings: Settings{
+		settings: settings{
 			data: make(map[string]interface{}),
 		},
 		sid:        sid,
@@ -107,6 +107,9 @@ func (s *Session) Closed() {
 }
 
 func (s *Session) RemoteAddress() string {
+	if s.entity == nil {
+		return ""
+	}
 	return s.entity.RemoteAddr().String()
 }
 

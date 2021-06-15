@@ -9,9 +9,9 @@ import (
 func TestNewWSConnector(t *testing.T) {
 	connector := NewWS(":9071")
 
-	connector.OnConnect(func(conn cherryFacade.Conn) {
+	connector.OnConnect(func(conn cherryFacade.INetConn) {
 		//s := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
-		//cherryLogger.Infof("new session sid = %d, address = %s", s.SID(), s.Conn().RemoteAddr().String())
+		//cherryLogger.Infof("new session sid = %d, address = %s", s.SID(), s.INetConn().RemoteAddr().String())
 		//
 		//s.OnMessage(func(bytes []byte) (err error) {
 		//	text := string(bytes)

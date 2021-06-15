@@ -9,8 +9,8 @@ import (
 func TestNewTCPConnector(t *testing.T) {
 	connector := NewTCP(":9071")
 
-	connector.OnConnect(func(conn facade.Conn) {
-		cherryLogger.Infof("new net.Conn = %s", conn.RemoteAddr())
+	connector.OnConnect(func(conn facade.INetConn) {
+		cherryLogger.Infof("new net.INetConn = %s", conn.RemoteAddr())
 
 		//session := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
 		//

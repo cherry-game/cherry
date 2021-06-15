@@ -8,9 +8,9 @@ import (
 
 // Route struct
 type Route struct {
-	nodeType   string //结点类型
-	handleName string //服务名
-	method     string //方法名
+	nodeType   string // node server type name
+	handleName string // handle name
+	method     string // method name
 }
 
 func (r *Route) NodeType() string {

@@ -2,26 +2,26 @@ package cherrySession
 
 import "sync"
 
-type Settings struct {
+type settings struct {
 	sync.RWMutex
 	data map[string]interface{} // setting data
 }
 
-func (s *Settings) Data() map[string]interface{} {
+func (s *settings) Data() map[string]interface{} {
 	s.RLock()
 	defer s.RUnlock()
 
 	return s.data
 }
 
-func (s *Settings) Remove(key string) {
+func (s *settings) Remove(key string) {
 	s.Lock()
 	defer s.Unlock()
 
 	delete(s.data, key)
 }
 
-func (s *Settings) Set(key string, value interface{}) {
+func (s *settings) Set(key string, value interface{}) {
 	if key == "" || value == nil {
 		return
 	}
@@ -31,7 +31,7 @@ func (s *Settings) Set(key string, value interface{}) {
 	s.data[key] = value
 }
 
-func (s *Settings) Contains(key string) bool {
+func (s *settings) Contains(key string) bool {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -39,7 +39,7 @@ func (s *Settings) Contains(key string) bool {
 	return exist
 }
 
-func (s *Settings) Restore(data map[string]interface{}) {
+func (s *settings) Restore(data map[string]interface{}) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -47,14 +47,14 @@ func (s *Settings) Restore(data map[string]interface{}) {
 }
 
 // Clear releases all settings related to current sc
-func (s *Settings) Clear() {
+func (s *settings) Clear() {
 	s.Lock()
 	defer s.Unlock()
 
 	s.data = map[string]interface{}{}
 }
 
-func (s *Settings) GetInt(key string) int {
+func (s *settings) GetInt(key string) int {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -71,7 +71,7 @@ func (s *Settings) GetInt(key string) int {
 }
 
 // Int8 returns the value associated with the key as a int8.
-func (s *Settings) GetInt8(key string) int8 {
+func (s *settings) GetInt8(key string) int8 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -88,7 +88,7 @@ func (s *Settings) GetInt8(key string) int8 {
 }
 
 // Int16 returns the value associated with the key as a int16.
-func (s *Settings) GetInt16(key string) int16 {
+func (s *settings) GetInt16(key string) int16 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -105,7 +105,7 @@ func (s *Settings) GetInt16(key string) int16 {
 }
 
 // Int32 returns the value associated with the key as a int32.
-func (s *Settings) GetInt32(key string) int32 {
+func (s *settings) GetInt32(key string) int32 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -122,7 +122,7 @@ func (s *Settings) GetInt32(key string) int32 {
 }
 
 // Int64 returns the value associated with the key as a int64.
-func (s *Settings) GetInt64(key string) int64 {
+func (s *settings) GetInt64(key string) int64 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -139,7 +139,7 @@ func (s *Settings) GetInt64(key string) int64 {
 }
 
 // Uint returns the value associated with the key as a uint.
-func (s *Settings) GetUint(key string) uint {
+func (s *settings) GetUint(key string) uint {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -156,7 +156,7 @@ func (s *Settings) GetUint(key string) uint {
 }
 
 // Uint8 returns the value associated with the key as a uint8.
-func (s *Settings) GetUint8(key string) uint8 {
+func (s *settings) GetUint8(key string) uint8 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -173,7 +173,7 @@ func (s *Settings) GetUint8(key string) uint8 {
 }
 
 // Uint16 returns the value associated with the key as a uint16.
-func (s *Settings) GetUint16(key string) uint16 {
+func (s *settings) GetUint16(key string) uint16 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -190,7 +190,7 @@ func (s *Settings) GetUint16(key string) uint16 {
 }
 
 // Uint32 returns the value associated with the key as a uint32.
-func (s *Settings) GetUint32(key string) uint32 {
+func (s *settings) GetUint32(key string) uint32 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -207,7 +207,7 @@ func (s *Settings) GetUint32(key string) uint32 {
 }
 
 // Uint64 returns the value associated with the key as a uint64.
-func (s *Settings) GetUint64(key string) uint64 {
+func (s *settings) GetUint64(key string) uint64 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -224,7 +224,7 @@ func (s *Settings) GetUint64(key string) uint64 {
 }
 
 // Float32 returns the value associated with the key as a float32.
-func (s *Settings) GetFloat32(key string) float32 {
+func (s *settings) GetFloat32(key string) float32 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -241,7 +241,7 @@ func (s *Settings) GetFloat32(key string) float32 {
 }
 
 // Float64 returns the value associated with the key as a float64.
-func (s *Settings) GetFloat64(key string) float64 {
+func (s *settings) GetFloat64(key string) float64 {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -258,7 +258,7 @@ func (s *Settings) GetFloat64(key string) float64 {
 }
 
 // String returns the value associated with the key as a string.
-func (s *Settings) GetString(key string) string {
+func (s *settings) GetString(key string) string {
 	s.RLock()
 	defer s.RUnlock()
 
@@ -275,7 +275,7 @@ func (s *Settings) GetString(key string) string {
 }
 
 // Value returns the value associated with the key as a interface{}.
-func (s *Settings) GetValue(key string) interface{} {
+func (s *settings) GetValue(key string) interface{} {
 	s.RLock()
 	defer s.RUnlock()
 

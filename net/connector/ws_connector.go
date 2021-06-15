@@ -117,8 +117,8 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	go w.onConnectListener(conn)
 }
 
-// wsConn is an adapter to t.Conn, which implements all t.Conn
-// interface base on *websocket.Conn
+// wsConn is an adapter to t.INetConn, which implements all t.INetConn
+// interface base on *websocket.INetConn
 type wsConn struct {
 	conn   *websocket.Conn
 	typ    int // message type

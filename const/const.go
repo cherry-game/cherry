@@ -11,6 +11,8 @@ const (
 	DataConfigComponent      = "data_config_component"
 	ORMComponent             = "db_orm_component"
 	ConnectorPomeloComponent = "connector_pomelo_component"
+	RPCServerComponent       = "rpc_server_component"
+	RPCClientComponent       = "rpc_client_component"
 )
 
 const (
@@ -25,7 +27,9 @@ var logo = `
 ██║░░╚═╝███████║█████╗░░██████╔╝██████╔╝░╚████╔╝░
 ██║░░██╗██╔══██║██╔══╝░░██╔══██╗██╔══██╗░░╚██╔╝░░
 ╚█████╔╝██║░░██║███████╗██║░░██║██║░░██║░░░██║░░░
-░╚════╝░╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░ game sever framework @v%s`
+░╚════╝░╚═╝░░╚═╝╚══════╝╚═╝░░╚═╝╚═╝░░╚═╝░░░╚═╝░░░ 
+game sever framework @v%s
+`
 
 func GetLOGO() string {
 	return fmt.Sprintf(logo, Version())

@@ -32,7 +32,7 @@ const (
 	// Heartbeat represents a heartbeat
 	Heartbeat Type = 0x03
 
-	// Settings represents a common data packet
+	// settings represents a common data packet
 	Data Type = 0x04
 
 	// Kick represents a kick off packet

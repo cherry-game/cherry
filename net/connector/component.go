@@ -128,7 +128,7 @@ func (p *Component) OnAfterInit() {
 	}
 
 	// default on connect
-	p.connector.OnConnect(func(conn facade.Conn) {
+	p.connector.OnConnect(func(conn facade.INetConn) {
 		// create new session
 		session := p.sessionComponent.Create(cherrySession.NextSID(), p.App().NodeId())
 

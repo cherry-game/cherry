@@ -1,43 +1,39 @@
 package cherryCluster
 
 import (
+	"fmt"
 	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 )
 
 var (
-	nodesConfig = NodeMap{}
-)
-
-type (
-	// {key:nodeType,value:{key:nodeId,value:NodeConfig}}
-	NodeMap map[string]map[string]cherryFacade.INode
+	nodesConfig = cherryFacade.NodeMap{}
 )
 
 // Load nodesConfig config
 func Load(config jsoniter.Any) error {
-	clusterNodes := config.Get("cluster")
+	clusterConfig := config.Get("cluster")
 
-	if clusterNodes.LastError() != nil {
+	if clusterConfig.LastError() != nil {
 		return cherryError.Error("cluster attribute not found in profile file.")
 	}
 
-	mode := clusterNodes.Get("mode").ToString()
+	mode := clusterConfig.Get("mode").ToString()
 	if mode == "" {
 		return cherryError.Error("cluster->mode attribute not found in profile file.")
 	}
 
 	if mode == "nodes" {
-		loadNodesFromConfigFile(clusterNodes.Get("nodes"))
+		loadNodesFromConfigFile(clusterConfig.Get("nodes"))
 	} else {
-		return cherryError.Error("not implemented")
+		panic(fmt.Sprintf("mode = %s not implemented", mode))
 	}
 
 	return nil
 }
 
-func Map() *NodeMap {
+func Map() *cherryFacade.NodeMap {
 	return &nodesConfig
 }
 

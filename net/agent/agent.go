@@ -47,7 +47,7 @@ type (
 	Agent struct {
 		Options
 		Session    *cherrySession.Session // session
-		Conn       cherryFacade.Conn      // low-level conn fd
+		Conn       cherryFacade.INetConn  // low-level conn fd
 		RpcHandler RpcHandler             // rpc client invoke handler
 		state      int32                  // current session state
 		chDie      chan bool              // wait for close
@@ -68,7 +68,7 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(opt Options, session *cherrySession.Session, conn cherryFacade.Conn, rpcHandler RpcHandler) *Agent {
+func NewAgent(opt Options, session *cherrySession.Session, conn cherryFacade.INetConn, rpcHandler RpcHandler) *Agent {
 	agent := &Agent{
 		Options:    opt,
 		Session:    session,
