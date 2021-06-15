@@ -35,7 +35,7 @@ type (
 	PacketListener func(agent *Agent, packet *cherryPacket.Packet)
 
 	Options struct {
-		Heartbeat        int                      // heartbeat(sec)
+		Heartbeat        time.Duration            // heartbeat(sec)
 		DataCompression  bool                     // data compression
 		PacketDecoder    cherryPacket.Decoder     // binary packet decoder
 		PacketEncoder    cherryPacket.Encoder     // binary packet encoder
@@ -93,6 +93,10 @@ func (a *Agent) SetStatus(state int32) {
 	atomic.StoreInt32(&a.state, state)
 }
 
+func (a *Agent) SetLastAt() {
+	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
+}
+
 func (a *Agent) SendRaw(bytes []byte) error {
 	a.chWrite <- bytes
 	return nil
@@ -148,8 +152,12 @@ func (a *Agent) RPC(route string, v interface{}) error {
 
 // ResponseMid, implementation for session.NetworkEntity interface
 // Response message to session
-func (a *Agent) ResponseMid(mid uint64, v interface{}) error {
+func (a *Agent) Response(mid uint64, v interface{}) error {
 	return a.Send(cherryMessage.TypeResponse, "", mid, v)
+}
+
+func (a *Agent) Kick(reason string) {
+	//TODO ...
 }
 
 // Close closes the Agent, clean inner state and close low-level connection.
@@ -173,14 +181,6 @@ func (a *Agent) Close() {
 		if next == false {
 			break
 		}
-	}
-
-	// prevent closing closed channel
-	select {
-	case <-a.chDie:
-		// expect
-	default:
-		close(a.chDie)
 	}
 
 	if err := a.Conn.Close(); err != nil {
@@ -220,18 +220,23 @@ func (a *Agent) Run() {
 func (a *Agent) read() {
 	defer func() {
 		a.chDie <- true
+
+		close(a.chSend)
+		close(a.chWrite)
+		close(a.chDie)
 	}()
 
 	for {
 		msg, err := a.Conn.GetNextMessage()
 		if err != nil {
-			cherryLogger.Debugf("error: %s, session will be closed immediately.", err.Error())
+			cherryLogger.Debugf("session will be closed immediately. %s", err.Error())
 			return
 		}
 
 		packets, err := a.PacketDecoder.Decode(msg)
 		if err != nil {
-			cherryLogger.Warn(err)
+			cherryLogger.Warnf("packet decoder error. error = %s", err)
+			cherryLogger.Debugf("msg= %s", msg)
 			continue
 		}
 
@@ -246,15 +251,20 @@ func (a *Agent) read() {
 }
 
 func (a *Agent) write() {
-	// clean func
+	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		close(a.chSend)
-		close(a.chWrite)
+		ticker.Stop()
 		a.Close()
 	}()
 
 	for {
 		select {
+		case <-ticker.C:
+			// 超过2倍心跳时间，还没有发消息到服务器，则断开
+			deadline := time.Now().Add(-2 * a.Heartbeat).Unix()
+			if a.lastAt < deadline {
+				return
+			}
 		case bytes := <-a.chWrite:
 			// close Agent while low-level conn broken
 			_, err := a.Conn.Write(bytes)
@@ -292,13 +302,6 @@ func (a *Agent) write() {
 				break
 			}
 			a.chWrite <- p
-
-		case <-a.chDie: // Agent closed signal
-			return
-
-			//case <-env.Die: // application quit
-			//	return
-			//}
 		}
 	}
 }

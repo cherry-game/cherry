@@ -89,7 +89,7 @@ func (s *Session) Push(route string, v interface{}) error {
 // ResponseMID responses message to client, mid is
 // request message ID
 func (s *Session) ResponseMID(mid uint64, v interface{}) error {
-	return s.entity.ResponseMid(mid, v)
+	return s.entity.Response(mid, v)
 }
 
 func (s *Session) Closed() {
