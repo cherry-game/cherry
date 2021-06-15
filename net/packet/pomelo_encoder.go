@@ -15,7 +15,7 @@ func NewPomeloEncoder() *PomeloEncoder {
 // -<type>-|--------<length>--------|-<data>-
 // --------|------------------------|--------
 // 1 byte packet type, 3 bytes packet data length(big end), and data segment
-func (p *PomeloEncoder) Encode(typ byte, data []byte) ([]byte, error) {
+func (p *PomeloEncoder) Encode(typ Type, data []byte) ([]byte, error) {
 	if typ < Handshake || typ > Kick {
 		return nil, cherryError.PacketWrongType
 	}
@@ -33,7 +33,7 @@ func (p *PomeloEncoder) Encode(typ byte, data []byte) ([]byte, error) {
 	buf := make([]byte, pkg.Length+HeadLength)
 
 	//第一个字节存放消息类型
-	buf[0] = pkg.Type
+	buf[0] = byte(pkg.Type)
 
 	//2~4 字节 存放消息长度
 	copy(buf[1:HeadLength], IntToBytes(pkg.Length))

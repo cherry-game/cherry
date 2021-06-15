@@ -137,11 +137,13 @@ func (c *wsConn) GetNextMessage() (b []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(msgBytes) < cherryPacket.HeadLength {
 		return nil, cherryError.PacketInvalidHeader
 	}
 
 	header := msgBytes[:cherryPacket.HeadLength]
+
 	msgSize, _, err := cherryPacket.ParseHeader(header)
 	if err != nil {
 		return nil, err
@@ -149,11 +151,10 @@ func (c *wsConn) GetNextMessage() (b []byte, err error) {
 
 	dataLen := len(msgBytes[cherryPacket.HeadLength:])
 
-	if dataLen < msgSize {
-		return nil, cherryError.PacketMsgSmallerThanExpected
-	} else if dataLen > msgSize {
+	if dataLen < msgSize || dataLen > msgSize {
 		return nil, cherryError.PacketMsgSmallerThanExpected
 	}
+
 	return msgBytes, err
 }
 

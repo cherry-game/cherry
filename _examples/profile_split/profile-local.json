@@ -1,0 +1,34 @@
+{
+  "debug": true,
+  "include": [
+    "common/logger.json",
+    "profile-local-cluster.json",
+    "profile-local-data-config.json"
+  ],
+  "db": [
+    {
+      "enable": true,
+      "group_id": "center_db",
+      "id": "center_db",
+      "db_name": "dev_xgame_center",
+      "host": "192.168.1.20",
+      "user_name": "gameserver",
+      "password": "password",
+      "max_idle_connect": 4,
+      "max_open_connect": 8,
+      "log_mode": true
+    },
+    {
+      "enable": true,
+      "group_id": "game_db",
+      "id": "game_db_1",
+      "db_name": "game_db_1",
+      "host": "192.168.1.20",
+      "user_name": "gameserver",
+      "password": "password",
+      "max_idle_connect": 4,
+      "max_open_connect": 8,
+      "log_mode": true
+    }
+  ]
+}

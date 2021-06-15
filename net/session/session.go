@@ -86,10 +86,20 @@ func (s *Session) Push(route string, v interface{}) error {
 	return s.entity.Push(route, v)
 }
 
-// ResponseMID responses message to client, mid is
+// Response responses message to client, mid is
 // request message ID
-func (s *Session) ResponseMID(mid uint64, v interface{}) error {
+func (s *Session) Response(mid uint64, v interface{}) error {
 	return s.entity.Response(mid, v)
+}
+
+func (s *Session) Kick(reason string) error {
+	err := s.entity.Kick(reason)
+	if err != nil {
+		return err
+	}
+
+	s.Closed()
+	return nil
 }
 
 func (s *Session) Closed() {

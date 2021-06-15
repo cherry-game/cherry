@@ -53,12 +53,12 @@ func (p *PomeloDecoder) Decode(data []byte) ([]*Packet, error) {
 	return packets, nil
 }
 
-func (p *PomeloDecoder) forward(buf *bytes.Buffer) (int, byte, error) {
+func (p *PomeloDecoder) forward(buf *bytes.Buffer) (int, Type, error) {
 	header := buf.Next(HeadLength)
 	typ := header[0]
 
-	if typ < Handshake || typ > Kick {
-		return 0, 0x00, cherryError.PacketSizeExceed
+	if invalidType(Type(typ)) {
+		return 0, None, cherryError.PacketSizeExceed
 	}
 
 	// get 2,3,4 byte
@@ -66,10 +66,10 @@ func (p *PomeloDecoder) forward(buf *bytes.Buffer) (int, byte, error) {
 
 	// packet length limitation
 	if size > MaxPacketSize {
-		return 0, 0x00, cherryError.PacketSizeExceed
+		return 0, None, cherryError.PacketSizeExceed
 	}
 
-	return size, typ, nil
+	return size, Type(typ), nil
 }
 
 // Decode packet data length byte to int(Big end)

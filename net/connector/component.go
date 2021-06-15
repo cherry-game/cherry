@@ -24,17 +24,17 @@ type (
 		sessionComponent *cherrySession.SessionComponent
 		handlerComponent *cherryHandler.Component
 		connector        facade.IConnector
-		packetHandles    map[byte]cherryAgent.PacketListener
+		packetHandles    map[cherryPacket.Type]cherryAgent.PacketListener
 	}
 )
 
 var (
-	defaultHeartbeat = 15 * time.Second
+	DefaultHeartbeat = 30 * time.Second
 )
 
 func NewTCPComponent(address string) *Component {
 	opt := cherryAgent.Options{
-		Heartbeat:        defaultHeartbeat,
+		Heartbeat:        DefaultHeartbeat,
 		DataCompression:  false,
 		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
 		PacketEncoder:    cherryPacket.NewPomeloEncoder(),
@@ -51,7 +51,7 @@ func NewTCPComponent(address string) *Component {
 
 func NewWSComponent(address string) *Component {
 	opt := cherryAgent.Options{
-		Heartbeat:        defaultHeartbeat,
+		Heartbeat:        DefaultHeartbeat,
 		DataCompression:  false,
 		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
 		PacketEncoder:    cherryPacket.NewPomeloEncoder(),
@@ -71,7 +71,7 @@ func NewConnectorWithOpt(opts cherryAgent.Options, connector facade.IConnector) 
 		Options:       opts,
 		connector:     connector,
 		ConnectStat:   &ConnectStat{},
-		packetHandles: make(map[byte]cherryAgent.PacketListener),
+		packetHandles: make(map[cherryPacket.Type]cherryAgent.PacketListener),
 	}
 }
 
@@ -100,7 +100,7 @@ func (p *Component) OnAfterInit() {
 	p.OnCreateSession(func(s *cherrySession.Session) (next bool, err error) {
 		// increase connect stat
 		p.ConnectStat.IncreaseConn()
-		cherryLogger.Debugf("after create. session:%s", s)
+		cherryLogger.Debugf("session[%s] on create.", s)
 		return true, nil
 	})
 
@@ -115,7 +115,7 @@ func (p *Component) OnAfterInit() {
 		p.PacketListener = func(agent *cherryAgent.Agent, packet *cherryPacket.Packet) {
 			fn, found := p.packetHandles[packet.Type]
 			if found == false {
-				cherryLogger.Errorf("packet type not found. session = %s, packet = %s",
+				cherryLogger.Errorf("session[%s], packet[%s] type not found.",
 					agent.Session,
 					packet,
 				)
@@ -164,7 +164,7 @@ func (p *Component) OnCloseSession(listener ...cherryAgent.SessionListener) {
 	p.OnCloseListener = append(p.OnCloseListener, listener...)
 }
 
-func (p *Component) SetPacketHandle(typ byte, listener cherryAgent.PacketListener) {
+func (p *Component) SetPacketHandle(typ cherryPacket.Type, listener cherryAgent.PacketListener) {
 	p.packetHandles[typ] = listener
 }
 
@@ -191,13 +191,13 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 		cherryLogger.Error(err)
 	}
 
-	cherryLogger.Debugf("sid = %d, request handshake", agent.Session.SID())
+	cherryLogger.Debugf("session[%s] request handshake", agent.Session)
 }
 
 func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	agent.SetStatus(cherryAgent.Working)
 
-	cherryLogger.Debugf("sid = %d, request handshakeACK", agent.Session.SID())
+	cherryLogger.Debugf("session[%s] request handshakeACK", agent.Session)
 }
 
 func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
@@ -211,13 +211,13 @@ func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 	if err != nil {
 		cherryLogger.Error(err)
 	}
-	cherryLogger.Debugf("sid = %d, request heartbeat", agent.Session.SID())
+	cherryLogger.Debugf("session[%s],, request heartbeat", agent.Session)
 }
 
 func (p *Component) handData(agent *cherryAgent.Agent,
 	pkg *cherryPacket.Packet) {
 	if agent.Status() != cherryAgent.Working {
-		cherryLogger.Warnf("status is not working. session=[%s]", agent.Session)
+		cherryLogger.Warnf("status is not working. session[%s]", agent.Session)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (p *Component) handData(agent *cherryAgent.Agent,
 
 	route, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
-		cherryLogger.Errorf("route decode error. session = [%s] message = [%s]", agent.Session, msg)
+		cherryLogger.Errorf("route decode error. session[%s] message[%s]", agent.Session, msg)
 		return
 	}
 

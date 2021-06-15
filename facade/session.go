@@ -9,10 +9,10 @@ type (
 
 	// INetwork 网络处理接口
 	INetwork interface {
-		SendRaw(bytes []byte) error
 		Push(route string, v interface{}) error   // 推送消息对客户端
 		Response(mid uint64, v interface{}) error // 回复消息到客户端
-		Kick(reason string)                       // 踢下线
+		Kick(reason string) error                 // 踢下线
+		SendRaw(bytes []byte) error               // write raw data to client
 		RPC(route string, v interface{}) error    // 调用rpc
 		Close()                                   // 关闭接口
 		RemoteAddr() net.Addr                     // 连接者的地址信息

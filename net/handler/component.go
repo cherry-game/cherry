@@ -1,6 +1,7 @@
 package cherryHandler
 
 import (
+	"fmt"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
@@ -33,6 +34,10 @@ type (
 
 	FilterFn func(msg *UnhandledMessage) bool
 )
+
+func (u *UnhandledMessage) String() string {
+	return fmt.Sprintf("session[%s], route[%s], msg[%s] ", u.Session, u.Route, u.Msg)
+}
 
 func NewComponent() *Component {
 	return &Component{
@@ -133,7 +138,7 @@ func (h *Component) DoHandle(msg *UnhandledMessage) {
 func (h *Component) doForward(msg *UnhandledMessage) {
 	// TODO 通过rpc 转发到远程节点
 	// rpc client invoke
-	cherryLogger.Debugf("forward message = %s", msg)
+	cherryLogger.Debugf("forward message. %s", msg)
 }
 
 func (h *Component) GetHandler(route *cherryRoute.Route) facade.IHandler {

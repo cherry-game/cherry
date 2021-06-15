@@ -1,0 +1,36 @@
+{
+  "cluster": {
+    "mode": "nodes",
+    "nodes": {
+      "web": [
+        {
+          "enable": true,
+          "node_id": "web-1",
+          "address": ":10820",
+          "rpc_address": "127.0.0.1:20820",
+          "__settings__": {
+            "maintain_state": 2,
+            "@ref_logger": "game_log"
+          }
+        }
+      ],
+      "game": [
+        {
+          "enable": true,
+          "node_id": "game-1",
+          "address": ":10860",
+          "rpc_address": "127.0.0.1:20860",
+          "__settings__": {
+            "maintain_state": 2,
+            "dbs": [
+              "x_game-1"
+            ],
+            "ref_logger": "game_log"
+          }
+        }
+      ]
+    },
+    "etcd": {
+    }
+  }
+}

@@ -18,7 +18,7 @@ func main() {
 }
 
 func app() {
-	testApp := cherry.NewDefaultApp()
+	testApp := cherry.NewApp("../profile_single/", "local", "game-1")
 
 	defer testApp.OnShutdown(
 		func() {

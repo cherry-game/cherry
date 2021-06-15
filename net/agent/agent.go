@@ -9,14 +9,13 @@ import (
 	"github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/session"
 	"github.com/cherry-game/cherry/profile"
-	"log"
 	"net"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	agentWriteBacklog = 128
+	agentWriteBacklog = 64
 )
 
 const (
@@ -150,14 +149,26 @@ func (a *Agent) RPC(route string, v interface{}) error {
 	return nil
 }
 
-// ResponseMid, implementation for session.NetworkEntity interface
+// Response, implementation for session.NetworkEntity interface
 // Response message to session
 func (a *Agent) Response(mid uint64, v interface{}) error {
 	return a.Send(cherryMessage.TypeResponse, "", mid, v)
 }
 
-func (a *Agent) Kick(reason string) {
-	//TODO ...
+// Kick
+func (a *Agent) Kick(reason string) error {
+	pkg, err := a.PacketEncoder.Encode(cherryPacket.Kick, nil)
+	if err != nil {
+		return err
+	}
+
+	_, err = a.Conn.Write(pkg)
+	if err != nil {
+		cherryLogger.Warn(err)
+	}
+
+	cherryLogger.Debugf("kick session[%s] reason[%s]", a.Session, reason)
+	return nil
 }
 
 // Close closes the Agent, clean inner state and close low-level connection.
@@ -184,7 +195,7 @@ func (a *Agent) Close() {
 	}
 
 	if err := a.Conn.Close(); err != nil {
-		cherryLogger.Errorf("session close error. session:%s, error:%v", a.Session, err)
+		cherryLogger.Errorf("session close error. session[%s], error:%v", a.Session, err)
 	}
 }
 
@@ -229,14 +240,13 @@ func (a *Agent) read() {
 	for {
 		msg, err := a.Conn.GetNextMessage()
 		if err != nil {
-			cherryLogger.Debugf("session will be closed immediately. %s", err.Error())
+			cherryLogger.Debugf("session[%s] will be closed immediately. %s", a.Session, err.Error())
 			return
 		}
 
 		packets, err := a.PacketDecoder.Decode(msg)
 		if err != nil {
-			cherryLogger.Warnf("packet decoder error. error = %s", err)
-			cherryLogger.Debugf("msg= %s", msg)
+			cherryLogger.Warnf("packet decoder error. %s, msg[%s]", err, msg)
 			continue
 		}
 
@@ -259,12 +269,6 @@ func (a *Agent) write() {
 
 	for {
 		select {
-		case <-ticker.C:
-			// 超过2倍心跳时间，还没有发消息到服务器，则断开
-			deadline := time.Now().Add(-2 * a.Heartbeat).Unix()
-			if a.lastAt < deadline {
-				return
-			}
 		case bytes := <-a.chWrite:
 			// close Agent while low-level conn broken
 			_, err := a.Conn.Write(bytes)
@@ -272,11 +276,17 @@ func (a *Agent) write() {
 				cherryLogger.Error(err)
 				return
 			}
-
+		case <-ticker.C:
+			// double timeout
+			deadline := time.Now().Add(-2 * a.Heartbeat).Unix()
+			if a.lastAt < deadline {
+				cherryLogger.Debugf("connect heartbeat timeout. session[%s]", a.Session)
+				return
+			}
 		case data := <-a.chSend:
 			payload, err := a.Serializer.Marshal(data.payload)
 			if err != nil {
-				cherryLogger.Debugf("message serializer error. %s", data.String())
+				cherryLogger.Debugf("message serializer error. session[%s], data[%s]", a.Session, data.String())
 				return
 			}
 
@@ -298,7 +308,7 @@ func (a *Agent) write() {
 			// encode packet
 			p, err := a.PacketEncoder.Encode(cherryPacket.Data, em)
 			if err != nil {
-				log.Println(err)
+				cherryLogger.Warn(err)
 				break
 			}
 			a.chWrite <- p
