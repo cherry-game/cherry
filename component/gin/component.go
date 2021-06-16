@@ -147,7 +147,7 @@ func (g *Component) OnAfterInit() {
 			err = g.server.ListenAndServe()
 		}
 
-		if err != nil {
+		if err != http.ErrServerClosed {
 			cherryLogger.Infof("[component = %s] run error = %s", g.name, err)
 		}
 	}()
@@ -160,10 +160,13 @@ func (g *Component) OnBeforeStop() {
 }
 
 func (g *Component) OnStop() {
-	err := g.server.Shutdown(context.Background())
-	cherryLogger.Infof("[component = %s] shutdown gin component on %s", g.name, g.options.Address)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
-	if err != nil {
+	defer cancel()
+
+	if err := g.server.Shutdown(ctx); err != nil {
 		cherryLogger.Info(err.Error())
 	}
+
+	cherryLogger.Infof("[component = %s] shutdown gin component on %s", g.name, g.options.Address)
 }

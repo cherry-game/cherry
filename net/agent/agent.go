@@ -171,7 +171,7 @@ func (a *Agent) Kick(reason string) error {
 		cherryLogger.Warn(err)
 	}
 
-	cherryLogger.Debugf("kick session[%s] reason[%s]", a.Session, reason)
+	cherryLogger.Debugf("kick session[%s], reason[%s]", a.Session, reason)
 	return nil
 }
 
@@ -291,7 +291,7 @@ func (a *Agent) write() {
 		case bytes := <-a.chWrite:
 			_, err := a.conn.Write(bytes)
 			if err != nil {
-				cherryLogger.Error(err)
+				cherryLogger.Warn(err)
 				return
 			}
 		case <-ticker.C:
