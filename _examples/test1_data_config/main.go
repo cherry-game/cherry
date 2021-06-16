@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/data_config"
+	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"time"
@@ -15,23 +16,35 @@ func main() {
 func app() {
 	testApp := cherry.NewApp("../profile_split/", "local", "game-1")
 
-	defer testApp.OnShutdown()
-
 	handlers := cherryHandler.NewComponent()
 
 	dataConfig := cherryDataConfig.NewComponent()
 	dataConfig.Register(&DropList, &DropOne)
 
-	testApp.OnStartup(
-		handlers,
-		dataConfig,
-	)
 	cherryLogger.Infow("test", "key", "itemId", "value", 2)
 
 	go getDropConfig(testApp)
+
+	testApp.Startup(
+		handlers,
+		dataConfig,
+		&mockComponent{},
+	)
 }
 
-func getDropConfig(_ *cherry.Application) {
+type mockComponent struct {
+	cherryFacade.Component
+}
+
+func (m *mockComponent) Name() string {
+	return "mock_component"
+}
+
+func (m *mockComponent) OnAfterInit() {
+	go getDropConfig(m.App())
+}
+
+func getDropConfig(_ cherryFacade.IApplication) {
 	for {
 		x1 := DropList.Get(1011)
 		//cherryLogger.Info(x1)
@@ -42,6 +55,6 @@ func getDropConfig(_ *cherry.Application) {
 		itemTypeList := DropList.GetItemTypeList(3)
 		cherryLogger.Warnf("%p, %v", itemTypeList, itemTypeList)
 
-		time.Sleep(1 * time.Second)
+		time.Sleep(10 * time.Millisecond)
 	}
 }

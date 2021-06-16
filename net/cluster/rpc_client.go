@@ -1,7 +1,5 @@
 package cherryCluster
 
-import cherryFacade "github.com/cherry-game/cherry/facade"
-
 type RpcNodeInfo struct {
 	Id       string
 	Host     string
@@ -24,7 +22,7 @@ type RouteContext struct {
 type RpcMsg interface {
 	Namespace() string
 	NodeType() string
-	Service() string
+	HandleName() string
 	Method() string
 	Args() []interface{}
 }
@@ -33,11 +31,10 @@ type Callback func(error error, nodeId string)
 
 type TargetRouteFunction func(nodeType string, msg RpcMsg, routeParam interface{}, cb Callback)
 
-type RpcClientOpts struct {
+type RPCClientOpts struct {
 }
 
-type RPCClientComponent struct {
-	cherryFacade.Component
+type RPCClient struct {
 	nodeTypeConfig []string // 需要建立连接的结点类型列表
 	// 启动后，注册到master node，获取所有结点信息
 

@@ -82,10 +82,7 @@ func (w *WSConnector) OnStart() {
 
 	defer w.OnStop()
 
-	err = http.Serve(w.listener, w)
-	if err != nil {
-		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
-	}
+	_ = http.Serve(w.listener, w)
 }
 
 func (w *WSConnector) OnConnect(listener cherryFacade.OnConnectListener) {
@@ -93,10 +90,7 @@ func (w *WSConnector) OnConnect(listener cherryFacade.OnConnectListener) {
 }
 
 func (w *WSConnector) OnStop() {
-	err := w.listener.Close()
-	if err != nil {
-		cherryLogger.Errorf("Failed to stop: %s", err.Error())
-	}
+	w.listener.Close()
 }
 
 //ServerHTTP server.Handler

@@ -2,12 +2,13 @@ package cherry
 
 import (
 	"github.com/cherry-game/cherry/extend/time"
-	"github.com/cherry-game/cherry/extend/utils"
+	cherryUtils "github.com/cherry-game/cherry/extend/utils"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
+	"sync/atomic"
 	"syscall"
 )
 
@@ -15,9 +16,10 @@ import (
 type Application struct {
 	facade.INode                       // current node info
 	startTime    cherryTime.CherryTime // application start time
-	running      bool                  // is running
+	running      int32                 // is running
 	die          chan bool             // wait for end application
 	components   []facade.IComponent   // all components
+	onShutdownFn []func()              // on shutdown execute functions
 }
 
 func (a *Application) ThisNode() facade.INode {
@@ -25,7 +27,7 @@ func (a *Application) ThisNode() facade.INode {
 }
 
 func (a *Application) Running() bool {
-	return a.running
+	return a.running > 0
 }
 
 func (a *Application) Find(name string) facade.IComponent {
@@ -67,20 +69,20 @@ func (a *Application) StartTime() string {
 }
 
 // Startup
-func (a *Application) OnStartup(components ...facade.IComponent) {
+func (a *Application) Startup(components ...facade.IComponent) {
 	defer func() {
 		if r := recover(); r != nil {
 			cherryLogger.Error(r)
 		}
 	}()
 
-	if a.running {
+	if a.Running() {
 		cherryLogger.Errorf("[nodeId = %s] application has running.", a.NodeId())
 		return
 	}
 
 	//is running
-	a.running = true
+	atomic.AddInt32(&a.running, 1)
 
 	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
@@ -98,7 +100,7 @@ func (a *Application) OnStartup(components ...facade.IComponent) {
 	// add components & init
 	for _, c := range components {
 		if c == nil || c.Name() == "" {
-			cherryLogger.Errorf("[component] is nil. component=%T", c)
+			cherryLogger.Errorf("[component = %T] name is nil", c)
 			return
 		}
 
@@ -127,50 +129,60 @@ func (a *Application) OnStartup(components ...facade.IComponent) {
 
 	cherryLogger.Infof("[nodeId = %s] application is running.", a.NodeId())
 	cherryLogger.Info("-------------------------------------------------")
-}
 
-func (a *Application) OnShutdown(beforeStopFn ...func()) {
 	sg := make(chan os.Signal)
-	signal.Notify(sg, syscall.SIGHUP, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	select {
-	//case <-a.die:
+	case <-a.die:
+		cherryLogger.Infof("[nodeId = %s] -> shutdown().", a.NodeId())
 	case <-sg:
-		{
-			//set running flag
-			a.running = false
-			cherryLogger.Infof("------- [nodeId = %s] application is shutting... -------", a.NodeId())
-
-			cherryUtils.Try(func() {
-				if beforeStopFn != nil {
-					for _, f := range beforeStopFn {
-						f()
-					}
-				}
-			}, func(errString string) {
-				cherryLogger.Warnf("[beforeStopFn] error = %s", errString)
-			})
-
-			//all components in reverse order
-			for i := len(a.components) - 1; i >= 0; i-- {
-				cherryUtils.Try(func() {
-					a.components[i].OnBeforeStop()
-					cherryLogger.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
-				}, func(errString string) {
-					cherryLogger.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
-				})
-			}
-
-			for i := len(a.components) - 1; i >= 0; i-- {
-				cherryUtils.Try(func() {
-					a.components[i].OnStop()
-					cherryLogger.Infof("[component = %s] -> OnStop().", a.components[i].Name())
-				}, func(errString string) {
-					cherryLogger.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
-				})
-			}
-
-			cherryLogger.Infof("------- [nodeId = %s] application is shutdown... -------", a.NodeId())
-		}
+		cherryLogger.Infof("[nodeId = %s] -> shutdown signal = %v.", a.NodeId(), sg)
 	}
+
+	//set running flag
+	atomic.AddInt32(&a.running, 0)
+
+	cherryLogger.Infof("------- [nodeId = %s] application will shutdown -------", a.NodeId())
+
+	cherryUtils.Try(func() {
+		if a.onShutdownFn != nil {
+			for _, f := range a.onShutdownFn {
+				f()
+			}
+		}
+
+	}, func(errString string) {
+		cherryLogger.Warnf("[onShutdownFn] error = %s", errString)
+	})
+
+	//all components in reverse order
+	for i := len(a.components) - 1; i >= 0; i-- {
+		cherryUtils.Try(func() {
+			a.components[i].OnBeforeStop()
+			cherryLogger.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
+		}, func(errString string) {
+			cherryLogger.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
+		})
+	}
+
+	for i := len(a.components) - 1; i >= 0; i-- {
+		cherryUtils.Try(func() {
+			a.components[i].OnStop()
+			cherryLogger.Infof("[component = %s] -> OnStop().", a.components[i].Name())
+		}, func(errString string) {
+			cherryLogger.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
+		})
+	}
+
+	cherryLogger.Infof("------- [nodeId = %s] application has been shutdown... -------", a.NodeId())
+
+}
+
+func (a *Application) OnShutdown(fn ...func()) {
+	a.onShutdownFn = append(a.onShutdownFn, fn...)
+}
+
+func (a *Application) Shutdown() {
+	a.die <- true
 }

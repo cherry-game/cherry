@@ -6,6 +6,7 @@ var (
 	ClusterBufferExceed       = Error("session send buffer exceed")
 	ClusterErrSessionOnNotify = Error("error session on notify")
 	ClusterClosedSession      = Error("session is closed")
+	ClusterRPCHandleNotFound  = Error("rpc handler is nil")
 )
 
 // session

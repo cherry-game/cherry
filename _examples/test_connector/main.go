@@ -9,17 +9,15 @@ import (
 )
 
 func main() {
-	app := cherry.NewApp("../test1_handler/profile/", "local", "web-1")
+	app := cherry.NewApp("../profile_single/", "local", "web-1")
 
 	httpServer := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
 	httpServer.StaticFS("/", "./web/")
 
-	app.OnStartup(
+	app.Startup(
 		cherrySession.NewComponent(),
 		cherryHandler.NewComponent(),
 		httpServer,
 		cherryConnector.NewWSComponent("127.0.0.1:34590"),
 	)
-
-	app.OnShutdown()
 }

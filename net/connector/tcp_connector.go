@@ -80,7 +80,7 @@ func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	}
 }
 
-// OnStartup
+// Startup
 func (t *TCPConnector) OnStart() {
 	if t.onConnectListener == nil {
 		panic("onConnectListener() not set.")

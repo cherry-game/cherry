@@ -2,6 +2,7 @@ package cherry
 
 import (
 	"flag"
+	"fmt"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
@@ -31,17 +32,17 @@ func NewDefaultApp() *Application {
 func NewApp(profilePath, profileName, nodeId string) *Application {
 	config, err := cherryProfile.Init(profilePath, profileName)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("init profile fail. error = %s", err))
 	}
 
 	err = cherryCluster.Load(config)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("load node config fail. error = %s", err))
 	}
 
 	node, err := cherryCluster.GetNode(nodeId)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("nodeId = %s not found. error = %s", nodeId, err))
 	}
 
 	// set logger
@@ -53,7 +54,7 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 	thisNode := &Application{
 		INode:     node,
 		startTime: cherryTime.Now(),
-		running:   false,
+		running:   0,
 		die:       make(chan bool),
 	}
 	return thisNode

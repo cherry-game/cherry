@@ -28,32 +28,32 @@ const (
 type (
 	SessionListener func(session *cherrySession.Session) (next bool, err error)
 
-	RpcHandler func(session *cherrySession.Session, msg *cherryMessage.Message, noCopy bool)
+	RPCHandler func(session *cherrySession.Session, msg *cherryMessage.Message, noCopy bool)
 
 	// process packet listener function
 	PacketListener func(agent *Agent, packet *cherryPacket.Packet)
 
 	Options struct {
-		Heartbeat        time.Duration            // heartbeat(sec)
-		DataCompression  bool                     // data compression
-		PacketDecoder    cherryPacket.Decoder     // binary packet decoder
-		PacketEncoder    cherryPacket.Encoder     // binary packet encoder
-		Serializer       cherryFacade.ISerializer // data serializer
-		PacketListener   PacketListener           // process packet listener function
-		OnCreateListener []SessionListener        // on create execute listener function
-		OnCloseListener  []SessionListener        // on close execute listener function
+		Heartbeat        time.Duration                        // heartbeat(sec)
+		DataCompression  bool                                 // data compression
+		PacketDecoder    cherryPacket.Decoder                 // binary packet decoder
+		PacketEncoder    cherryPacket.Encoder                 // binary packet encoder
+		Serializer       cherryFacade.ISerializer             // data serializer
+		PacketListener   map[cherryPacket.Type]PacketListener // process packet listener function
+		RPCHandler       RPCHandler                           // rpc handler
+		OnCreateListener []SessionListener                    // on create execute listener function
+		OnCloseListener  []SessionListener                    // on close execute listener function
 	}
 
 	Agent struct {
 		Options
-		Session    *cherrySession.Session // session
-		Conn       cherryFacade.INetConn  // low-level conn fd
-		RpcHandler RpcHandler             // rpc client invoke handler
-		state      int32                  // current session state
-		chDie      chan bool              // wait for close
-		chSend     chan pendingMessage    // push message queue
-		chWrite    chan []byte            // push bytes queue
-		lastAt     int64                  // last heartbeat unix time stamp
+		Session *cherrySession.Session // session
+		conn    cherryFacade.INetConn  // low-level conn fd
+		state   int32                  // current session state
+		chDie   chan bool              // wait for close
+		chSend  chan pendingMessage    // push message queue
+		chWrite chan []byte            // push bytes queue
+		lastAt  int64                  // last heartbeat unix time stamp
 	}
 
 	pendingMessage struct {
@@ -68,17 +68,16 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(opt Options, session *cherrySession.Session, conn cherryFacade.INetConn, rpcHandler RpcHandler) *Agent {
+func NewAgent(opt Options, session *cherrySession.Session, conn cherryFacade.INetConn) *Agent {
 	agent := &Agent{
-		Options:    opt,
-		Session:    session,
-		Conn:       conn,
-		RpcHandler: rpcHandler,
-		state:      Init,
-		chDie:      make(chan bool),
-		chSend:     make(chan pendingMessage, agentWriteBacklog),
-		chWrite:    make(chan []byte, agentWriteBacklog),
-		lastAt:     time.Now().Unix(),
+		Options: opt,
+		Session: session,
+		conn:    conn,
+		state:   Init,
+		chDie:   make(chan bool),
+		chSend:  make(chan pendingMessage, agentWriteBacklog),
+		chWrite: make(chan []byte, agentWriteBacklog),
+		lastAt:  time.Now().Unix(),
 	}
 
 	return agent
@@ -134,6 +133,10 @@ func (a *Agent) RPC(route string, v interface{}) error {
 		return cherryError.ClusterBrokenPipe
 	}
 
+	if a.RPCHandler == nil {
+		return cherryError.ClusterRPCHandleNotFound
+	}
+
 	data, err := a.Serializer.Marshal(v)
 	if err != nil {
 		return err
@@ -145,7 +148,8 @@ func (a *Agent) RPC(route string, v interface{}) error {
 		Data:  data,
 	}
 
-	a.RpcHandler(a.Session, msg, true)
+	a.RPCHandler(a.Session, msg, true)
+
 	return nil
 }
 
@@ -162,7 +166,7 @@ func (a *Agent) Kick(reason string) error {
 		return err
 	}
 
-	_, err = a.Conn.Write(pkg)
+	_, err = a.conn.Write(pkg)
 	if err != nil {
 		cherryLogger.Warn(err)
 	}
@@ -194,7 +198,7 @@ func (a *Agent) Close() {
 		}
 	}
 
-	if err := a.Conn.Close(); err != nil {
+	if err := a.conn.Close(); err != nil {
 		cherryLogger.Errorf("session close error. session[%s], error:%v", a.Session, err)
 	}
 }
@@ -202,13 +206,13 @@ func (a *Agent) Close() {
 // RemoteAddr, implementation for session.NetworkEntity interface
 // returns the remote network address.
 func (a *Agent) RemoteAddr() net.Addr {
-	return a.Conn.RemoteAddr()
+	return a.conn.RemoteAddr()
 }
 
 // String, implementation for Stringer interface
 func (a *Agent) String() string {
 	return fmt.Sprintf("Remote=%s, LastTime=%d",
-		a.Conn.RemoteAddr().String(),
+		a.conn.RemoteAddr().String(),
 		atomic.LoadInt64(&a.lastAt),
 	)
 }
@@ -238,7 +242,7 @@ func (a *Agent) read() {
 	}()
 
 	for {
-		msg, err := a.Conn.GetNextMessage()
+		msg, err := a.conn.GetNextMessage()
 		if err != nil {
 			cherryLogger.Debugf("session[%s] will be closed immediately. %s", a.Session, err.Error())
 			return
@@ -255,9 +259,24 @@ func (a *Agent) read() {
 		}
 
 		for _, packet := range packets {
-			a.PacketListener(a, packet)
+			a.processPacket(packet)
 		}
 	}
+}
+
+func (a *Agent) processPacket(packet *cherryPacket.Packet) {
+	listener, found := a.PacketListener[packet.Type]
+	if found == false {
+		cherryLogger.Errorf("session[%s], packet[%s] type not found.",
+			a.Session,
+			packet,
+		)
+		return
+	}
+
+	listener(a, packet)
+	// update last time
+	a.SetLastAt()
 }
 
 func (a *Agent) write() {
@@ -270,8 +289,7 @@ func (a *Agent) write() {
 	for {
 		select {
 		case bytes := <-a.chWrite:
-			// close Agent while low-level conn broken
-			_, err := a.Conn.Write(bytes)
+			_, err := a.conn.Write(bytes)
 			if err != nil {
 				cherryLogger.Error(err)
 				return

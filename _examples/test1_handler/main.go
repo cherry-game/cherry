@@ -6,6 +6,7 @@ import (
 	"github.com/cherry-game/cherry/component/data_config"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
+	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/route"
@@ -45,14 +46,27 @@ func app() {
 
 	dataConfig := cherryDataConfig.NewComponent()
 
-	testApp.OnStartup(
+	testApp.Startup(
 		handlers,
 		dataConfig,
+		&mockComponent{},
 	)
+}
 
-	go mockRequestMsg1(handlers)
-	//go mockRequestMsg2(handlers)
-	//go mockEventMsg(handlers)
+type mockComponent struct {
+	cherryFacade.Component
+}
+
+func (m *mockComponent) Name() string {
+	return "mock_component"
+}
+
+func (m *mockComponent) OnAfterInit() {
+	handler := m.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
+
+	go mockRequestMsg1(handler)
+	//go mockRequestMsg2(handler)
+	//go mockEventMsg(handler)
 }
 
 func mockRequestMsg1(handler *cherryHandler.Component) {

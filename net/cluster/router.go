@@ -22,7 +22,7 @@ func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteConte
 }
 
 // Random algorithm for calculating node id.
-func RandomRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
+func RandomRoute(client *RPCClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
@@ -33,7 +33,7 @@ func RandomRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Cal
 	cb(nil, list[index])
 }
 
-func RoundRobinRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
+func RoundRobinRoute(client *RPCClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")
@@ -52,7 +52,7 @@ func RoundRobinRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb
 	client.RoundRobinParam[nodeType] = index
 }
 
-func WeightRoundRoute(client *RPCClientComponent, nodeType string, msg RpcMsg, cb Callback) {
+func WeightRoundRoute(client *RPCClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {
 		cb(cherryError.Errorf("rpc servers not exist with nodeType:%s", nodeType), "")

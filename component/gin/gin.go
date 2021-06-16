@@ -139,16 +139,16 @@ func (g *Component) OnAfterInit() {
 		var err error
 
 		if g.options.CertFile != "" && g.options.KeyFile != "" {
-			cherryLogger.Infof("[%s] -> https init. https://%s, certFile = %s, keyFile = %s",
+			cherryLogger.Infof("[component = %s] https init. https://%s, certFile = %s, keyFile = %s",
 				g.name, g.options.Address, g.options.CertFile, g.options.KeyFile)
 			err = g.server.ListenAndServeTLS(g.options.CertFile, g.options.KeyFile)
 		} else {
-			cherryLogger.Infof("[%s] -> http init. http://%s", g.name, g.options.Address)
+			cherryLogger.Infof("[component = %s] http init. http://%s", g.name, g.options.Address)
 			err = g.server.ListenAndServe()
 		}
 
 		if err != nil {
-			cherryLogger.Infof("[%s] run error = %s", g.name, err)
+			cherryLogger.Infof("[component = %s] run error = %s", g.name, err)
 		}
 	}()
 }
@@ -161,7 +161,7 @@ func (g *Component) OnBeforeStop() {
 
 func (g *Component) OnStop() {
 	err := g.server.Shutdown(context.Background())
-	cherryLogger.Infof("[%s] shutdown gin component on %s", g.name, g.options.Address)
+	cherryLogger.Infof("[component = %s] shutdown gin component on %s", g.name, g.options.Address)
 
 	if err != nil {
 		cherryLogger.Info(err.Error())

@@ -16,7 +16,7 @@ type Component struct {
 }
 
 func (*Component) Name() string {
-	panic("not set component name.")
+	return ""
 }
 
 func (*Component) Init() {
