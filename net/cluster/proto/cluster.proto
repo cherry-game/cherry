@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+option go_package = "/cherryCluster";
+
+package cherryCluster;
+
+message NodeId {
+  string id = 1;
+}
+
+message NodeInfo {
+  string id = 1;
+  string nodeType = 2;
+  string address = 3;
+}
+
+message NodeList {
+  repeated NodeInfo nodesInfo = 1;
+}
+
+message Response {
+}
+
+//service MasterNode {
+//  rpc Register(NodeInfo) returns(NodeList) {}
+//  rpc Unregister(NodeId) returns(Response) {}
+//}
+
+message ForwardMessage {
+  int32 type = 1;
+  string nodeId = 2;
+  int64 sid = 3;
+  uint64 id = 4;
+  string route = 5;
+  bytes data = 6;
+}
+
+message SessionId {
+  int64 sid = 1;
+}
+
+service MemberNode {
+  rpc Forward(ForwardMessage) returns (Response) {}
+  rpc CloseSession(SessionId) returns (Response) {}
+}

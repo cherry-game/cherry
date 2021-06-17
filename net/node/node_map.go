@@ -1,4 +1,4 @@
-package cherryCluster
+package cherryNode
 
 import (
 	"fmt"
@@ -25,12 +25,33 @@ func Load(config jsoniter.Any) error {
 	}
 
 	if mode == "nodes" {
-		loadNodesFromConfigFile(clusterConfig.Get("nodes"))
+		loadConfigNodes(clusterConfig.Get("nodes"))
 	} else {
 		panic(fmt.Sprintf("mode = %s not implemented", mode))
 	}
 
 	return nil
+}
+
+func loadConfigNodes(nodesJson jsoniter.Any) {
+	for _, nodeType := range nodesJson.Keys() {
+		nodesConfig[nodeType] = make(map[string]cherryFacade.INode)
+
+		typeJson := nodesJson.Get(nodeType)
+		for i := 0; i < typeJson.Size(); i++ {
+			item := typeJson.Get(i)
+			nodeId := item.Get("node_id").ToString()
+
+			nodesConfig[nodeType][nodeId] = &Node{
+				nodeId:     nodeId,
+				nodeType:   nodeType,
+				address:    item.Get("address").ToString(),
+				rpcAddress: item.Get("rpc_address").ToString(),
+				settings:   item.Get("__settings__"),
+				enabled:    item.Get("enabled").ToBool(),
+			}
+		}
+	}
 }
 
 func Map() *cherryFacade.NodeMap {
@@ -67,25 +88,4 @@ func GetType(nodeId string) (nodeType string, error error) {
 		}
 	}
 	return "", cherryError.Errorf("nodeId = %s not found. check profile config file please.", nodeId)
-}
-
-func loadNodesFromConfigFile(nodesJson jsoniter.Any) {
-	for _, nodeType := range nodesJson.Keys() {
-		nodesConfig[nodeType] = make(map[string]cherryFacade.INode)
-
-		typeJson := nodesJson.Get(nodeType)
-		for i := 0; i < typeJson.Size(); i++ {
-			item := typeJson.Get(i)
-			nodeId := item.Get("node_id").ToString()
-
-			nodesConfig[nodeType][nodeId] = &Node{
-				nodeId:     nodeId,
-				nodeType:   nodeType,
-				address:    item.Get("address").ToString(),
-				rpcAddress: item.Get("rpc_address").ToString(),
-				settings:   item.Get("__settings__"),
-				enabled:    item.Get("enabled").ToBool(),
-			}
-		}
-	}
 }

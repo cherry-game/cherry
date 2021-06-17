@@ -6,7 +6,7 @@ import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/cluster"
+	"github.com/cherry-game/cherry/net/node"
 	"github.com/cherry-game/cherry/profile"
 )
 
@@ -35,12 +35,12 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 		panic(fmt.Sprintf("init profile fail. error = %s", err))
 	}
 
-	err = cherryCluster.Load(config)
+	err = cherryNode.Load(config)
 	if err != nil {
 		panic(fmt.Sprintf("load node config fail. error = %s", err))
 	}
 
-	node, err := cherryCluster.GetNode(nodeId)
+	node, err := cherryNode.GetNode(nodeId)
 	if err != nil {
 		panic(fmt.Sprintf("nodeId = %s not found. error = %s", nodeId, err))
 	}

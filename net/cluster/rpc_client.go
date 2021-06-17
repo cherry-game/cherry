@@ -1,5 +1,7 @@
 package cherryCluster
 
+import cherryFacade "github.com/cherry-game/cherry/facade"
+
 type RpcNodeInfo struct {
 	Id       string
 	Host     string
@@ -48,4 +50,24 @@ type RPCClient struct {
 		Index  int
 		Weight int
 	}
+}
+
+func (*RPCClient) All() cherryFacade.NodeMap {
+	return nil
+}
+
+func (*RPCClient) GetType(nodeId string) (nodeType string, err error) {
+	return "", nil
+}
+
+func (*RPCClient) Get(nodeId string) cherryFacade.INode {
+	return nil
+}
+
+func (*RPCClient) Sync() {
+
+}
+
+func (*RPCClient) AddListener(listener cherryFacade.INodeListener) {
+
 }
