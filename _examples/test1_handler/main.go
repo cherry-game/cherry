@@ -13,6 +13,7 @@ import (
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -49,6 +50,12 @@ func app() {
 	handlerComponent.Register(handlerGroup1)
 
 	dataConfigComponent := cherryDataConfig.NewComponent()
+
+	go func(testApp *cherry.Application) {
+		//10秒后退出应用
+		time.Sleep(10 * time.Second)
+		testApp.Shutdown()
+	}(testApp)
 
 	testApp.Startup(
 		handlerComponent,

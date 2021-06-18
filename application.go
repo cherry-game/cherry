@@ -81,7 +81,7 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		return
 	}
 
-	//is running
+	// is running
 	atomic.AddInt32(&a.running, 1)
 
 	cherryLogger.Info("-------------------------------------------------")
@@ -140,8 +140,8 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		cherryLogger.Infof("[nodeId = %s] -> shutdown signal = %v.", a.NodeId(), sg)
 	}
 
-	//set running flag
-	atomic.AddInt32(&a.running, 0)
+	// stop status
+	atomic.StoreInt32(&a.running, 0)
 
 	cherryLogger.Infof("------- [nodeId = %s] application will shutdown -------", a.NodeId())
 

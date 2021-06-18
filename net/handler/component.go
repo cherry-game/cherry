@@ -9,6 +9,7 @@ import (
 	"github.com/cherry-game/cherry/net/session"
 	"runtime"
 	"strings"
+	"time"
 )
 
 type (
@@ -85,11 +86,31 @@ func (h *Component) invokeExecutor(executor IExecutor) {
 }
 
 func (h *Component) OnStop() {
+	for {
+		if h.queueIsEmpty() {
+			return
+		}
+		// wait...
+		time.Sleep(3 * time.Second)
+	}
+
 	for _, group := range h.handlerGroups {
 		for _, handler := range group.handlers {
 			handler.OnStop()
 		}
 	}
+}
+
+func (h *Component) queueIsEmpty() bool {
+	for _, group := range h.handlerGroups {
+		for _, queue := range group.queueMaps {
+			if len(queue.dataChan) > 0 {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (h *Component) Register(handlerGroup *HandlerGroup) {
