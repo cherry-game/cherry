@@ -75,18 +75,23 @@ func (m *mockComponent) Name() string {
 func (m *mockComponent) OnAfterInit() {
 	handler := m.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
 
-	go mockRequestMsg1(handler)
+	go mockRequestMsg1(m.App(), handler)
 	//go mockRequestMsg2(handler)
 	//go mockEventMsg(handler)
 }
 
-func mockRequestMsg1(handler *cherryHandler.Component) {
+func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Component) {
 	handlerLogger := cherryLogger.NewLogger("test_handler")
 	i := 0
 
 	handlerLogger.Info(cherryTime.Now().ToMillisecond())
 
 	for {
+
+		if app.Running() == false {
+			return
+		}
+
 		route := cherryRoute.NewByName("game.testHandler.testLocalMethod")
 		session := &cherrySession.Session{}
 		msg := &cherryMessage.Message{}

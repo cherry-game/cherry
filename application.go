@@ -81,6 +81,10 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		return
 	}
 
+	defer func() {
+		cherryLogger.Flush()
+	}()
+
 	// is running
 	atomic.AddInt32(&a.running, 1)
 
@@ -176,7 +180,6 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	}
 
 	cherryLogger.Infof("------- [nodeId = %s] application has been shutdown... -------", a.NodeId())
-
 }
 
 func (a *Application) OnShutdown(fn ...func()) {

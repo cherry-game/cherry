@@ -43,6 +43,14 @@ func SetNodeLogger(node cherryFacade.INode) {
 	defaultLogger = NewLogger(refLogger, zap.AddCallerSkip(1))
 }
 
+func Flush() {
+	defaultLogger.Sync()
+
+	for _, logger := range loggers {
+		logger.Sync()
+	}
+}
+
 func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 	if refLoggerName == "" {
 		return nil
@@ -99,6 +107,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
 
 	var writers []zapcore.WriteSyncer
+
 	if config.EnableWriteFile && config.FilePath != "" {
 		lumberjack := &lumberjack.Logger{
 			Filename:   config.FilePath,
@@ -109,6 +118,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		}
 		writers = append(writers, zapcore.AddSync(lumberjack))
 	}
+
 	if config.EnableConsole {
 		writers = append(writers, zapcore.AddSync(os.Stderr))
 	}
@@ -121,13 +131,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	return cl
 }
 
-func NewSugaredLogger(
-	config zapcore.EncoderConfig,
-	writer zapcore.WriteSyncer,
-	level zapcore.Level,
-	opts ...zap.Option,
-) *zap.SugaredLogger {
-
+func NewSugaredLogger(config zapcore.EncoderConfig, writer zapcore.WriteSyncer, level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(config),
 		zapcore.AddSync(writer),
