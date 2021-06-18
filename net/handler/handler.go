@@ -6,13 +6,11 @@ import (
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
-	"time"
 )
 
 type (
 	Handler struct {
 		facade.AppContext
-		WorkerGroup
 		name             string                       // unique name
 		eventFn          map[string][]facade.EventFn  // event func
 		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
@@ -52,8 +50,9 @@ func (h *Handler) OnInit() {
 }
 
 func (h *Handler) OnAfterInit() {
-	h.initWorkerGroup()
-	h.runWorker(h)
+}
+
+func (h *Handler) OnStop() {
 }
 
 func (h *Handler) Events() map[string][]facade.EventFn {
@@ -81,47 +80,6 @@ func (h *Handler) RemoteHandlers() map[string]*facade.HandlerFn {
 func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
 	invoke, found := h.remoteHandlers[funcName]
 	return invoke, found
-}
-
-func (h *Handler) PostMessage(message interface{}) {
-	if message == nil {
-		cherryLogger.Warn("put message is nil")
-		return
-	}
-
-	worker := h.GetWorker(message)
-	if worker == nil {
-		cherryLogger.Warnf("message %v  not found worker.", message)
-		return
-	}
-
-	worker.MessageChan <- message
-}
-
-func (h *Handler) GetWorker(message interface{}) *Worker {
-	if h.workerSize == 1 {
-		return h.workerMap[0]
-	}
-
-	index := h.workerHashFn(message)
-	if index > h.workerSize {
-		index = 0
-	}
-	return h.workerMap[index]
-}
-
-func (h *Handler) OnStop() {
-	for _, worker := range h.workerMap {
-		for {
-			size := len(worker.MessageChan)
-			cherryLogger.Infof("[%s-chan-%d] waiting goroutine is empty. len(chan)=%d", h.name, worker.Index, size)
-
-			if size == 0 {
-				break
-			}
-			time.Sleep(time.Millisecond * 100)
-		}
-	}
 }
 
 func (h *Handler) HandlerComponent() *Component {
@@ -176,10 +134,6 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 		h.name, name, len(invokeFunc.InArgs), len(invokeFunc.OutArgs))
 }
 
-func (h *Handler) PostEvent(e facade.IEvent) {
-	h.handlerComponent.PostEvent(e)
-}
-
 //RegisterEvent
 func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 	if eventName == "" {
@@ -200,4 +154,8 @@ func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 	if cherryProfile.Debug() {
 		cherryLogger.Debugf("[Handler = %s] register event = %s.", h.name, eventName)
 	}
+}
+
+func (h *Handler) PostEvent(e facade.IEvent) {
+	h.handlerComponent.PostEvent(e)
 }

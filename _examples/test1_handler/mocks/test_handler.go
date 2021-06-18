@@ -19,7 +19,7 @@ type TestHandler struct {
 }
 
 func (t *TestHandler) OnInit() {
-	t.SetWorkerRandHash(30)
+	//t.SetWorkerRandHash(30)
 
 	t.RegisterEvent("testEventName", t.testEvent)
 
@@ -42,6 +42,7 @@ func (t *TestHandler) testMethod2(session *cherrySession.Session, message *cherr
 
 func (t *TestHandler) testMethod(session *cherrySession.Session, message *cherryMessage.Message) {
 	cherryLogger.Debugf("session[%s], message[%v]", session, message)
+	//panic("fdfdsfdsfdssd")
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {

@@ -17,7 +17,6 @@ type IHandler interface {
 	LocalHandler(funcName string) (*HandlerFn, bool)  // 根据handler名称获取本地handler
 	RemoteHandlers() map[string]*HandlerFn            // 已注册的远程handler列表(内部rpc调用的逻辑处理函数)
 	RemoteHandler(funcName string) (*HandlerFn, bool) // 根据handler名称获取远程handler
-	PostMessage(message interface{})                  // 提交消息到对列
 }
 
 // HandlerFn 函数反射信息
@@ -27,6 +26,3 @@ type HandlerFn struct {
 	InArgs  []reflect.Type
 	OutArgs []reflect.Type
 }
-
-// EventFn 事件注册函数
-type EventFn func(e IEvent)

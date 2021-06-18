@@ -9,6 +9,7 @@ import (
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
@@ -21,7 +22,7 @@ func main() {
 func app() {
 	testApp := cherry.NewApp("../profile_single/", "local", "game-1")
 
-	defer testApp.OnShutdown(
+	testApp.OnShutdown(
 		func() {
 			c := testApp.Find(cherryConst.HandlerComponent)
 			if c != nil {
@@ -38,17 +39,20 @@ func app() {
 		},
 	)
 
-	handlers := cherryHandler.NewComponent()
-	handlers.SetNameFn(strings.ToLower)
-
+	handlerComponent := cherryHandler.NewComponent()
+	handlerComponent.SetNameFn(strings.ToLower)
 	//add TestHandler
-	handlers.Registers(mocks.NewTestHandler())
 
-	dataConfig := cherryDataConfig.NewComponent()
+	handlerGroup1 := cherryHandler.NewGroup(10, 128)
+	handlerGroup1.AddHandlers(mocks.NewTestHandler())
+
+	handlerComponent.Register(handlerGroup1)
+
+	dataConfigComponent := cherryDataConfig.NewComponent()
 
 	testApp.Startup(
-		handlers,
-		dataConfig,
+		handlerComponent,
+		dataConfigComponent,
 		&mockComponent{},
 	)
 }
@@ -77,14 +81,10 @@ func mockRequestMsg1(handler *cherryHandler.Component) {
 
 	for {
 		route := cherryRoute.NewByName("game.testHandler.testLocalMethod")
+		session := &cherrySession.Session{}
+		msg := &cherryMessage.Message{}
 
-		msg := &cherryHandler.UnhandledMessage{
-			Session: &cherrySession.Session{},
-			Route:   route,
-			Msg:     nil,
-		}
-
-		handler.DoHandle(msg)
+		handler.PostMessage(session, route, msg)
 		//time.Sleep(time.Microsecond * 1)
 
 		i++
@@ -99,13 +99,10 @@ func mockRequestMsg2(handler *cherryHandler.Component) {
 	for {
 		route := cherryRoute.NewByName("game.testHandler.test222")
 
-		msg := &cherryHandler.UnhandledMessage{
-			Session: &cherrySession.Session{},
-			Route:   route,
-			Msg:     nil,
-		}
+		session := &cherrySession.Session{}
 
-		handler.DoHandle(msg)
+		handler.PostMessage(session, route, nil)
+
 		//time.Sleep(time.Millisecond * 1)
 	}
 }

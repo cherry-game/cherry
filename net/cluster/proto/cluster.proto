@@ -26,13 +26,19 @@ message Response {
 //  rpc Unregister(NodeId) returns(Response) {}
 //}
 
+enum RPCType {
+  User = 0;
+  Sys = 1;
+}
+
 message ForwardMessage {
-  int32 type = 1;
-  string nodeId = 2;
-  int64 sid = 3;
-  uint64 id = 4;
-  string route = 5;
-  bytes data = 6;
+  RPCType rpcType = 1;
+  int32 msgType = 2;
+  string nodeId = 3;
+  int64 sid = 4;
+  uint64 id = 5;
+  string route = 6;
+  bytes data = 7;
 }
 
 message SessionId {

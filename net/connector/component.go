@@ -217,11 +217,5 @@ func (p *Component) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet)
 		return
 	}
 
-	unHandleMessage := &cherryHandler.UnhandledMessage{
-		Session: agent.Session,
-		Route:   route,
-		Msg:     msg,
-	}
-
-	p.handlerComponent.DoHandle(unHandleMessage)
+	p.handlerComponent.PostMessage(agent.Session, route, msg)
 }
