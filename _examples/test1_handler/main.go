@@ -30,14 +30,6 @@ func app() {
 				cherryLogger.Debugf("--------[component = %s] is found! --------", c.Name())
 			}
 		},
-		func() {
-			cherryLogger.DefaultLogger().Sync()
-			handlerLogger := cherryLogger.NewLogger("test_handler")
-			handlerLogger.Sync()
-
-			timeLogger := cherryLogger.NewLogger("test_handler")
-			timeLogger.Info(cherryTime.Now().ToMillisecond())
-		},
 	)
 
 	handlerComponent := cherryHandler.NewComponent()

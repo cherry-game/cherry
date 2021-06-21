@@ -139,9 +139,9 @@ func (a *Application) Startup(components ...facade.IComponent) {
 
 	select {
 	case <-a.die:
-		cherryLogger.Infof("[nodeId = %s] -> shutdown().", a.NodeId())
+		cherryLogger.Infof("[nodeId = %s] -> invoke shutdown().", a.NodeId())
 	case <-sg:
-		cherryLogger.Infof("[nodeId = %s] -> shutdown signal = %v.", a.NodeId(), sg)
+		cherryLogger.Infof("[nodeId = %s] -> receive shutdown signal = %v.", a.NodeId(), sg)
 	}
 
 	// stop status

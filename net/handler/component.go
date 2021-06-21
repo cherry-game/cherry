@@ -91,6 +91,7 @@ func (h *Component) OnStop() {
 			return
 		}
 		// wait...
+		cherryLogger.Debug("queue not empty! wait 3 seconds.")
 		time.Sleep(3 * time.Second)
 	}
 
