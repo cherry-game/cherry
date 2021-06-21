@@ -248,7 +248,7 @@
       };
       handshakeBuffer.sys.rsa = data;
     }
-    handshakeCallback = params.handshakeCallback;
+    handshakeCallback = params.handshakeCallback || heartbeat;
     connect(params, url, cb);
   };
 
@@ -423,6 +423,7 @@
     heartbeatId = setTimeout(function() {
       heartbeatId = null;
       send(obj);
+      console.log("send heartbeat");
 
       nextHeartbeatTimeout = Date.now() + heartbeatTimeout;
       heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, heartbeatTimeout);

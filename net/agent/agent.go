@@ -288,17 +288,16 @@ func (a *Agent) write() {
 
 	for {
 		select {
+		case <-ticker.C:
+			deadline := time.Now().Add(-a.Heartbeat).Unix()
+			if a.lastAt < deadline {
+				cherryLogger.Debugf("connect heartbeat timeout. session[%s]", a.Session)
+				return
+			}
 		case bytes := <-a.chWrite:
 			_, err := a.conn.Write(bytes)
 			if err != nil {
 				cherryLogger.Warn(err)
-				return
-			}
-		case <-ticker.C:
-			// double timeout
-			deadline := time.Now().Add(-2 * a.Heartbeat).Unix()
-			if a.lastAt < deadline {
-				cherryLogger.Debugf("connect heartbeat timeout. session[%s]", a.Session)
 				return
 			}
 		case data := <-a.chSend:

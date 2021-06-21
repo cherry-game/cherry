@@ -28,7 +28,7 @@ type (
 )
 
 var (
-	DefaultHeartbeat = 30 * time.Second
+	DefaultHeartbeat = 60 * time.Second
 )
 
 func NewTCPComponent(address string) *Component {
@@ -156,6 +156,9 @@ func (p *Component) AddPacketHandle(typ cherryPacket.Type, listener cherryAgent.
 func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	data := map[string]interface{}{
 		"code": 200,
+		"sys": map[string]interface{}{
+			"heartbeat": p.Heartbeat.Seconds(),
+		},
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -176,7 +179,7 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 		cherryLogger.Error(err)
 	}
 
-	cherryLogger.Debugf("request handshake. session[%s]", agent.Session)
+	cherryLogger.Debugf("request handshake. session[%s], data[%v]", agent.Session, data)
 }
 
 func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
