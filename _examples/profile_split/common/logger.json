@@ -2,7 +2,7 @@
   "logger": {
     "game_log": {
       "level": "debug",
-      "enable_write_file": false,
+      "enable_write_file": true,
       "enable_console": true,
       "file_path": "logs/game.log",
       "max_size": 128,

@@ -25,6 +25,12 @@ func app() {
 
 	go getDropConfig(testApp)
 
+	go func(testApp *cherry.Application) {
+		//10秒后退出应用
+		time.Sleep(10 * time.Second)
+		testApp.Shutdown()
+	}(testApp)
+
 	testApp.Startup(
 		handlers,
 		dataConfig,
