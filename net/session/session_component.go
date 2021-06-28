@@ -49,7 +49,7 @@ func (s *SessionComponent) Bind(sid facade.SID, uid facade.UID) error {
 		return cherryError.Errorf("sc does not exist, sid:%d", sid)
 	}
 
-	if session.UID() != "" {
+	if session.UID() > 0 {
 		if session.UID() == uid {
 			return nil
 		}

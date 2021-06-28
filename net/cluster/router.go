@@ -16,7 +16,7 @@ func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteConte
 		return
 	}
 
-	hash := cherryCrypto.CRC32(session.UID())
+	hash := cherryCrypto.CRC32(string(session.UID()))
 	index := hash % len(list)
 	cb(nil, list[index].Id)
 }

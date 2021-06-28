@@ -46,7 +46,7 @@ func NewTCPComponent(address string) *Component {
 
 	ws := NewTCP(address)
 
-	return NewConnectorWithOpt(opt, ws)
+	return NewComponentWithOpt(opt, ws)
 }
 
 func NewWSComponent(address string) *Component {
@@ -64,10 +64,10 @@ func NewWSComponent(address string) *Component {
 
 	ws := NewWS(address)
 
-	return NewConnectorWithOpt(opt, ws)
+	return NewComponentWithOpt(opt, ws)
 }
 
-func NewConnectorWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
+func NewComponentWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
 	return &Component{
 		Options:     opts,
 		connector:   connector,
@@ -97,7 +97,9 @@ func (p *Component) OnAfterInit() {
 	p.OnCreateSession(func(s *cherrySession.Session) (next bool, err error) {
 		// increase connect stat
 		p.ConnectStat.IncreaseConn()
-		cherryLogger.Debugf("on create. session[%s]", s)
+
+		s.Debugf("session on create. %s", s.String())
+
 		return true, nil
 	})
 
@@ -179,13 +181,13 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 		cherryLogger.Error(err)
 	}
 
-	cherryLogger.Debugf("request handshake. session[%s], data[%v]", agent.Session, data)
+	agent.Session.Debugf("request handshake. data[%v]", data)
 }
 
 func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
 	agent.SetStatus(cherryAgent.Working)
 
-	cherryLogger.Debugf("request handshakeACK. session[%s]", agent.Session)
+	agent.Session.Debug("request handshakeACK.")
 }
 
 func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
@@ -199,26 +201,26 @@ func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 	if err != nil {
 		cherryLogger.Error(err)
 	}
-	cherryLogger.Debugf("session[%s] request heartbeat", agent.Session)
+	agent.Session.Debug("request heartbeat.")
 }
 
 func (p *Component) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) {
 	if agent.Status() != cherryAgent.Working {
-		cherryLogger.Warnf("status is not working. session[%s]", agent.Session)
+		agent.Session.Warnf("status is not working. status[%d]", agent.Status())
 		return
 	}
 
 	msg, err := cherryMessage.Decode(pkg.Data)
 	if err != nil {
-		cherryLogger.Warn(err)
+		agent.Session.Warnf("packet decode error. data[%s], error[%s].", pkg.Data, err)
 		return
 	}
 
 	route, err := cherryRoute.Decode(msg.Route)
 	if err != nil {
-		cherryLogger.Errorf("route decode error. session[%s] message[%s]", agent.Session, msg)
+		agent.Session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
 		return
 	}
 
-	p.handlerComponent.PostMessage(agent.Session, route, msg)
+	p.handlerComponent.PostMessage(agent, route, msg)
 }

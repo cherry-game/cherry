@@ -6,7 +6,7 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/session"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -19,8 +19,6 @@ type TestHandler struct {
 }
 
 func (t *TestHandler) OnInit() {
-	//t.SetWorkerRandHash(30)
-
 	t.RegisterEvent("testEventName", t.testEvent)
 
 	t.RegisterLocals(
@@ -41,8 +39,6 @@ func (t *TestHandler) testMethod2(session *cherrySession.Session, message *cherr
 }
 
 func (t *TestHandler) testMethod(session *cherrySession.Session, message *cherryMessage.Message) {
-	cherryLogger.Debugf("session[%s], message[%v]", session, message)
-	//panic("fdfdsfdsfdssd")
 }
 
 func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {

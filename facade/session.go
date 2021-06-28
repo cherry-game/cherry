@@ -4,7 +4,7 @@ import "net"
 
 type (
 	SID        = int64  // session唯一id
-	UID        = string // 用户唯一id user unique id
+	UID        = int64  // 用户唯一id user unique id
 	FrontendId = string // 前端节点id
 
 	// INetwork 网络处理接口

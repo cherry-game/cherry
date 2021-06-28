@@ -31,9 +31,10 @@ var (
 
 // message
 var (
-	MessageWrongType     = Error("wrong message type")
-	MessageInvalid       = Error("invalid message")
-	MessageRouteNotFound = Error("route info not found in dictionary")
+	MessageWrongType            = Error("wrong message type")
+	MessageInvalid              = Error("invalid message")
+	MessageRouteNotFound        = Error("route info not found in dictionary")
+	MessageReplyShouldBeNotNull = Error("message replay should be not null")
 )
 
 // serializer protobuf

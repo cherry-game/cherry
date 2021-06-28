@@ -1,7 +1,8 @@
 package cherryHandler
 
 import (
-	cherryReflect "github.com/cherry-game/cherry/extend/reflect"
+	crypto "github.com/cherry-game/cherry/extend/crypto"
+	reflect "github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 )
 
@@ -11,14 +12,15 @@ type (
 		queueNum  int
 		queueCap  int
 		queueMaps map[int]*Queue
-		msgHash   func(msg *MessageExecutor, queueNum int) int
-		eventHash func(msg *EventExecutor, queueNum int) int
+		queueHash QueueHash
 	}
 
 	Queue struct {
 		index    int
 		dataChan chan IExecutor
 	}
+
+	QueueHash func(executor IExecutor, queueNum int) int
 )
 
 func NewGroupWithHandler(handlers ...facade.IHandler) *HandlerGroup {
@@ -41,6 +43,7 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 		queueNum:  queueNum,
 		queueCap:  queueCap,
 		queueMaps: make(map[int]*Queue),
+		queueHash: DefaultQueueHash, // default queue hash
 	}
 
 	// init queue chan
@@ -58,19 +61,15 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 func (h *HandlerGroup) AddHandlers(handlers ...facade.IHandler) {
 	for _, handler := range handlers {
 		if handler.Name() == "" {
-			handler.SetName(cherryReflect.GetStructName(handler))
+			handler.SetName(reflect.GetStructName(handler))
 		}
 
 		h.handlers[handler.Name()] = handler
 	}
 }
 
-func (h *HandlerGroup) SetEventHash(fn func(msg *EventExecutor, queueNum int) int) {
-	h.eventHash = fn
-}
-
-func (h *HandlerGroup) SetMsgHash(fn func(msg *MessageExecutor, queueNum int) int) {
-	h.msgHash = fn
+func (h *HandlerGroup) SetQueueHash(fn QueueHash) {
+	h.queueHash = fn
 }
 
 func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
@@ -82,116 +81,24 @@ func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
 	q.dataChan <- executor
 }
 
-//func (h *HandlerGroup) SetQueueHash(hashFn QueueHashFn) {
-//	if hashFn == nil {
-//		logger.Warn("hashFn is nil")
-//		return
-//	}
-//
-//	h.queueHashFn = hashFn
-//}
-//
-//func (h *HandlerGroup) SetQueueRandHash() {
-//	h.SetQueueHash(func(queueNum int, msg interface{}) int {
-//		return rand.Int() % queueNum
-//	})
-//}
-//
-//func (h *HandlerGroup) SetQueueCRC32Hash() {
-//	h.SetQueueHash(func(queueNum int, msg interface{}) int {
-//		var hashValue string
-//		switch m := msg.(type) {
-//		case facade.IEvent:
-//			{
-//				hashValue = m.UniqueId()
-//			}
-//		case *UnhandledMessage:
-//			{
-//				if m.Session != nil {
-//					hashValue = m.Session.UID()
-//				}
-//			}
-//		}
-//
-//		// default index
-//		if hashValue == "" {
-//			return 0
-//		}
-//
-//		return crypto.CRC32(hashValue) % queueNum
-//	})
-//}
+func DefaultQueueHash(executor IExecutor, queueNum int) int {
+	var i = 0
 
-//func (h *HandlerGroup) SetQueueExecutor(executor QueueExecuteFn) {
-//	h.queueExecuteFn = executor
-//}
+	switch e := executor.(type) {
+	case *MessageExecutor:
+		if e.Agent.Session.UID() > 0 {
+			i = crypto.CRC32(string(e.Agent.Session.UID())) % queueNum
+		} else {
+			i = crypto.CRC32(string(e.Agent.Session.SID())) % queueNum
+		}
+	case *EventExecutor:
+		i = crypto.CRC32(e.Event.UniqueId()) % queueNum
+	case *UserRPCExecutor:
+		i = 0
 
-//func DefaultQueueExecutor(component *Component, group *HandlerGroup, queue *Queue) {
-//	defer func() {
-//		if r := recover(); r != nil {
-//			logger.Warnf("recover in ProcessMessage(). %s", r)
-//		}
-//	}()
-//
-//	for {
-//		select {
-//		case message := <-queue.dataChan:
-//			{
-//				switch msg := message.(type) {
-//				case *UnhandledMessage:
-//					{
-//						for _, filter := range component.GetBeforeFilter() {
-//							if !filter(msg) {
-//								break
-//							}
-//						}
-//
-//						for _, handler := range group.handlers {
-//							if method, found := handler.LocalHandler(msg.Route.Method()); found {
-//
-//								if profile.Debug() {
-//									logger.Debugf("[%s-chan-%d] receive message. route = %s",
-//										handler.Name(), queue.Index, msg.Route.String())
-//								}
-//
-//								params := make([]reflect.Value, 2)
-//								params[0] = reflect.ValueOf(msg.Session)
-//								params[1] = reflect.ValueOf(msg.Msg)
-//								method.Value.Call(params)
-//							}
-//						}
-//
-//						for _, filter := range component.GetAfterFilter() {
-//							if !filter(msg) {
-//								break
-//							}
-//						}
-//					}
-//				case facade.IEvent:
-//					{
-//						for _, handler := range group.handlers {
-//							calls, found := handler.Event(msg.EventName())
-//							if found == false {
-//								break
-//							}
-//
-//							if profile.Debug() {
-//								logger.Debugf("[%s-chan-%d] receive event. msg type = %v",
-//									handler.Name(), queue.Index, reflect.TypeOf(message))
-//							}
-//
-//							for _, call := range calls {
-//								call(msg)
-//							}
-//						}
-//					}
-//				default:
-//					{
-//						logger.Warnf("message not process. value = %v", msg)
-//					}
-//				}
-//			}
-//			//case timer
-//		}
-//	}
-//}
+	case *SysRPCExecutor:
+		i = 0
+	}
+
+	return i
+}

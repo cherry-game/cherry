@@ -96,9 +96,9 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	cherryLogger.Infof("[profileDir  = %s]", cherryProfile.Dir())
 	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
 	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger().Level)
-	cherryLogger.Infof("[stackLevel	 = %s]", cherryLogger.DefaultLogger().StackLevel)
-	cherryLogger.Infof("[writeFile   = %v]", cherryLogger.DefaultLogger().EnableWriteFile)
+	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger.Level)
+	cherryLogger.Infof("[stackLevel	 = %s]", cherryLogger.DefaultLogger.StackLevel)
+	cherryLogger.Infof("[writeFile   = %v]", cherryLogger.DefaultLogger.EnableWriteFile)
 	cherryLogger.Info("-------------------------------------------------")
 
 	// add components & init
@@ -121,14 +121,14 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	// execute Load()
 	for _, c := range a.components {
 		c.Set(a)
-		c.Init()
 		cherryLogger.Debugf("[component = %s] -> OnInit().", c.Name())
+		c.Init()
 	}
 
 	//execute OnAfterInit()
 	for _, c := range a.components {
-		c.OnAfterInit()
 		cherryLogger.Debugf("[component = %s] -> OnAfterInit().", c.Name())
+		c.OnAfterInit()
 	}
 
 	cherryLogger.Infof("[nodeId = %s] application is running.", a.NodeId())

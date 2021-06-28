@@ -4,10 +4,12 @@ import (
 	"github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
-	"runtime"
+	cherryProfile "github.com/cherry-game/cherry/profile"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -15,10 +17,9 @@ import (
 type (
 	//Component handler component
 	Component struct {
-		facade.Component // base component
-		Options          // opts
-		handlerGroups    []*HandlerGroup
-		//rpc client
+		Options
+		facade.Component
+		groups []*HandlerGroup
 	}
 
 	Options struct {
@@ -32,7 +33,7 @@ type (
 
 func NewComponent() *Component {
 	return &Component{
-		handlerGroups: make([]*HandlerGroup, 0),
+		groups: make([]*HandlerGroup, 0),
 		Options: Options{
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
@@ -46,16 +47,18 @@ func (h *Component) Name() string {
 }
 
 func (h *Component) Init() {
-	for _, group := range h.handlerGroups {
-		for _, handler := range group.handlers {
+	for _, g := range h.groups {
+		for _, handler := range g.handlers {
 			handler.Set(h.App())
 			handler.OnPreInit()
 			handler.OnInit()
 			handler.OnAfterInit()
+
+			printHandler(g, handler)
 		}
 
-		for i := 0; i < group.queueNum; i++ {
-			queue := group.queueMaps[i]
+		for i := 0; i < g.queueNum; i++ {
+			queue := g.queueMaps[i]
 
 			// new goroutine for queue
 			go func(queue *Queue) {
@@ -72,13 +75,26 @@ func (h *Component) Init() {
 	}
 }
 
+func printHandler(g *HandlerGroup, handler facade.IHandler) {
+	cherryLogger.Debugf("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), g.queueNum, g.queueCap)
+
+	for key := range handler.Events() {
+		cherryLogger.Debugf("[Handler = %s] event = %s", handler.Name(), key)
+	}
+
+	for key := range handler.LocalHandlers() {
+		cherryLogger.Debugf("[Handler = %s] localHandler = %s", handler.Name(), key)
+	}
+
+	for key := range handler.RemoteHandlers() {
+		cherryLogger.Debugf("[Handler = %s] removeHandler = %s", handler.Name(), key)
+	}
+}
+
 func (h *Component) invokeExecutor(executor IExecutor) {
 	defer func() {
 		if r := recover(); r != nil {
-			cherryLogger.Warnf("recover in runQueue(). %s", r)
-			var buf [512]byte
-			n := runtime.Stack(buf[:], false)
-			cherryLogger.Warnf("%s", string(buf[:n]))
+			cherryLogger.Warnf("recover in runQueue(). %s", string(debug.Stack()))
 		}
 	}()
 
@@ -92,10 +108,10 @@ func (h *Component) OnStop() {
 		}
 		// wait...
 		cherryLogger.Debug("queue not empty! wait 3 seconds.")
-		time.Sleep(3 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 
-	for _, group := range h.handlerGroups {
+	for _, group := range h.groups {
 		for _, handler := range group.handlers {
 			handler.OnStop()
 		}
@@ -103,7 +119,7 @@ func (h *Component) OnStop() {
 }
 
 func (h *Component) queueIsEmpty() bool {
-	for _, group := range h.handlerGroups {
+	for _, group := range h.groups {
 		for _, queue := range group.queueMaps {
 			if len(queue.dataChan) > 0 {
 				return false
@@ -116,11 +132,13 @@ func (h *Component) queueIsEmpty() bool {
 
 func (h *Component) Register(handlerGroup *HandlerGroup) {
 	if handlerGroup == nil {
-		cherryLogger.Warn("HandlerGroup is nil")
+		cherryLogger.Warn("handlerGroup is nil")
 		return
 	}
 
 	for handlerName, handler := range handlerGroup.handlers {
+
+		// process name fn
 		name := h.nameFn(handlerName)
 
 		if name != handlerName {
@@ -130,7 +148,7 @@ func (h *Component) Register(handlerGroup *HandlerGroup) {
 	}
 
 	// append to group
-	h.handlerGroups = append(h.handlerGroups, handlerGroup)
+	h.groups = append(h.groups, handlerGroup)
 }
 
 func (h *Component) Register2Group(handler ...facade.IHandler) {
@@ -144,20 +162,16 @@ func (h *Component) PostEvent(event facade.IEvent) {
 		return
 	}
 
-	for _, group := range h.handlerGroups {
+	for _, group := range h.groups {
 		for _, handler := range group.handlers {
+
 			if fn, found := handler.Event(event.EventName()); found {
 				executor := &EventExecutor{
 					Event:   event,
 					EventFn: fn,
 				}
 
-				index := 0
-				if group.eventHash != nil {
-					index = group.eventHash(executor, group.queueNum)
-				} else {
-					index = executor.HashQueue(group.queueNum)
-				}
+				index := group.queueHash(executor, group.queueNum)
 				group.inQueue(index, executor)
 			}
 		}
@@ -165,7 +179,7 @@ func (h *Component) PostEvent(event facade.IEvent) {
 }
 
 func (h *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler) {
-	for _, group := range h.handlerGroups {
+	for _, group := range h.groups {
 		if handler, found := group.handlers[handlerName]; found {
 			return group, handler
 		}
@@ -173,60 +187,68 @@ func (h *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
-func (h *Component) PostMessage(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message) {
+func (h *Component) PostMessage(agent *cherryAgent.Agent, route *cherryRoute.Route, msg *cherryMessage.Message) {
 	if !h.App().Running() {
 		//ignore message
 		return
 	}
 
-	if route == nil || msg == nil {
+	if route == nil {
+		cherryLogger.Debug("route is nil")
+		return
+	}
+
+	if msg == nil {
+		cherryLogger.Debug("data is nil")
 		return
 	}
 
 	if route.NodeType() != h.App().NodeType() {
 		//forward to remote server
-		h.doForward(session, route, msg)
+		h.doForward(agent.Session, route, msg)
 		return
 	}
 
 	handlerName := h.nameFn(route.HandleName())
 	if handlerName == "" {
-		cherryLogger.Warnf("could not find handle name. Route = %v", route)
+		cherryLogger.Warnf("[Route = %v] could not find handle name. ", route)
 		return
 	}
 
 	group, handler := h.getGroup(handlerName)
 	if group == nil || handler == nil {
-		cherryLogger.Warnf("[Route = %h] could not find handler for route.", msg.Route)
+		cherryLogger.Warnf("[Route = %v] could not find handler for route.", route)
 		return
 	}
 
 	fn, found := handler.LocalHandler(route.Method())
 	if found == false {
+		cherryLogger.Debugf("[Route = %v] could not find method[%s] for route.", route.Method())
 		return
 	}
 
 	executor := &MessageExecutor{
-		Session:       session,
+		Agent:         agent,
 		Msg:           msg,
 		HandlerFn:     fn,
 		BeforeFilters: h.beforeFilters,
 		AfterFilters:  h.afterFilters,
 	}
 
-	index := 0
-	if group.eventHash != nil {
-		index = group.msgHash(executor, group.queueNum)
-	} else {
-		index = executor.HashQueue(group.queueNum)
+	index := group.queueHash(executor, group.queueNum)
+
+	if cherryProfile.Debug() {
+		//agent.Session.Debugf("post handler = %s, route = %s, group-index = %d", handlerName, route, index)
 	}
+
 	group.inQueue(index, executor)
 }
 
 func (h *Component) doForward(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message) {
 	// TODO 通过rpc 转发到远程节点
 	// rpc client invoke
-	cherryLogger.Debugf("forward message. session[%s], route[%s], message[%s]", session, route, msg)
+
+	session.Debugf("forward message. route[%s], message[%s]", route, msg)
 }
 
 func (c *Options) AddBeforeFilter(beforeFilters ...FilterFn) {

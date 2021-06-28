@@ -5,17 +5,16 @@ import (
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
 )
 
 type (
 	Handler struct {
 		facade.AppContext
-		name             string                       // unique name
-		eventFn          map[string][]facade.EventFn  // event func
-		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
-		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
-		handlerComponent *Component                   // handler component
+		name           string                       // unique name
+		eventFn        map[string][]facade.EventFn  // event func
+		localHandlers  map[string]*facade.HandlerFn // local invoke Handler functions
+		remoteHandlers map[string]*facade.HandlerFn // remote invoke Handler functions
+		component      *Component                   // handler component
 	}
 )
 
@@ -40,9 +39,9 @@ func (h *Handler) OnPreInit() {
 		h.remoteHandlers = make(map[string]*facade.HandlerFn)
 	}
 
-	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*Component)
-	if h.handlerComponent == nil {
-		cherryLogger.Warn("not found handlerComponent.")
+	h.component = h.App().Find(cherryConst.HandlerComponent).(*Component)
+	if h.component == nil {
+		cherryLogger.Warn("not found component.")
 	}
 }
 
@@ -82,12 +81,12 @@ func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
 	return invoke, found
 }
 
-func (h *Handler) HandlerComponent() *Component {
-	return h.handlerComponent
+func (h *Handler) Component() *Component {
+	return h.component
 }
 
-func (h *Handler) RegisterLocals(sliceFn ...interface{}) {
-	for _, fn := range sliceFn {
+func (h *Handler) RegisterLocals(localFns ...interface{}) {
+	for _, fn := range localFns {
 		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
@@ -105,13 +104,10 @@ func (h *Handler) RegisterLocal(name string, fn interface{}) {
 	}
 
 	h.localHandlers[name] = f
-
-	cherryLogger.Debugf("[Handler = %s] register local func name = %s, numIn = %d, numOut =%d",
-		h.name, name, len(f.InArgs), len(f.OutArgs))
 }
 
-func (h *Handler) RegisterRemotes(sliceFn ...interface{}) {
-	for _, fn := range sliceFn {
+func (h *Handler) RegisterRemotes(remoteFns ...interface{}) {
+	for _, fn := range remoteFns {
 		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
@@ -129,9 +125,6 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 	}
 
 	h.remoteHandlers[name] = invokeFunc
-
-	cherryLogger.Debugf("[Handler = %s] register remote func name = %s, numIn = %d, numOut = %d",
-		h.name, name, len(invokeFunc.InArgs), len(invokeFunc.OutArgs))
 }
 
 //RegisterEvent
@@ -150,12 +143,8 @@ func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 	events = append(events, fn)
 
 	h.eventFn[eventName] = events
-
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("[Handler = %s] register event = %s.", h.name, eventName)
-	}
 }
 
 func (h *Handler) PostEvent(e facade.IEvent) {
-	h.handlerComponent.PostEvent(e)
+	h.component.PostEvent(e)
 }

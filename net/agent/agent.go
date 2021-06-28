@@ -171,7 +171,8 @@ func (a *Agent) Kick(reason string) error {
 		cherryLogger.Warn(err)
 	}
 
-	cherryLogger.Debugf("kick session[%s], reason[%s]", a.Session, reason)
+	a.Session.Debugf("kick session, reason[%s]", reason)
+
 	return nil
 }
 
@@ -184,7 +185,7 @@ func (a *Agent) Close() {
 	a.SetStatus(Closed)
 
 	if cherryProfile.Debug() {
-		cherryLogger.Debugf("session closed. [%s]", a.Session)
+		a.Session.Debugf("session closed.")
 	}
 
 	for _, listener := range a.OnCloseListener {
@@ -199,8 +200,10 @@ func (a *Agent) Close() {
 	}
 
 	if err := a.conn.Close(); err != nil {
-		cherryLogger.Errorf("session close error. session[%s], error:%v", a.Session, err)
+		a.Session.Debugf("session close error. [%s]", err)
 	}
+
+	a.chDie <- true
 }
 
 // RemoteAddr, implementation for session.NetworkEntity interface
@@ -211,7 +214,7 @@ func (a *Agent) RemoteAddr() net.Addr {
 
 // String, implementation for Stringer interface
 func (a *Agent) String() string {
-	return fmt.Sprintf("Remote=%s, LastTime=%d",
+	return fmt.Sprintf("addr=%s, lastTime=%d",
 		a.conn.RemoteAddr().String(),
 		atomic.LoadInt64(&a.lastAt),
 	)
@@ -234,23 +237,19 @@ func (a *Agent) Run() {
 
 func (a *Agent) read() {
 	defer func() {
-		a.chDie <- true
-
-		close(a.chSend)
-		close(a.chWrite)
-		close(a.chDie)
+		a.Close()
 	}()
 
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			cherryLogger.Debugf("session[%s] will be closed immediately. %s", a.Session, err.Error())
+			a.Session.Debugf("will be closed immediately. error[%s]", err.Error())
 			return
 		}
 
 		packets, err := a.PacketDecoder.Decode(msg)
 		if err != nil {
-			cherryLogger.Warnf("packet decoder error. %s, msg[%s]", err, msg)
+			cherryLogger.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
 			continue
 		}
 
@@ -267,10 +266,7 @@ func (a *Agent) read() {
 func (a *Agent) processPacket(packet *cherryPacket.Packet) {
 	listener, found := a.PacketListener[packet.Type]
 	if found == false {
-		cherryLogger.Errorf("session[%s], packet[%s] type not found.",
-			a.Session,
-			packet,
-		)
+		a.Session.Debugf("packet[%s] type not found.", packet)
 		return
 	}
 
@@ -283,27 +279,35 @@ func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
 		ticker.Stop()
-		a.Close()
+
+		close(a.chSend)
+		close(a.chWrite)
+		close(a.chDie)
 	}()
 
 	for {
 		select {
+		case <-a.chDie:
+			return
+
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				cherryLogger.Debugf("connect heartbeat timeout. session[%s]", a.Session)
+				a.Session.Debug("connect heartbeat timeout.")
 				return
 			}
+
 		case bytes := <-a.chWrite:
 			_, err := a.conn.Write(bytes)
 			if err != nil {
 				cherryLogger.Warn(err)
 				return
 			}
+
 		case data := <-a.chSend:
 			payload, err := a.Serializer.Marshal(data.payload)
 			if err != nil {
-				cherryLogger.Debugf("message serializer error. session[%s], data[%s]", a.Session, data.String())
+				a.Session.Debug("message serializer error. data[%s]", data.String())
 				return
 			}
 

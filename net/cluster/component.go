@@ -7,7 +7,3 @@ type ClusterComponent struct {
 	//node discovery
 
 }
-
-func a() {
-
-}

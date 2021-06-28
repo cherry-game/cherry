@@ -1,48 +1,39 @@
 package cherryHandler
 
 import (
-	cherryCrypto "github.com/cherry-game/cherry/extend/crypto"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	facade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	cherryAgent "github.com/cherry-game/cherry/net/agent"
+	message "github.com/cherry-game/cherry/net/message"
 	"reflect"
 )
 
 type (
 	IExecutor interface {
-		HashQueue(queueNum int) int
 		Invoke()
 	}
 
 	MessageExecutor struct {
-		Session       *cherrySession.Session
-		Msg           *cherryMessage.Message
-		HandlerFn     *cherryFacade.HandlerFn
+		Agent         *cherryAgent.Agent
+		Msg           *message.Message
+		HandlerFn     *facade.HandlerFn
 		BeforeFilters []FilterFn
 		AfterFilters  []FilterFn
 	}
 
 	EventExecutor struct {
-		Event   cherryFacade.IEvent
-		EventFn []cherryFacade.EventFn
+		Event   facade.IEvent
+		EventFn []facade.EventFn
 	}
 
 	UserRPCExecutor struct {
-		HandlerFn *cherryFacade.HandlerFn
+		HandlerFn *facade.HandlerFn
 	}
 
 	SysRPCExecutor struct {
-		HandlerFn *cherryFacade.HandlerFn
+		HandlerFn *facade.HandlerFn
 	}
 )
-
-func (m *MessageExecutor) HashQueue(queueNum int) int {
-	val := m.Session.UID()
-	if val == "" {
-		val = string(m.Session.SID())
-	}
-	return cherryCrypto.CRC32(val) % queueNum
-}
 
 func (m *MessageExecutor) Invoke() {
 	for _, filter := range m.BeforeFilters {
@@ -51,10 +42,33 @@ func (m *MessageExecutor) Invoke() {
 		}
 	}
 
+	if len(m.HandlerFn.InArgs) != 2 {
+		cherryLogger.Warnf("[Route = %v] method in args error", m.Msg.Route)
+		return
+	}
+
+	in2 := m.HandlerFn.InArgs[1]
+
+	var val interface{}
+	val = reflect.New(in2.Elem()).Interface()
+
+	err := m.Agent.Serializer.Unmarshal(m.Msg.Data, val)
+	if err != nil {
+		cherryLogger.Warn(err)
+		return
+	}
+
 	params := make([]reflect.Value, 2)
-	params[0] = reflect.ValueOf(m.Session)
-	params[1] = reflect.ValueOf(m.Msg)
-	m.HandlerFn.Value.Call(params)
+	params[0] = reflect.ValueOf(m.Agent.Session)
+	params[1] = reflect.ValueOf(val)
+
+	result := m.HandlerFn.Value.Call(params)
+	if len(result) > 0 {
+		if err := result[0].Interface(); err != nil {
+			cherryLogger.Warn(err)
+			return
+		}
+	}
 
 	for _, filter := range m.AfterFilters {
 		if !filter(m) {
@@ -63,12 +77,16 @@ func (m *MessageExecutor) Invoke() {
 	}
 }
 
-func (e *EventExecutor) HashQueue(queueNum int) int {
-	return cherryCrypto.CRC32(e.Event.UniqueId()) % queueNum
-}
-
 func (e *EventExecutor) Invoke() {
 	for _, fn := range e.EventFn {
 		fn(e.Event)
 	}
+}
+
+func (u *UserRPCExecutor) Invoke() {
+
+}
+
+func (u *SysRPCExecutor) Invoke() {
+
 }

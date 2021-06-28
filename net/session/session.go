@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 	"sync/atomic"
 )
 
@@ -29,7 +30,7 @@ func NewSession(sid facade.SID, frontendId facade.FrontendId) *Session {
 			data: make(map[string]interface{}),
 		},
 		sid:        sid,
-		uid:        "",
+		uid:        0,
 		frontendId: frontendId,
 	}
 
@@ -53,7 +54,7 @@ func (s *Session) FrontendId() facade.FrontendId {
 }
 
 func (s *Session) Bind(uid facade.UID) error {
-	if uid == "" {
+	if uid < 1 {
 		return cherryError.SessionIllegalUID
 	}
 
@@ -69,7 +70,7 @@ func (s *Session) Unbind() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.uid = ""
+	s.uid = 0
 }
 
 func (s *Session) SendRaw(bytes []byte) error {
@@ -114,9 +115,45 @@ func (s *Session) RemoteAddress() string {
 }
 
 func (s *Session) String() string {
-	return fmt.Sprintf("sid = %d, uid = %s, address = %s",
+	return fmt.Sprintf("sid = %d, uid = %d, address = %s",
 		s.sid,
 		s.uid,
 		s.RemoteAddress(),
 	)
+}
+
+func (s *Session) logPrefix() string {
+	return fmt.Sprintf("[sid=%d, uid=%d] ", s.sid, s.uid)
+}
+
+func (s *Session) Debug(args ...interface{}) {
+	cherryLogger.DefaultLogger.Debug(s.logPrefix(), fmt.Sprint(args...))
+}
+
+func (s *Session) Debugf(template string, args ...interface{}) {
+	cherryLogger.DefaultLogger.Debug(s.logPrefix(), fmt.Sprintf(template, args...))
+}
+
+func (s *Session) Info(args ...interface{}) {
+	cherryLogger.DefaultLogger.Info(s.logPrefix(), fmt.Sprint(args...))
+}
+
+func (s *Session) Infof(template string, args ...interface{}) {
+	cherryLogger.DefaultLogger.Info(s.logPrefix(), fmt.Sprintf(template, args...))
+}
+
+func (s *Session) Warn(args ...interface{}) {
+	cherryLogger.DefaultLogger.Warn(s.logPrefix(), fmt.Sprint(args...))
+}
+
+func (s *Session) Warnf(template string, args ...interface{}) {
+	cherryLogger.DefaultLogger.Warn(s.logPrefix(), fmt.Sprintf(template, args...))
+}
+
+func (s *Session) Error(args ...interface{}) {
+	cherryLogger.DefaultLogger.Error(s.logPrefix(), fmt.Sprint(args...))
+}
+
+func (s *Session) Errorf(template string, args ...interface{}) {
+	cherryLogger.DefaultLogger.Error(s.logPrefix(), fmt.Sprintf(template, args...))
 }
