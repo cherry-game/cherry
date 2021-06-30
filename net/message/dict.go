@@ -1,7 +1,7 @@
 package cherryMessage
 
 import (
-	"fmt"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 	"strings"
 )
 
@@ -17,9 +17,9 @@ var (
 // 在客户端与服务器建立连接的握手过程中，服务器会将 整个字典传给客户端，
 // 这样在以后的通信中，对于路由信息，将全部使用定义的小整数进行标记，大大地减少了额外信 息开销
 // SetDictionary set routes map which be used to compress route.
-func SetDictionary(dict map[string]uint16) error {
+func SetDictionary(dict map[string]uint16) {
 	if dict == nil {
-		return nil
+		return
 	}
 
 	for route, code := range dict {
@@ -27,18 +27,21 @@ func SetDictionary(dict map[string]uint16) error {
 
 		// duplication check
 		if _, ok := routes[r]; ok {
-			return fmt.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			cherryLogger.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			return
 		}
 
 		if _, ok := codes[code]; ok {
-			return fmt.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			cherryLogger.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			return
 		}
 
 		// update map, using last value when key duplicated
 		routes[r] = code
 		codes[code] = r
 	}
-	return nil
+
+	return
 }
 
 // GetDictionary gets the routes map which is used to compress route.
