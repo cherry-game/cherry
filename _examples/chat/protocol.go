@@ -34,3 +34,7 @@ type SyncMessage struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
+
+type UserBalanceResponse struct {
+	CurrentBalance int64 `json:"currentBalance"`
+}

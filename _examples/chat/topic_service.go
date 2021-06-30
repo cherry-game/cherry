@@ -1,13 +1,14 @@
 package chat
 
 import (
-	session "github.com/cherry-game/cherry/net/session"
+	cherryError "github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/net/session"
 	"strings"
 	"sync/atomic"
 )
 
 type User struct {
-	session  *session.Session
+	session  *cherrySession.Session
 	nickname string
 	gateId   int64
 	masterId int64
@@ -20,7 +21,7 @@ var (
 	users   = make(map[int64]*User)
 )
 
-func NewUser(s *session.Session, msg *NewUserRequest) error {
+func NewUser(s *cherrySession.Session, req *NewUserRequest) error {
 	atomic.AddInt64(&nextUid, 1)
 
 	uid := nextUid
@@ -40,19 +41,31 @@ func NewUser(s *session.Session, msg *NewUserRequest) error {
 
 	user := &User{
 		session:  s,
-		nickname: msg.Nickname,
-		gateId:   msg.GateUid,
+		nickname: req.Nickname,
+		gateId:   req.GateUid,
 		masterId: uid,
 		balance:  1000,
 	}
 
 	users[uid] = user
 
-	//chat := &JoinRoomRequest{
-	//	Nickname:  msg.Nickname,
-	//	GateUid:   msg.GateUid,
-	//	MasterUid: uid,
-	//}
+	chat := &JoinRoomRequest{
+		Nickname:  req.Nickname,
+		GateUid:   req.GateUid,
+		MasterUid: uid,
+	}
 
-	return nil //s.RPC("RoomService.JoinRoom", chat)
+	return s.RPC("gate.roomHandler.joinRoom", chat)
+}
+
+func Stats(s *cherrySession.Session, msg *MasterStats) error {
+	// It's OK to use map without lock because of this service running in main thread
+	user, found := users[msg.Uid]
+	if !found {
+		return cherryError.Errorf("User not found: %v", msg.Uid)
+	}
+
+	user.message++
+	user.balance--
+	return s.Push("onBalance", &UserBalanceResponse{user.balance})
 }

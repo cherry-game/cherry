@@ -5,16 +5,19 @@ import (
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/session"
 )
 
 type (
 	Handler struct {
 		facade.AppContext
-		name           string                       // unique name
-		eventFn        map[string][]facade.EventFn  // event func
-		localHandlers  map[string]*facade.HandlerFn // local invoke Handler functions
-		remoteHandlers map[string]*facade.HandlerFn // remote invoke Handler functions
-		component      *Component                   // handler component
+		name             string                          // unique name
+		eventFn          map[string][]facade.EventFn     // event func
+		localHandlers    map[string]*facade.HandlerFn    // local invoke Handler functions
+		remoteHandlers   map[string]*facade.HandlerFn    // remote invoke Handler functions
+		component        *Component                      // handler component
+		onCreateListener []cherrySession.SessionListener // on create execute listener function
+		onCloseListener  []cherrySession.SessionListener // on close execute listener function
 	}
 )
 
@@ -39,9 +42,17 @@ func (h *Handler) OnPreInit() {
 		h.remoteHandlers = make(map[string]*facade.HandlerFn)
 	}
 
+	if h.onCreateListener == nil {
+		h.onCreateListener = make([]cherrySession.SessionListener, 0)
+	}
+
+	if h.onCloseListener == nil {
+		h.onCloseListener = make([]cherrySession.SessionListener, 0)
+	}
+
 	h.component = h.App().Find(cherryConst.HandlerComponent).(*Component)
 	if h.component == nil {
-		cherryLogger.Warn("not found component.")
+		cherryLogger.Warn("handler component not found.")
 	}
 }
 
@@ -49,6 +60,14 @@ func (h *Handler) OnInit() {
 }
 
 func (h *Handler) OnAfterInit() {
+	sessionComponent, found := h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
+	if found == false {
+		cherryLogger.Warn("session component not found.")
+		return
+	}
+
+	sessionComponent.AddOnCreate(h.onCreateListener...)
+	sessionComponent.AddOnClose(h.onCloseListener...)
 }
 
 func (h *Handler) OnStop() {
@@ -146,5 +165,18 @@ func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 }
 
 func (h *Handler) PostEvent(e facade.IEvent) {
+	if h.component == nil {
+		cherryLogger.Errorf("handler component is nil. event[%s]", e)
+		return
+	}
+
 	h.component.PostEvent(e)
+}
+
+func (h *Handler) AddOnCreate(listener ...cherrySession.SessionListener) {
+	h.onCreateListener = append(h.onCreateListener, listener...)
+}
+
+func (h *Handler) AddOnClose(listener ...cherrySession.SessionListener) {
+	h.onCloseListener = append(h.onCloseListener, listener...)
 }

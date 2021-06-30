@@ -4,7 +4,8 @@ import (
 	"fmt"
 	"github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/profile"
 	"sync/atomic"
 )
 
@@ -21,24 +22,31 @@ type (
 		sid        facade.SID        // session id
 		uid        facade.UID        // user unique id
 		frontendId facade.FrontendId // frontend node id
+		component  *Component
 	}
 )
 
-func NewSession(sid facade.SID, frontendId facade.FrontendId) *Session {
+func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INetwork, component *Component) *Session {
 	session := &Session{
 		settings: settings{
 			data: make(map[string]interface{}),
 		},
+		entity:     entity,
 		sid:        sid,
 		uid:        0,
 		frontendId: frontendId,
+		component:  component,
+	}
+
+	if component != nil {
+		for _, listener := range component.onCreate {
+			if listener(session) == false {
+				break
+			}
+		}
 	}
 
 	return session
-}
-
-func (s *Session) SetNetwork(entity facade.INetwork) {
-	s.entity = entity
 }
 
 func (s *Session) SID() facade.SID {
@@ -74,6 +82,11 @@ func (s *Session) Unbind() {
 }
 
 func (s *Session) SendRaw(bytes []byte) error {
+	if s.entity == nil {
+		s.Debug("entity is nil")
+		return nil
+	}
+
 	return s.entity.SendRaw(bytes)
 }
 
@@ -104,6 +117,18 @@ func (s *Session) Kick(reason string) error {
 }
 
 func (s *Session) Closed() {
+	if cherryProfile.Debug() {
+		s.Debugf("session closed.")
+	}
+
+	if s.component != nil {
+		for _, listener := range s.component.onClose {
+			if listener(s) == false {
+				break
+			}
+		}
+	}
+
 	s.entity.Close()
 }
 

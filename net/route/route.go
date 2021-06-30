@@ -45,6 +45,10 @@ func (r *Route) String() string {
 
 // Decode decodes the route
 func Decode(route string) (*Route, error) {
+	if route == "" {
+		return nil, cherryError.RouteFieldCantEmpty
+	}
+
 	r := strings.Split(route, ".")
 	for _, s := range r {
 		if strings.TrimSpace(s) == "" {

@@ -3,36 +3,34 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/_examples/chat"
-	cherryTime "github.com/cherry-game/cherry/extend/time"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
-	cherryConnector "github.com/cherry-game/cherry/net/connector"
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/extend/time"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/agent"
+	"github.com/cherry-game/cherry/net/connector"
+	"github.com/cherry-game/cherry/net/handler"
+	"github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherryRoute "github.com/cherry-game/cherry/net/route"
 	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/session"
 	"time"
 )
 
 func main() {
-	app := cherry.NewApp("../profile/", "local", "gate-1")
+
+	app := cherry.NewApp("../../profile/", "local", "gate-1")
+	app.SetSerializer(cherrySerializer.NewJSON())
 
 	handlerComponent := createHandler()
 
 	go func() {
 		time.Sleep(10 * time.Second)
 
-		route := cherryRoute.NewByName("gate.BindService.Login")
-		agent := &cherryAgent.Agent{
-			Options: cherryAgent.Options{
-				Serializer: cherrySerializer.NewJSON(),
-			},
-			Session: &cherrySession.Session{},
-		}
+		//agent := cherryAgent.NewAgent(app, cherryAgent.Options{}, nil)
+
+		session := &cherrySession.Session{}
 
 		msg := &cherryMessage.Message{
+			Route: "gate.userHandler.testLogin",
 			Data: []byte{
 				123, 34, 110, 105, 99, 107, 110, 97, 109, 101,
 				34, 58, 34, 103, 117, 101, 115, 116, 49, 54,
@@ -47,7 +45,7 @@ func main() {
 				return
 			}
 
-			handlerComponent.PostMessage(agent, route, msg)
+			handlerComponent.PostMessage(session, msg)
 			//time.Sleep(time.Microsecond * 1)
 
 			i++
@@ -86,15 +84,10 @@ func createWebsocket() *cherryConnector.Component {
 	connector := cherryConnector.NewWS("127.0.0.1:34590")
 
 	component := cherryConnector.NewComponentWithOpt(cherryAgent.Options{
-		Heartbeat:        60 * time.Second,
-		DataCompression:  false,
-		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
-		PacketEncoder:    cherryPacket.NewPomeloEncoder(),
-		Serializer:       cherrySerializer.NewJSON(),
-		PacketListener:   make(map[cherryPacket.Type]cherryAgent.PacketListener),
-		RPCHandler:       nil,
-		OnCreateListener: make([]cherryAgent.SessionListener, 0),
-		OnCloseListener:  make([]cherryAgent.SessionListener, 0),
+		Heartbeat:       60 * time.Second,
+		DataCompression: false,
+		PacketListener:  make(map[cherryPacket.Type]cherryAgent.PacketListener),
+		RPCHandler:      nil,
 	}, connector)
 
 	return component

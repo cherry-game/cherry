@@ -8,11 +8,8 @@ import (
 	"github.com/cherry-game/cherry/extend/time"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	"github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/route"
-	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
 	"github.com/cherry-game/cherry/net/session"
 	"math/rand"
 	"strings"
@@ -90,18 +87,13 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 			return
 		}
 
-		route := cherryRoute.NewByName("game.testHandler.testLocalMethod")
+		session := &cherrySession.Session{}
 
-		agent := &cherryAgent.Agent{
-			Options: cherryAgent.Options{
-				Serializer: cherrySerializer.NewJSON(),
-			},
-			Session: &cherrySession.Session{},
+		msg := &cherryMessage.Message{
+			Route: "game.testHandler.testLocalMethod",
 		}
 
-		msg := &cherryMessage.Message{}
-
-		handler.PostMessage(agent, route, msg)
+		handler.PostMessage(session, msg)
 		//time.Sleep(time.Microsecond * 1)
 
 		i++
@@ -112,15 +104,16 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 	}
 }
 
-func mockRequestMsg2(handler *cherryHandler.Component) {
+func mockRequestMsg2(app cherryFacade.IApplication, handler *cherryHandler.Component) {
 	for {
-		route := cherryRoute.NewByName("game.testHandler.test222")
 
-		agent := &cherryAgent.Agent{
-			Session: &cherrySession.Session{},
+		session := &cherrySession.Session{}
+
+		msg := &cherryMessage.Message{
+			Route: "game.testHandler.test222",
 		}
 
-		handler.PostMessage(agent, route, nil)
+		handler.PostMessage(session, msg)
 
 		//time.Sleep(time.Millisecond * 1)
 	}

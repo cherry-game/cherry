@@ -5,28 +5,73 @@ import (
 	"github.com/cherry-game/cherry/error"
 )
 
-type (
-	// Decoder
-	Decoder interface {
-		Decode(data []byte) ([]*Packet, error)
-	}
+const (
+	// None
+	None Type = 0x00
 
-	// Encoder
-	Encoder interface {
-		Encode(typ Type, buf []byte) ([]byte, error)
+	// Handshake represents a handshake: request(client) <====> handshake response(server)
+	Handshake Type = 0x01
+
+	// HandshakeAck represents a handshake ack from client to server
+	HandshakeAck Type = 0x02
+
+	// Heartbeat represents a heartbeat
+	Heartbeat Type = 0x03
+
+	// settings represents a common data packet
+	Data Type = 0x04
+
+	// Kick represents a kick off packet
+	Kick Type = 0x05 // disconnect message from server
+)
+
+var (
+	HeadLength    = 4       // 4 bytes
+	MaxPacketSize = 1 << 24 // 16mb
+
+	packetTypes = map[Type]string{
+		None:         "None",
+		Handshake:    "Handshake",
+		HandshakeAck: "HandshakeAck",
+		Heartbeat:    "Heartbeat",
+		Data:         "Data",
+		Kick:         "Kick",
 	}
 )
 
-// Packet 网络消息包结构
-type Packet struct {
-	Type   Type   // 包类型
-	Length int    // 包长度
-	Data   []byte // 数据内容 message
+type (
+	Type byte
+
+	Packet struct {
+		typ  Type
+		len  int
+		data []byte
+	}
+)
+
+func (t *Type) String() string {
+	return packetTypes[*t]
+}
+
+func (t Type) InvalidType() bool {
+	return t < Handshake || t > Kick
+}
+
+func (p *Packet) Type() byte {
+	return byte(p.typ)
+}
+
+func (p *Packet) Len() int {
+	return p.len
+}
+
+func (p *Packet) Data() []byte {
+	return p.data
 }
 
 // String represents the Packet's in text mode.
 func (p *Packet) String() string {
-	return fmt.Sprintf("packet type: %s, length: %d, data: %s", p.Type.String(), p.Length, string(p.Data))
+	return fmt.Sprintf("packet type: %s, length: %d, data: %s", p.typ.String(), p.len, string(p.data))
 }
 
 // ParseHeader parses a packet header and returns its dataLen and packetType or an error
@@ -34,8 +79,9 @@ func ParseHeader(header []byte) (int, Type, error) {
 	if len(header) != HeadLength {
 		return 0, None, cherryError.PacketInvalidHeader
 	}
-	typ := header[0]
-	if invalidType(Type(typ)) {
+
+	typ := Type(header[0])
+	if typ.InvalidType() {
 		return 0, None, cherryError.PacketWrongType
 	}
 
@@ -45,5 +91,5 @@ func ParseHeader(header []byte) (int, Type, error) {
 		return 0, None, cherryError.PacketSizeExceed
 	}
 
-	return size, Type(typ), nil
+	return size, typ, nil
 }

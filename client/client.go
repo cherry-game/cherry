@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	cherryFacade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/packet"
@@ -53,9 +54,8 @@ type pendingRequest struct {
 type Client struct {
 	conn            net.Conn
 	Connected       bool
-	packetEncoder   cherryPacket.Encoder
-	packetDecoder   cherryPacket.Decoder
-	packetChan      chan *cherryPacket.Packet
+	packetCodec     cherryFacade.IPacketCodec
+	packetChan      chan cherryFacade.IPacket
 	IncomingMsgChan chan *cherryMessage.Message
 	pendingChan     chan bool
 	pendingRequests map[uint64]*pendingRequest
@@ -84,9 +84,8 @@ func New(requestTimeout ...time.Duration) *Client {
 
 	return &Client{
 		Connected:       false,
-		packetEncoder:   cherryPacket.NewPomeloEncoder(),
-		packetDecoder:   cherryPacket.NewPomeloDecoder(),
-		packetChan:      make(chan *cherryPacket.Packet, 10),
+		packetCodec:     cherryPacket.NewPomeloCodec(),
+		packetChan:      make(chan cherryFacade.IPacket, 10),
 		pendingRequests: make(map[uint64]*pendingRequest),
 		requestTimeout:  reqTimeout,
 		// 30 here is the limit of inflight messages
@@ -97,7 +96,7 @@ func New(requestTimeout ...time.Duration) *Client {
 }
 
 func (c *Client) sendHandshakeRequest() error {
-	p, err := c.packetEncoder.Encode(cherryPacket.Handshake, []byte(handshakeBuffer))
+	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.Handshake), []byte(handshakeBuffer))
 	if err != nil {
 		return err
 	}
@@ -113,7 +112,7 @@ func (c *Client) handleHandshakeResponse() error {
 	}
 
 	handshakePacket := packets[0]
-	if handshakePacket.Type != cherryPacket.Handshake {
+	if handshakePacket.Type() != cherryPacket.Handshake {
 		return fmt.Errorf("got first packet from server that is not a handshake, aborting")
 	}
 
@@ -125,7 +124,7 @@ func (c *Client) handleHandshakeResponse() error {
 	//	}
 	//}
 
-	err = json.Unmarshal(handshakePacket.Data, handshake)
+	err = json.Unmarshal(handshakePacket.Data(), handshake)
 	if err != nil {
 		return err
 	}
@@ -136,7 +135,7 @@ func (c *Client) handleHandshakeResponse() error {
 		cherryMessage.SetDictionary(handshake.Sys.Dict)
 	}
 
-	p, err := c.packetEncoder.Encode(cherryPacket.HandshakeAck, []byte{})
+	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.HandshakeAck), []byte{})
 	if err != nil {
 		return err
 	}
@@ -201,8 +200,8 @@ func (c *Client) handlePackets() {
 			switch p.Type {
 			case cherryPacket.Data:
 				//handle data
-				cherryLogger.Debugf("got data: %s", string(p.Data))
-				m, err := cherryMessage.Decode(p.Data)
+				cherryLogger.Debugf("got data: %s", string(p.Data()))
+				m, err := cherryMessage.Decode(p.Data())
 				if err != nil {
 					cherryLogger.Errorf("error decoding msg from sv: %s", string(m.Data))
 				}
@@ -228,7 +227,7 @@ func (c *Client) handlePackets() {
 	}
 }
 
-func (c *Client) readPackets(buf *bytes.Buffer) ([]*cherryPacket.Packet, error) {
+func (c *Client) readPackets(buf *bytes.Buffer) ([]cherryFacade.IPacket, error) {
 	// listen for sv messages
 	data := make([]byte, 1024)
 	n := len(data)
@@ -241,13 +240,13 @@ func (c *Client) readPackets(buf *bytes.Buffer) ([]*cherryPacket.Packet, error) 
 		}
 		buf.Write(data[:n])
 	}
-	packets, err := c.packetDecoder.Decode(buf.Bytes())
+	packets, err := c.packetCodec.PacketDecode(buf.Bytes())
 	if err != nil {
 		cherryLogger.Errorf("error decoding packet from server: %s", err.Error())
 	}
 	totalProcessed := 0
 	for _, p := range packets {
-		totalProcessed += cherryPacket.HeadLength + p.Length
+		totalProcessed += cherryPacket.HeadLength + p.Len()
 	}
 	buf.Next(totalProcessed)
 
@@ -279,7 +278,7 @@ func (c *Client) sendHeartbeats(interval int) {
 	for {
 		select {
 		case <-t.C:
-			p, _ := c.packetEncoder.Encode(cherryPacket.Heartbeat, []byte{})
+			p, _ := c.packetCodec.PacketEncode(byte(cherryPacket.Heartbeat), []byte{})
 			_, err := c.conn.Write(p)
 			if err != nil {
 				cherryLogger.Errorf("error sending heartbeat to server: %s", err.Error())
@@ -296,7 +295,10 @@ func (c *Client) Disconnect() {
 	for c.Connected {
 		c.Connected = false
 		close(c.closeChan)
-		c.conn.Close()
+		err := c.conn.Close()
+		if err != nil {
+			cherryLogger.Error(err)
+		}
 	}
 }
 
@@ -366,7 +368,8 @@ func (c *Client) buildPacket(msg cherryMessage.Message) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	p, err := c.packetEncoder.Encode(cherryPacket.Data, encMsg)
+
+	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.Data), encMsg)
 	if err != nil {
 		return nil, err
 	}

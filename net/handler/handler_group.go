@@ -4,10 +4,14 @@ import (
 	crypto "github.com/cherry-game/cherry/extend/crypto"
 	reflect "github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	"runtime/debug"
+	"strconv"
 )
 
 type (
 	HandlerGroup struct {
+		//handlers  map[string]facade.IHandler
 		handlers  map[string]facade.IHandler
 		queueNum  int
 		queueCap  int
@@ -81,15 +85,71 @@ func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
 	q.dataChan <- executor
 }
 
+func (h *HandlerGroup) Run(app facade.IApplication) {
+
+	// ...
+	for _, handler := range h.handlers {
+		handler.Set(app)
+		handler.OnPreInit()
+		handler.OnInit()
+		handler.OnAfterInit()
+		h.printInfo(handler)
+	}
+
+	for i := 0; i < h.queueNum; i++ {
+
+		queue := h.queueMaps[i]
+		// new goroutine for queue
+		go func(queue *Queue) {
+			for {
+				select {
+				case executor := <-queue.dataChan:
+					{
+						h.invokeExecutor(executor)
+					}
+				}
+			}
+		}(queue)
+	}
+}
+
+func (h *HandlerGroup) invokeExecutor(executor IExecutor) {
+	defer func() {
+		if r := recover(); r != nil {
+			cherryLogger.Warnf("recover in executor. %s", string(debug.Stack()))
+			cherryLogger.Warnf("executor fail [%s]", executor.String())
+		}
+	}()
+
+	executor.Invoke()
+}
+
+func (h *HandlerGroup) printInfo(handler facade.IHandler) {
+	cherryLogger.Debug("--------------------------------------")
+	cherryLogger.Debugf("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
+	for key := range handler.Events() {
+		cherryLogger.Debugf("[Handler = %s] event = %s", handler.Name(), key)
+	}
+
+	for key := range handler.LocalHandlers() {
+		cherryLogger.Debugf("[Handler = %s] localHandler = %s", handler.Name(), key)
+	}
+
+	for key := range handler.RemoteHandlers() {
+		cherryLogger.Debugf("[Handler = %s] removeHandler = %s", handler.Name(), key)
+	}
+	cherryLogger.Debug("--------------------------------------")
+}
+
 func DefaultQueueHash(executor IExecutor, queueNum int) int {
 	var i = 0
 
 	switch e := executor.(type) {
 	case *MessageExecutor:
-		if e.Agent.Session.UID() > 0 {
-			i = crypto.CRC32(string(e.Agent.Session.UID())) % queueNum
+		if e.Session.UID() > 0 {
+			i = crypto.CRC32(strconv.FormatInt(e.Session.UID(), 10)) % queueNum
 		} else {
-			i = crypto.CRC32(string(e.Agent.Session.SID())) % queueNum
+			i = crypto.CRC32(strconv.FormatInt(e.Session.SID(), 10)) % queueNum
 		}
 	case *EventExecutor:
 		i = crypto.CRC32(e.Event.UniqueId()) % queueNum

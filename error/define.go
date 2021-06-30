@@ -11,7 +11,10 @@ var (
 
 // session
 var (
-	SessionIllegalUID = Error("illegal uid")
+	SessionIllegalUID     = Error("illegal uid")
+	SessionMemberNotFound = Error("member not found in the group")
+	SessionClosedGroup    = Error("group is closed")
+	SessionDuplication    = Error("session has existed in the current group")
 )
 
 // route

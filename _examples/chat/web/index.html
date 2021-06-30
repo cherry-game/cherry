@@ -26,14 +26,14 @@
         el: "#container",
         data: {
             nickname: nickname,
-            inputMessage:'',
+            inputMessage: '',
             messages: [],
             balance: 1000,
         },
         methods: {
             sendMessage: function () {
                 console.log(this.inputMessage);
-                starx.notify('gate.RoomService.SyncMessage', {name: this.nickname, content: this.inputMessage});
+                starx.notify('gate.roomHandler.syncMessage', {name: this.nickname, content: this.inputMessage});
                 this.inputMessage = '';
             }
         }
@@ -46,7 +46,7 @@
 
     var onNewUser = function (data) {
         console.log(data);
-        v.messages.push({name:'system', content:data.content});
+        v.messages.push({name: 'system', content: data.content});
     };
 
     var onBalance = function (data) {
@@ -56,14 +56,14 @@
 
     var onMembers = function (data) {
         console.log(data);
-        v.messages.push({name:'system', content: "members: "+data.members});
+        v.messages.push({name: 'system', content: "members: " + data.members});
     };
 
 
     var login = function (data) {
         console.log(data);
-        if(data.code === 0) {
-            v.messages.push({name:'system', content:data.result});
+        if (data.code === 0) {
+            v.messages.push({name: 'system', content: data.result});
             starx.on('onMessage', onMessage)
         }
     };
@@ -76,7 +76,7 @@
         starx.on("onNewUser", onNewUser);
         starx.on("onMembers", onMembers);
         starx.on("onBalance", onBalance);
-        starx.request("gate.BindService.Login", {"nickname": nickname}, login);
+        starx.request("gate.userHandler.login", {"nickname": nickname}, login);
     })
 </script>
 </body>

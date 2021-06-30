@@ -8,9 +8,7 @@ import (
 	"github.com/cherry-game/cherry/net/agent"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/packet"
-	"github.com/cherry-game/cherry/net/route"
-	"github.com/cherry-game/cherry/net/serializer"
+	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/session"
 	"time"
 )
@@ -21,7 +19,7 @@ type (
 		facade.Component
 		cherryAgent.Options
 		ConnectStat      *ConnectStat
-		sessionComponent *cherrySession.SessionComponent
+		sessionComponent *cherrySession.Component
 		handlerComponent *cherryHandler.Component
 		connector        facade.IConnector
 	}
@@ -33,15 +31,10 @@ var (
 
 func NewTCPComponent(address string) *Component {
 	opt := cherryAgent.Options{
-		Heartbeat:        DefaultHeartbeat,
-		DataCompression:  false,
-		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
-		PacketEncoder:    cherryPacket.NewPomeloEncoder(),
-		Serializer:       cherrySerializer.NewProtobuf(),
-		PacketListener:   make(map[cherryPacket.Type]cherryAgent.PacketListener),
-		RPCHandler:       nil,
-		OnCreateListener: make([]cherryAgent.SessionListener, 0),
-		OnCloseListener:  make([]cherryAgent.SessionListener, 0),
+		Heartbeat:       DefaultHeartbeat,
+		DataCompression: false,
+		PacketListener:  make(map[cherryPacket.Type]cherryAgent.PacketListener),
+		RPCHandler:      nil,
 	}
 
 	ws := NewTCP(address)
@@ -51,15 +44,10 @@ func NewTCPComponent(address string) *Component {
 
 func NewWSComponent(address string) *Component {
 	opt := cherryAgent.Options{
-		Heartbeat:        DefaultHeartbeat,
-		DataCompression:  false,
-		PacketDecoder:    cherryPacket.NewPomeloDecoder(),
-		PacketEncoder:    cherryPacket.NewPomeloEncoder(),
-		Serializer:       cherrySerializer.NewProtobuf(),
-		PacketListener:   make(map[cherryPacket.Type]cherryAgent.PacketListener),
-		RPCHandler:       nil,
-		OnCreateListener: make([]cherryAgent.SessionListener, 0),
-		OnCloseListener:  make([]cherryAgent.SessionListener, 0),
+		Heartbeat:       DefaultHeartbeat,
+		DataCompression: false,
+		PacketListener:  make(map[cherryPacket.Type]cherryAgent.PacketListener),
+		RPCHandler:      nil,
 	}
 
 	ws := NewWS(address)
@@ -84,29 +72,30 @@ func (p *Component) Init() {
 }
 
 func (p *Component) OnAfterInit() {
-	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.SessionComponent)
+	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
 	if p.sessionComponent == nil {
-		panic("please preload session component.")
+		panic("session component must be preloaded.")
 	}
 
 	p.handlerComponent = p.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
 	if p.handlerComponent == nil {
-		panic("preload handler component please.")
+		panic("handler component must be preloaded.")
 	}
 
-	p.OnCreateSession(func(s *cherrySession.Session) (next bool, err error) {
-		// increase connect stat
+	// set rpc handler
+	p.Options.RPCHandler = p.handlerComponent.PostMessage
+
+	p.sessionComponent.AddOnCreate(func(s *cherrySession.Session) (next bool) {
 		p.ConnectStat.IncreaseConn()
-
 		s.Debugf("session on create. %s", s.String())
-
-		return true, nil
+		p.ConnectStat.PrintInfo()
+		return true
 	})
 
-	p.OnCloseSession(func(s *cherrySession.Session) (next bool, err error) {
-		// decrease connect stat
+	p.sessionComponent.AddOnClose(func(s *cherrySession.Session) (next bool) {
 		p.ConnectStat.DecreaseConn()
-		return true, nil
+		p.ConnectStat.PrintInfo()
+		return true
 	})
 
 	//add packet listener
@@ -117,19 +106,18 @@ func (p *Component) OnAfterInit() {
 
 	// default on connect
 	p.connector.OnConnect(func(conn facade.INetConn) {
-		// create new session
-		session := p.sessionComponent.Create(cherrySession.NextSID(), p.App().NodeId())
-
 		// create agent
-		agent := cherryAgent.NewAgent(p.Options, session, conn)
+		agent := cherryAgent.NewAgent(p.App(), p.Options, conn)
 
-		session.SetNetwork(agent)
+		// create new session
+		session := p.sessionComponent.Create(agent)
+		agent.Session = session
 
 		// run agent
 		agent.Run()
 	})
 
-	// new goroutine
+	// new goroutine for connector
 	go p.connector.OnStart()
 }
 
@@ -143,23 +131,15 @@ func (p *Component) OnStop() {
 	}
 }
 
-func (p *Component) OnCreateSession(listener ...cherryAgent.SessionListener) {
-	p.Options.OnCreateListener = append(p.Options.OnCreateListener, listener...)
-}
-
-func (p *Component) OnCloseSession(listener ...cherryAgent.SessionListener) {
-	p.Options.OnCloseListener = append(p.Options.OnCloseListener, listener...)
-}
-
 func (p *Component) AddPacketHandle(typ cherryPacket.Type, listener cherryAgent.PacketListener) {
 	p.Options.PacketListener[typ] = listener
 }
 
-func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
+func (p *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
 	data := map[string]interface{}{
 		"code": 200,
 		"sys": map[string]interface{}{
-			"heartbeat": p.Heartbeat.Seconds(),
+			"heartbeat": agent.Options.Heartbeat.Seconds(),
 		},
 	}
 
@@ -169,7 +149,7 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 		return
 	}
 
-	bytes, err := agent.PacketEncoder.Encode(cherryPacket.Handshake, jsonData)
+	bytes, err := p.App().PacketEncode(byte(cherryPacket.Handshake), jsonData)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -184,14 +164,14 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 	agent.Session.Debugf("request handshake. data[%v]", data)
 }
 
-func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
+func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ facade.IPacket) {
 	agent.SetStatus(cherryAgent.Working)
 
 	agent.Session.Debug("request handshakeACK.")
 }
 
-func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) {
-	bytes, err := agent.PacketEncoder.Encode(cherryPacket.Heartbeat, nil)
+func (p *Component) heartbeat(agent *cherryAgent.Agent, _ facade.IPacket) {
+	bytes, err := p.App().PacketEncode(byte(cherryPacket.Heartbeat), nil)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -204,23 +184,17 @@ func (p *Component) heartbeat(agent *cherryAgent.Agent, _ *cherryPacket.Packet) 
 	agent.Session.Debug("request heartbeat.")
 }
 
-func (p *Component) handData(agent *cherryAgent.Agent, pkg *cherryPacket.Packet) {
+func (p *Component) handData(agent *cherryAgent.Agent, pkg facade.IPacket) {
 	if agent.Status() != cherryAgent.Working {
 		agent.Session.Warnf("status is not working. status[%d]", agent.Status())
 		return
 	}
 
-	msg, err := cherryMessage.Decode(pkg.Data)
+	msg, err := cherryMessage.Decode(pkg.Data())
 	if err != nil {
 		agent.Session.Warnf("packet decode error. data[%s], error[%s].", pkg.Data, err)
 		return
 	}
 
-	route, err := cherryRoute.Decode(msg.Route)
-	if err != nil {
-		agent.Session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
-		return
-	}
-
-	p.handlerComponent.PostMessage(agent, route, msg)
+	p.handlerComponent.PostMessage(agent.Session, msg)
 }

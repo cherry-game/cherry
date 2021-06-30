@@ -2,7 +2,9 @@ package cherryFacade
 
 type (
 	IApplication interface {
-		INode                             // 当前结点信息
+		INode
+		ISerializer
+		IPacketCodec
 		Running() bool                    // 是否运行中
 		Find(name string) IComponent      // 根据name获取组件对象
 		Remove(name string) IComponent    // 根据name移除组件对象

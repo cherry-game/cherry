@@ -2,19 +2,22 @@ package cherry
 
 import (
 	"github.com/cherry-game/cherry/extend/time"
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	"github.com/cherry-game/cherry/extend/utils"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
+	"reflect"
 	"sync/atomic"
 	"syscall"
 )
 
 // Application
 type Application struct {
-	facade.INode                       // current node info
+	facade.INode
+	facade.ISerializer
+	facade.IPacketCodec
 	startTime    cherryTime.CherryTime // application start time
 	running      int32                 // is running
 	die          chan bool             // wait for end application
@@ -97,8 +100,10 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
 	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
 	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger.Level)
-	cherryLogger.Infof("[stackLevel	 = %s]", cherryLogger.DefaultLogger.StackLevel)
+	cherryLogger.Infof("[stackLevel  = %s]", cherryLogger.DefaultLogger.StackLevel)
 	cherryLogger.Infof("[writeFile   = %v]", cherryLogger.DefaultLogger.EnableWriteFile)
+	cherryLogger.Infof("[codec       = %v]", reflect.TypeOf(a.IPacketCodec))
+	cherryLogger.Infof("[serializer  = %s]", a.ISerializer.Name())
 	cherryLogger.Info("-------------------------------------------------")
 
 	// add components & init
@@ -188,4 +193,12 @@ func (a *Application) OnShutdown(fn ...func()) {
 
 func (a *Application) Shutdown() {
 	a.die <- true
+}
+
+func (a *Application) SetSerializer(serializer facade.ISerializer) {
+	a.ISerializer = serializer
+}
+
+func (a *Application) SetPacketCodec(codec facade.IPacketCodec) {
+	a.IPacketCodec = codec
 }

@@ -4,12 +4,10 @@ import (
 	"github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
-	cherryProfile "github.com/cherry-game/cherry/profile"
-	"runtime/debug"
+	profile "github.com/cherry-game/cherry/profile"
 	"strings"
 	"time"
 )
@@ -47,74 +45,26 @@ func (h *Component) Name() string {
 }
 
 func (h *Component) Init() {
+	//run handler group
 	for _, g := range h.groups {
-		for _, handler := range g.handlers {
-			handler.Set(h.App())
-			handler.OnPreInit()
-			handler.OnInit()
-			handler.OnAfterInit()
-
-			printHandler(g, handler)
-		}
-
-		for i := 0; i < g.queueNum; i++ {
-			queue := g.queueMaps[i]
-
-			// new goroutine for queue
-			go func(queue *Queue) {
-				for {
-					select {
-					case executor := <-queue.dataChan:
-						{
-							h.invokeExecutor(executor)
-						}
-					}
-				}
-			}(queue)
-		}
+		g.Run(h.App())
 	}
-}
-
-func printHandler(g *HandlerGroup, handler facade.IHandler) {
-	cherryLogger.Debugf("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), g.queueNum, g.queueCap)
-
-	for key := range handler.Events() {
-		cherryLogger.Debugf("[Handler = %s] event = %s", handler.Name(), key)
-	}
-
-	for key := range handler.LocalHandlers() {
-		cherryLogger.Debugf("[Handler = %s] localHandler = %s", handler.Name(), key)
-	}
-
-	for key := range handler.RemoteHandlers() {
-		cherryLogger.Debugf("[Handler = %s] removeHandler = %s", handler.Name(), key)
-	}
-}
-
-func (h *Component) invokeExecutor(executor IExecutor) {
-	defer func() {
-		if r := recover(); r != nil {
-			cherryLogger.Warnf("recover in runQueue(). %s", string(debug.Stack()))
-		}
-	}()
-
-	executor.Invoke()
 }
 
 func (h *Component) OnStop() {
 	for {
 		if h.queueIsEmpty() {
+			for _, group := range h.groups {
+				for _, handler := range group.handlers {
+					handler.OnStop()
+				}
+			}
 			return
 		}
+
 		// wait...
 		cherryLogger.Debug("queue not empty! wait 3 seconds.")
 		time.Sleep(1 * time.Second)
-	}
-
-	for _, group := range h.groups {
-		for _, handler := range group.handlers {
-			handler.OnStop()
-		}
 	}
 }
 
@@ -137,7 +87,6 @@ func (h *Component) Register(handlerGroup *HandlerGroup) {
 	}
 
 	for handlerName, handler := range handlerGroup.handlers {
-
 		// process name fn
 		name := h.nameFn(handlerName)
 
@@ -187,25 +136,31 @@ func (h *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
-func (h *Component) PostMessage(agent *cherryAgent.Agent, route *cherryRoute.Route, msg *cherryMessage.Message) {
+func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if !h.App().Running() {
 		//ignore message
 		return
 	}
 
-	if route == nil {
-		cherryLogger.Debug("route is nil")
+	if session == nil {
+		cherryLogger.Debug("session is nil")
 		return
 	}
 
 	if msg == nil {
-		cherryLogger.Debug("data is nil")
+		cherryLogger.Debug("message is nil")
+		return
+	}
+
+	route, err := cherryRoute.Decode(msg.Route)
+	if err != nil {
+		session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
 		return
 	}
 
 	if route.NodeType() != h.App().NodeType() {
 		//forward to remote server
-		h.doForward(agent.Session, route, msg)
+		h.forwardToRemote(session, msg)
 		return
 	}
 
@@ -228,7 +183,8 @@ func (h *Component) PostMessage(agent *cherryAgent.Agent, route *cherryRoute.Rou
 	}
 
 	executor := &MessageExecutor{
-		Agent:         agent,
+		App:           h.App(),
+		Session:       session,
 		Msg:           msg,
 		HandlerFn:     fn,
 		BeforeFilters: h.beforeFilters,
@@ -237,18 +193,16 @@ func (h *Component) PostMessage(agent *cherryAgent.Agent, route *cherryRoute.Rou
 
 	index := group.queueHash(executor, group.queueNum)
 
-	if cherryProfile.Debug() {
-		//agent.Session.Debugf("post handler = %s, route = %s, group-index = %d", handlerName, route, index)
+	if profile.Debug() {
+		//session.Debugf("post handler = %s, route = %s, group-index = %d", handlerName, route, index)
 	}
 
 	group.inQueue(index, executor)
 }
 
-func (h *Component) doForward(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message) {
+func (h *Component) forwardToRemote(session *cherrySession.Session, msg *cherryMessage.Message) {
 	// TODO 通过rpc 转发到远程节点
-	// rpc client invoke
-
-	session.Debugf("forward message. route[%s], message[%s]", route, msg)
+	cherryLogger.Warnf("forward to remote session[%s], msg[%s]", session, msg)
 }
 
 func (c *Options) AddBeforeFilter(beforeFilters ...FilterFn) {

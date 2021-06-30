@@ -2,20 +2,22 @@ package cherryHandler
 
 import (
 	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
-	message "github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/net/session"
 	"reflect"
 )
 
 type (
 	IExecutor interface {
 		Invoke()
+		String() string
 	}
 
 	MessageExecutor struct {
-		Agent         *cherryAgent.Agent
-		Msg           *message.Message
+		App           facade.IApplication
+		Session       *cherrySession.Session
+		Msg           *cherryMessage.Message
 		HandlerFn     *facade.HandlerFn
 		BeforeFilters []FilterFn
 		AfterFilters  []FilterFn
@@ -36,31 +38,43 @@ type (
 )
 
 func (m *MessageExecutor) Invoke() {
+	if m.Msg.Data == nil {
+		cherryLogger.Warnf("[Route = %v] message data is nil", m.Msg.Route)
+		return
+	}
+
 	for _, filter := range m.BeforeFilters {
 		if !filter(m) {
 			break
 		}
 	}
 
-	if len(m.HandlerFn.InArgs) != 2 {
-		cherryLogger.Warnf("[Route = %v] method in args error", m.Msg.Route)
+	argsLen := len(m.HandlerFn.InArgs)
+	if argsLen < 2 || argsLen > 3 {
+		cherryLogger.Warnf("[Route = %v] method in args error. func(session,message,data) or func(session,message)", m.Msg.Route)
 		return
 	}
 
-	in2 := m.HandlerFn.InArgs[1]
-
-	var val interface{}
-	val = reflect.New(in2.Elem()).Interface()
-
-	err := m.Agent.Serializer.Unmarshal(m.Msg.Data, val)
+	val, err := m.unmarshalData(argsLen - 1)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
 	}
 
-	params := make([]reflect.Value, 2)
-	params[0] = reflect.ValueOf(m.Agent.Session)
-	params[1] = reflect.ValueOf(val)
+	var params []reflect.Value
+
+	if argsLen == 2 {
+		params = make([]reflect.Value, argsLen)
+		params[0] = reflect.ValueOf(m.Session)
+		params[1] = reflect.ValueOf(m.Msg)
+	}
+
+	if argsLen == 3 {
+		params = make([]reflect.Value, argsLen)
+		params[0] = reflect.ValueOf(m.Session)
+		params[1] = reflect.ValueOf(m.Msg)
+		params[2] = reflect.ValueOf(val)
+	}
 
 	result := m.HandlerFn.Value.Call(params)
 	if len(result) > 0 {
@@ -77,16 +91,55 @@ func (m *MessageExecutor) Invoke() {
 	}
 }
 
+func (m *MessageExecutor) unmarshalData(index int) (interface{}, error) {
+	in2 := m.HandlerFn.InArgs[index]
+
+	var val interface{}
+	val = reflect.New(in2.Elem()).Interface()
+
+	err := m.App.Unmarshal(m.Msg.Data, val)
+	if err != nil {
+		return nil, err
+	}
+
+	return val, err
+}
+
+func (m *MessageExecutor) call(params []reflect.Value) {
+	result := m.HandlerFn.Value.Call(params)
+	if len(result) > 0 {
+		if err := result[0].Interface(); err != nil {
+			cherryLogger.Warn(err)
+		}
+	}
+}
+
+func (m *MessageExecutor) String() string {
+	return m.Msg.Route
+}
+
 func (e *EventExecutor) Invoke() {
 	for _, fn := range e.EventFn {
 		fn(e.Event)
 	}
 }
 
+func (e *EventExecutor) String() string {
+	return e.Event.EventName()
+}
+
 func (u *UserRPCExecutor) Invoke() {
 
 }
 
-func (u *SysRPCExecutor) Invoke() {
+func (u *UserRPCExecutor) String() string {
+	return ""
+}
 
+func (s *SysRPCExecutor) Invoke() {
+
+}
+
+func (s *SysRPCExecutor) String() string {
+	return ""
 }

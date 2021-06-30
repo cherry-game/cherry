@@ -8,39 +8,46 @@ import (
 )
 
 type (
-	//SessionComponent session component
-	SessionComponent struct {
+	//Component session component
+	Component struct {
 		sync.RWMutex
 		facade.Component
-		sidMap map[facade.SID]*Session // sid -> Session
-		uidMap map[facade.UID]*Session // uid -> Session
+		sidMap   map[facade.SID]*Session // sid -> Session
+		uidMap   map[facade.UID]*Session // uid -> Session
+		onCreate []SessionListener       // on create execute listener function
+		onClose  []SessionListener       // on close execute listener function
 	}
+
+	SessionListener func(session *Session) (next bool)
 )
 
-func NewComponent() *SessionComponent {
-	s := &SessionComponent{
-		sidMap: make(map[facade.SID]*Session),
-		uidMap: make(map[facade.UID]*Session),
+func NewComponent() *Component {
+	s := &Component{
+		sidMap:   make(map[facade.SID]*Session),
+		uidMap:   make(map[facade.UID]*Session),
+		onCreate: make([]SessionListener, 0),
+		onClose:  make([]SessionListener, 0),
 	}
 
 	return s
 }
 
-func (s *SessionComponent) Name() string {
+func (s *Component) Name() string {
 	return cherryConst.SessionComponent
 }
 
-func (s *SessionComponent) Create(sid facade.SID, frontendId facade.FrontendId) *Session {
+func (s *Component) Create(entity facade.INetwork) *Session {
 	s.Lock()
 	defer s.Unlock()
 
-	session := NewSession(sid, frontendId)
+	session := NewSession(NextSID(), s.App().NodeId(), entity, s)
+
 	s.sidMap[session.sid] = session
 
 	return session
 }
 
-func (s *SessionComponent) Bind(sid facade.SID, uid facade.UID) error {
+func (s *Component) Bind(sid facade.SID, uid facade.UID) error {
 	s.Lock()
 	defer s.Unlock()
 
@@ -67,7 +74,7 @@ func (s *SessionComponent) Bind(sid facade.SID, uid facade.UID) error {
 	return nil
 }
 
-func (s *SessionComponent) Remove(sid facade.SID) {
+func (s *Component) Remove(sid facade.SID) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -80,7 +87,7 @@ func (s *SessionComponent) Remove(sid facade.SID) {
 	delete(s.uidMap, session.uid)
 }
 
-func (s *SessionComponent) Import(sid facade.SID, key string, value interface{}) error {
+func (s *Component) Import(sid facade.SID, key string, value interface{}) error {
 	if session, found := s.sidMap[sid]; found {
 		session.Set(key, value)
 		return nil
@@ -89,7 +96,7 @@ func (s *SessionComponent) Import(sid facade.SID, key string, value interface{})
 	return cherryError.Errorf("session does not exist, sid:%d", sid)
 }
 
-func (s *SessionComponent) ImportAll(sid facade.SID, settings map[string]interface{}) error {
+func (s *Component) ImportAll(sid facade.SID, settings map[string]interface{}) error {
 	if session, found := s.sidMap[sid]; found {
 		for k, v := range settings {
 			session.Set(k, v)
@@ -100,7 +107,7 @@ func (s *SessionComponent) ImportAll(sid facade.SID, settings map[string]interfa
 	return cherryError.Errorf("session does not exist, sid:%d", sid)
 }
 
-func (s *SessionComponent) Kick(uid facade.UID) error {
+func (s *Component) Kick(uid facade.UID) error {
 	if session, found := s.uidMap[uid]; found {
 		session.Closed()
 		return nil
@@ -109,7 +116,7 @@ func (s *SessionComponent) Kick(uid facade.UID) error {
 	return cherryError.Errorf("session does not exist, uid:%s", uid)
 }
 
-func (s *SessionComponent) KickBySID(sid facade.SID) error {
+func (s *Component) KickBySID(sid facade.SID) error {
 	if session, found := s.sidMap[sid]; found {
 		session.Closed()
 		return nil
@@ -118,24 +125,32 @@ func (s *SessionComponent) KickBySID(sid facade.SID) error {
 	return cherryError.Errorf("session does not exist, sid:%d", sid)
 }
 
-func (s *SessionComponent) ForEachSIDSession(fn func(s *Session)) {
+func (s *Component) ForEachSIDSession(fn func(s *Session)) {
 	for _, session := range s.sidMap {
 		fn(session)
 	}
 }
 
-func (s *SessionComponent) ForEachUIDSession(fn func(s *Session)) {
+func (s *Component) ForEachUIDSession(fn func(s *Session)) {
 	for _, session := range s.uidMap {
 		fn(session)
 	}
 }
 
-func (s *SessionComponent) GetSessionCount() int {
+func (s *Component) GetSessionCount() int {
 	return len(s.sidMap)
 }
 
-func (s *SessionComponent) CloseAll() {
+func (s *Component) CloseAll() {
 	for _, session := range s.uidMap {
 		session.Closed()
 	}
+}
+
+func (s *Component) AddOnCreate(listener ...SessionListener) {
+	s.onCreate = append(s.onCreate, listener...)
+}
+
+func (s *Component) AddOnClose(listener ...SessionListener) {
+	s.onClose = append(s.onClose, listener...)
 }

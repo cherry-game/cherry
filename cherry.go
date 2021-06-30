@@ -7,16 +7,10 @@ import (
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/node"
+	"github.com/cherry-game/cherry/net/packet"
+	"github.com/cherry-game/cherry/net/serializer"
 	"github.com/cherry-game/cherry/profile"
 )
-
-var (
-	thisApp *Application
-)
-
-func App() *Application {
-	return thisApp
-}
 
 func NewDefaultApp() *Application {
 	var configPath, profile, nodeId string
@@ -52,10 +46,12 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 	cherryLogger.Info(cherryConst.GetLOGO())
 
 	thisNode := &Application{
-		INode:     node,
-		startTime: cherryTime.Now(),
-		running:   0,
-		die:       make(chan bool),
+		INode:        node,
+		startTime:    cherryTime.Now(),
+		running:      0,
+		die:          make(chan bool),
+		ISerializer:  cherrySerializer.NewProtobuf(),
+		IPacketCodec: cherryPacket.NewPomeloCodec(),
 	}
 	return thisNode
 }

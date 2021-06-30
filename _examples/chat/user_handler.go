@@ -1,8 +1,9 @@
 package chat
 
 import (
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/handler"
+	"github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/net/session"
 	"sync/atomic"
 )
 
@@ -14,28 +15,32 @@ type (
 )
 
 func (u *UserHandler) Name() string {
-	return "BindService"
+	return "userHandler"
 }
 
 func (u *UserHandler) OnInit() {
-	u.RegisterLocal("Login", u.Login)
+	u.RegisterLocal("login", u.login)
+	u.RegisterLocal("testLogin", u.testLogin)
 }
 
-func (u *UserHandler) Login(session *cherrySession.Session, msg *LoginRequest) {
+func (u *UserHandler) testLogin(_ *cherrySession.Session, _ *cherryMessage.Message, _ *LoginRequest) error {
+	return nil
+}
+
+func (u *UserHandler) login(session *cherrySession.Session, msg *cherryMessage.Message, req *LoginRequest) error {
 	atomic.AddInt64(&u.nextId, 1)
 
-	//uid := u.nextId
-	//request := &NewUserRequest{
-	//	Nickname: msg.Nickname,
-	//	GateUid:  uid,
-	//}
+	uid := u.nextId
+	request := &NewUserRequest{
+		Nickname: req.Nickname,
+		GateUid:  uid,
+	}
 
-	//session.Debug(request)
+	session.Debug(request)
 
-	//cherryLogger.Info(request)
-	//if err := s.RPC("TopicService.NewUser", request); err != nil {
-	//	return errors.Trace(err)
-	//}
-	//
-	//session.Response(0,&LoginResponse{})
+	if err := NewUser(session, request); err != nil {
+		return err
+	}
+
+	return session.Response(msg.ID, &LoginResponse{})
 }
