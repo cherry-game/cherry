@@ -48,33 +48,35 @@ func (s *Component) Create(entity facade.INetwork) *Session {
 }
 
 func (s *Component) Bind(sid facade.SID, uid facade.UID) error {
+	if sid < 1 {
+		return cherryError.Errorf("sid[%d] less than 1.", sid)
+	}
+
+	if uid < 1 {
+		return cherryError.Errorf("uid[%d] less than 1.", uid)
+	}
+
 	s.Lock()
 	defer s.Unlock()
 
 	session, found := s.sidMap[sid]
 	if found == false {
-		return cherryError.Errorf("sc does not exist, sid:%d", sid)
+		return cherryError.Errorf(" sid:[%d] does not exist.", sid)
 	}
 
-	if session.UID() > 0 {
-		if session.UID() == uid {
-			return nil
-		}
-
-		return cherryError.Errorf("sc has already bound with %s", session.UID())
+	if session.UID() > 0 && session.UID() == uid {
+		return cherryError.Errorf("uid[%d] has already bound.", session.UID())
 	}
 
-	err := session.Bind(uid)
-	if err != nil {
-		return err
-	}
-
+	// set uid
+	session.uid = uid
+	// add uid map
 	s.uidMap[uid] = session
 
 	return nil
 }
 
-func (s *Component) Remove(sid facade.SID) {
+func (s *Component) Unbind(sid facade.SID) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -85,6 +87,8 @@ func (s *Component) Remove(sid facade.SID) {
 
 	delete(s.sidMap, sid)
 	delete(s.uidMap, session.uid)
+
+	session.uid = 0
 }
 
 func (s *Component) Import(sid facade.SID, key string, value interface{}) error {
@@ -109,7 +113,7 @@ func (s *Component) ImportAll(sid facade.SID, settings map[string]interface{}) e
 
 func (s *Component) Kick(uid facade.UID) error {
 	if session, found := s.uidMap[uid]; found {
-		session.Closed()
+		session.Close()
 		return nil
 	}
 
@@ -118,7 +122,7 @@ func (s *Component) Kick(uid facade.UID) error {
 
 func (s *Component) KickBySID(sid facade.SID) error {
 	if session, found := s.sidMap[sid]; found {
-		session.Closed()
+		session.Close()
 		return nil
 	}
 
@@ -143,7 +147,7 @@ func (s *Component) GetSessionCount() int {
 
 func (s *Component) CloseAll() {
 	for _, session := range s.uidMap {
-		session.Closed()
+		session.Close()
 	}
 }
 

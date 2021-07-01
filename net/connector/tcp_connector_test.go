@@ -20,7 +20,7 @@ func TestNewTCPConnector(t *testing.T) {
 		//	session.Send(bytes)
 		//
 		//	if len(bytes) == 1 && bytes[0] == 3 {
-		//		session.Closed()
+		//		session.Close()
 		//	}
 		//
 		//	return nil

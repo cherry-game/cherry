@@ -2,7 +2,8 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/_examples/chat"
+	"github.com/cherry-game/cherry/_examples/chat/room"
+	"github.com/cherry-game/cherry/_examples/chat/user"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/agent"
@@ -17,7 +18,7 @@ import (
 
 func main() {
 
-	app := cherry.NewApp("../../profile/", "local", "gate-1")
+	app := cherry.NewApp("../profile/", "local", "gate-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	handlerComponent := createHandler()
@@ -68,11 +69,11 @@ func createHandler() *cherryHandler.Component {
 	component := cherryHandler.NewComponent()
 
 	group1 := cherryHandler.NewGroup(1, 256)
-	group1.AddHandlers(&chat.UserHandler{})
+	group1.AddHandlers(&user.Handler{})
 	component.Register(group1)
 
 	group2 := cherryHandler.NewGroup(1, 256)
-	group2.AddHandlers(&chat.RoomHandler{})
+	group2.AddHandlers(&room.Handler{})
 	component.Register(group2)
 
 	// add room handler

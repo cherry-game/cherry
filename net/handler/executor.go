@@ -44,8 +44,8 @@ func (m *MessageExecutor) Invoke() {
 	}
 
 	for _, filter := range m.BeforeFilters {
-		if !filter(m) {
-			break
+		if filter(m) == false {
+			return
 		}
 	}
 

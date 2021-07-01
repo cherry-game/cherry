@@ -7,7 +7,6 @@ import (
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/route"
 	"github.com/cherry-game/cherry/net/session"
-	profile "github.com/cherry-game/cherry/profile"
 	"strings"
 	"time"
 )
@@ -21,12 +20,13 @@ type (
 	}
 
 	Options struct {
-		beforeFilters []FilterFn
-		afterFilters  []FilterFn
-		nameFn        func(string) string
+		beforeFilters    []FilterFn
+		afterFilters     []FilterFn
+		nameFn           func(string) string
+		printPostMessage bool
 	}
 
-	FilterFn func(msg *MessageExecutor) bool
+	FilterFn func(executor *MessageExecutor) bool
 )
 
 func NewComponent() *Component {
@@ -193,8 +193,8 @@ func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessa
 
 	index := group.queueHash(executor, group.queueNum)
 
-	if profile.Debug() {
-		//session.Debugf("post handler = %s, route = %s, group-index = %d", handlerName, route, index)
+	if h.printPostMessage {
+		session.Debugf("PostMessage handler[%s], route[%s], group-index[%d]", handlerName, route, index)
 	}
 
 	group.inQueue(index, executor)
@@ -224,4 +224,8 @@ func (c *Options) SetNameFn(fn func(string) string) {
 		return
 	}
 	c.nameFn = fn
+}
+
+func (c *Options) PrintPostMessage(enable bool) {
+	c.printPostMessage = enable
 }

@@ -18,7 +18,7 @@ func TestNewWSConnector(t *testing.T) {
 		//	cherryLogger.Info(text)
 		//
 		//	if len(text) == 1 && text[0] == 99 {
-		//		s.Closed()
+		//		s.Close()
 		//	}
 		//
 		//	return nil

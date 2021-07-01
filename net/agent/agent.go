@@ -148,7 +148,12 @@ func (a *Agent) Response(mid uint64, v interface{}) error {
 
 // Kick
 func (a *Agent) Kick(reason string) error {
-	pkg, err := a.app.PacketEncode(byte(cherryPacket.Kick), nil)
+	bytes, err := a.app.Marshal(reason)
+	if err != nil {
+		a.Session.Debugf("kick marshal error. reason[%s].", reason)
+	}
+
+	pkg, err := a.app.PacketEncode(byte(cherryPacket.Kick), bytes)
 	if err != nil {
 		return err
 	}
@@ -158,7 +163,7 @@ func (a *Agent) Kick(reason string) error {
 		cherryLogger.Warn(err)
 	}
 
-	a.Session.Debugf("kick session, reason[%s]", reason)
+	a.Session.Debugf("kick session. reason[%s]", reason)
 
 	return nil
 }
@@ -172,7 +177,7 @@ func (a *Agent) Close() {
 	a.SetStatus(Closed)
 
 	if err := a.conn.Close(); err != nil {
-		a.Session.Debugf("session close error. [%s]", err)
+		a.Session.Debugf("session close error[%s]", err)
 	}
 
 	a.chDie <- true
@@ -184,14 +189,6 @@ func (a *Agent) RemoteAddr() net.Addr {
 	return a.conn.RemoteAddr()
 }
 
-// String, implementation for Stringer interface
-func (a *Agent) String() string {
-	return fmt.Sprintf("addr=%s, lastTime=%d",
-		a.conn.RemoteAddr().String(),
-		atomic.LoadInt64(&a.lastAt),
-	)
-}
-
 func (a *Agent) Run() {
 	go a.read()
 	go a.write()
@@ -199,13 +196,13 @@ func (a *Agent) Run() {
 
 func (a *Agent) read() {
 	defer func() {
-		a.Session.Closed()
+		a.Session.CloseProcess()
 	}()
 
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			a.Session.Debugf("will be closed immediately. error[%s]", err.Error())
+			a.Session.Debugf("session closed. socket[%s]", err.Error())
 			return
 		}
 

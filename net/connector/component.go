@@ -86,6 +86,7 @@ func (p *Component) OnAfterInit() {
 	p.Options.RPCHandler = p.handlerComponent.PostMessage
 
 	p.sessionComponent.AddOnCreate(func(s *cherrySession.Session) (next bool) {
+		s.Debug("AddOnCreate-----------------------")
 		p.ConnectStat.IncreaseConn()
 		s.Debugf("session on create. %s", s.String())
 		p.ConnectStat.PrintInfo()
@@ -93,6 +94,7 @@ func (p *Component) OnAfterInit() {
 	})
 
 	p.sessionComponent.AddOnClose(func(s *cherrySession.Session) (next bool) {
+		s.Debug("AddOnClose-----------------------")
 		p.ConnectStat.DecreaseConn()
 		p.ConnectStat.PrintInfo()
 		return true

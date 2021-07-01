@@ -5,7 +5,6 @@ import (
 	"github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
 	"sync/atomic"
 )
 
@@ -61,24 +60,20 @@ func (s *Session) FrontendId() facade.FrontendId {
 	return s.frontendId
 }
 
+func (s *Session) IsBind() bool {
+	return s.uid > 0
+}
+
 func (s *Session) Bind(uid facade.UID) error {
 	if uid < 1 {
 		return cherryError.SessionIllegalUID
 	}
 
-	s.Lock()
-	defer s.Unlock()
-
-	s.uid = uid
-
-	return nil
+	return s.component.Bind(s.sid, uid)
 }
 
 func (s *Session) Unbind() {
-	s.Lock()
-	defer s.Unlock()
-
-	s.uid = 0
+	s.component.Unbind(s.sid)
 }
 
 func (s *Session) SendRaw(bytes []byte) error {
@@ -106,21 +101,27 @@ func (s *Session) Response(mid uint64, v interface{}) error {
 	return s.entity.Response(mid, v)
 }
 
-func (s *Session) Kick(reason string) error {
+func (s *Session) Kick(reason string, close bool) error {
 	err := s.entity.Kick(reason)
 	if err != nil {
 		return err
 	}
 
-	s.Closed()
+	if close {
+		s.Close()
+	}
+
 	return nil
 }
 
-func (s *Session) Closed() {
-	if cherryProfile.Debug() {
-		s.Debugf("session closed.")
-	}
+func (s *Session) Close() {
+	// 服务器调用Close()主动断开
+	// 客户端主动断开/读取错误断开
+	s.entity.Close()
+}
 
+func (s *Session) CloseProcess() {
+	// when session closed,the func is executed
 	if s.component != nil {
 		for _, listener := range s.component.onClose {
 			if listener(s) == false {
@@ -128,8 +129,7 @@ func (s *Session) Closed() {
 			}
 		}
 	}
-
-	s.entity.Close()
+	s.Unbind()
 }
 
 func (s *Session) RemoteAddress() string {

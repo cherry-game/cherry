@@ -86,8 +86,6 @@ func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
 }
 
 func (h *HandlerGroup) Run(app facade.IApplication) {
-
-	// ...
 	for _, handler := range h.handlers {
 		handler.Set(app)
 		handler.OnPreInit()

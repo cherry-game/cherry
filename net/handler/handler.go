@@ -30,25 +30,11 @@ func (h *Handler) SetName(name string) {
 }
 
 func (h *Handler) OnPreInit() {
-	if h.eventFn == nil {
-		h.eventFn = make(map[string][]facade.EventFn)
-	}
-
-	if h.localHandlers == nil {
-		h.localHandlers = make(map[string]*facade.HandlerFn)
-	}
-
-	if h.remoteHandlers == nil {
-		h.remoteHandlers = make(map[string]*facade.HandlerFn)
-	}
-
-	if h.onCreateListener == nil {
-		h.onCreateListener = make([]cherrySession.SessionListener, 0)
-	}
-
-	if h.onCloseListener == nil {
-		h.onCloseListener = make([]cherrySession.SessionListener, 0)
-	}
+	h.eventFn = make(map[string][]facade.EventFn)
+	h.localHandlers = make(map[string]*facade.HandlerFn)
+	h.remoteHandlers = make(map[string]*facade.HandlerFn)
+	h.onCreateListener = make([]cherrySession.SessionListener, 0)
+	h.onCloseListener = make([]cherrySession.SessionListener, 0)
 
 	h.component = h.App().Find(cherryConst.HandlerComponent).(*Component)
 	if h.component == nil {
@@ -66,8 +52,13 @@ func (h *Handler) OnAfterInit() {
 		return
 	}
 
-	sessionComponent.AddOnCreate(h.onCreateListener...)
-	sessionComponent.AddOnClose(h.onCloseListener...)
+	if len(h.onCreateListener) > 0 {
+		sessionComponent.AddOnCreate(h.onCreateListener...)
+	}
+
+	if len(h.onCloseListener) > 0 {
+		sessionComponent.AddOnClose(h.onCloseListener...)
+	}
 }
 
 func (h *Handler) OnStop() {
@@ -179,4 +170,16 @@ func (h *Handler) AddOnCreate(listener ...cherrySession.SessionListener) {
 
 func (h *Handler) AddOnClose(listener ...cherrySession.SessionListener) {
 	h.onCloseListener = append(h.onCloseListener, listener...)
+}
+
+func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {
+	if h.component != nil {
+		h.Component().AddBeforeFilter(beforeFilters...)
+	}
+}
+
+func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
+	if h.component != nil {
+		h.Component().AddAfterFilter(afterFilters...)
+	}
 }
