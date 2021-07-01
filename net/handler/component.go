@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	//Component handler component
+	//Component handler handlerComponent
 	Component struct {
 		Options
 		facade.Component
@@ -20,13 +20,13 @@ type (
 	}
 
 	Options struct {
-		beforeFilters    []FilterFn
-		afterFilters     []FilterFn
-		nameFn           func(string) string
-		printPostMessage bool
+		beforeFilters []FilterFn
+		afterFilters  []FilterFn
+		nameFn        func(string) string
+		printRouteLog bool
 	}
 
-	FilterFn func(executor *MessageExecutor) bool
+	FilterFn func(session *cherrySession.Session, message *cherryMessage.Message) bool
 )
 
 func NewComponent() *Component {
@@ -47,7 +47,7 @@ func (h *Component) Name() string {
 func (h *Component) Init() {
 	//run handler group
 	for _, g := range h.groups {
-		g.Run(h.App())
+		g.run(h.App())
 	}
 }
 
@@ -136,6 +136,7 @@ func (h *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
+// 本地handler执行， remote用于远程rpc调用执行
 func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if !h.App().Running() {
 		//ignore message
@@ -148,7 +149,7 @@ func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessa
 	}
 
 	if msg == nil {
-		cherryLogger.Debug("message is nil")
+		session.Warn("message is nil")
 		return
 	}
 
@@ -193,8 +194,8 @@ func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessa
 
 	index := group.queueHash(executor, group.queueNum)
 
-	if h.printPostMessage {
-		session.Debugf("PostMessage handler[%s], route[%s], group-index[%d]", handlerName, route, index)
+	if h.printRouteLog {
+		session.Debugf("post message handler[%s], route[%s], group-index[%d]", handlerName, route, index)
 	}
 
 	group.inQueue(index, executor)
@@ -206,17 +207,15 @@ func (h *Component) forwardToRemote(session *cherrySession.Session, msg *cherryM
 }
 
 func (c *Options) AddBeforeFilter(beforeFilters ...FilterFn) {
-	if len(beforeFilters) < 1 {
-		return
+	if len(beforeFilters) > 0 {
+		c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 	}
-	c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 }
 
 func (c *Options) AddAfterFilter(afterFilters ...FilterFn) {
-	if len(afterFilters) < 1 {
-		return
+	if len(afterFilters) > 0 {
+		c.afterFilters = append(c.afterFilters, afterFilters...)
 	}
-	c.afterFilters = append(c.afterFilters, afterFilters...)
 }
 
 func (c *Options) SetNameFn(fn func(string) string) {
@@ -226,6 +225,6 @@ func (c *Options) SetNameFn(fn func(string) string) {
 	c.nameFn = fn
 }
 
-func (c *Options) PrintPostMessage(enable bool) {
-	c.printPostMessage = enable
+func (c *Options) PrintRouteLog(enable bool) {
+	c.printRouteLog = enable
 }

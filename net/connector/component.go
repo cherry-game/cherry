@@ -86,17 +86,15 @@ func (p *Component) OnAfterInit() {
 	p.Options.RPCHandler = p.handlerComponent.PostMessage
 
 	p.sessionComponent.AddOnCreate(func(s *cherrySession.Session) (next bool) {
-		s.Debug("AddOnCreate-----------------------")
 		p.ConnectStat.IncreaseConn()
-		s.Debugf("session on create. %s", s.String())
+		s.Debugf("session on create. address[%s], state[%s]", s.RemoteAddress(), p.ConnectStat.PrintInfo())
 		p.ConnectStat.PrintInfo()
 		return true
 	})
 
 	p.sessionComponent.AddOnClose(func(s *cherrySession.Session) (next bool) {
-		s.Debug("AddOnClose-----------------------")
 		p.ConnectStat.DecreaseConn()
-		p.ConnectStat.PrintInfo()
+		s.Debugf("session on closed. address[%s], state[%s]", s.RemoteAddress(), p.ConnectStat.PrintInfo())
 		return true
 	})
 

@@ -19,15 +19,15 @@ type TestHandler struct {
 }
 
 func (t *TestHandler) OnInit() {
-	t.RegisterEvent("testEventName", t.testEvent)
+	t.AddEvent("testEventName", t.testEvent)
 
-	t.RegisterLocals(
+	t.AddLocals(
 		t.testMethod1,
 		t.testMethod2,
 	)
 
-	t.RegisterLocal("testLocalMethod", t.testMethod)
-	t.RegisterRemote("testRemoteMethod", t.testRemote)
+	t.AddLocal("testLocalMethod", t.testMethod)
+	t.AddRemote("testRemoteMethod", t.testRemote)
 }
 
 func (t *TestHandler) testMethod1(_ *cherrySession.Session, _ *cherryMessage.Message) {

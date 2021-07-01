@@ -24,7 +24,7 @@ func TestNewWSConnector(t *testing.T) {
 		//	return nil
 		//})
 		//
-		//s.Run()
+		//s.run()
 	})
 
 	connector.OnStart()

@@ -3,7 +3,6 @@ package user
 import (
 	"github.com/cherry-game/cherry/_examples/chat/proto"
 	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
 	"sync/atomic"
@@ -70,7 +69,7 @@ func Stats(s *cherrySession.Session, uid int64) error {
 	return s.Push("onBalance", &proto.UserBalanceResponse{CurrentBalance: user.balance})
 }
 
-func Disconnect(s *cherrySession.Session) (next bool) {
+func disconnect(s *cherrySession.Session) (next bool) {
 	if s.UID() < 1 {
 		return true
 	}
@@ -78,7 +77,7 @@ func Disconnect(s *cherrySession.Session) (next bool) {
 	uid := s.UID()
 	delete(users, uid)
 
-	cherryLogger.Infof("User session disconnected UID[%d]", s.UID())
+	s.Debug("user session disconnected.")
 
 	return true
 }

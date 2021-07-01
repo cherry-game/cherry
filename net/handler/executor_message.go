@@ -9,11 +9,6 @@ import (
 )
 
 type (
-	IExecutor interface {
-		Invoke()
-		String() string
-	}
-
 	MessageExecutor struct {
 		App           facade.IApplication
 		Session       *cherrySession.Session
@@ -21,19 +16,6 @@ type (
 		HandlerFn     *facade.HandlerFn
 		BeforeFilters []FilterFn
 		AfterFilters  []FilterFn
-	}
-
-	EventExecutor struct {
-		Event   facade.IEvent
-		EventFn []facade.EventFn
-	}
-
-	UserRPCExecutor struct {
-		HandlerFn *facade.HandlerFn
-	}
-
-	SysRPCExecutor struct {
-		HandlerFn *facade.HandlerFn
 	}
 )
 
@@ -44,7 +26,7 @@ func (m *MessageExecutor) Invoke() {
 	}
 
 	for _, filter := range m.BeforeFilters {
-		if filter(m) == false {
+		if filter(m.Session, m.Msg) == false {
 			return
 		}
 	}
@@ -52,12 +34,6 @@ func (m *MessageExecutor) Invoke() {
 	argsLen := len(m.HandlerFn.InArgs)
 	if argsLen < 2 || argsLen > 3 {
 		cherryLogger.Warnf("[Route = %v] method in args error. func(session,message,data) or func(session,message)", m.Msg.Route)
-		return
-	}
-
-	val, err := m.unmarshalData(argsLen - 1)
-	if err != nil {
-		cherryLogger.Warn(err)
 		return
 	}
 
@@ -70,6 +46,12 @@ func (m *MessageExecutor) Invoke() {
 	}
 
 	if argsLen == 3 {
+		val, err := m.unmarshalData(argsLen - 1)
+		if err != nil {
+			cherryLogger.Warn(err)
+			return
+		}
+
 		params = make([]reflect.Value, argsLen)
 		params[0] = reflect.ValueOf(m.Session)
 		params[1] = reflect.ValueOf(m.Msg)
@@ -85,7 +67,7 @@ func (m *MessageExecutor) Invoke() {
 	}
 
 	for _, filter := range m.AfterFilters {
-		if !filter(m) {
+		if !filter(m.Session, m.Msg) {
 			break
 		}
 	}
@@ -116,30 +98,4 @@ func (m *MessageExecutor) call(params []reflect.Value) {
 
 func (m *MessageExecutor) String() string {
 	return m.Msg.Route
-}
-
-func (e *EventExecutor) Invoke() {
-	for _, fn := range e.EventFn {
-		fn(e.Event)
-	}
-}
-
-func (e *EventExecutor) String() string {
-	return e.Event.EventName()
-}
-
-func (u *UserRPCExecutor) Invoke() {
-
-}
-
-func (u *UserRPCExecutor) String() string {
-	return ""
-}
-
-func (s *SysRPCExecutor) Invoke() {
-
-}
-
-func (s *SysRPCExecutor) String() string {
-	return ""
 }

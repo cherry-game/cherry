@@ -26,7 +26,7 @@ func TestNewTCPConnector(t *testing.T) {
 		//	return nil
 		//})
 		//
-		//session.Run()
+		//session.run()
 	})
 
 	connector.OnStart()

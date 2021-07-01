@@ -11,13 +11,12 @@ import (
 type (
 	Handler struct {
 		facade.AppContext
-		name             string                          // unique name
-		eventFn          map[string][]facade.EventFn     // event func
-		localHandlers    map[string]*facade.HandlerFn    // local invoke Handler functions
-		remoteHandlers   map[string]*facade.HandlerFn    // remote invoke Handler functions
-		component        *Component                      // handler component
-		onCreateListener []cherrySession.SessionListener // on create execute listener function
-		onCloseListener  []cherrySession.SessionListener // on close execute listener function
+		name             string                       // unique name
+		eventFn          map[string][]facade.EventFn  // event func
+		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
+		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
+		handlerComponent *Component                   // handler component
+		sessionComponent *cherrySession.Component     // session component
 	}
 )
 
@@ -33,12 +32,16 @@ func (h *Handler) OnPreInit() {
 	h.eventFn = make(map[string][]facade.EventFn)
 	h.localHandlers = make(map[string]*facade.HandlerFn)
 	h.remoteHandlers = make(map[string]*facade.HandlerFn)
-	h.onCreateListener = make([]cherrySession.SessionListener, 0)
-	h.onCloseListener = make([]cherrySession.SessionListener, 0)
 
-	h.component = h.App().Find(cherryConst.HandlerComponent).(*Component)
-	if h.component == nil {
-		cherryLogger.Warn("handler component not found.")
+	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*Component)
+	if h.handlerComponent == nil {
+		cherryLogger.Warn("handler handlerComponent not found.")
+	}
+
+	h.sessionComponent = h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
+	if h.sessionComponent == nil {
+		cherryLogger.Warn("session handlerComponent not found.")
+		return
 	}
 }
 
@@ -46,19 +49,6 @@ func (h *Handler) OnInit() {
 }
 
 func (h *Handler) OnAfterInit() {
-	sessionComponent, found := h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
-	if found == false {
-		cherryLogger.Warn("session component not found.")
-		return
-	}
-
-	if len(h.onCreateListener) > 0 {
-		sessionComponent.AddOnCreate(h.onCreateListener...)
-	}
-
-	if len(h.onCloseListener) > 0 {
-		sessionComponent.AddOnClose(h.onCloseListener...)
-	}
 }
 
 func (h *Handler) OnStop() {
@@ -92,21 +82,25 @@ func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
 }
 
 func (h *Handler) Component() *Component {
-	return h.component
+	return h.handlerComponent
 }
 
-func (h *Handler) RegisterLocals(localFns ...interface{}) {
+func (h *Handler) SessionComponent() *cherrySession.Component {
+	return h.sessionComponent
+}
+
+func (h *Handler) AddLocals(localFns ...interface{}) {
 	for _, fn := range localFns {
 		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
-		h.RegisterLocal(funcName, fn)
+		h.AddLocal(funcName, fn)
 	}
 }
 
-func (h *Handler) RegisterLocal(name string, fn interface{}) {
+func (h *Handler) AddLocal(name string, fn interface{}) {
 	f, err := cherryReflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -116,18 +110,18 @@ func (h *Handler) RegisterLocal(name string, fn interface{}) {
 	h.localHandlers[name] = f
 }
 
-func (h *Handler) RegisterRemotes(remoteFns ...interface{}) {
+func (h *Handler) AddRemotes(remoteFns ...interface{}) {
 	for _, fn := range remoteFns {
 		funcName := cherryReflect.GetFuncName(fn)
 		if funcName == "" {
 			cherryLogger.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
-		h.RegisterRemote(funcName, fn)
+		h.AddRemote(funcName, fn)
 	}
 }
 
-func (h *Handler) RegisterRemote(name string, fn interface{}) {
+func (h *Handler) AddRemote(name string, fn interface{}) {
 	invokeFunc, err := cherryReflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -137,8 +131,8 @@ func (h *Handler) RegisterRemote(name string, fn interface{}) {
 	h.remoteHandlers[name] = invokeFunc
 }
 
-//RegisterEvent
-func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
+//AddEvent
+func (h *Handler) AddEvent(eventName string, fn facade.EventFn) {
 	if eventName == "" {
 		cherryLogger.Warn("eventName is nil")
 		return
@@ -156,30 +150,30 @@ func (h *Handler) RegisterEvent(eventName string, fn facade.EventFn) {
 }
 
 func (h *Handler) PostEvent(e facade.IEvent) {
-	if h.component == nil {
-		cherryLogger.Errorf("handler component is nil. event[%s]", e)
+	if h.handlerComponent == nil {
+		cherryLogger.Errorf("handler handlerComponent is nil. event[%s]", e)
 		return
 	}
 
-	h.component.PostEvent(e)
+	h.handlerComponent.PostEvent(e)
 }
 
 func (h *Handler) AddOnCreate(listener ...cherrySession.SessionListener) {
-	h.onCreateListener = append(h.onCreateListener, listener...)
+	h.sessionComponent.AddOnCreate(listener...)
 }
 
 func (h *Handler) AddOnClose(listener ...cherrySession.SessionListener) {
-	h.onCloseListener = append(h.onCloseListener, listener...)
+	h.sessionComponent.AddOnClose(listener...)
 }
 
 func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {
-	if h.component != nil {
+	if h.handlerComponent != nil {
 		h.Component().AddBeforeFilter(beforeFilters...)
 	}
 }
 
 func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
-	if h.component != nil {
+	if h.handlerComponent != nil {
 		h.Component().AddAfterFilter(afterFilters...)
 	}
 }

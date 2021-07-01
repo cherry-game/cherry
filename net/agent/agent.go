@@ -176,6 +176,8 @@ func (a *Agent) Close() {
 
 	a.SetStatus(Closed)
 
+	a.Session.OnCloseProcess()
+
 	if err := a.conn.Close(); err != nil {
 		a.Session.Debugf("session close error[%s]", err)
 	}
@@ -196,19 +198,19 @@ func (a *Agent) Run() {
 
 func (a *Agent) read() {
 	defer func() {
-		a.Session.CloseProcess()
+		a.Close()
 	}()
 
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			a.Session.Debugf("session closed. socket[%s]", err.Error())
+			a.Session.Debugf("close read goroutine. error[%s]", err.Error())
 			return
 		}
 
 		packets, err := a.app.PacketDecode(msg)
 		if err != nil {
-			cherryLogger.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
+			a.Session.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
 			continue
 		}
 
@@ -238,8 +240,9 @@ func (a *Agent) processPacket(packet cherryFacade.IPacket) {
 func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		ticker.Stop()
+		a.Session.Debugf("close write goroutine.")
 
+		ticker.Stop()
 		close(a.chSend)
 		close(a.chWrite)
 		close(a.chDie)

@@ -101,17 +101,16 @@ func (s *Session) Response(mid uint64, v interface{}) error {
 	return s.entity.Response(mid, v)
 }
 
-func (s *Session) Kick(reason string, close bool) error {
+func (s *Session) Kick(reason string, close bool) {
 	err := s.entity.Kick(reason)
 	if err != nil {
-		return err
+		s.Warn(err)
+		return
 	}
 
 	if close {
 		s.Close()
 	}
-
-	return nil
 }
 
 func (s *Session) Close() {
@@ -120,7 +119,7 @@ func (s *Session) Close() {
 	s.entity.Close()
 }
 
-func (s *Session) CloseProcess() {
+func (s *Session) OnCloseProcess() {
 	// when session closed,the func is executed
 	if s.component != nil {
 		for _, listener := range s.component.onClose {

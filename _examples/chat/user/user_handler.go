@@ -18,15 +18,15 @@ func (h *Handler) Name() string {
 }
 
 func (h *Handler) OnInit() {
-	h.RegisterLocal("login", h.login)
-	h.RegisterLocal("testLogin", h.testLogin)
+	h.AddLocal("login", h.login)
+	h.AddLocal("testLogin", h.testLogin)
 
-	h.AddOnClose(Disconnect)
+	h.AddOnClose(disconnect)
 
-	h.AddBeforeFilter(func(executor *cherryHandler.MessageExecutor) bool {
-		if executor.Session.IsBind() == false && executor.Msg.Route != "gate.userHandler.login" {
-			//限制登陆后，才能发送后续的消息
-			executor.Session.Kick("not login", true)
+	h.AddBeforeFilter(func(session *cherrySession.Session, message *cherryMessage.Message) bool {
+		if session.IsBind() == false && message.Route != "gate.userHandler.login" {
+			//登录后，才能发送后续消息
+			session.Kick("not login", true)
 			return false
 		}
 		return true

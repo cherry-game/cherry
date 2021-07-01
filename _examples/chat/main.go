@@ -30,7 +30,7 @@ func main() {
 
 func handlerComponent() *cherryHandler.Component {
 	component := cherryHandler.NewComponent()
-	component.PrintPostMessage(true)
+	component.PrintRouteLog(true)
 
 	group1 := cherryHandler.NewGroup(10, 256)
 	group1.AddHandlers(&user.Handler{})

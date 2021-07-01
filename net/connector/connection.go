@@ -1,9 +1,8 @@
 package cherryConnector
 
 import (
+	"fmt"
 	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
 	"sync"
 	"sync/atomic"
 )
@@ -63,8 +62,6 @@ func (c *ConnectStat) LoginRecords() map[facade.UID]*LoginRecord {
 	return c.loginRecords
 }
 
-func (c *ConnectStat) PrintInfo() {
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("connCount[%d], loginCount[%d]", c.connCount, c.loginCount)
-	}
+func (c *ConnectStat) PrintInfo() string {
+	return fmt.Sprintf("connCount = %d, loginCount = %d", c.connCount, c.loginCount)
 }

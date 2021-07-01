@@ -21,8 +21,8 @@ func (h *Handler) Name() string {
 func (h *Handler) OnInit() {
 	h.group = cherrySession.NewGroup("all-users")
 
-	h.RegisterLocal("joinRoom", h.joinRoom)
-	h.RegisterLocal("syncMessage", h.syncMessage)
+	h.AddLocal("joinRoom", h.joinRoom)
+	h.AddLocal("syncMessage", h.syncMessage)
 
 	h.AddOnClose(h.disconnected)
 }
