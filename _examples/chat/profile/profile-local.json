@@ -6,7 +6,7 @@
         {
           "enable": true,
           "node_id": "gate-1",
-          "address": ":10860",
+          "address": ":34590",
           "rpc_address": "127.0.0.1:20860",
           "__settings__": {
             "maintain_state": 2,

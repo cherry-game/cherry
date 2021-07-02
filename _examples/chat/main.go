@@ -18,7 +18,7 @@ func main() {
 	httpServer := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
 	httpServer.StaticFS("/", "./web/")
 
-	wsComponent := cherryConnector.NewWSComponent("127.0.0.1:34590")
+	wsComponent := cherryConnector.NewWSComponent(app.Address()) //"127.0.0.1:34590"
 
 	app.Startup(
 		cherrySession.NewComponent(),

@@ -25,10 +25,6 @@ type Application struct {
 	onShutdownFn []func()              // on shutdown execute functions
 }
 
-func (a *Application) ThisNode() facade.INode {
-	return a.INode
-}
-
 func (a *Application) Running() bool {
 	return a.running > 0
 }
