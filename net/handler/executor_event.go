@@ -16,5 +16,5 @@ func (e *EventExecutor) Invoke() {
 }
 
 func (e *EventExecutor) String() string {
-	return e.Event.EventName()
+	return e.Event.Name()
 }

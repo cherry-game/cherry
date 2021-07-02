@@ -7,7 +7,7 @@ type (
 	NodeMap map[string]map[string]INode
 )
 
-// INode 结点信息，每一个结点代表一个独立的进程实例
+// INode 结点信息
 type INode interface {
 	NodeId() string         // 结点id(全局唯一)
 	NodeType() string       // 结点类型

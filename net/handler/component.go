@@ -114,7 +114,7 @@ func (h *Component) PostEvent(event facade.IEvent) {
 	for _, group := range h.groups {
 		for _, handler := range group.handlers {
 
-			if fn, found := handler.Event(event.EventName()); found {
+			if fn, found := handler.Event(event.Name()); found {
 				executor := &EventExecutor{
 					Event:   event,
 					EventFn: fn,

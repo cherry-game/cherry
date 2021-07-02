@@ -12,13 +12,9 @@ type TestEvent struct {
 func NewTestEvent() *TestEvent {
 	return &TestEvent{
 		GameEvent: cherryEvent.GameEvent{
-			Name: "testEventName",
-			Id:   "",
+			EventName: "testEventName",
+			Id:        "",
 		},
 		Abc: 0,
 	}
-}
-
-func (t *TestEvent) EventName() string {
-	return t.Name
 }
