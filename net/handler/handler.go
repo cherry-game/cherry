@@ -85,10 +85,6 @@ func (h *Handler) Component() *Component {
 	return h.handlerComponent
 }
 
-func (h *Handler) SessionComponent() *cherrySession.Component {
-	return h.sessionComponent
-}
-
 func (h *Handler) AddLocals(localFns ...interface{}) {
 	for _, fn := range localFns {
 		funcName := cherryReflect.GetFuncName(fn)
@@ -168,12 +164,12 @@ func (h *Handler) AddOnClose(listener ...cherrySession.SessionListener) {
 
 func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {
 	if h.handlerComponent != nil {
-		h.Component().AddBeforeFilter(beforeFilters...)
+		h.handlerComponent.AddBeforeFilter(beforeFilters...)
 	}
 }
 
 func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
 	if h.handlerComponent != nil {
-		h.Component().AddAfterFilter(afterFilters...)
+		h.handlerComponent.AddAfterFilter(afterFilters...)
 	}
 }
