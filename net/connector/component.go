@@ -20,8 +20,8 @@ type (
 		cherryAgent.Options
 		ConnectStat      *ConnectStat
 		connector        facade.IConnector
-		sessionComponent *cherrySession.Component
-		handlerComponent *cherryHandler.Component
+		sessionComponent cherrySession.IComponent
+		handlerComponent cherryHandler.IComponent
 	}
 )
 
@@ -73,12 +73,12 @@ func (c *Component) Init() {
 
 func (c *Component) OnAfterInit() {
 	var found = false
-	c.sessionComponent, found = c.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
+	c.sessionComponent, found = c.App().Find(cherryConst.SessionComponent).(cherrySession.IComponent)
 	if found == false {
 		panic("session component must be preloaded.")
 	}
 
-	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
+	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(cherryHandler.IComponent)
 	if found == false {
 		panic("handler component must be preloaded.")
 	}
