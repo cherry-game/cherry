@@ -57,9 +57,8 @@ func (p *PomeloCodec) PacketDecode(data []byte) ([]cherryFacade.IPacket, error) 
 func (p *PomeloCodec) forward(buf *bytes.Buffer) (int, Type, error) {
 	header := buf.Next(HeadLength)
 
-	typ := Type(header[0])
-
-	if typ.InvalidType() {
+	typ := header[0]
+	if InvalidType(typ) {
 		return 0, None, cherryError.PacketSizeExceed
 	}
 

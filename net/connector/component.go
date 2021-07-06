@@ -192,7 +192,7 @@ func (p *Component) handData(agent *cherryAgent.Agent, pkg facade.IPacket) {
 
 	msg, err := cherryMessage.Decode(pkg.Data())
 	if err != nil {
-		agent.Session.Warnf("packet decode error. data[%s], error[%s].", pkg.Data, err)
+		agent.Session.Warnf("packet decode error. data[%s], error[%s].", pkg.Data(), err)
 		return
 	}
 

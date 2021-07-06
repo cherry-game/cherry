@@ -37,7 +37,7 @@ func execfn(hl interface{}) {
 
 	invokeFunc := &InvokeFunc{Value: fv}
 
-	params := make([]reflect.Value, 1) // 参数
+	params := make([]reflect.Value, 1)
 
 	p := helloP1{
 		a: 1,

@@ -40,7 +40,7 @@ var (
 )
 
 type (
-	Type byte
+	Type = byte
 
 	Packet struct {
 		typ  Type
@@ -49,16 +49,16 @@ type (
 	}
 )
 
-func (t *Type) String() string {
-	return packetTypes[*t]
+func TypeName(t Type) string {
+	return packetTypes[t]
 }
 
-func (t Type) InvalidType() bool {
+func InvalidType(t Type) bool {
 	return t < Handshake || t > Kick
 }
 
 func (p *Packet) Type() byte {
-	return byte(p.typ)
+	return p.typ
 }
 
 func (p *Packet) Len() int {
@@ -71,7 +71,7 @@ func (p *Packet) Data() []byte {
 
 // String represents the Packet's in text mode.
 func (p *Packet) String() string {
-	return fmt.Sprintf("packet type: %s, length: %d, data: %s", p.typ.String(), p.len, string(p.data))
+	return fmt.Sprintf("packet type: %s, length: %d, data: %s", TypeName(p.typ), p.len, string(p.data))
 }
 
 // ParseHeader parses a packet header and returns its dataLen and packetType or an error
@@ -80,8 +80,8 @@ func ParseHeader(header []byte) (int, Type, error) {
 		return 0, None, cherryError.PacketInvalidHeader
 	}
 
-	typ := Type(header[0])
-	if typ.InvalidType() {
+	typ := header[0]
+	if InvalidType(typ) {
 		return 0, None, cherryError.PacketWrongType
 	}
 

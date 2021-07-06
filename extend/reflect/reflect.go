@@ -30,15 +30,6 @@ func GetFuncName(fn interface{}) string {
 	return cherryString.CutLastString(fullName, ".", "-")
 }
 
-// IsNil 返回 reflect.Value 的值是否为 nil，比原生方法更安全
-func IsNil(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Chan, reflect.Func, reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice, reflect.UnsafePointer:
-		return v.IsNil()
-	}
-	return false
-}
-
 //getInvokeFunc reflect function convert to HandlerFn
 func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error) {
 	if name == "" {

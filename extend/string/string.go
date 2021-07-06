@@ -15,7 +15,7 @@ func CutLastString(text, beginChar, endChar string) string {
 	beginIndex := str.LastIndex(text, beginChar)
 
 	endIndex := str.LastIndex(text, endChar)
-	if endIndex < 0 {
+	if endIndex < 0 || endIndex < beginIndex {
 		endIndex = len(textRune)
 	}
 

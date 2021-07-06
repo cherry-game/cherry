@@ -6,10 +6,10 @@ import (
 	"github.com/cherry-game/cherry/component/data_config"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
-	cherryFacade "github.com/cherry-game/cherry/facade"
+	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
 	"math/rand"
 	"strings"
@@ -36,9 +36,9 @@ func app() {
 	handlerComponent.SetNameFn(strings.ToLower)
 	//add TestHandler
 
-	handlerGroup1 := cherryHandler.NewGroup(30, 128)
+	handlerGroup1 := cherryHandler.NewGroup(10, 128)
 	handlerGroup1.AddHandlers(mocks.NewTestHandler())
-	handlerGroup1.SetQueueHash(func(executor cherryHandler.IExecutor, queueNum int) int {
+	handlerGroup1.SetQueueHash(func(executor cherryFacade.IExecutor, queueNum int) int {
 		return rand.Int() % queueNum
 	})
 
@@ -53,6 +53,7 @@ func app() {
 	}(testApp)
 
 	testApp.Startup(
+		cherrySession.NewComponent(),
 		handlerComponent,
 		dataConfigComponent,
 		&mockComponent{},
@@ -91,6 +92,11 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 
 		msg := &cherryMessage.Message{
 			Route: "game.testHandler.testLocalMethod",
+			Data: []byte{
+				123, 34, 110, 105, 99, 107, 110, 97, 109, 101,
+				34, 58, 34, 103, 117, 101, 115, 116, 49, 54,
+				50, 52, 54, 50, 48, 57, 57, 54, 55, 49, 50, 34, 125,
+			},
 		}
 
 		handler.PostMessage(session, msg)

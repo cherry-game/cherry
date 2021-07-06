@@ -33,15 +33,15 @@ func (h *Handler) OnPreInit() {
 	h.localHandlers = make(map[string]*facade.HandlerFn)
 	h.remoteHandlers = make(map[string]*facade.HandlerFn)
 
-	h.handlerComponent = h.App().Find(cherryConst.HandlerComponent).(*Component)
-	if h.handlerComponent == nil {
-		cherryLogger.Warn("handler handlerComponent not found.")
+	var found = false
+	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(*Component)
+	if found == false {
+		panic("handler handlerComponent not found.")
 	}
 
-	h.sessionComponent = h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
-	if h.sessionComponent == nil {
-		cherryLogger.Warn("session handlerComponent not found.")
-		return
+	h.sessionComponent, found = h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
+	if found == false {
+		panic("session handlerComponent not found.")
 	}
 }
 
