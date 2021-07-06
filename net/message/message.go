@@ -90,7 +90,7 @@ func Encode(m *Message) ([]byte, error) {
 	}
 	buf = append(buf, flag)
 
-	if m.Type == TypeRequest || m.Type == TypeResponse {
+	if m.Type == Request || m.Type == Response {
 		n := m.ID
 		// variant length encode
 		for {
@@ -135,7 +135,7 @@ func Decode(data []byte) (*Message, error) {
 		return nil, cherryError.MessageWrongType
 	}
 
-	if m.Type == TypeRequest || m.Type == TypeResponse {
+	if m.Type == Request || m.Type == Response {
 		id := uint64(0)
 		// little end byte order
 		// WARNING: must can be stored in 64 bits integer

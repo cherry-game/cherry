@@ -18,7 +18,7 @@ type WSConnector struct {
 	up                *websocket.Upgrader
 	certFile          string
 	keyFile           string
-	onConnectListener cherryFacade.OnConnectListener
+	onConnectListener []cherryFacade.OnConnectListener
 }
 
 func NewWS(address string) *WSConnector {
@@ -28,7 +28,8 @@ func NewWS(address string) *WSConnector {
 	}
 
 	ws := &WSConnector{
-		address: address,
+		address:           address,
+		onConnectListener: make([]cherryFacade.OnConnectListener, 0),
 	}
 	return ws
 }
@@ -45,9 +46,10 @@ func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
 	}
 
 	w := &WSConnector{
-		address:  address,
-		certFile: certFile,
-		keyFile:  keyFile,
+		address:           address,
+		certFile:          certFile,
+		keyFile:           keyFile,
+		onConnectListener: make([]cherryFacade.OnConnectListener, 0),
 	}
 
 	return w
@@ -55,12 +57,11 @@ func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
 
 // ListenAndServe listens and serve in the specified addr
 func (w *WSConnector) OnStart() {
-	if w.onConnectListener == nil {
-		panic("onConnectionListener() not set.")
+	if len(w.onConnectListener) < 1 {
+		panic("onConnectListener() not set.")
 	}
 
 	var err error
-
 	w.listener, err = GetNetListener(w.address, w.certFile, w.keyFile)
 	if err != nil {
 		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
@@ -85,12 +86,14 @@ func (w *WSConnector) OnStart() {
 	_ = http.Serve(w.listener, w)
 }
 
-func (w *WSConnector) OnConnect(listener cherryFacade.OnConnectListener) {
+func (w *WSConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
 	w.onConnectListener = listener
 }
 
 func (w *WSConnector) OnStop() {
-	w.listener.Close()
+	if err := w.listener.Close(); err != nil {
+		cherryLogger.Error(err)
+	}
 }
 
 //ServerHTTP server.Handler
@@ -108,7 +111,13 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	//new goroutine process socket connection
-	go w.onConnectListener(conn)
+	go w.processNewConn(conn)
+}
+
+func (w *WSConnector) processNewConn(conn cherryFacade.INetConn) {
+	for _, listener := range w.onConnectListener {
+		listener(conn)
+	}
 }
 
 // wsConn is an adapter to t.INetConn, which implements all t.INetConn

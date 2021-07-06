@@ -80,8 +80,7 @@ func (p *PomeloCodec) forward(buf *bytes.Buffer) (int, Type, error) {
 // --------|------------------------|--------
 // 1 byte packet type, 3 bytes packet data length(big end), and data segment
 func (p *PomeloCodec) PacketEncode(typ byte, data []byte) ([]byte, error) {
-	t := Type(typ)
-	if t < Handshake || t > Kick {
+	if typ < Handshake || typ > Kick {
 		return nil, cherryError.PacketWrongType
 	}
 
@@ -90,7 +89,7 @@ func (p *PomeloCodec) PacketEncode(typ byte, data []byte) ([]byte, error) {
 	}
 
 	pkg := &Packet{
-		typ: t,
+		typ: typ,
 		len: len(data),
 	}
 

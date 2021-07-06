@@ -17,7 +17,7 @@ type (
 		running           bool
 		certFile          string
 		keyFile           string
-		onConnectListener cherryFacade.OnConnectListener
+		onConnectListener []cherryFacade.OnConnectListener
 	}
 
 	tcpConn struct {
@@ -80,14 +80,13 @@ func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	}
 }
 
-// Startup
+// OnStart
 func (t *TCPConnector) OnStart() {
-	if t.onConnectListener == nil {
+	if len(t.onConnectListener) < 1 {
 		panic("onConnectListener() not set.")
 	}
 
 	var err error
-
 	t.listener, err = GetNetListener(t.address, t.certFile, t.keyFile)
 	if err != nil {
 		cherryLogger.Fatalf("failed to listen: %s", err.Error())
@@ -108,13 +107,17 @@ func (t *TCPConnector) OnStart() {
 		}
 
 		// open goroutine for new connection
-		go t.onConnectListener(&tcpConn{
-			Conn: conn,
-		})
+		go t.processNewConn(&tcpConn{Conn: conn})
 	}
 }
 
-// OnShutdown stops the acceptor
+func (t *TCPConnector) processNewConn(conn cherryFacade.INetConn) {
+	for _, listener := range t.onConnectListener {
+		listener(conn)
+	}
+}
+
+// OnStop stops the connector
 func (t *TCPConnector) OnStop() {
 	t.running = false
 	err := t.listener.Close()
@@ -123,6 +126,6 @@ func (t *TCPConnector) OnStop() {
 	}
 }
 
-func (t *TCPConnector) OnConnect(listener cherryFacade.OnConnectListener) {
-	t.onConnectListener = listener
+func (t *TCPConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
+	t.onConnectListener = append(t.onConnectListener, listener...)
 }

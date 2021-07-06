@@ -96,7 +96,7 @@ func New(requestTimeout ...time.Duration) *Client {
 }
 
 func (c *Client) sendHandshakeRequest() error {
-	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.Handshake), []byte(handshakeBuffer))
+	p, err := c.packetCodec.PacketEncode(cherryPacket.Handshake, []byte(handshakeBuffer))
 	if err != nil {
 		return err
 	}
@@ -135,7 +135,7 @@ func (c *Client) handleHandshakeResponse() error {
 		cherryMessage.SetDictionary(handshake.Sys.Dict)
 	}
 
-	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.HandshakeAck), []byte{})
+	p, err := c.packetCodec.PacketEncode(cherryPacket.HandshakeAck, []byte{})
 	if err != nil {
 		return err
 	}
@@ -177,7 +177,7 @@ func (c *Client) pendingRequestsReaper() {
 				errMarshalled, _ := json.Marshal(err)
 				// send a timeout to incoming msg chan
 				m := &cherryMessage.Message{
-					Type:  cherryMessage.TypeResponse,
+					Type:  cherryMessage.Response,
 					ID:    pendingReq.msg.ID,
 					Route: pendingReq.msg.Route,
 					Data:  errMarshalled,
@@ -205,7 +205,7 @@ func (c *Client) handlePackets() {
 				if err != nil {
 					cherryLogger.Errorf("error decoding msg from sv: %s", string(m.Data))
 				}
-				if m.Type == cherryMessage.TypeResponse {
+				if m.Type == cherryMessage.Response {
 					c.pendingReqMutex.Lock()
 					if _, ok := c.pendingRequests[m.ID]; ok {
 						delete(c.pendingRequests, m.ID)
@@ -278,7 +278,7 @@ func (c *Client) sendHeartbeats(interval int) {
 	for {
 		select {
 		case <-t.C:
-			p, _ := c.packetCodec.PacketEncode(byte(cherryPacket.Heartbeat), []byte{})
+			p, _ := c.packetCodec.PacketEncode(cherryPacket.Heartbeat, []byte{})
 			_, err := c.conn.Write(p)
 			if err != nil {
 				cherryLogger.Errorf("error sending heartbeat to server: %s", err.Error())
@@ -354,12 +354,12 @@ func (c *Client) handleHandshake() error {
 
 // SendRequest sends a request to the server
 func (c *Client) SendRequest(route string, data []byte) (uint64, error) {
-	return c.sendMsg(cherryMessage.TypeRequest, route, data)
+	return c.sendMsg(cherryMessage.Request, route, data)
 }
 
 // SendNotify sends a notify to the server
 func (c *Client) SendNotify(route string, data []byte) error {
-	_, err := c.sendMsg(cherryMessage.TypeNotify, route, data)
+	_, err := c.sendMsg(cherryMessage.Notify, route, data)
 	return err
 }
 
@@ -369,7 +369,7 @@ func (c *Client) buildPacket(msg cherryMessage.Message) ([]byte, error) {
 		return nil, err
 	}
 
-	p, err := c.packetCodec.PacketEncode(byte(cherryPacket.Data), encMsg)
+	p, err := c.packetCodec.PacketEncode(cherryPacket.Data, encMsg)
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +387,7 @@ func (c *Client) sendMsg(msgType cherryMessage.Type, route string, data []byte) 
 		Data:  data,
 	}
 	p, err := c.buildPacket(m)
-	if msgType == cherryMessage.TypeRequest {
+	if msgType == cherryMessage.Request {
 		c.pendingChan <- true
 		c.pendingReqMutex.Lock()
 		if _, ok := c.pendingRequests[m.ID]; !ok {

@@ -2,10 +2,10 @@ package cherryMessage
 
 // Message types
 const (
-	TypeRequest  Type = 0x00 //客户端请求 ----000-
-	TypeNotify   Type = 0x01 //客户端通知 ----001-
-	TypeResponse Type = 0x02 //服务器返回 ----010-
-	TypePush     Type = 0x03 //服务器推送 ----011-
+	Request  Type = 0x00 // ----000-
+	Notify   Type = 0x01 // ----001-
+	Response Type = 0x02 // ----010-
+	Push     Type = 0x03 // ----011-
 )
 
 //一些掩码定义用来操作flag(1byte)
@@ -15,14 +15,14 @@ const (
 	MsgTypeMask          = 0x07 // 获取消息类型 00000111
 )
 
-// Type represents the type of message, which could be TypeRequest/TypeNotify/TypeResponse/TypePush
+// Type represents the type of message, which could be Request/Notify/Response/Push
 type Type byte
 
 var types = map[Type]string{
-	TypeRequest:  "REQUEST",
-	TypeNotify:   "Notify",
-	TypeResponse: "Response",
-	TypePush:     "Push",
+	Request:  "Request",
+	Notify:   "Notify",
+	Response: "Response",
+	Push:     "Push",
 }
 
 func (t *Type) String() string {
@@ -30,9 +30,9 @@ func (t *Type) String() string {
 }
 
 func routable(t Type) bool {
-	return t == TypeRequest || t == TypeNotify || t == TypePush
+	return t == Request || t == Notify || t == Push
 }
 
 func invalidType(t Type) bool {
-	return t < TypeRequest || t > TypePush
+	return t < Request || t > Push
 }

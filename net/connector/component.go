@@ -8,7 +8,7 @@ import (
 	"github.com/cherry-game/cherry/net/agent"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	"github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/session"
 	"time"
 )
@@ -19,9 +19,9 @@ type (
 		facade.Component
 		cherryAgent.Options
 		ConnectStat      *ConnectStat
+		connector        facade.IConnector
 		sessionComponent *cherrySession.Component
 		handlerComponent *cherryHandler.Component
-		connector        facade.IConnector
 	}
 )
 
@@ -58,59 +58,58 @@ func NewWSComponent(address string) *Component {
 func NewComponentWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
 	return &Component{
 		Options:     opts,
-		connector:   connector,
 		ConnectStat: &ConnectStat{},
+		connector:   connector,
 	}
 }
 
-func (p *Component) Name() string {
+func (c *Component) Name() string {
 	return cherryConst.ConnectorPomeloComponent
 }
 
-func (p *Component) Init() {
+func (c *Component) Init() {
 
 }
 
-func (p *Component) OnAfterInit() {
-	p.sessionComponent = p.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
-	if p.sessionComponent == nil {
+func (c *Component) OnAfterInit() {
+	var found = false
+	c.sessionComponent, found = c.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
+	if found == false {
 		panic("session component must be preloaded.")
 	}
 
-	p.handlerComponent = p.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
-	if p.handlerComponent == nil {
+	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
+	if found == false {
 		panic("handler component must be preloaded.")
 	}
 
 	// set rpc handler
-	p.Options.RPCHandler = p.handlerComponent.PostMessage
+	c.Options.RPCHandler = c.handlerComponent.PostMessage
 
-	p.sessionComponent.AddOnCreate(func(s *cherrySession.Session) (next bool) {
-		p.ConnectStat.IncreaseConn()
-		s.Debugf("session on create. address[%s], state[%s]", s.RemoteAddress(), p.ConnectStat.PrintInfo())
-		p.ConnectStat.PrintInfo()
+	c.sessionComponent.AddOnCreate(func(session *cherrySession.Session) (next bool) {
+		c.ConnectStat.IncreaseConn()
+		session.Debugf("session on create. address[%s], state[%s]", session.RemoteAddress(), c.ConnectStat.PrintInfo())
+		c.ConnectStat.PrintInfo()
 		return true
 	})
 
-	p.sessionComponent.AddOnClose(func(s *cherrySession.Session) (next bool) {
-		p.ConnectStat.DecreaseConn()
-		s.Debugf("session on closed. address[%s], state[%s]", s.RemoteAddress(), p.ConnectStat.PrintInfo())
+	c.sessionComponent.AddOnClose(func(session *cherrySession.Session) (next bool) {
+		c.ConnectStat.DecreaseConn()
+		session.Debugf("session on closed. address[%s], state[%s]", session.RemoteAddress(), c.ConnectStat.PrintInfo())
 		return true
 	})
 
 	//add packet listener
-	p.AddPacketHandle(cherryPacket.Handshake, p.handshake)
-	p.AddPacketHandle(cherryPacket.HandshakeAck, p.handshakeACK)
-	p.AddPacketHandle(cherryPacket.Heartbeat, p.heartbeat)
-	p.AddPacketHandle(cherryPacket.Data, p.handData)
+	c.AddPacketHandle(cherryPacket.Handshake, c.handshake)
+	c.AddPacketHandle(cherryPacket.HandshakeAck, c.handshakeACK)
+	c.AddPacketHandle(cherryPacket.Heartbeat, c.heartbeat)
+	c.AddPacketHandle(cherryPacket.Data, c.handData)
 
-	// default on connect
-	p.connector.OnConnect(func(conn facade.INetConn) {
+	c.connector.OnConnect(func(conn facade.INetConn) {
 		// create agent
-		agent := cherryAgent.NewAgent(p.App(), p.Options, conn)
-
+		agent := cherryAgent.NewAgent(c.App(), c.Options, conn)
 		// create new session
-		session := p.sessionComponent.Create(agent)
+		session := c.sessionComponent.Create(agent)
 		agent.Session = session
 
 		// run agent
@@ -118,24 +117,24 @@ func (p *Component) OnAfterInit() {
 	})
 
 	// new goroutine for connector
-	go p.connector.OnStart()
+	go c.connector.OnStart()
 }
 
-func (p *Component) OnStop() {
-	if p.sessionComponent != nil {
-		p.sessionComponent.CloseAll()
+func (c *Component) OnStop() {
+	if c.sessionComponent != nil {
+		c.sessionComponent.CloseAll()
 	}
 
-	if p.connector != nil {
-		p.connector.OnStop()
+	if c.connector != nil {
+		c.connector.OnStop()
 	}
 }
 
-func (p *Component) AddPacketHandle(typ cherryPacket.Type, listener cherryAgent.PacketListener) {
-	p.Options.PacketListener[typ] = listener
+func (c *Component) AddPacketHandle(typ cherryPacket.Type, listener cherryAgent.PacketListener) {
+	c.Options.PacketListener[typ] = listener
 }
 
-func (p *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
+func (c *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
 	data := map[string]interface{}{
 		"code": 200,
 		"sys": map[string]interface{}{
@@ -149,7 +148,7 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
 		return
 	}
 
-	bytes, err := p.App().PacketEncode(byte(cherryPacket.Handshake), jsonData)
+	bytes, err := c.App().PacketEncode(cherryPacket.Handshake, jsonData)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -164,14 +163,13 @@ func (p *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
 	agent.Session.Debugf("request handshake. data[%v]", data)
 }
 
-func (p *Component) handshakeACK(agent *cherryAgent.Agent, _ facade.IPacket) {
+func (c *Component) handshakeACK(agent *cherryAgent.Agent, _ facade.IPacket) {
 	agent.SetStatus(cherryAgent.Working)
-
 	agent.Session.Debug("request handshakeACK.")
 }
 
-func (p *Component) heartbeat(agent *cherryAgent.Agent, _ facade.IPacket) {
-	bytes, err := p.App().PacketEncode(byte(cherryPacket.Heartbeat), nil)
+func (c *Component) heartbeat(agent *cherryAgent.Agent, _ facade.IPacket) {
+	bytes, err := c.App().PacketEncode(cherryPacket.Heartbeat, nil)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -184,7 +182,7 @@ func (p *Component) heartbeat(agent *cherryAgent.Agent, _ facade.IPacket) {
 	agent.Session.Debug("request heartbeat.")
 }
 
-func (p *Component) handData(agent *cherryAgent.Agent, pkg facade.IPacket) {
+func (c *Component) handData(agent *cherryAgent.Agent, pkg facade.IPacket) {
 	if agent.Status() != cherryAgent.Working {
 		agent.Session.Warnf("status is not working. status[%d]", agent.Status())
 		return
@@ -196,5 +194,5 @@ func (p *Component) handData(agent *cherryAgent.Agent, pkg facade.IPacket) {
 		return
 	}
 
-	p.handlerComponent.PostMessage(agent.Session, msg)
+	c.handlerComponent.PostMessage(agent.Session, msg)
 }

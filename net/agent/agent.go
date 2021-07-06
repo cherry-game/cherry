@@ -111,7 +111,7 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interfa
 
 // Push, implementation for session.NetworkEntity interface
 func (a *Agent) Push(route string, val interface{}) error {
-	return a.Send(cherryMessage.TypePush, route, 0, val)
+	return a.Send(cherryMessage.Push, route, 0, val)
 }
 
 // RPC, implementation for session.NetworkEntity interface
@@ -130,7 +130,7 @@ func (a *Agent) RPC(route string, val interface{}) error {
 	}
 
 	msg := &cherryMessage.Message{
-		Type:  cherryMessage.TypeNotify,
+		Type:  cherryMessage.Notify,
 		Route: route,
 		Data:  data,
 	}
@@ -143,7 +143,7 @@ func (a *Agent) RPC(route string, val interface{}) error {
 // Response, implementation for session.NetworkEntity interface
 // Response message to session
 func (a *Agent) Response(mid uint64, v interface{}) error {
-	return a.Send(cherryMessage.TypeResponse, "", mid, v)
+	return a.Send(cherryMessage.Response, "", mid, v)
 }
 
 // Kick
@@ -153,7 +153,7 @@ func (a *Agent) Kick(reason string) error {
 		a.Session.Debugf("kick marshal error. reason[%s].", reason)
 	}
 
-	pkg, err := a.app.PacketEncode(byte(cherryPacket.Kick), bytes)
+	pkg, err := a.app.PacketEncode(cherryPacket.Kick, bytes)
 	if err != nil {
 		return err
 	}
@@ -225,8 +225,7 @@ func (a *Agent) read() {
 }
 
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
-
-	listener, found := a.PacketListener[cherryPacket.Type(packet.Type())]
+	listener, found := a.PacketListener[packet.Type()]
 	if found == false {
 		a.Session.Debugf("packet[%s] not found.", packet)
 		return
@@ -290,7 +289,7 @@ func (a *Agent) write() {
 			}
 
 			// encode packet
-			p, err := a.app.PacketEncode(byte(cherryPacket.Data), em)
+			p, err := a.app.PacketEncode(cherryPacket.Data, em)
 			if err != nil {
 				cherryLogger.Warn(err)
 				break

@@ -15,16 +15,18 @@ func main() {
 	app := cherry.NewApp("./profile/", "local", "gate-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
-	httpServer := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
-	httpServer.StaticFS("/", "./web/")
+	httpComp := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
+	httpComp.StaticFS("/", "./web/")
 
-	wsComponent := cherryConnector.NewWSComponent(app.Address()) //"127.0.0.1:34590"
+	sessionComp := cherrySession.NewComponent()
+
+	wsComp := cherryConnector.NewWSComponent(app.Address())
 
 	app.Startup(
-		cherrySession.NewComponent(),
+		sessionComp,
 		handlerComponent(),
-		httpServer,
-		wsComponent,
+		httpComp,
+		wsComp,
 	)
 }
 
