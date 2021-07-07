@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/_examples/chat/room"
 	"github.com/cherry-game/cherry/_examples/chat/user"
@@ -12,6 +13,12 @@ import (
 )
 
 func main() {
+
+	pb := cherrySerializer.NewProtobuf()
+	content := "hello"
+	v, e := pb.Marshal(content)
+	fmt.Println(v, e)
+
 	app := cherry.NewApp("./profile/", "local", "gate-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 

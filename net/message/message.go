@@ -45,6 +45,7 @@ type Message struct {
 	Route           string // route for locating service 消息路由
 	Data            []byte // payload  消息体的原始数据
 	routeCompressed bool   // is route Compressed 是否启用路由压缩
+	Error           bool   // response error
 }
 
 func New() *Message {
@@ -53,13 +54,14 @@ func New() *Message {
 
 func (t *Message) String() string {
 	return fmt.Sprintf(
-		"Type: %s, ID: %d, Route: %s, RouteCompressed: %t, Data: %v, BodyLength: %d",
+		"Type: %s, ID: %d, Route: %s, RouteCompressed: %t, Data: %v, BodyLength: %d, Error:%v",
 		types[t.Type],
 		t.ID,
 		t.Route,
 		t.routeCompressed,
 		t.Data,
-		len(t.Data))
+		len(t.Data),
+		t.Error)
 }
 
 // Encode marshals message to binary format. Different message types is corresponding to
@@ -85,9 +87,15 @@ func Encode(m *Message) ([]byte, error) {
 	flag := byte(m.Type) << 1
 
 	code, compressed := routes[m.Route]
+
 	if compressed {
-		flag |= MsgRouteCompressMask
+		flag |= RouteCompressMask
 	}
+
+	if m.Error {
+		flag |= ErrorMask
+	}
+
 	buf = append(buf, flag)
 
 	if m.Type == Request || m.Type == Response {
@@ -115,6 +123,18 @@ func Encode(m *Message) ([]byte, error) {
 		}
 	}
 
+	//if m.dataCompressed {
+	//	d, err := cherryCompress.DeflateData(m.Data)
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//
+	//	if len(d) < len(m.Data) {
+	//		m.Data = d
+	//		buf[0] |= gzipMask
+	//	}
+	//}
+
 	buf = append(buf, m.Data...)
 	return buf, nil
 }
@@ -129,7 +149,7 @@ func Decode(data []byte) (*Message, error) {
 	m := New()
 	flag := data[0]
 	offset := 1
-	m.Type = Type((flag >> 1) & MsgTypeMask)
+	m.Type = Type((flag >> 1) & TypeMask)
 
 	if invalidType(m.Type) {
 		return nil, cherryError.MessageWrongType
@@ -155,23 +175,29 @@ func Decode(data []byte) (*Message, error) {
 		return nil, cherryError.MessageInvalid
 	}
 
+	m.Error = flag&ErrorMask == ErrorMask
+
 	if routable(m.Type) {
-		if flag&MsgRouteCompressMask == 1 {
+		if flag&RouteCompressMask == 1 {
 			m.routeCompressed = true
+
 			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
-			route, ok := codes[code]
-			if !ok {
+
+			route, found := GetRoute(code)
+			if !found {
 				return nil, cherryError.MessageRouteNotFound
 			}
+
 			m.Route = route
 			offset += 2
+
 		} else {
 			m.routeCompressed = false
+
 			rl := data[offset]
+
 			offset++
-			if offset+int(rl) >= len(data) {
-				return nil, cherryError.MessageInvalid
-			}
+
 			m.Route = string(data[offset:(offset + int(rl))])
 			offset += int(rl)
 		}
@@ -180,6 +206,8 @@ func Decode(data []byte) (*Message, error) {
 	if offset >= len(data) {
 		return nil, cherryError.MessageInvalid
 	}
+
 	m.Data = data[offset:]
+
 	return m, nil
 }

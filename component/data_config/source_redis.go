@@ -11,6 +11,14 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 
 }
 
+func (r *SourceRedis) ReadBytes(configName string) (data []byte, error error) {
+	return nil, nil
+}
+
+func (r *SourceRedis) OnChange(fn ConfigChangeFn) {
+
+}
+
 func (r *SourceRedis) Stop() {
 
 }

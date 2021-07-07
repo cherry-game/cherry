@@ -10,9 +10,11 @@ const (
 
 //一些掩码定义用来操作flag(1byte)
 const (
-	MsgRouteCompressMask = 0x01 // 启用路由压缩 00000001
-	MsgHeadLength        = 0x02 // 消息头的长度 00000010
-	MsgTypeMask          = 0x07 // 获取消息类型 00000111
+	MsgHeadLength = 0x02 // 消息头的长度 00000010
+
+	RouteCompressMask = 0x01 // 启用路由压缩 00000001
+	ErrorMask         = 0x20 // 响应错误标识 00100000
+	TypeMask          = 0x07 // 获取消息类型 00000111
 )
 
 // Type represents the type of message, which could be Request/Notify/Response/Push

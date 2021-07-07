@@ -13,15 +13,15 @@ import (
 type DataConfigComponent struct {
 	sync.RWMutex
 	cherryFacade.Component
-	dataSource     IDataSource
-	parser         IDataParser
-	configFiles    []IConfigFile
-	configDataMaps map[string]IConfigFile
+	dataSource IDataSource
+	parser     IDataParser
+	configs    []IConfig
+	configMaps map[string]IConfig
 }
 
 func NewComponent() *DataConfigComponent {
 	return &DataConfigComponent{
-		configDataMaps: make(map[string]IConfigFile),
+		configMaps: make(map[string]IConfig),
 	}
 }
 
@@ -54,21 +54,21 @@ func (d *DataConfigComponent) Init() {
 	cherryUtils.Try(func() {
 		d.dataSource.Init(d)
 
-		// read register IConfigFile
-		for _, cfg := range d.configFiles {
+		// read register IConfig
+		for _, cfg := range d.configs {
 			data, found := d.GetBytes(cfg.Name())
 			if !found {
 				cherryLogger.Warnf("configName = %s not found.", cfg.Name())
 				continue
 			}
-			d.initConfigFile(cfg, data, false)
+			d.initConfig(cfg, data, false)
 		}
 
 		// on change process
 		d.dataSource.OnChange(func(configName string, data []byte) {
 			configFile := d.GetIConfigFile(configName)
 			if configFile != nil {
-				d.initConfigFile(configFile, data, true)
+				d.initConfig(configFile, data, true)
 			}
 		})
 
@@ -77,7 +77,7 @@ func (d *DataConfigComponent) Init() {
 	})
 }
 
-func (d *DataConfigComponent) initConfigFile(cfg IConfigFile, data []byte, reload bool) {
+func (d *DataConfigComponent) initConfig(cfg IConfig, data []byte, reload bool) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -94,7 +94,7 @@ func (d *DataConfigComponent) initConfigFile(cfg IConfigFile, data []byte, reloa
 		cherryLogger.Warnf("read name = %s on init error = %s", cfg.Name(), err)
 	}
 
-	d.configDataMaps[cfg.Name()] = cfg
+	d.configMaps[cfg.Name()] = cfg
 }
 
 func (d *DataConfigComponent) OnStop() {
@@ -103,21 +103,21 @@ func (d *DataConfigComponent) OnStop() {
 	}
 }
 
-func (d *DataConfigComponent) Register(configFiles ...IConfigFile) {
-	if len(configFiles) < 1 {
-		cherryLogger.Warnf("IConfigFile size is less than 1.")
+func (d *DataConfigComponent) Register(configs ...IConfig) {
+	if len(configs) < 1 {
+		cherryLogger.Warnf("IConfig size is less than 1.")
 		return
 	}
 
-	for _, cfg := range configFiles {
+	for _, cfg := range configs {
 		if cfg != nil {
-			d.configFiles = append(d.configFiles, cfg)
+			d.configs = append(d.configs, cfg)
 		}
 	}
 }
 
-func (d *DataConfigComponent) GetIConfigFile(name string) IConfigFile {
-	for _, file := range d.configFiles {
+func (d *DataConfigComponent) GetIConfigFile(name string) IConfig {
+	for _, file := range d.configs {
 		if file.Name() == name {
 			return file
 		}

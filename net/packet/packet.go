@@ -69,6 +69,10 @@ func (p *Packet) Data() []byte {
 	return p.data
 }
 
+func (p *Packet) SetData(data []byte) {
+	p.data = data
+}
+
 // String represents the Packet's in text mode.
 func (p *Packet) String() string {
 	return fmt.Sprintf("packet type: %s, length: %d, data: %s", TypeName(p.typ), p.len, string(p.data))

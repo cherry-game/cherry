@@ -34,14 +34,14 @@ func (h *Handler) OnPreInit() {
 	h.remoteHandlers = make(map[string]*facade.HandlerFn)
 
 	var found = false
-	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(IComponent)
-	if found == false {
-		panic("handler handlerComponent not found.")
-	}
-
 	h.sessionComponent, found = h.App().Find(cherryConst.SessionComponent).(cherrySession.IComponent)
 	if found == false {
-		panic("session handlerComponent not found.")
+		panic("session component not found.")
+	}
+
+	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(IComponent)
+	if found == false {
+		panic("handler component not found.")
 	}
 }
 

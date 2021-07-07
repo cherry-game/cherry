@@ -54,6 +54,7 @@ type (
 		route   string             // message route(push)
 		mid     uint64             // response message id(response)
 		payload interface{}        // payload
+		err     bool               // if its an error protos
 	}
 )
 
@@ -93,7 +94,7 @@ func (a *Agent) SendRaw(bytes []byte) error {
 	return nil
 }
 
-func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interface{}) (err error) {
+func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interface{}, isError bool) (err error) {
 	if a.Status() == Closed {
 		return cherryError.ClusterBrokenPipe
 	}
@@ -102,7 +103,7 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interfa
 		return cherryError.ClusterBufferExceed
 	}
 
-	p := pendingMessage{typ: typ, mid: mid, route: route, payload: v}
+	p := pendingMessage{typ: typ, mid: mid, route: route, payload: v, err: isError}
 
 	a.chSend <- p
 
@@ -111,7 +112,7 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interfa
 
 // Push, implementation for session.NetworkEntity interface
 func (a *Agent) Push(route string, val interface{}) error {
-	return a.Send(cherryMessage.Push, route, 0, val)
+	return a.Send(cherryMessage.Push, route, 0, val, false)
 }
 
 // RPC, implementation for session.NetworkEntity interface
@@ -142,15 +143,20 @@ func (a *Agent) RPC(route string, val interface{}) error {
 
 // Response, implementation for session.NetworkEntity interface
 // Response message to session
-func (a *Agent) Response(mid uint64, v interface{}) error {
-	return a.Send(cherryMessage.Response, "", mid, v)
+func (a *Agent) Response(mid uint64, v interface{}, isError ...bool) error {
+	err := false
+	if len(isError) > 0 {
+		err = isError[0]
+	}
+
+	return a.Send(cherryMessage.Response, "", mid, v, err)
 }
 
 // Kick
-func (a *Agent) Kick(reason string) error {
+func (a *Agent) Kick(reason interface{}) error {
 	bytes, err := a.app.Marshal(reason)
 	if err != nil {
-		a.Session.Debugf("kick marshal error. reason[%s].", reason)
+		a.Session.Debugf("kick fail. marshal error[%s], reason[%v].", err, reason)
 	}
 
 	pkg, err := a.app.PacketEncode(cherryPacket.Kick, bytes)

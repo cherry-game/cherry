@@ -10,5 +10,6 @@ type (
 		Type() byte
 		Len() int
 		Data() []byte
+		SetData([]byte)
 	}
 )

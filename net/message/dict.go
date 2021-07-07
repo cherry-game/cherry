@@ -48,3 +48,8 @@ func SetDictionary(dict map[string]uint16) {
 func GetDictionary() map[string]uint16 {
 	return routes
 }
+
+func GetRoute(code uint16) (route string, found bool) {
+	route, found = codes[code]
+	return route, found
+}

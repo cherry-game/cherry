@@ -12,11 +12,11 @@ import (
 
 // SourceFile 本地读取数据配置文件
 type SourceFile struct {
-	monitorPath  string
-	watcher      *watcher.Watcher
-	reloadTime   int64
-	extName      string
-	changeFileFn ChangeFileFn
+	monitorPath    string
+	watcher        *watcher.Watcher
+	reloadTime     int64
+	extName        string
+	configChangeFn ConfigChangeFn
 }
 
 func (f *SourceFile) Name() string {
@@ -87,8 +87,8 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 	return data, nil
 }
 
-func (f *SourceFile) OnChange(changeFileFn ChangeFileFn) {
-	f.changeFileFn = changeFileFn
+func (f *SourceFile) OnChange(fn ConfigChangeFn) {
+	f.configChangeFn = fn
 }
 
 func (f *SourceFile) newWatcher() {
@@ -121,8 +121,8 @@ func (f *SourceFile) newWatcher() {
 						return
 					}
 
-					if f.changeFileFn != nil {
-						f.changeFileFn(configName, data)
+					if f.configChangeFn != nil {
+						f.configChangeFn(configName, data)
 					}
 				}
 			case err := <-f.watcher.Error:

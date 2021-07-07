@@ -1,6 +1,6 @@
 package mocks
 
-import cherryMapStructure "github.com/cherry-game/cherry/extend/mapstructure"
+import "github.com/cherry-game/cherry/extend/mapstructure"
 
 type DropOneConfig struct {
 	DropId    int    `json:"dropId"`
