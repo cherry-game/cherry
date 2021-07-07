@@ -6,8 +6,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/facade"
+	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/packet"
 	"net"
@@ -197,7 +197,7 @@ func (c *Client) handlePackets() {
 	for {
 		select {
 		case p := <-c.packetChan:
-			switch p.Type {
+			switch p.Type() {
 			case cherryPacket.Data:
 				//handle data
 				cherryLogger.Debugf("got data: %s", string(p.Data()))

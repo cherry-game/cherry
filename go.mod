@@ -1,6 +1,6 @@
 module github.com/cherry-game/cherry
 
-go 1.15
+go 1.16
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0 // indirect

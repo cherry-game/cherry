@@ -20,13 +20,14 @@ func main() {
 
 	sessionComp := cherrySession.NewComponent()
 
-	wsComp := cherryConnector.NewWSComponent(app.Address())
+	connectorComp := cherryConnector.NewWSComponent(app.Address())
+	//connectorComp := cherryConnector.NewTCPComponent(app.Address())
 
 	app.Startup(
 		sessionComp,
 		handlerComponent(),
 		httpComp,
-		wsComp,
+		connectorComp,
 	)
 }
 

@@ -57,7 +57,7 @@ func InvalidType(t Type) bool {
 	return t < Handshake || t > Kick
 }
 
-func (p *Packet) Type() byte {
+func (p *Packet) Type() Type {
 	return p.typ
 }
 
