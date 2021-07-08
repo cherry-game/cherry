@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
+	"github.com/cherry-game/cherry/_examples/test1_handler"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/net/handler"
 	"reflect"
@@ -10,7 +10,7 @@ import (
 )
 
 func TestReflectHandler(t *testing.T) {
-	handler := mocks.TestHandler{}
+	handler := main.TestHandler{}
 	reflectHandler(&handler)
 }
 

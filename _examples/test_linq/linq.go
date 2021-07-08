@@ -1,4 +1,4 @@
-package linq
+package main
 
 import (
 	"fmt"

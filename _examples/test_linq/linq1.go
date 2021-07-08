@@ -1,4 +1,4 @@
-package linq
+package main
 
 import (
 	"github.com/ahmetb/go-linq/v3"

@@ -1,23 +1,22 @@
-package user
+package main
 
 import (
-	"github.com/cherry-game/cherry/_examples/chat/proto"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
 )
 
 type (
-	Handler struct {
+	userHandler struct {
 		cherryHandler.Handler
 	}
 )
 
-func (h *Handler) Name() string {
+func (h *userHandler) Name() string {
 	return "userHandler"
 }
 
-func (h *Handler) OnInit() {
+func (h *userHandler) OnInit() {
 	h.AddLocal("login", h.login)
 	h.AddLocal("testLogin", h.testLogin)
 
@@ -33,16 +32,16 @@ func (h *Handler) OnInit() {
 	})
 }
 
-func (h *Handler) testLogin(_ *cherrySession.Session, _ *cherryMessage.Message, _ *proto.LoginRequest) error {
+func (h *userHandler) testLogin(_ *cherrySession.Session, _ *cherryMessage.Message, _ *loginRequest) error {
 	return nil
 }
 
-func (h *Handler) login(session *cherrySession.Session, msg *cherryMessage.Message, req *proto.LoginRequest) error {
+func (h *userHandler) login(session *cherrySession.Session, msg *cherryMessage.Message, req *loginRequest) error {
 	session.Debugf("nickname = %s", req.Nickname)
 
-	if err := NewUser(session, req.Nickname); err != nil {
+	if err := newUser(session, req.Nickname); err != nil {
 		return err
 	}
 
-	return session.Response(msg.ID, &proto.LoginResponse{})
+	return session.Response(msg.ID, &loginResponse{})
 }

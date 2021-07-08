@@ -2,8 +2,6 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/_examples/chat/room"
-	"github.com/cherry-game/cherry/_examples/chat/user"
 	"github.com/cherry-game/cherry/component/gin"
 	"github.com/cherry-game/cherry/net/connector"
 	"github.com/cherry-game/cherry/net/handler"
@@ -36,11 +34,11 @@ func handlerComponent() *cherryHandler.Component {
 	component.PrintRouteLog(true)
 
 	group1 := cherryHandler.NewGroup(10, 256)
-	group1.AddHandlers(&user.Handler{})
+	group1.AddHandlers(&userHandler{})
 	component.Register(group1)
 
 	group2 := cherryHandler.NewGroup(10, 256)
-	group2.AddHandlers(&room.Handler{})
+	group2.AddHandlers(&roomHandler{})
 	component.Register(group2)
 
 	return component

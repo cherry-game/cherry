@@ -47,7 +47,13 @@ func GetMainFuncDir() string {
 
 		lines := strings.Split(strings.TrimSpace(stack), "\n")
 		lastLine := strings.TrimSpace(lines[len(lines)-1])
-		mainFuncDir = lastLine[:strings.LastIndex(lastLine, "/")]
+
+		lastIndex := strings.LastIndex(lastLine, "/")
+		if lastIndex < 1 {
+			return ""
+		}
+
+		mainFuncDir = lastLine[:lastIndex]
 	}
 	return mainFuncDir
 }

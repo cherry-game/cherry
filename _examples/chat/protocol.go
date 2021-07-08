@@ -1,29 +1,29 @@
-package proto
+package main
 
-type LoginRequest struct {
+type loginRequest struct {
 	Nickname string `json:"nickname"`
 }
 
-type LoginResponse struct {
+type loginResponse struct {
 	Code int `json:"code"`
 }
-type NewUserBroadcast struct {
+type newUserBroadcast struct {
 	Content string `json:"content"`
 }
 
-type JoinRoomRequest struct {
+type joinRoomRequest struct {
 	Nickname string `json:"nickname"`
 }
 
-type ExistsMembersResponse struct {
+type existsMembersResponse struct {
 	Members string `json:"members"`
 }
 
-type SyncMessage struct {
+type syncMessage struct {
 	Name    string `json:"name"`
 	Content string `json:"content"`
 }
 
-type UserBalanceResponse struct {
+type userBalanceResponse struct {
 	CurrentBalance int64 `json:"currentBalance"`
 }

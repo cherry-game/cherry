@@ -2,29 +2,27 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/_examples/chat/room"
-	"github.com/cherry-game/cherry/_examples/chat/user"
-	"github.com/cherry-game/cherry/extend/time"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/agent"
-	"github.com/cherry-game/cherry/net/connector"
-	"github.com/cherry-game/cherry/net/handler"
-	"github.com/cherry-game/cherry/net/message"
+	cherryTime "github.com/cherry-game/cherry/extend/time"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	cherryAgent "github.com/cherry-game/cherry/net/agent"
+	cherryConnector "github.com/cherry-game/cherry/net/connector"
+	cherryHandler "github.com/cherry-game/cherry/net/handler"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
-	"github.com/cherry-game/cherry/net/session"
+	cherrySession "github.com/cherry-game/cherry/net/session"
+	"testing"
 	"time"
 )
 
-func main() {
-
-	app := cherry.NewApp("../profile/", "local", "gate-1")
+func TestPostMessage(t *testing.T) {
+	app := cherry.NewApp("./profile/", "local", "gate-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	handlerComponent := createHandler()
 
 	go func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(5 * time.Second)
 
 		//agent := cherryAgent.NewAgent(app, cherryAgent.Options{}, nil)
 
@@ -69,11 +67,11 @@ func createHandler() *cherryHandler.Component {
 	component := cherryHandler.NewComponent()
 
 	group1 := cherryHandler.NewGroup(1, 256)
-	group1.AddHandlers(&user.Handler{})
+	group1.AddHandlers(&userHandler{})
 	component.Register(group1)
 
 	group2 := cherryHandler.NewGroup(1, 256)
-	group2.AddHandlers(&room.Handler{})
+	group2.AddHandlers(&roomHandler{})
 	component.Register(group2)
 
 	// add room handler

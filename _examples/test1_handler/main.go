@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/_examples/test1_handler/mocks"
 	"github.com/cherry-game/cherry/component/data_config"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
@@ -37,7 +36,7 @@ func app() {
 	//add TestHandler
 
 	handlerGroup1 := cherryHandler.NewGroup(10, 128)
-	handlerGroup1.AddHandlers(mocks.NewTestHandler())
+	handlerGroup1.AddHandlers(NewTestHandler())
 	handlerGroup1.SetQueueHash(func(executor cherryFacade.IExecutor, queueNum int) int {
 		return rand.Int() % queueNum
 	})
@@ -127,7 +126,7 @@ func mockRequestMsg2(app cherryFacade.IApplication, handler *cherryHandler.Compo
 
 func mockEventMsg(handler *cherryHandler.Component) {
 	for {
-		handler.PostEvent(mocks.NewTestEvent())
+		handler.PostEvent(NewTestEvent())
 		//time.Sleep(time.Millisecond * 1)
 	}
 }

@@ -1,4 +1,4 @@
-package mocks
+package main
 
 import (
 	"github.com/cherry-game/cherry/net/event"

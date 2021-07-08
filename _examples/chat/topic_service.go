@@ -1,14 +1,13 @@
-package user
+package main
 
 import (
-	"github.com/cherry-game/cherry/_examples/chat/proto"
 	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
 	"sync/atomic"
 )
 
-type User struct {
+type user struct {
 	session  *cherrySession.Session
 	nickname string
 	gateId   int64
@@ -19,10 +18,10 @@ type User struct {
 
 var (
 	nextUid int64
-	users   = make(map[int64]*User)
+	users   = make(map[int64]*user)
 )
 
-func NewUser(s *cherrySession.Session, nickName string) error {
+func newUser(s *cherrySession.Session, nickName string) error {
 	atomic.AddInt64(&nextUid, 1)
 
 	uid := nextUid
@@ -35,12 +34,12 @@ func NewUser(s *cherrySession.Session, nickName string) error {
 		members = append(members, u.nickname)
 	}
 
-	err := s.Push("onMembers", &proto.ExistsMembersResponse{Members: strings.Join(members, ",")})
+	err := s.Push("onMembers", &existsMembersResponse{Members: strings.Join(members, ",")})
 	if err != nil {
 		return err
 	}
 
-	user := &User{
+	user := &user{
 		session:  s,
 		nickname: nickName,
 		gateId:   uid,
@@ -50,23 +49,23 @@ func NewUser(s *cherrySession.Session, nickName string) error {
 
 	users[uid] = user
 
-	chat := &proto.JoinRoomRequest{
+	chat := &joinRoomRequest{
 		Nickname: nickName,
 	}
 
 	return s.RPC("gate.roomHandler.joinRoom", chat)
 }
 
-func Stats(s *cherrySession.Session, uid int64) error {
+func stats(s *cherrySession.Session, uid int64) error {
 	// It's OK to use map without lock because of this service running in main thread
 	user, found := users[uid]
 	if !found {
-		return cherryError.Errorf("User not found: %v", uid)
+		return cherryError.Errorf("user not found: %v", uid)
 	}
 
 	user.message++
 	user.balance--
-	return s.Push("onBalance", &proto.UserBalanceResponse{CurrentBalance: user.balance})
+	return s.Push("onBalance", &userBalanceResponse{CurrentBalance: user.balance})
 }
 
 func disconnect(s *cherrySession.Session) (next bool) {
