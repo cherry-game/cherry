@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-type DataConfigComponent struct {
+type Component struct {
 	sync.RWMutex
 	cherryFacade.Component
 	dataSource IDataSource
@@ -19,18 +19,18 @@ type DataConfigComponent struct {
 	configMaps map[string]IConfig
 }
 
-func NewComponent() *DataConfigComponent {
-	return &DataConfigComponent{
+func NewComponent() *Component {
+	return &Component{
 		configMaps: make(map[string]IConfig),
 	}
 }
 
 // Name unique components name
-func (d *DataConfigComponent) Name() string {
+func (d *Component) Name() string {
 	return cherryConst.DataConfigComponent
 }
 
-func (d *DataConfigComponent) Init() {
+func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
 	configNode := cherryProfile.GetConfig("data_config")
 	if configNode.LastError() != nil {
@@ -77,7 +77,7 @@ func (d *DataConfigComponent) Init() {
 	})
 }
 
-func (d *DataConfigComponent) initConfig(cfg IConfig, data []byte, reload bool) {
+func (d *Component) initConfig(cfg IConfig, data []byte, reload bool) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -97,13 +97,13 @@ func (d *DataConfigComponent) initConfig(cfg IConfig, data []byte, reload bool) 
 	d.configMaps[cfg.Name()] = cfg
 }
 
-func (d *DataConfigComponent) OnStop() {
+func (d *Component) OnStop() {
 	if d.dataSource != nil {
 		d.dataSource.Stop()
 	}
 }
 
-func (d *DataConfigComponent) Register(configs ...IConfig) {
+func (d *Component) Register(configs ...IConfig) {
 	if len(configs) < 1 {
 		cherryLogger.Warnf("IConfig size is less than 1.")
 		return
@@ -116,7 +116,7 @@ func (d *DataConfigComponent) Register(configs ...IConfig) {
 	}
 }
 
-func (d *DataConfigComponent) GetIConfigFile(name string) IConfig {
+func (d *Component) GetIConfigFile(name string) IConfig {
 	for _, file := range d.configs {
 		if file.Name() == name {
 			return file
@@ -125,7 +125,7 @@ func (d *DataConfigComponent) GetIConfigFile(name string) IConfig {
 	return nil
 }
 
-func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bool) {
+func (d *Component) GetBytes(configName string) (data []byte, found bool) {
 	data, err := d.dataSource.ReadBytes(configName)
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -135,10 +135,10 @@ func (d *DataConfigComponent) GetBytes(configName string) (data []byte, found bo
 	return data, true
 }
 
-func (d *DataConfigComponent) GetParser() IDataParser {
+func (d *Component) GetParser() IDataParser {
 	return d.parser
 }
 
-func (d *DataConfigComponent) GetDataSource() IDataSource {
+func (d *Component) GetDataSource() IDataSource {
 	return d.dataSource
 }

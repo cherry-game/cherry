@@ -13,7 +13,6 @@ import (
 	"syscall"
 )
 
-// Application
 type Application struct {
 	facade.INode
 	facade.ISerializer
@@ -67,7 +66,7 @@ func (a *Application) StartTime() string {
 	return a.startTime.ToDateTimeFormat()
 }
 
-// Startup
+// Startup load components before startup
 func (a *Application) Startup(components ...facade.IComponent) {
 	defer func() {
 		if r := recover(); r != nil {

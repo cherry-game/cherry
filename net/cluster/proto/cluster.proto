@@ -21,10 +21,10 @@ message NodeList {
 message Response {
 }
 
-//service MasterNode {
-//  rpc Register(NodeInfo) returns(NodeList) {}
-//  rpc Unregister(NodeId) returns(Response) {}
-//}
+service Master {
+  rpc Register(NodeInfo) returns(NodeList) {}
+  rpc Unregister(NodeId) returns(Response) {}
+}
 
 enum RPCType {
   User = 0;
@@ -33,7 +33,7 @@ enum RPCType {
 
 message ForwardMessage {
   RPCType rpcType = 1;
-  int32 msgType = 2;
+  int32 msgType = 2; // request,notify,response,push
   string nodeId = 3;
   int64 sid = 4;
   uint64 id = 5;
@@ -45,7 +45,7 @@ message SessionId {
   int64 sid = 1;
 }
 
-service MemberNode {
+service Member {
   rpc Forward(ForwardMessage) returns (Response) {}
   rpc CloseSession(SessionId) returns (Response) {}
 }

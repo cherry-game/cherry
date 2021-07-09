@@ -27,7 +27,7 @@ const (
 type (
 	RPCHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
 
-	// process packet listener function
+	// PacketListener process packet listener function
 	PacketListener func(agent *Agent, packet cherryFacade.IPacket)
 
 	Options struct {
@@ -110,12 +110,12 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface
 	return nil
 }
 
-// Push, implementation for session.NetworkEntity interface
+// Push implementation for session.NetworkEntity interface
 func (a *Agent) Push(route string, val interface{}) error {
 	return a.Send(cherryMessage.Push, route, 0, val, false)
 }
 
-// RPC, implementation for session.NetworkEntity interface
+// RPC implementation for session.NetworkEntity interface
 func (a *Agent) RPC(route string, val interface{}) error {
 	if a.Status() == Closed {
 		return cherryError.ClusterBrokenPipe
@@ -141,8 +141,7 @@ func (a *Agent) RPC(route string, val interface{}) error {
 	return nil
 }
 
-// Response, implementation for session.NetworkEntity interface
-// Response message to session
+// Response implementation for session.NetworkEntity interface
 func (a *Agent) Response(mid uint, v interface{}, isError ...bool) error {
 	err := false
 	if len(isError) > 0 {
@@ -152,7 +151,7 @@ func (a *Agent) Response(mid uint, v interface{}, isError ...bool) error {
 	return a.Send(cherryMessage.Response, "", mid, v, err)
 }
 
-// Kick
+// Kick kick session
 func (a *Agent) Kick(reason interface{}) error {
 	bytes, err := a.app.Marshal(reason)
 	if err != nil {
@@ -191,7 +190,7 @@ func (a *Agent) Close() {
 	a.chDie <- true
 }
 
-// RemoteAddr, implementation for session.NetworkEntity interface
+// RemoteAddr implementation for session.NetworkEntity interface
 // returns the remote network address.
 func (a *Agent) RemoteAddr() net.Addr {
 	return a.conn.RemoteAddr()

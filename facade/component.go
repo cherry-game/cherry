@@ -9,7 +9,7 @@ type IComponent interface {
 	OnStop()
 }
 
-// Component
+// Component base component
 type Component struct {
 	AppContext
 }
