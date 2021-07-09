@@ -59,11 +59,11 @@ type Client struct {
 	packetChan      chan cherryFacade.IPacket
 	IncomingMsgChan chan *cherryMessage.Message
 	pendingChan     chan bool
-	pendingRequests map[uint64]*pendingRequest
+	pendingRequests map[uint]*pendingRequest
 	pendingReqMutex sync.Mutex
 	requestTimeout  time.Duration
 	closeChan       chan struct{}
-	nextID          uint64
+	nextID          uint32
 }
 
 // MsgChannel return the incoming message channel
@@ -87,7 +87,7 @@ func New(requestTimeout ...time.Duration) *Client {
 		Connected:       false,
 		packetCodec:     cherryPacket.NewPomeloCodec(),
 		packetChan:      make(chan cherryFacade.IPacket, 10),
-		pendingRequests: make(map[uint64]*pendingRequest),
+		pendingRequests: make(map[uint]*pendingRequest),
 		requestTimeout:  reqTimeout,
 		// 30 here is the limit of inflight messages
 		// TODO this should probably be configurable
@@ -355,7 +355,7 @@ func (c *Client) handleHandshake() error {
 }
 
 // SendRequest sends a request to the server
-func (c *Client) SendRequest(route string, data []byte) (uint64, error) {
+func (c *Client) SendRequest(route string, data []byte) (uint, error) {
 	return c.sendMsg(cherryMessage.Request, route, data)
 }
 
@@ -380,11 +380,11 @@ func (c *Client) buildPacket(msg cherryMessage.Message) ([]byte, error) {
 }
 
 // sendMsg sends the request to the server
-func (c *Client) sendMsg(msgType cherryMessage.Type, route string, data []byte) (uint64, error) {
+func (c *Client) sendMsg(msgType cherryMessage.Type, route string, data []byte) (uint, error) {
 	// TODO mount msg and encode
 	m := cherryMessage.Message{
 		Type:  msgType,
-		ID:    atomic.AddUint64(&c.nextID, 1),
+		ID:    uint(atomic.AddUint32(&c.nextID, 1)),
 		Route: route,
 		Data:  data,
 	}

@@ -97,7 +97,7 @@ func (s *Session) Push(route string, v interface{}) error {
 
 // Response responses message to client, mid is
 // request message ID
-func (s *Session) Response(mid uint64, v interface{}) error {
+func (s *Session) Response(mid uint, v interface{}) error {
 	return s.entity.Response(mid, v)
 }
 

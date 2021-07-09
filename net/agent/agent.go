@@ -52,9 +52,9 @@ type (
 	pendingMessage struct {
 		typ     cherryMessage.Type // message type
 		route   string             // message route(push)
-		mid     uint64             // response message id(response)
+		mid     uint               // response message id(response)
 		payload interface{}        // payload
-		err     bool               // if its an error protos
+		err     bool               // if its an error
 	}
 )
 
@@ -94,7 +94,7 @@ func (a *Agent) SendRaw(bytes []byte) error {
 	return nil
 }
 
-func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint64, v interface{}, isError bool) (err error) {
+func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) (err error) {
 	if a.Status() == Closed {
 		return cherryError.ClusterBrokenPipe
 	}
@@ -143,7 +143,7 @@ func (a *Agent) RPC(route string, val interface{}) error {
 
 // Response, implementation for session.NetworkEntity interface
 // Response message to session
-func (a *Agent) Response(mid uint64, v interface{}, isError ...bool) error {
+func (a *Agent) Response(mid uint, v interface{}, isError ...bool) error {
 	err := false
 	if len(isError) > 0 {
 		err = isError[0]

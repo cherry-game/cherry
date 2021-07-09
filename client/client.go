@@ -9,7 +9,7 @@ type IClient interface {
 	ConnectToTLS(addr string, skipVerify bool) error
 	Disconnect()
 	SendNotify(route string, data []byte) error
-	SendRequest(route string, data []byte) (uint64, error)
+	SendRequest(route string, data []byte) (uint, error)
 	ConnectedStatus() bool
 	MsgChannel() chan *cherryMessage.Message
 }

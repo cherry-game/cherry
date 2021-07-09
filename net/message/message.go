@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"fmt"
 	cherryError "github.com/cherry-game/cherry/error"
+	cherryCompress "github.com/cherry-game/cherry/extend/compress"
 )
 
 // message协议的主要作用是封装消息头，包括route和消息类型两部分，
@@ -34,14 +35,14 @@ import (
 //
 // 路由压缩标志
 // 上图是不同的flag标志对应的route字段的内容：
-// flag的最后一位为1时，后面跟的是一个uInt16表示的route字典编号，需要通过查询字典来获取route;
+// flag的最后一位为1时，表示路由压缩，需要通过查询字典来获取route;
 // flag最后一位为0是，后面route则由一个uInt8的byte，用来表示route的字节长度。
 // 之后是通过utf8编码后的route字 符串，其长度就是前面一位byte的uInt8的值，因此route的长度最大支持256B。
 //
 // Message represents a unmarshaled message or a message which to be marshaled
 type Message struct {
 	Type            Type   // message type 4中消息类型
-	ID              uint64 // unique id, zero while notify mode 消息id（request response）
+	ID              uint   // unique id, zero while notify mode 消息id（request response）
 	Route           string // route for locating service 消息路由
 	Data            []byte // payload  消息体的原始数据
 	routeCompressed bool   // is route Compressed 是否启用路由压缩
@@ -123,17 +124,17 @@ func Encode(m *Message) ([]byte, error) {
 		}
 	}
 
-	//if m.dataCompressed {
-	//	d, err := cherryCompress.DeflateData(m.Data)
-	//	if err != nil {
-	//		return nil, err
-	//	}
-	//
-	//	if len(d) < len(m.Data) {
-	//		m.Data = d
-	//		buf[0] |= gzipMask
-	//	}
-	//}
+	if dataCompression {
+		d, err := cherryCompress.DeflateData(m.Data)
+		if err != nil {
+			return nil, err
+		}
+
+		if len(d) < len(m.Data) {
+			m.Data = d
+			buf[0] |= gzipMask
+		}
+	}
 
 	buf = append(buf, m.Data...)
 	return buf, nil
@@ -156,13 +157,13 @@ func Decode(data []byte) (*Message, error) {
 	}
 
 	if m.Type == Request || m.Type == Response {
-		id := uint64(0)
+		id := uint(0)
 		// little end byte order
 		// WARNING: must can be stored in 64 bits integer
 		// variant length encode
 		for i := offset; i < len(data); i++ {
 			b := data[i]
-			id += uint64(b&0x7F) << uint64(7*(i-offset))
+			id += uint(b&0x7F) << uint(7*(i-offset))
 			if b < 128 {
 				offset = i + 1
 				break
