@@ -6,6 +6,12 @@ var (
 	defaultNode *Node
 )
 
+func init() {
+	// change default value
+	NodeBits = 12
+	StepBits = 10
+}
+
 func SetDefaultNode(nodeId int64) {
 	if defaultNode != nil {
 		cherryLogger.Warn("default snowflake node is created.")

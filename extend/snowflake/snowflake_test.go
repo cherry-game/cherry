@@ -12,12 +12,15 @@ import (
 )
 
 func TestPrintID(t *testing.T) {
-	node, _ := NewNode(1023)
+	node, err := NewNode(2048)
+	if err != nil {
+		t.Log(err)
+		return
+	}
 
 	for i := 0; i < 10; i++ {
-
 		id := node.Generate()
-		fmt.Println(id.Int64())
+		fmt.Println(id.Int64(), id.Base58())
 	}
 }
 

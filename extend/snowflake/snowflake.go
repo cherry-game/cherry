@@ -1,5 +1,5 @@
-// code from: https://github.com/bwmarrin/snowflake
-// Package snowflake provides a very simple Twitter snowflake generator and parser.
+// Package cherrySnowflake code from: https://github.com/bwmarrin/snowflake
+// snowflake provides a very simple Twitter snowflake generator and parser.
 package cherrySnowflake
 
 import (
