@@ -21,10 +21,8 @@ func app() {
 	dataConfig := cherryDataConfig.NewComponent()
 	dataConfig.Register(&DropList, &DropOne)
 
-	cherryLogger.Infow("test", "key", "itemId", "value", 2)
-
 	go func(testApp *cherry.Application) {
-		//10秒后退出应用
+		//120秒后退出应用
 		time.Sleep(120 * time.Second)
 		testApp.Shutdown()
 	}(testApp)
