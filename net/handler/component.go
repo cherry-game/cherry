@@ -20,32 +20,41 @@ type (
 		AddAfterFilter(afterFilters ...FilterFn)
 	}
 
-	//Component handler handlerComponent
+	//Component handler component
 	Component struct {
-		Options
+		options
 		facade.Component
 		groups []*HandlerGroup
 	}
 
-	Options struct {
+	options struct {
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
 		printRouteLog bool
 	}
 
+	Option func(options *options)
+
 	FilterFn func(session *cherrySession.Session, message *cherryMessage.Message) bool
 )
 
-func NewComponent() *Component {
-	return &Component{
+func NewComponent(opts ...Option) *Component {
+	c := &Component{
 		groups: make([]*HandlerGroup, 0),
-		Options: Options{
+		options: options{
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn:        strings.ToLower,
+			printRouteLog: false,
 		},
 	}
+
+	for _, opt := range opts {
+		opt(&c.options)
+	}
+
+	return c
 }
 
 func (h *Component) Name() string {
@@ -60,6 +69,8 @@ func (h *Component) Init() {
 }
 
 func (h *Component) OnStop() {
+	waitSecond := time.Duration(2)
+
 	for {
 		if h.queueIsEmpty() {
 			for _, group := range h.groups {
@@ -71,8 +82,8 @@ func (h *Component) OnStop() {
 		}
 
 		// wait...
-		cherryLogger.Debug("queue not empty! wait 3 seconds.")
-		time.Sleep(1 * time.Second)
+		cherryLogger.Debugf("queue is not empty! wait %d seconds.", waitSecond.Seconds())
+		time.Sleep(waitSecond)
 	}
 }
 
@@ -144,7 +155,6 @@ func (h *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
-// 本地handler执行， remote用于远程rpc调用执行
 func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if !h.App().Running() {
 		//ignore message
@@ -209,30 +219,49 @@ func (h *Component) PostMessage(session *cherrySession.Session, msg *cherryMessa
 	group.inQueue(index, executor)
 }
 
+func (h *Component) AddBeforeFilter(beforeFilters ...FilterFn) {
+	if len(beforeFilters) > 0 {
+		h.beforeFilters = append(h.beforeFilters, beforeFilters...)
+	}
+}
+
+func (h *Component) AddAfterFilter(afterFilters ...FilterFn) {
+	if len(afterFilters) > 0 {
+		h.afterFilters = append(h.afterFilters, afterFilters...)
+	}
+}
+
 func (h *Component) forwardToRemote(session *cherrySession.Session, msg *cherryMessage.Message) {
 	// TODO 通过rpc 转发到远程节点
 	cherryLogger.Warnf("forward to remote session[%s], msg[%s]", session, msg)
 }
 
-func (c *Options) AddBeforeFilter(beforeFilters ...FilterFn) {
-	if len(beforeFilters) > 0 {
-		c.beforeFilters = append(c.beforeFilters, beforeFilters...)
+func WithBeforeFilter(beforeFilters ...FilterFn) Option {
+	return func(options *options) {
+		if len(beforeFilters) > 0 {
+			options.beforeFilters = append(options.beforeFilters, beforeFilters...)
+		}
 	}
 }
 
-func (c *Options) AddAfterFilter(afterFilters ...FilterFn) {
-	if len(afterFilters) > 0 {
-		c.afterFilters = append(c.afterFilters, afterFilters...)
+func WithAfterFilter(afterFilters ...FilterFn) Option {
+	return func(options *options) {
+		if len(afterFilters) > 0 {
+			options.afterFilters = append(options.afterFilters, afterFilters...)
+		}
 	}
 }
 
-func (c *Options) SetNameFn(fn func(string) string) {
-	if fn == nil {
-		return
+func WithNameFunc(fn func(string) string) Option {
+	return func(options *options) {
+		if fn != nil {
+			options.nameFn = fn
+		}
 	}
-	c.nameFn = fn
 }
 
-func (c *Options) PrintRouteLog(enable bool) {
-	c.printRouteLog = enable
+func WithPrintRouteLog(enable bool) Option {
+	return func(options *options) {
+		options.printRouteLog = enable
+	}
 }

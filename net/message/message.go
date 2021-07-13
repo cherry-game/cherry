@@ -7,6 +7,7 @@ import (
 	cherryCompress "github.com/cherry-game/cherry/extend/compress"
 )
 
+// Message represents a unmarshaled message or a message which to be marshaled
 // message协议的主要作用是封装消息头，包括route和消息类型两部分，
 // 不同的消息类型有着不同的消息头，在消息头里面可能要打入message id(即requestId)和route信息。
 // 由于可能会有route压缩，而且对于服务端push的消息，message id为空，对于客户端请求的响应，route为空
@@ -38,8 +39,6 @@ import (
 // flag的最后一位为1时，表示路由压缩，需要通过查询字典来获取route;
 // flag最后一位为0是，后面route则由一个uInt8的byte，用来表示route的字节长度。
 // 之后是通过utf8编码后的route字 符串，其长度就是前面一位byte的uInt8的值，因此route的长度最大支持256B。
-//
-// Message represents a unmarshaled message or a message which to be marshaled
 type Message struct {
 	Type            Type   // message type 4中消息类型
 	ID              uint   // unique id, zero while notify mode 消息id（request response）

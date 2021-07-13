@@ -38,14 +38,11 @@ func (m *MessageExecutor) Invoke() {
 	}
 
 	var params []reflect.Value
-
 	if argsLen == 2 {
 		params = make([]reflect.Value, argsLen)
 		params[0] = reflect.ValueOf(m.Session)
 		params[1] = reflect.ValueOf(m.Msg)
-	}
-
-	if argsLen == 3 {
+	} else if argsLen == 3 {
 		val, err := m.unmarshalData(argsLen - 1)
 		if err != nil {
 			cherryLogger.Warn(err)

@@ -127,7 +127,6 @@ func (h *Handler) AddRemote(name string, fn interface{}) {
 	h.remoteHandlers[name] = invokeFunc
 }
 
-//AddEvent
 func (h *Handler) AddEvent(eventName string, fn facade.EventFn) {
 	if eventName == "" {
 		cherryLogger.Warn("eventName is nil")

@@ -31,8 +31,9 @@ func app() {
 		},
 	)
 
-	handlerComponent := cherryHandler.NewComponent()
-	handlerComponent.SetNameFn(strings.ToLower)
+	handlerComponent := cherryHandler.NewComponent(
+		cherryHandler.WithNameFunc(strings.ToLower),
+	)
 	//add TestHandler
 
 	handlerGroup1 := cherryHandler.NewGroup(10, 128)

@@ -24,8 +24,6 @@ func TestPostMessage(t *testing.T) {
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		//agent := cherryAgent.NewAgent(app, cherryAgent.Options{}, nil)
-
 		session := &cherrySession.Session{}
 
 		msg := &cherryMessage.Message{

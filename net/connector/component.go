@@ -140,6 +140,7 @@ func (c *Component) handshake(agent *cherryAgent.Agent, _ facade.IPacket) {
 		"sys": map[string]interface{}{
 			"heartbeat": agent.Options.Heartbeat.Seconds(),
 		},
+		"routes": cherryMessage.GetDictionary(),
 	}
 
 	jsonData, err := json.Marshal(data)
