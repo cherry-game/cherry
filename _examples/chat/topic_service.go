@@ -53,7 +53,7 @@ func newUser(s *cherrySession.Session, nickName string) error {
 		Nickname: nickName,
 	}
 
-	return s.RPC("gate.roomHandler.joinRoom", chat)
+	return s.RPC("game.roomHandler.joinRoom", chat)
 }
 
 func stats(s *cherrySession.Session, uid int64) error {

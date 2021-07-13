@@ -33,7 +33,7 @@
         methods: {
             sendMessage: function () {
                 console.log(this.inputMessage);
-                starx.notify('gate.roomHandler.syncMessage', {name: this.nickname, content: this.inputMessage});
+                starx.notify('game.roomHandler.syncMessage', {name: this.nickname, content: this.inputMessage});
                 this.inputMessage = '';
             }
         }
@@ -76,7 +76,7 @@
         starx.on("onNewUser", onNewUser);
         starx.on("onMembers", onMembers);
         starx.on("onBalance", onBalance);
-        starx.request("gate.userHandler.login", {"nickname": nickname}, login);
+        starx.request("game.userHandler.login", {"nickname": nickname}, login);
     })
 </script>
 </body>

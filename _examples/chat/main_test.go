@@ -16,7 +16,7 @@ import (
 )
 
 func TestPostMessage(t *testing.T) {
-	app := cherry.NewApp("./profile/", "local", "gate-1")
+	app := cherry.NewApp("../profile_single/", "local", "game-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	handlerComponent := createHandler()
@@ -27,7 +27,7 @@ func TestPostMessage(t *testing.T) {
 		session := &cherrySession.Session{}
 
 		msg := &cherryMessage.Message{
-			Route: "gate.userHandler.testLogin",
+			Route: "game.userHandler.testLogin",
 			Data: []byte{
 				123, 34, 110, 105, 99, 107, 110, 97, 109, 101,
 				34, 58, 34, 103, 117, 101, 115, 116, 49, 54,

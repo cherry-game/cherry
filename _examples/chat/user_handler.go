@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
@@ -23,9 +24,9 @@ func (h *userHandler) OnInit() {
 	h.AddOnClose(disconnect)
 
 	h.AddBeforeFilter(func(session *cherrySession.Session, message *cherryMessage.Message) bool {
-		if session.IsBind() == false && message.Route != "gate.userHandler.login" {
+		if session.IsBind() == false && message.Route != "game.userHandler.login" {
 			//登录后，才能发送后续消息
-			session.Kick("not login", true)
+			session.Kick(fmt.Sprintf("kick %s : not login", session.String()), true)
 			return false
 		}
 		return true
