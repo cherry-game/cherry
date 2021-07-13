@@ -8,7 +8,7 @@ import (
 // Protobuf implements the serialize.Protobuf interface
 type Protobuf struct{}
 
-// NewSerializer returns a new Protobuf.
+// NewProtobuf NewSerializer returns a new Protobuf.
 func NewProtobuf() *Protobuf {
 	return &Protobuf{}
 }

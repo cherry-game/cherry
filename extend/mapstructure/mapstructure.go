@@ -1,3 +1,4 @@
+// Package cherryMapStructure
 // code from https://github.com/goinggo/mapstructure
 // The mapstructure package exposes functionality to convert an
 // abitrary map[string]interface{} into a native Go structure.
@@ -126,7 +127,7 @@ func DecodeSlicePath(ms []map[string]interface{}, rawSlice interface{}) error {
 
 	if (rawKind == reflect.Ptr && rawElement.Kind() != reflect.Slice) ||
 		(rawKind != reflect.Ptr && rawKind != reflect.Slice) {
-		return fmt.Errorf("Incompatible Value, Looking For Slice : %v : %v", rawKind, rawElement.Kind())
+		return fmt.Errorf("incompatible value, looking for slice : %v : %v", rawKind, rawElement.Kind())
 	}
 
 	config := &DecoderConfig{
@@ -244,16 +245,16 @@ func (d *Decoder) DecodePath(m map[string]interface{}, rawVal interface{}) (bool
 	case reflect.Ptr:
 		val = reflectRawValue.Elem()
 		if val.Kind() != reflect.Struct {
-			return decoded, fmt.Errorf("Incompatible Type : %v : Looking For Struct", kind)
+			return decoded, fmt.Errorf("incompatible type : %v : looking for struct", kind)
 		}
 	case reflect.Struct:
 		var ok bool
 		val, ok = rawVal.(reflect.Value)
 		if ok == false {
-			return decoded, fmt.Errorf("Incompatible Type : %v : Looking For reflect.Value", kind)
+			return decoded, fmt.Errorf("incompatible type : %v : looking for reflect.Value", kind)
 		}
 	default:
-		return decoded, fmt.Errorf("Incompatible Type : %v", kind)
+		return decoded, fmt.Errorf("incompatible type : %v", kind)
 	}
 
 	// Iterate over the fields in the struct
@@ -294,7 +295,7 @@ func (d *Decoder) DecodePath(m map[string]interface{}, rawVal interface{}) (bool
 			if valueField.Kind() == reflect.Slice {
 				// Ignore a slice of maps - This sucks but not sure how to check
 				if strings.Contains(valueField.Type().String(), "map[") {
-					goto normal_decode
+					goto normalDecode
 				}
 
 				// We have a slice
@@ -303,7 +304,7 @@ func (d *Decoder) DecodePath(m map[string]interface{}, rawVal interface{}) (bool
 					// Test if this is a slice of more maps
 					_, ok := mapSlice[0].(map[string]interface{})
 					if ok == false {
-						goto normal_decode
+						goto normalDecode
 					}
 
 					// Extract the maps out and run it through DecodeSlicePath
@@ -316,7 +317,7 @@ func (d *Decoder) DecodePath(m map[string]interface{}, rawVal interface{}) (bool
 					continue
 				}
 			}
-		normal_decode:
+		normalDecode:
 			decoded = true
 			err := d.decode("", data, valueField)
 			if err != nil {
@@ -570,7 +571,7 @@ func (d *Decoder) decodeFloat(name string, data interface{}, val reflect.Value) 
 	case dataKind == reflect.Uint:
 		val.SetFloat(float64(dataVal.Uint()))
 	case dataKind == reflect.Float32:
-		val.SetFloat(float64(dataVal.Float()))
+		val.SetFloat(dataVal.Float())
 	case dataKind == reflect.Bool && d.config.WeaklyTypedInput:
 		if dataVal.Bool() {
 			val.SetFloat(1)
@@ -617,7 +618,7 @@ func (d *Decoder) decodeMap(name string, data interface{}, val reflect.Value) er
 	}
 
 	// Accumulate errors
-	errors := make([]string, 0)
+	errorSlice := make([]string, 0)
 
 	for _, k := range dataVal.MapKeys() {
 		fieldName := fmt.Sprintf("%s[%s]", name, k)
@@ -625,7 +626,7 @@ func (d *Decoder) decodeMap(name string, data interface{}, val reflect.Value) er
 		// First decode the key into the proper type
 		currentKey := reflect.Indirect(reflect.New(valKeyType))
 		if err := d.decode(fieldName, k.Interface(), currentKey); err != nil {
-			errors = appendErrors(errors, err)
+			errorSlice = appendErrors(errorSlice, err)
 			continue
 		}
 
@@ -633,7 +634,7 @@ func (d *Decoder) decodeMap(name string, data interface{}, val reflect.Value) er
 		v := dataVal.MapIndex(k).Interface()
 		currentVal := reflect.Indirect(reflect.New(valElemType))
 		if err := d.decode(fieldName, v, currentVal); err != nil {
-			errors = appendErrors(errors, err)
+			errorSlice = appendErrors(errorSlice, err)
 			continue
 		}
 
@@ -644,8 +645,8 @@ func (d *Decoder) decodeMap(name string, data interface{}, val reflect.Value) er
 	val.Set(valMap)
 
 	// If we had errors, return those
-	if len(errors) > 0 {
-		return &Error{errors}
+	if len(errorSlice) > 0 {
+		return &Error{errorSlice}
 	}
 
 	return nil
@@ -674,7 +675,7 @@ func (d *Decoder) decodeSlice(name string, data interface{}, val reflect.Value) 
 	}
 
 	// Accumulate any errors
-	errors := make([]string, 0)
+	errorSlice := make([]string, 0)
 
 	for i := 0; i < dataVal.Len(); i++ {
 		currentData := dataVal.Index(i).Interface()
@@ -682,7 +683,7 @@ func (d *Decoder) decodeSlice(name string, data interface{}, val reflect.Value) 
 
 		fieldName := fmt.Sprintf("%s[%d]", name, i)
 		if err := d.decode(fieldName, currentData, currentField); err != nil {
-			errors = appendErrors(errors, err)
+			errorSlice = appendErrors(errorSlice, err)
 		}
 	}
 
@@ -690,8 +691,8 @@ func (d *Decoder) decodeSlice(name string, data interface{}, val reflect.Value) 
 	val.Set(valSlice)
 
 	// If there were errors, we return those
-	if len(errors) > 0 {
-		return &Error{errors}
+	if len(errorSlice) > 0 {
+		return &Error{errorSlice}
 	}
 
 	return nil
@@ -718,7 +719,7 @@ func (d *Decoder) decodeStruct(name string, data interface{}, val reflect.Value)
 		dataValKeysUnused[dataValKey.Interface()] = struct{}{}
 	}
 
-	errors := make([]string, 0)
+	errorSlice := make([]string, 0)
 
 	// This slice will keep track of all the structs we'll be decoding.
 	// There can be more than one struct if there are embedded structs
@@ -740,8 +741,8 @@ func (d *Decoder) decodeStruct(name string, data interface{}, val reflect.Value)
 			if fieldType.Anonymous {
 				fieldKind := fieldType.Type.Kind()
 				if fieldKind != reflect.Struct {
-					errors = appendErrors(errors,
-						fmt.Errorf("%s: unsupported type: %s", fieldType.Name, fieldKind))
+					fmtError := fmt.Errorf("%s: unsupported type: %s", fieldType.Name, fieldKind)
+					errorSlice = appendErrors(errorSlice, fmtError)
 					continue
 				}
 
@@ -781,7 +782,7 @@ func (d *Decoder) decodeStruct(name string, data interface{}, val reflect.Value)
 		if !rawMapVal.IsValid() {
 			// Do a slower search by iterating over each key and
 			// doing case-insensitive search.
-			for dataValKey, _ := range dataValKeys {
+			for dataValKey := range dataValKeys {
 				mK, ok := dataValKey.Interface().(string)
 				if !ok {
 					// Not a string key
@@ -823,28 +824,28 @@ func (d *Decoder) decodeStruct(name string, data interface{}, val reflect.Value)
 		}
 
 		if err := d.decode(fieldName, rawMapVal.Interface(), field); err != nil {
-			errors = appendErrors(errors, err)
+			errorSlice = appendErrors(errorSlice, err)
 		}
 	}
 
 	if d.config.ErrorUnused && len(dataValKeysUnused) > 0 {
 		keys := make([]string, 0, len(dataValKeysUnused))
-		for rawKey, _ := range dataValKeysUnused {
+		for rawKey := range dataValKeysUnused {
 			keys = append(keys, rawKey.(string))
 		}
 		sort.Strings(keys)
 
-		err := fmt.Errorf("'%s' has invalid keys: %s", name, strings.Join(keys, ", "))
-		errors = appendErrors(errors, err)
+		fmtError := fmt.Errorf("'%s' has invalid keys: %s", name, strings.Join(keys, ", "))
+		errorSlice = appendErrors(errorSlice, fmtError)
 	}
 
-	if len(errors) > 0 {
-		return &Error{errors}
+	if len(errorSlice) > 0 {
+		return &Error{errorSlice}
 	}
 
 	// Add the unused keys to the list of unused keys if we're tracking metadata
 	if d.config.Metadata != nil {
-		for rawKey, _ := range dataValKeysUnused {
+		for rawKey := range dataValKeysUnused {
 			key := rawKey.(string)
 			if name != "" {
 				key = fmt.Sprintf("%s.%s", name, key)

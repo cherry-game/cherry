@@ -6,13 +6,13 @@ import (
 
 // component name
 const (
-	HandlerComponent         = "handler_component"
-	SessionComponent         = "session_component"
-	DataConfigComponent      = "data_config_component"
-	ORMComponent             = "db_orm_component"
-	ConnectorPomeloComponent = "connector_pomelo_component"
-	RPCServerComponent       = "rpc_server_component"
-	RPCClientComponent       = "rpc_client_component"
+	HandlerComponent    = "handler_component"
+	SessionComponent    = "session_component"
+	DataConfigComponent = "data_config_component"
+	ORMComponent        = "db_orm_component"
+	ConnectorComponent  = "connector_component"
+	RPCServerComponent  = "rpc_server_component"
+	RPCClientComponent  = "rpc_client_component"
 )
 
 const (

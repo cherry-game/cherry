@@ -1,5 +1,4 @@
-// file from https://github.com/gogf/gf
-
+// Package cherryMap file from https://github.com/gogf/gf
 package cherryMap
 
 import (

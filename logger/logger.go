@@ -11,11 +11,9 @@ import (
 )
 
 var (
-	// 默认日志对象(控制台输出)
-	DefaultLogger *CherryLogger
-	// 日志实例存储map(key:日志名称,value:日志实例)
-	loggers map[string]*CherryLogger
-	rw      sync.RWMutex
+	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
+	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
+	rw            sync.RWMutex
 )
 
 func init() {
@@ -105,14 +103,14 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	var writers []zapcore.WriteSyncer
 
 	if config.EnableWriteFile && config.FilePath != "" {
-		lumberjack := &lumberjack.Logger{
+		lumberConfig := &lumberjack.Logger{
 			Filename:   config.FilePath,
 			MaxSize:    config.MaxSize,
 			MaxAge:     config.MaxAge,
 			MaxBackups: config.MaxBackups,
 			Compress:   config.Compress,
 		}
-		writers = append(writers, zapcore.AddSync(lumberjack))
+		writers = append(writers, zapcore.AddSync(lumberConfig))
 	}
 
 	if config.EnableConsole {

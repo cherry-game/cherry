@@ -3,7 +3,7 @@ package cherryFacade
 import jsoniter "github.com/json-iterator/go"
 
 type (
-	// {key:nodeType,value:{key:nodeId,value:INode}}
+	// NodeMap {key:nodeType,value:{key:nodeId,value:INode}}
 	NodeMap map[string]map[string]INode
 )
 

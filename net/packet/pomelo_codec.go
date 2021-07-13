@@ -2,8 +2,8 @@ package cherryPacket
 
 import (
 	"bytes"
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryFacade "github.com/cherry-game/cherry/facade"
+	"github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/facade"
 )
 
 type PomeloCodec struct {
@@ -108,7 +108,7 @@ func (p *PomeloCodec) PacketEncode(typ byte, data []byte) ([]byte, error) {
 	return buf, nil
 }
 
-// Decode packet data length byte to int(Big end)
+// BytesToInt Decode packet data length byte to int(Big end)
 func BytesToInt(b []byte) int {
 	result := 0
 	for _, v := range b {
@@ -117,7 +117,7 @@ func BytesToInt(b []byte) int {
 	return result
 }
 
-// Encode packet data length to bytes(Big end)
+// IntToBytes Encode packet data length to bytes(Big end)
 func IntToBytes(n int) []byte {
 	buf := make([]byte, 3)
 	buf[0] = byte((n >> 16) & 0xFF)

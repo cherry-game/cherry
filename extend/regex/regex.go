@@ -1,5 +1,4 @@
-// file from https://github.com/gogf/gf
-
+// Package cherryRegex file from https://github.com/gogf/gf
 package cherryRegex
 
 import "regexp"

@@ -64,7 +64,7 @@ func NewComponentWithOpt(opts cherryAgent.Options, connector facade.IConnector) 
 }
 
 func (c *Component) Name() string {
-	return cherryConst.ConnectorPomeloComponent
+	return cherryConst.ConnectorComponent
 }
 
 func (c *Component) Init() {

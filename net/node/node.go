@@ -5,7 +5,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-// Node
+// Node node info
 type Node struct {
 	nodeId     string
 	nodeType   string

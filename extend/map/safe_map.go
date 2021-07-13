@@ -1,5 +1,4 @@
-// file from https://github.com/beego/beego/blob/develop/core/utils/safemap.go
-
+// Package cherryMap file from https://github.com/beego/beego/blob/develop/core/utils/safemap.go
 package cherryMap
 
 import (

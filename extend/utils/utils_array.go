@@ -1,5 +1,4 @@
-// file from https://github.com/gogf/gf
-
+// Package cherryUtils file from https://github.com/gogf/gf
 package cherryUtils
 
 import "reflect"

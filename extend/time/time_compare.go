@@ -37,7 +37,7 @@ func (c CherryTime) IsJanuary() bool {
 	return c.Time.Month() == time.January
 }
 
-// IsMonday 是否是二月
+// IsFebruary 是否是二月
 func (c CherryTime) IsFebruary() bool {
 	return c.Time.Month() == time.February
 }

@@ -40,7 +40,7 @@ var (
 	MessageReplyShouldBeNotNull = Error("message replay should be not null")
 )
 
-// serializer protobuf
+// protobuf
 var (
 	ProtobufWrongValueType = Error("convert on wrong type value")
 )

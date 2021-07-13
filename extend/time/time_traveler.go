@@ -4,7 +4,7 @@ import (
 	"time"
 )
 
-// AddDurations 按照持续时间字符串增加时间
+// AddDuration 按照持续时间字符串增加时间
 // 支持整数/浮点数和符号ns(纳秒)、us(微妙)、ms(毫秒)、s(秒)、m(分钟)、h(小时)的组合
 func (c *CherryTime) AddDuration(duration string) error {
 	td, err := ParseByDuration(duration)
@@ -16,7 +16,7 @@ func (c *CherryTime) AddDuration(duration string) error {
 	return nil
 }
 
-// SubDurations 按照持续时间字符串减少时间
+// SubDuration 按照持续时间字符串减少时间
 // 支持整数/浮点数和符号ns(纳秒)、us(微妙)、ms(毫秒)、s(秒)、m(分钟)、h(小时)的组合
 func (c *CherryTime) SubDuration(duration string) error {
 	return c.AddDuration("-" + duration)
@@ -125,7 +125,7 @@ func (c *CherryTime) AddQuarter() {
 	c.AddQuarters(1)
 }
 
-// NextQuarters 1季度后(月份不溢出)
+// AddQuarterNoOverflow 1季度后(月份不溢出)
 func (c *CherryTime) AddQuarterNoOverflow() {
 	c.AddQuartersNoOverflow(1)
 }

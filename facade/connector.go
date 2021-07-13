@@ -9,7 +9,7 @@ type IConnector interface {
 	OnConnect(listener ...OnConnectListener) // 启动前设置连接器监听函数
 }
 
-// 建立连接时的监听函数
+// OnConnectListener 建立连接时监听的函数
 type OnConnectListener func(conn INetConn)
 
 type INetConn interface {

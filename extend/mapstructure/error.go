@@ -1,4 +1,4 @@
-// file from https://github.com/goinggo/mapstructure
+// Package cherryMapStructure file from https://github.com/goinggo/mapstructure
 package cherryMapStructure
 
 import (

@@ -6,9 +6,10 @@ import (
 	"github.com/cherry-game/cherry/net/session"
 	"math"
 	"math/rand"
+	"strconv"
 )
 
-// Calculate route info and return an appropriate node id.
+// DefaultRoute Calculate route info and return an appropriate node id.
 func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteContextClass, cb Callback) {
 	list := context.GetNodesByType(msg.NodeType())
 	if list == nil || len(list) < 1 {
@@ -16,12 +17,12 @@ func DefaultRoute(session *cherrySession.Session, msg RpcMsg, context RouteConte
 		return
 	}
 
-	hash := cherryCrypto.CRC32(string(session.UID()))
+	hash := cherryCrypto.CRC32(strconv.FormatInt(session.UID(), 10))
 	index := hash % len(list)
 	cb(nil, list[index].Id)
 }
 
-// Random algorithm for calculating node id.
+// RandomRoute Random algorithm for calculating node id.
 func RandomRoute(client *RPCClient, nodeType string, msg RpcMsg, cb Callback) {
 	list := client.NodeMap[nodeType]
 	if list == nil || len(list) < 1 {

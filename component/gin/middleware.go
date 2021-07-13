@@ -1,4 +1,4 @@
-//from https://github.com/gin-contrib/zap/
+// Package cherryGin from https://github.com/gin-contrib/zap/
 package cherryGin
 
 import (

@@ -1,6 +1,6 @@
 package cherryMessage
 
-//一些掩码定义用来操作flag(1byte)
+// 掩码定义用来操作flag(1byte)
 const (
 	MsgHeadLength = 0x02 // 消息头的长度 00000010
 	gzipMask      = 0x10 // data compressed gzip mark

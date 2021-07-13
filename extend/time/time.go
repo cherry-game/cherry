@@ -1,4 +1,4 @@
-// code from: https://github.com/golang-module/carbon
+// Package cherryTime code from: https://github.com/golang-module/carbon
 package cherryTime
 
 import (
@@ -112,7 +112,7 @@ func CreateFromTime(hour int, minute int, second int) CherryTime {
 	return NewTime(t, false)
 }
 
-// parseByDuration 通过持续时间解析
+// ParseByDuration 通过持续时间解析
 func ParseByDuration(duration string) (time.Duration, error) {
 	td, err := time.ParseDuration(duration)
 	if err != nil {
@@ -121,7 +121,7 @@ func ParseByDuration(duration string) (time.Duration, error) {
 	return td, err
 }
 
-// getAbsValue 获取绝对值
+// GetAbsValue 获取绝对值
 func GetAbsValue(value int64) int64 {
 	return (value ^ value>>31) - value>>31
 }
