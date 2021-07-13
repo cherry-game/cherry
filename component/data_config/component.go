@@ -58,7 +58,7 @@ func (d *Component) Init() {
 		for _, cfg := range d.configs {
 			data, found := d.GetBytes(cfg.Name())
 			if !found {
-				cherryLogger.Warnf("configName = %s not found.", cfg.Name())
+				cherryLogger.Warnf("load [configName = %s] data fail.", cfg.Name())
 				continue
 			}
 			d.initConfig(cfg, data, false)
