@@ -31,17 +31,20 @@ func main() {
 		return
 	}
 
-	cmd := rdb.Set(ctx, "data_config:user_data:user", jsonData, 10*time.Hour)
+	cmd := rdb.Set(ctx, "data_config:test", jsonData, 10*time.Hour)
 	cherryLogger.Debug(cmd.Val(), cmd.Err())
 
-	val := rdb.Get(ctx, "data_config:user_data:user")
-	cherryLogger.Debug(val.Val(), val.Err())
+	keysVal := rdb.Keys(ctx, "node_list*")
+	cherryLogger.Debug(keysVal.Val(), keysVal.Err())
+
+	scanVal := rdb.Scan(ctx, 0, "node_list*", 0)
+	cherryLogger.Debug(scanVal.Result())
 
 	go func() {
-		pubsub := rdb.Subscribe(ctx, "aaaa")
-		defer pubsub.Close()
+		subscribe := rdb.Subscribe(ctx, "aaaa")
+		defer subscribe.Close()
 
-		ch := pubsub.Channel()
+		ch := subscribe.Channel()
 		for msg := range ch {
 			fmt.Println(msg.Channel, msg.Payload)
 		}
