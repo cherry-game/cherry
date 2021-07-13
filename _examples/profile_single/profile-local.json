@@ -4,7 +4,7 @@
     "game_log": {
       "level": "debug",
       "enable_write_file": true,
-      "enable_console" : true,
+      "enable_console": true,
       "file_path": "logs/game.log",
       "max_size": 128,
       "max_age": 7,
@@ -62,14 +62,18 @@
   },
   "data_config": {
     "parser": "json",
-    "data_source": "file",
+    "data_source": "redis",
     "file": {
       "file_path": "data_config/",
       "ext_name": ".json",
       "reload_time": 3000
     },
     "redis": {
-      "redis_key": "config:server:xgame"
+      "prefix_key": "data_config",
+      "subscribe_key": "data_config_change_data",
+      "address": "127.0.0.1:6379",
+      "password": "",
+      "db": 0
     }
   },
   "db_queue": {

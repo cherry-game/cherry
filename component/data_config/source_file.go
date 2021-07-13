@@ -12,11 +12,11 @@ import (
 
 // SourceFile 本地读取数据配置文件
 type SourceFile struct {
-	monitorPath    string
-	watcher        *watcher.Watcher
-	reloadTime     int64
-	extName        string
-	configChangeFn ConfigChangeFn
+	monitorPath string
+	watcher     *watcher.Watcher
+	reloadTime  int64
+	extName     string
+	changeFn    ConfigChangeFn
 }
 
 func (f *SourceFile) Name() string {
@@ -26,9 +26,10 @@ func (f *SourceFile) Name() string {
 func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
 	config := cherryProfile.GetConfig("data_config")
-	fileNode := config.Get("file")
+
+	fileNode := config.Get(f.Name())
 	if fileNode == nil {
-		cherryLogger.Warnf("`data_config` node in `%s` file not found.", cherryProfile.FileName())
+		cherryLogger.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cherryProfile.FileName())
 		return
 	}
 
@@ -72,23 +73,23 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 	}
 
 	if cherryFile.IsDir(fullPath) {
-		return nil, cherryError.Errorf("path is dir. fullPath = %s", err, fullPath)
+		return nil, cherryError.Errorf("path is dir. fullPath = %s", fullPath)
 	}
 
 	data, err = ioutil.ReadFile(fullPath)
 	if err != nil {
-		return nil, cherryError.Errorf("read file err. err = %v path = %s", err, fullPath)
+		return nil, cherryError.Errorf("read file err. err = %v, path = %s", err, fullPath)
 	}
 
 	if len(data) < 1 {
-		return nil, cherryError.Error("configName data is err.")
+		return nil, cherryError.Errorf("configName = %s data is err.", configName)
 	}
 
 	return data, nil
 }
 
 func (f *SourceFile) OnChange(fn ConfigChangeFn) {
-	f.configChangeFn = fn
+	f.changeFn = fn
 }
 
 func (f *SourceFile) newWatcher() {
@@ -113,16 +114,16 @@ func (f *SourceFile) newWatcher() {
 					}
 
 					configName := cherryFile.GetFileName(ev.FileInfo.Name(), true)
-					cherryLogger.Infof("[name = %s] file change.", configName)
+					cherryLogger.Infof("[name = %s] trigger file change.", configName)
 
 					data, err := f.ReadBytes(configName)
 					if err != nil {
-						cherryLogger.Error(err)
+						cherryLogger.Warn("[name = %s] read data error = %s", configName, err)
 						return
 					}
 
-					if f.configChangeFn != nil {
-						f.configChangeFn(configName, data)
+					if f.changeFn != nil {
+						f.changeFn(configName, data)
 					}
 				}
 			case err := <-f.watcher.Error:

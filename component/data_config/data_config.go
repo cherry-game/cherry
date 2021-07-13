@@ -8,6 +8,7 @@ var (
 func init() {
 	RegisterParser(new(ParserJson))
 	RegisterSource(new(SourceFile))
+	RegisterSource(new(SourceRedis))
 }
 
 func GetParser(name string) IDataParser {

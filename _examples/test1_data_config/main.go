@@ -14,7 +14,7 @@ func main() {
 }
 
 func app() {
-	testApp := cherry.NewApp("../profile_split/", "local", "game-1")
+	testApp := cherry.NewApp("../profile_single/", "local", "game-1")
 
 	handlers := cherryHandler.NewComponent()
 
@@ -23,11 +23,9 @@ func app() {
 
 	cherryLogger.Infow("test", "key", "itemId", "value", 2)
 
-	go getDropConfig(testApp)
-
 	go func(testApp *cherry.Application) {
 		//10秒后退出应用
-		time.Sleep(10 * time.Second)
+		time.Sleep(120 * time.Second)
 		testApp.Shutdown()
 	}(testApp)
 
@@ -51,16 +49,18 @@ func (m *mockComponent) OnAfterInit() {
 }
 
 func getDropConfig(_ cherryFacade.IApplication) {
-	for {
-		x1 := DropList.Get(1011)
-		//cherryLogger.Info(x1)
-		cherryLogger.Warnf("%p, %v", x1, x1)
 
-		cherryLogger.Warnf("%p, %v", &DropOne, DropOne)
+	time.Sleep(5 * time.Second)
+
+	for {
+		cherryLogger.Infof("DropOneConfig %p, %v", &DropOne, DropOne)
+
+		x1 := DropList.Get(1011)
+		cherryLogger.Infof("DropConfig %p, %v", x1, x1)
 
 		itemTypeList := DropList.GetItemTypeList(3)
-		cherryLogger.Warnf("%p, %v", itemTypeList, itemTypeList)
+		cherryLogger.Infof("DropConfig %p, %v", itemTypeList, itemTypeList)
 
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }

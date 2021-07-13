@@ -5,6 +5,7 @@ go 1.16
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0 // indirect
 	github.com/gin-gonic/gin v1.6.3
+	github.com/go-redis/redis/v8 v8.11.0 // indirect
 	github.com/golang/protobuf v1.5.2
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.10
@@ -13,7 +14,6 @@ require (
 	github.com/radovskyb/watcher v1.0.7
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.16.0
-	golang.org/x/tools v0.0.0-20200717024301-6ddee64345a6 // indirect
 	google.golang.org/grpc v1.38.0
 	google.golang.org/protobuf v1.26.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
