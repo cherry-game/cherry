@@ -15,7 +15,7 @@ const (
 )
 
 type (
-	ORMComponent struct {
+	Component struct {
 		cherryFacade.Component
 
 		// key:groupId,value:{key:id,value:*gorm.Db}
@@ -36,8 +36,8 @@ type (
 	}
 )
 
-func NewORM() *ORMComponent {
-	return &ORMComponent{
+func NewORM() *Component {
+	return &Component{
 		ormMap: make(map[string]map[string]*gorm.DB),
 	}
 }
@@ -57,11 +57,11 @@ func parseMysqlConfig(item jsoniter.Any) *mySqlConfig {
 	}
 }
 
-func (s *ORMComponent) Name() string {
+func (s *Component) Name() string {
 	return cherryConst.ORMComponent
 }
 
-func (s *ORMComponent) Init() {
+func (s *Component) Init() {
 	rootJson := cherryProfile.GetConfig("db")
 
 	for i := 0; i < rootJson.Size(); i++ {
@@ -82,7 +82,7 @@ func (s *ORMComponent) Init() {
 	}
 }
 
-func (s *ORMComponent) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
+func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 	dsn := fmt.Sprintf(connectFormat, cfg.UserName, cfg.Password, cfg.Host, cfg.DbName)
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
@@ -92,7 +92,7 @@ func (s *ORMComponent) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 	return db, nil
 }
 
-func (s *ORMComponent) GetDb(id string) *gorm.DB {
+func (s *Component) GetDb(id string) *gorm.DB {
 	for _, group := range s.ormMap {
 		for k, v := range group {
 			if k == id {
@@ -103,6 +103,6 @@ func (s *ORMComponent) GetDb(id string) *gorm.DB {
 	return nil
 }
 
-func (s *ORMComponent) DBWithGroupId(groupId string) map[string]*gorm.DB {
+func (s *Component) DBWithGroupId(groupId string) map[string]*gorm.DB {
 	return s.ormMap[groupId]
 }

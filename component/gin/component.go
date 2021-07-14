@@ -15,7 +15,7 @@ func init() {
 }
 
 type (
-	ComponentOptions struct {
+	Options struct {
 		ReadTimeout       time.Duration // http server parameter
 		ReadHeaderTimeout time.Duration
 		WriteTimeout      time.Duration
@@ -32,7 +32,7 @@ type (
 		*gin.Engine
 		name        string
 		server      *http.Server
-		options     ComponentOptions
+		options     Options
 		controllers []IController
 	}
 )
@@ -46,7 +46,7 @@ func NewHttp(name, address string, middleware ...gin.HandlerFunc) *Component {
 }
 
 func NewHttps(name, address, certFile, keyFile string, middleware ...gin.HandlerFunc) *Component {
-	component := NewWithOptions(name, ComponentOptions{
+	component := NewWithOptions(name, Options{
 		Address:  address,
 		CertFile: certFile,
 		KeyFile:  keyFile,
@@ -58,7 +58,7 @@ func NewHttps(name, address, certFile, keyFile string, middleware ...gin.Handler
 	return component
 }
 
-func NewWithOptions(name string, options ComponentOptions) *Component {
+func NewWithOptions(name string, options Options) *Component {
 	return &Component{
 		name:    name,
 		Engine:  gin.New(),
