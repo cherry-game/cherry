@@ -65,6 +65,7 @@ func (g *Context) RenderJSON(value interface{}) {
 }
 
 func (g *Context) RenderHTML(html string) {
+	g.Header("Content-Type", "text/html; charset=utf-8")
 	g.String(http.StatusOK, html)
 }
 

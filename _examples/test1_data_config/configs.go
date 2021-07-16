@@ -1,9 +1,6 @@
 package main
 
 var (
-
-	//读取列表
-	DropList DropConfigs
-	//读取单项
-	DropOne DropOneConfig
+	DropList DropConfigs   // 读取列表
+	DropOne  DropOneConfig //读取单项
 )
