@@ -68,9 +68,9 @@ func (g *Context) RenderHTML(html string) {
 	g.String(http.StatusOK, html)
 }
 
-func (g *Context) RenderError(msg string) {
+func (g *Context) RenderError(code int, msg string) {
 	g.Context.JSON(http.StatusOK, gin.H{
-		"code": 500,
+		"code": code,
 		"msg":  msg,
 	})
 }
