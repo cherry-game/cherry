@@ -1,10 +1,20 @@
 package cherryGin
 
 import (
+	cherryResult "github.com/cherry-game/cherry/extend/result"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"strconv"
 )
+
+var resultMaps = make(map[int]*cherryResult.Result)
+
+func InitResult(list ...*cherryResult.Result) {
+	resultMaps = make(map[int]*cherryResult.Result)
+	for _, result := range list {
+		resultMaps[result.Code] = result
+	}
+}
 
 type Context struct {
 	*gin.Context
@@ -69,9 +79,15 @@ func (g *Context) RenderHTML(html string) {
 	g.String(http.StatusOK, html)
 }
 
-func (g *Context) RenderError(code int, msg string) {
-	g.Context.JSON(http.StatusOK, gin.H{
-		"code": code,
-		"msg":  msg,
-	})
+func (g *Context) RenderResult(code int, data ...interface{}) {
+	result, found := resultMaps[code]
+	if found == false {
+		result = cherryResult.New(code)
+	}
+
+	if len(data) > 0 {
+		result.Data = data[0]
+	}
+
+	g.Context.JSON(http.StatusOK, result)
 }
