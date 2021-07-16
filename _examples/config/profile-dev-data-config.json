@@ -3,7 +3,7 @@
     "parser": "json",
     "data_source": "file",
     "file": {
-      "file_path": "data_config/",
+      "file_path": "data/",
       "ext_name": ".json",
       "reload_time": 3000
     },

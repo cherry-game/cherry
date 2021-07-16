@@ -20,7 +20,7 @@ func main() {
 }
 
 func app() {
-	testApp := cherry.NewApp("../profile_single/", "local", "game-1")
+	testApp := cherry.NewApp("../config/", "local", "game-1")
 
 	testApp.OnShutdown(
 		func() {

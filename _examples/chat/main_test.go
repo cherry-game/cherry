@@ -16,7 +16,7 @@ import (
 )
 
 func TestPostMessage(t *testing.T) {
-	app := cherry.NewApp("../profile_single/", "local", "game-1")
+	app := cherry.NewApp("../config/", "local", "game-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	handlerComponent := createHandler()

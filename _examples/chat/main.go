@@ -10,7 +10,7 @@ import (
 )
 
 func main() {
-	app := cherry.NewApp("../profile_single/", "local", "game-1")
+	app := cherry.NewApp("../config/", "local", "game-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	httpComp := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))

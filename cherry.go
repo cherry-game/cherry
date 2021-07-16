@@ -14,7 +14,7 @@ import (
 
 func NewDefaultApp() *Application {
 	var configPath, profile, nodeId string
-	flag.StringVar(&configPath, "path", "./profile", "-path=~/git/project/profile")
+	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
 	flag.StringVar(&profile, "profile", "local", "-profile=local")
 	flag.StringVar(&nodeId, "node", "game-1", "-node=game-1")
 	flag.Parse()
