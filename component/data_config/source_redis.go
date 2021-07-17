@@ -43,7 +43,7 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 	}
 
 	r.prefixKey = redisNode.Get("prefix_key").ToString()
-	r.subscribeKey = redisNode.Get("subscribe_key").ToString()
+	r.subscribeKey = redisNode.Get("subscribe_flush_key").ToString()
 	r.address = redisNode.Get("address").ToString()
 	r.password = redisNode.Get("password").ToString()
 	r.db = redisNode.Get("db").ToInt()

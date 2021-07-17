@@ -1,8 +1,9 @@
 package cherryGin
 
 import (
-	cherryResult "github.com/cherry-game/cherry/extend/result"
+	"github.com/cherry-game/cherry/extend/result"
 	"github.com/gin-gonic/gin"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 )
@@ -11,6 +12,7 @@ var resultMaps = make(map[int]*cherryResult.Result)
 
 func InitResult(list ...*cherryResult.Result) {
 	resultMaps = make(map[int]*cherryResult.Result)
+
 	for _, result := range list {
 		resultMaps[result.Code] = result
 	}
@@ -20,27 +22,76 @@ type Context struct {
 	*gin.Context
 }
 
-func (g *Context) GetInt(name string, defaultValue int) int {
+func (g *Context) GetBody() string {
+	data, err := ioutil.ReadAll(g.Request.Body)
+	if err != nil {
+		return string(data)
+	}
+	return ""
+}
+
+func (g *Context) GetParams(checkPost ...bool) map[string]string {
+	maps := make(map[string]string)
+
+	q := g.Context.Request.URL.Query()
+	for s, strings := range q {
+		maps[s] = strings[0]
+	}
+
+	if len(checkPost) > 0 && checkPost[0] == true {
+		g.Request.ParseForm()
+
+		for k, v := range g.Request.PostForm {
+			maps[k] = v[0]
+		}
+	}
+	return maps
+}
+
+func (g *Context) GetBool(name string, defaultValue bool, checkPost ...bool) bool {
+	var intDefaultValue = 0
+	if defaultValue {
+		intDefaultValue = 1
+	}
+
+	return g.GetInt(name, intDefaultValue, checkPost...) > 0
+}
+
+func (g *Context) GetInt(name string, defaultValue int, checkPost ...bool) int {
 	if value, ok := g.GetQuery(name); ok {
 		if v, e := strconv.Atoi(value); e == nil {
 			return v
 		}
 	}
+
+	if len(checkPost) > 0 && checkPost[0] == true {
+		return g.PostInt(name, defaultValue)
+	}
+
 	return defaultValue
 }
 
-func (g *Context) GetInt64(name string, defaultValue int64) int64 {
+func (g *Context) GetInt64(name string, defaultValue int64, checkPost ...bool) int64 {
 	if value, ok := g.GetQuery(name); ok {
 		if v, e := strconv.ParseInt(value, 10, 64); e == nil {
 			return v
 		}
 	}
+
+	if len(checkPost) > 0 && checkPost[0] == true {
+		return g.PostInt64(name, defaultValue)
+	}
+
 	return defaultValue
 }
 
-func (g *Context) GetString(name string, defaultValue string) string {
+func (g *Context) GetString(name, defaultValue string, checkPost ...bool) string {
 	if value, ok := g.GetQuery(name); ok {
 		return value
+	}
+
+	if len(checkPost) > 0 && checkPost[0] == true {
+		return g.PostString(name, defaultValue)
 	}
 	return defaultValue
 }

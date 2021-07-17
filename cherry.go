@@ -12,6 +12,12 @@ import (
 	"github.com/cherry-game/cherry/profile"
 )
 
+var thisNode *Application
+
+func App() *Application {
+	return thisNode
+}
+
 func NewDefaultApp() *Application {
 	var configPath, profile, nodeId string
 	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
@@ -45,7 +51,7 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 	// print version info
 	cherryLogger.Info(cherryConst.GetLOGO())
 
-	thisNode := &Application{
+	thisNode = &Application{
 		INode:        node,
 		startTime:    cherryTime.Now(),
 		running:      0,

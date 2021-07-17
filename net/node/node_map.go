@@ -42,7 +42,7 @@ func loadConfigNodes(nodesJson jsoniter.Any) {
 			item := typeJson.Get(i)
 			nodeId := item.Get("node_id").ToString()
 
-			nodesConfig[nodeType][nodeId] = &Node{
+			node := &Node{
 				nodeId:     nodeId,
 				nodeType:   nodeType,
 				address:    item.Get("address").ToString(),
@@ -50,6 +50,8 @@ func loadConfigNodes(nodesJson jsoniter.Any) {
 				settings:   item.Get("__settings__"),
 				enabled:    item.Get("enabled").ToBool(),
 			}
+
+			nodesConfig[nodeType][nodeId] = node
 		}
 	}
 }

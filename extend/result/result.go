@@ -18,3 +18,11 @@ func New(code ...int) *Result {
 		Data:    []string{},
 	}
 }
+
+func NewResult(code int, message string) *Result {
+	return &Result{
+		Code:    code,
+		Message: message,
+		Data:    []string{},
+	}
+}

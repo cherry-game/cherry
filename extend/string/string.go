@@ -1,6 +1,9 @@
 package cherryString
 
-import str "strings"
+import (
+	"strconv"
+	str "strings"
+)
 
 //CutLastString 截取字符串中最后一段，以@beginChar开始,@endChar结束的字符
 //@text 文本
@@ -35,4 +38,8 @@ func ToStringSlice(val []interface{}) []string {
 		}
 	}
 	return result
+}
+
+func Int64ToString(val int64) string {
+	return strconv.FormatInt(val, 10)
 }
