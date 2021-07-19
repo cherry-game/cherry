@@ -37,7 +37,7 @@ type (
 	}
 )
 
-func NewORM() *Component {
+func NewComponent() *Component {
 	return &Component{
 		ormMap: make(map[string]map[string]*gorm.DB),
 	}
