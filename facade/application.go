@@ -1,6 +1,20 @@
 package cherryFacade
 
+import jsoniter "github.com/json-iterator/go"
+
 type (
+
+	// INode 节点信息
+	INode interface {
+		NodeId() string         // 节点id(全局唯一)
+		NodeType() string       // 节点类型
+		Address() string        // 对外网络监听地址
+		RpcAddress() string     // rpc监听地址
+		Settings() jsoniter.Any // 节点配置参数
+		Enabled() bool          // 是否启用
+		IsMaster() bool         // 是否为master节点，目前仅支持单节点
+	}
+
 	IApplication interface {
 		INode
 		ISerializer

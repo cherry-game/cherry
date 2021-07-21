@@ -6,7 +6,6 @@ import (
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/node"
 	"github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/serializer"
 	"github.com/cherry-game/cherry/profile"
@@ -30,19 +29,14 @@ func NewDefaultApp() *Application {
 
 // NewApp create new application instance
 func NewApp(profilePath, profileName, nodeId string) *Application {
-	config, err := cherryProfile.Init(profilePath, profileName)
+	_, err := cherryProfile.Init(profilePath, profileName)
 	if err != nil {
 		panic(fmt.Sprintf("init profile fail. error = %s", err))
 	}
 
-	err = cherryNode.Load(config)
+	node, err := cherryProfile.LoadNode(nodeId)
 	if err != nil {
-		panic(fmt.Sprintf("load node config fail. error = %s", err))
-	}
-
-	node, err := cherryNode.GetNode(nodeId)
-	if err != nil {
-		panic(fmt.Sprintf("nodeId = %s not found. error = %s", nodeId, err))
+		panic(fmt.Sprintf("error = %s", err))
 	}
 
 	// set logger
@@ -59,5 +53,6 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 		ISerializer:  cherrySerializer.NewProtobuf(),
 		IPacketCodec: cherryPacket.NewPomeloCodec(),
 	}
+
 	return thisNode
 }

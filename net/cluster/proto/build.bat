@@ -1,1 +1,1 @@
-protoc --go_out=plugins=grpc:../ --go_opt=paths=source_relative cluster.proto
+protoc --go_out=plugins=grpc:./ --go_opt=paths=source_relative cluster.proto

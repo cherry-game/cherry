@@ -41,8 +41,8 @@ cherry game server engine for golang
 
 
 ### 集群
-- 配置方式加载结点
-- etcd方式加载&更新结点
+- 配置方式加载节点
+- etcd方式加载&更新节点
 - grpc
 
 ### 其他

@@ -1,5 +1,56 @@
 {
   "debug": true,
+  "cluster": {
+    "rpc": {
+    },
+    "discovery": {
+      "mode": "node",
+      "@mode": "mode值可配置: node,master,etcd，则相应读取下面对应的配置信息",
+      "master": "master-1",
+      "etcd": {}
+    }
+  },
+  "node": {
+    "web": [
+      {
+        "node_id": "web-1",
+        "address": "127.0.0.1:10820",
+        "rpc_address": "127.0.0.1:30820",
+        "__settings__": {
+          "maintain_state": 2,
+          "ref_logger": "game_log"
+        },
+        "enable": true
+      }
+    ],
+    "game": [
+      {
+        "node_id": "game-1",
+        "address": ":34590",
+        "rpc_address": "127.0.0.1:20860",
+        "__settings__": {
+          "maintain_state": 2,
+          "db_id_list": [
+            "game_db_1"
+          ],
+          "ref_logger": "game_log"
+        },
+        "enable": true
+      }
+    ],
+    "master": [
+      {
+        "node_id": "master-1",
+        "address": ":30000",
+        "rpc_address": "127.0.0.1:30001",
+        "__settings__": {
+          "ref_logger": "game_log"
+        },
+        "enable": true,
+        "is_master": true
+      }
+    ]
+  },
   "logger": {
     "game_log": {
       "level": "debug",
@@ -26,40 +77,6 @@
       "print_caller": true
     }
   },
-  "cluster": {
-    "mode": "nodes",
-    "nodes": {
-      "web": [
-        {
-          "enable": true,
-          "node_id": "web-1",
-          "address": "127.0.0.1:10820",
-          "rpc_address": "127.0.0.1:30820",
-          "__settings__": {
-            "maintain_state": 2,
-            "ref_logger": "game_log"
-          }
-        }
-      ],
-      "game": [
-        {
-          "enable": true,
-          "node_id": "game-1",
-          "address": ":34590",
-          "rpc_address": "127.0.0.1:20860",
-          "__settings__": {
-            "maintain_state": 2,
-            "dbs": [
-              "game_db_1"
-            ],
-            "ref_logger": "game_log"
-          }
-        }
-      ]
-    },
-    "etcd": {
-    }
-  },
   "data_config": {
     "parser": "json",
     "data_source": "redis",
@@ -83,30 +100,32 @@
     "shutdown_table_submit_frequency": "1000",
     "shutdown_table_submit_num": "200"
   },
-  "db": [
-    {
-      "enable": true,
-      "group_id": "center_db",
-      "id": "center_db",
-      "db_name": "dev_xgame_center",
-      "host": "192.168.1.20",
-      "user_name": "gameserver",
-      "password": "password",
-      "max_idle_connect": 4,
-      "max_open_connect": 8,
-      "log_mode": true
-    },
-    {
-      "enable": true,
-      "group_id": "game_db",
-      "id": "game_db_1",
-      "db_name": "game_db_1",
-      "host": "192.168.1.20",
-      "user_name": "gameserver",
-      "password": "password",
-      "max_idle_connect": 4,
-      "max_open_connect": 8,
-      "log_mode": true
-    }
-  ]
+  "db": {
+    "center_db_group": [
+      {
+        "enable": true,
+        "db_id": "center_db_1",
+        "db_name": "dev_xgame_center",
+        "host": "192.168.1.20",
+        "user_name": "gameserver",
+        "password": "password",
+        "max_idle_connect": 4,
+        "max_open_connect": 8,
+        "log_mode": true
+      }
+    ],
+    "game_db_group": [
+      {
+        "enable": true,
+        "db_id": "game_db_1",
+        "db_name": "game_db_1",
+        "host": "192.168.1.20",
+        "user_name": "gameserver",
+        "password": "password",
+        "max_idle_connect": 4,
+        "max_open_connect": 8,
+        "log_mode": true
+      }
+    ]
+  }
 }

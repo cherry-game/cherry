@@ -13,16 +13,18 @@ import (
 	"syscall"
 )
 
-type Application struct {
-	facade.INode
-	facade.ISerializer
-	facade.IPacketCodec
-	startTime    cherryTime.CherryTime // application start time
-	running      int32                 // is running
-	die          chan bool             // wait for end application
-	components   []facade.IComponent   // all components
-	onShutdownFn []func()              // on shutdown execute functions
-}
+type (
+	Application struct {
+		facade.INode
+		facade.ISerializer
+		facade.IPacketCodec
+		startTime    cherryTime.CherryTime // application start time
+		running      int32                 // is running
+		die          chan bool             // wait for end application
+		components   []facade.IComponent   // all components
+		onShutdownFn []func()              // on shutdown execute functions
+	}
+)
 
 func (a *Application) Running() bool {
 	return a.running > 0

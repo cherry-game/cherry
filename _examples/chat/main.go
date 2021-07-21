@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/gin"
+	cherryORM "github.com/cherry-game/cherry/component/orm"
 	"github.com/cherry-game/cherry/net/connector"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/serializer"
@@ -10,7 +11,7 @@ import (
 )
 
 func main() {
-	app := cherry.NewApp("../config/", "local", "game-1")
+	app := cherry.NewApp("../config/", "dev", "game-1")
 	app.SetSerializer(cherrySerializer.NewJSON())
 
 	httpComp := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
@@ -22,11 +23,13 @@ func main() {
 	//connectorComp := cherryConnector.NewTCPComponent(app.Address())
 
 	app.Startup(
+		cherryORM.NewComponent(),
 		sessionComp,
 		handlerComponent(),
 		httpComp,
 		connectorComp,
 	)
+
 }
 
 func handlerComponent() *cherryHandler.Component {

@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "/cherryCluster";
+option go_package = "/cherryProto";
 
 package cherryCluster;
 
@@ -8,44 +8,62 @@ message NodeId {
   string id = 1;
 }
 
-message NodeInfo {
-  string id = 1;
-  string nodeType = 2;
-  string address = 3;
+// 成员信息
+message Member {
+  string              nodeId   = 2; // 节点id
+  string              nodeType = 3; // 节点类型
+  string              address  = 4; // rpc连接地址
+  map<string, string> settings = 5; // 节点配置参数
 }
 
-message NodeList {
-  repeated NodeInfo nodesInfo = 1;
+// 成员信息列表
+message MemberList {
+  repeated Member list = 1;
 }
 
+// 响应
 message Response {
 }
 
-service Master {
-  rpc Register(NodeInfo) returns(NodeList) {}
+// master节点接口
+service MasterService {
+  // member向master注册节点
+  rpc Register(Member) returns(MemberList) {}
+  // member向master注销节点
   rpc Unregister(NodeId) returns(Response) {}
 }
 
+// rpc类型
 enum RPCType {
-  User = 0;
-  Sys = 1;
+  User = 0; // 用户消息
+  Sys  = 1; // 系统消息
 }
 
-message ForwardMessage {
-  RPCType rpcType = 1;
-  int32 msgType = 2; // request,notify,response,push
-  string nodeId = 3;
-  int64 sid = 4;
-  uint64 id = 5;
-  string route = 6;
-  bytes data = 7;
+// rpc消息包装
+message Message {
+  RPCType rpcType = 1; // rpc 类型
+  int32   msgType = 2; // 消息类型(none,request,notify,response,push)
+  string  nodeId  = 3; // 节点id
+  int64   sid     = 4; // session id
+  uint64  id      = 5; // 消息唯一id
+  string  route   = 6; // 路由
+  bytes   data    = 7; // 数据
 }
 
 message SessionId {
-  int64 sid = 1;
+  int64 sid = 1; // session id
 }
 
-service Member {
-  rpc Forward(ForwardMessage) returns (Response) {}
+// 成员节点接口
+service MemberService {
+  // 新成员通知
+  rpc NewMember(Member) returns (Response) {}
+  // 删除成员通知
+  rpc RemoveMember(NodeId) returns(Response) {}
+  // member请求关闭session
+  rpc SendCloseSession(SessionId) returns (Response) {}
+  // 关闭session通知
   rpc CloseSession(SessionId) returns (Response) {}
+  // 消息转发
+  rpc Forward(Message) returns (Response) {}
 }
