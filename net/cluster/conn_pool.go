@@ -2,7 +2,7 @@ package cherryCluster
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/error"
+	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	"google.golang.org/grpc"
@@ -13,103 +13,124 @@ import (
 type (
 	connPool struct {
 		sync.RWMutex
-		opts     []grpc.DialOption
-		isClosed bool
-		maxSize  int
-		pools    map[string][]*grpc.ClientConn // key:address
+		opts  []grpc.DialOption
+		pools sync.Map
+	}
+
+	conn struct {
+		nodeId       string
+		address      string
+		clientConn   *grpc.ClientConn
+		masterClient cherryProto.MasterServiceClient
+		memberClient cherryProto.MemberServiceClient
 	}
 )
 
-func newPool(maxSize int, opts ...grpc.DialOption) *connPool {
+func newPool(opts ...grpc.DialOption) *connPool {
 	c := &connPool{
-		isClosed: false,
-		maxSize:  maxSize,
-		opts:     opts,
-		pools:    make(map[string][]*grpc.ClientConn),
+		opts: opts,
 	}
 	return c
 }
 
-func (c *connPool) GetMemberClient(address string) (cherryProto.MemberServiceClient, error) {
-	clientConn, err := c.GetConn(address)
-	if err != nil {
-		return nil, err
+func (c *connPool) GetMemberClient(nodeId string) (cherryProto.MemberServiceClient, bool) {
+	clientConn, found := c.getConn(nodeId)
+	if found == false {
+		return nil, found
 	}
 
-	return cherryProto.NewMemberServiceClient(clientConn), nil
+	return clientConn.memberClient, true
 }
 
-func (c *connPool) GetMasterClient(address string) (cherryProto.MasterServiceClient, error) {
-	clientConn, err := c.GetConn(address)
-	if err != nil {
-		return nil, err
+func (c *connPool) GetMasterClient(nodeId string) (cherryProto.MasterServiceClient, bool) {
+	clientConn, found := c.getConn(nodeId)
+	if found == false {
+		return nil, found
 	}
-	return cherryProto.NewMasterServiceClient(clientConn), nil
+
+	return clientConn.masterClient, true
 }
 
-func (c *connPool) GetConn(address string) (*grpc.ClientConn, error) {
-	connSlice, err := c.getConnList(address)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.maxSize >= 1 {
-		return connSlice[0], nil
-	}
-
-	i := time.Now().Second() % c.maxSize
-
-	return connSlice[i], nil
-}
-
-func (c *connPool) getConnList(address string) ([]*grpc.ClientConn, error) {
-	c.RLock()
-	defer c.RUnlock()
-
-	if c.isClosed {
-		return nil, cherryError.Errorf("address = %s, conn is closed", address)
-	}
-
-	connSlice, ok := c.pools[address]
-	if ok == false {
-		var newConnSlice []*grpc.ClientConn
-		for i := 0; i < c.maxSize; i++ {
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			conn, err := grpc.DialContext(
-				ctx,
-				address,
-				c.opts...,
-			)
-			cancel()
-
-			if err != nil {
-				return nil, err
-			}
-
-			connSlice = append(newConnSlice, conn)
+func (c *connPool) add(member cherryFacade.IMember) {
+	if value, found := c.pools.Load(member.GetNodeId()); found {
+		clientConn := value.(*conn)
+		if clientConn.address == member.GetAddress() {
+			return
 		}
 
-		c.pools[address] = connSlice
+		c.remove(member.GetNodeId())
 	}
 
-	return connSlice, nil
+	clientConn, err := c.buildClientConn(member.GetAddress())
+	if err != nil {
+		cherryLogger.Warnf("build client conn error. [error = %s]", err)
+		return
+	}
+
+	newConn := &conn{
+		nodeId:       member.GetNodeId(),
+		address:      member.GetAddress(),
+		clientConn:   clientConn,
+		masterClient: cherryProto.NewMasterServiceClient(clientConn),
+		memberClient: cherryProto.NewMemberServiceClient(clientConn),
+	}
+
+	c.pools.Store(member.GetNodeId(), newConn)
+}
+
+func (c *connPool) remove(nodeId string) {
+	clientConn, found := c.getConn(nodeId)
+	if found == false {
+		return
+	}
+
+	clientConn.disconnect()
+	c.pools.Delete(nodeId)
+}
+
+func (c *connPool) getConn(nodeId string) (*conn, bool) {
+	if clientConn, found := c.pools.Load(nodeId); found {
+		return clientConn.(*conn), true
+	}
+
+	return nil, false
+}
+
+func (c *connPool) buildClientConn(address string) (*grpc.ClientConn, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	dialConn, err := grpc.DialContext(
+		ctx,
+		address,
+		c.opts...,
+	)
+	cancel()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dialConn, nil
+}
+
+func (c *conn) disconnect() {
+	if c.clientConn != nil {
+		err := c.clientConn.Close()
+		if err != nil {
+			cherryLogger.Error(err)
+		}
+	}
 }
 
 func (c *connPool) close() {
 	c.RLock()
 	defer c.RUnlock()
 
-	for _, p := range c.pools {
-		for i := 0; i < len(p); i++ {
-			if p[i] != nil {
-				err := p[i].Close()
-				if err != nil {
-					cherryLogger.Warn(err)
-				}
-				p[i] = nil
-			}
-		}
-	}
+	c.pools.Range(func(key, value interface{}) bool {
+		con := value.(*conn)
+		con.disconnect()
+		c.pools.Delete(key)
+		return true
+	})
 
 	cherryLogger.Infof("conn pool is closed.")
 }

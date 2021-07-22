@@ -19,7 +19,7 @@ import (
 type DiscoveryMaster struct {
 	DiscoveryNode
 	facade.IApplication
-	masterNode    facade.INode
+	masterMember  facade.IMember
 	rpcServer     *grpc.Server
 	clientPool    *connPool
 	retryInterval time.Duration
@@ -46,40 +46,39 @@ func (m *DiscoveryMaster) Init(app facade.IApplication, rpcServer *grpc.Server, 
 	if err != nil {
 		panic(err)
 	}
-	m.masterNode = masterNode
 
-	m.clientPool = newPool(1, GrpcOptions...) // TODO  GrpcOptions config
+	m.masterMember = &cherryProto.Member{
+		NodeId:   masterNode.NodeId(),
+		NodeType: masterNode.NodeType(),
+		Address:  masterNode.RpcAddress(),
+		Settings: make(map[string]string),
+	}
 
-	m.serverInit()
-	m.clientInit()
+	m.clientPool = newPool(GrpcOptions...) // TODO  GrpcOptions config
+
+	if m.isMaster() {
+		m.serverInit()
+	} else {
+		m.clientInit()
+	}
 }
 
 func (m *DiscoveryMaster) serverInit() {
-	if m.isMaster() == false {
-		return
-	}
-
 	cherryProto.RegisterMasterServiceServer(m.rpcServer, m)
 
-	m.AddMember(&cherryProto.Member{
-		NodeId:   m.masterNode.NodeId(),
-		NodeType: m.masterNode.NodeType(),
-		Address:  m.masterNode.RpcAddress(),
-		Settings: make(map[string]string),
-	})
+	m.AddMember(m.masterMember)
 
 	cherryLogger.Infof("[discovery = %s] master server node is running. [address = %s]",
-		m.Name(), m.masterNode.RpcAddress())
+		m.Name(), m.masterMember.GetAddress())
 }
 
 func (m *DiscoveryMaster) clientInit() {
-	if m.isMaster() {
-		return
-	}
+	m.clientPool.add(m.masterMember)
 
-	client, err := m.clientPool.GetMasterClient(m.masterNode.RpcAddress())
-	if err != nil {
-		panic(err)
+	client, found := m.clientPool.GetMasterClient(m.masterMember.GetNodeId())
+	if found == false {
+		cherryLogger.Warnf("get master client not found. [nodeId = %s]", m.masterMember.GetNodeId())
+		return
 	}
 
 	registerMember := &cherryProto.Member{
@@ -96,27 +95,27 @@ func (m *DiscoveryMaster) clientInit() {
 				m.AddMember(syncMember)
 			}
 
-			cherryLogger.Infof("this member register to master server node. [masterAddress = %s],[member = %s]",
-				m.masterNode.RpcAddress(),
+			cherryLogger.Infof("register to master node success. [masterAddress = %s],[member = %s]",
+				m.masterMember.GetAddress(),
 				registerMember,
 			)
 			break
 		}
 
-		cherryLogger.Infof("this member register to master server node fail. retry... [error = %s]", err)
+		cherryLogger.Infof("register to master node fail. retry... [error = %s]", err.Error())
 		time.Sleep(m.retryInterval)
 	}
 }
 
 func (m *DiscoveryMaster) OnStop() {
 	if m.isMaster() == false {
-		client, err := m.clientPool.GetMasterClient(m.masterNode.RpcAddress())
-		if err != nil {
-			cherryLogger.Warn(err)
+		client, found := m.clientPool.GetMasterClient(m.masterMember.GetNodeId())
+		if found == false {
+			cherryLogger.Warnf("get master client not found. [nodeId = %s]", m.masterMember.GetNodeId())
 			return
 		}
 
-		_, err = client.Unregister(context.Background(), &cherryProto.NodeId{Id: m.NodeId()})
+		_, err := client.Unregister(context.Background(), &cherryProto.NodeId{Id: m.NodeId()})
 		if err != nil {
 			cherryLogger.Warn(err)
 			return
@@ -124,7 +123,7 @@ func (m *DiscoveryMaster) OnStop() {
 
 		cherryLogger.Debugf("[nodeId = %s] unregister node. [masterAddress = %s]",
 			m.NodeId(),
-			m.masterNode.RpcAddress(),
+			m.masterMember.GetAddress(),
 		)
 	}
 
@@ -132,7 +131,7 @@ func (m *DiscoveryMaster) OnStop() {
 }
 
 func (m *DiscoveryMaster) isMaster() bool {
-	return m.NodeId() == m.masterNode.NodeId()
+	return m.NodeId() == m.masterMember.GetNodeId()
 }
 
 func (m *DiscoveryMaster) Register(ctx context.Context, newMember *cherryProto.Member) (*cherryProto.MemberList, error) {
@@ -149,17 +148,17 @@ func (m *DiscoveryMaster) Register(ctx context.Context, newMember *cherryProto.M
 
 		rspMemberList.List = append(rspMemberList.List, member)
 
-		if member.GetNodeId() == m.NodeId() || member.GetNodeId() == newMember.GetNodeId() {
+		if member.GetNodeId() == m.NodeId() {
 			continue
 		}
 
-		client, err := m.clientPool.GetMemberClient(member.GetAddress())
-		if err != nil {
+		client, found := m.clientPool.GetMemberClient(member.NodeId)
+		if found == false {
 			cherryLogger.Warnf("get member client error. [address = %s]", member.GetAddress())
 			continue
 		}
 
-		_, err = client.NewMember(context.Background(), newMember)
+		_, err := client.NewMember(context.Background(), newMember)
 		if err != nil {
 			cherryLogger.Warnf("call NewMember() error. [member = %s]", member)
 			continue
@@ -185,18 +184,30 @@ func (m *DiscoveryMaster) Unregister(ctx context.Context, nodeId *cherryProto.No
 			continue
 		}
 
-		client, err := m.clientPool.GetMemberClient(member.GetAddress())
-		if err != nil {
-			cherryLogger.Warnf("get member client error. [nodeId = %s], [error = %s]", nodeId, err)
-			return nil, err
+		client, found := m.clientPool.GetMemberClient(member.GetNodeId())
+		if found == false {
+			cherryLogger.Warnf("get member client error. [nodeId = %s]", nodeId)
+			continue
 		}
 
-		_, err = client.RemoveMember(context.Background(), nodeId)
+		_, err := client.RemoveMember(context.Background(), nodeId)
 		if err != nil {
 			cherryLogger.Warnf("remove nodeId = %s, error = %s", nodeId, err)
-			return nil, err
+			continue
 		}
 	}
 
 	return &cherryProto.Response{}, nil
+}
+
+func (m *DiscoveryMaster) AddMember(member facade.IMember) {
+	m.DiscoveryNode.AddMember(member)
+	m.clientPool.add(member)
+}
+
+func (m *DiscoveryMaster) RemoveMember(nodeId string) {
+	m.DiscoveryNode.RemoveMember(nodeId)
+	// clean conn
+	m.clientPool.remove(nodeId)
+
 }

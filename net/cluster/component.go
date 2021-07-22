@@ -60,7 +60,7 @@ func (c *Component) Init() {
 	c.discovery.Init(c.App(), c.rpcServer, discoveryConfig)
 	c.initRPCServer()
 
-	c.clientPool = newPool(1, GrpcOptions...) // TODO  GrpcOptions config
+	c.clientPool = newPool(GrpcOptions...)
 }
 
 func (c *Component) initRPCServer() {
@@ -109,7 +109,7 @@ func (c *Component) RemoveMember(_ context.Context, node *cherryProto.NodeId) (*
 	return &cherryProto.Response{}, nil
 }
 
-func (c *Component) CloseSession(_ context.Context, session *cherryProto.SessionId) (*cherryProto.Response, error) {
+func (c *Component) CloseSession(_ context.Context, _ *cherryProto.SessionId) (*cherryProto.Response, error) {
 	// 获取sessionComponent
 	// 移除session
 	// 发布一个 session close 事件
@@ -117,7 +117,7 @@ func (c *Component) CloseSession(_ context.Context, session *cherryProto.Session
 	return &cherryProto.Response{}, nil
 }
 
-func (c *Component) Forward(_ context.Context, message *cherryProto.Message) (*cherryProto.Response, error) {
+func (c *Component) Forward(_ context.Context, _ *cherryProto.Message) (*cherryProto.Response, error) {
 	return &cherryProto.Response{}, nil
 }
 
@@ -128,17 +128,13 @@ func (c *Component) SendCloseSession(session *cherryProto.SessionId) error {
 			continue
 		}
 
-		// 通知所有节点，删除sessionId
-		client, err := c.clientPool.GetMemberClient(member.GetAddress())
-		if err != nil {
-			cherryLogger.Warnf("get member client error. [address = %s], [error = %s]",
-				member.GetAddress(),
-				err,
-			)
+		client, found := c.clientPool.GetMemberClient(member.GetNodeId())
+		if found == false {
+			cherryLogger.Warnf("get member client not found. [address = %s]", member.GetAddress())
 			continue
 		}
 
-		_, err = client.CloseSession(context.Background(), session)
+		_, err := client.CloseSession(context.Background(), session)
 		if err != nil {
 			return err
 		}

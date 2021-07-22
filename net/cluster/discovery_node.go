@@ -111,7 +111,7 @@ func (n *DiscoveryNode) OnRemoveMember(listener facade.MemberListener) {
 
 func (n *DiscoveryNode) AddMember(member facade.IMember) {
 	if _, found := n.GetMember(member.GetNodeId()); found {
-		cherryLogger.Warnf("nodeType = %s, nodeId = %s, duplicate nodeId.",
+		cherryLogger.Warnf("duplicate nodeId. [nodeType = %s], [nodeId = %s]",
 			member.GetNodeType(), member.GetNodeId())
 		return
 	}
@@ -144,7 +144,7 @@ func (n *DiscoveryNode) RemoveMember(nodeId string) {
 		if member.GetNodeId() == nodeId {
 			n.memberList = append(n.memberList[:i], n.memberList[i+1:]...)
 
-			cherryLogger.Debugf("remove member = %v", member)
+			cherryLogger.Debugf("remove member. [member = %v]", member)
 
 			for _, listener := range n.onRemoveListener {
 				listener(member)
