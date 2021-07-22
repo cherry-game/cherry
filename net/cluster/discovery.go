@@ -10,6 +10,7 @@ var (
 
 func init() {
 	RegisterDiscovery(&DiscoveryNode{})
+	RegisterDiscovery(&DiscoveryMaster{})
 }
 
 func RegisterDiscovery(discovery facade.IDiscovery) {

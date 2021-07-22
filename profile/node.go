@@ -15,7 +15,6 @@ type Node struct {
 	rpcAddress string
 	settings   jsoniter.Any
 	enabled    bool
-	isMaster   bool
 }
 
 func (n *Node) NodeId() string {
@@ -42,11 +41,7 @@ func (n *Node) Enabled() bool {
 	return n.enabled
 }
 
-func (n *Node) IsMaster() bool {
-	return n.isMaster
-}
-
-const stringFormat = "nodeId = %s, nodeType = %s, address = %s, rpcAddress = %s, enabled = %v, isMaster = %v"
+const stringFormat = "nodeId = %s, nodeType = %s, address = %s, rpcAddress = %s, enabled = %v"
 
 func (n *Node) String() string {
 	return fmt.Sprintf(stringFormat,
@@ -55,7 +50,6 @@ func (n *Node) String() string {
 		n.address,
 		n.rpcAddress,
 		n.enabled,
-		n.isMaster,
 	)
 }
 
@@ -81,7 +75,6 @@ func LoadNode(nodeId string) (cherryFacade.INode, error) {
 				rpcAddress: item.Get("rpc_address").ToString(),
 				settings:   item.Get("__settings__"),
 				enabled:    item.Get("enabled").ToBool(),
-				isMaster:   item.Get("is_master").ToBool(),
 			}
 
 			return node, nil

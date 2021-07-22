@@ -61,7 +61,7 @@ service MemberService {
   // 删除成员通知
   rpc RemoveMember(NodeId) returns(Response) {}
   // member请求关闭session
-  rpc SendCloseSession(SessionId) returns (Response) {}
+  //rpc SendCloseSession(SessionId) returns (Response) {}
   // 关闭session通知
   rpc CloseSession(SessionId) returns (Response) {}
   // 消息转发

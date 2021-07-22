@@ -1,0 +1,80 @@
+{
+  "debug": true,
+  "cluster": {
+    "rpc": {
+    },
+    "discovery": {
+      "mode": "master",
+      "@mode": "mode可配置: node,master,etcd，对应读取下面的配置信息",
+      "master": "master-1",
+      "etcd": {}
+    }
+  },
+  "node": {
+    "master": [
+      {
+        "node_id": "master-1",
+        "address": "127.0.0.1:10800",
+        "rpc_address": "127.0.0.1:10801",
+        "__settings__": {
+          "ref_logger": "master_log"
+        },
+        "enable": true
+      }
+    ],
+    "game": [
+      {
+        "node_id": "game-1",
+        "address": ":10010",
+        "rpc_address": "127.0.0.1:10011",
+        "__settings__": {
+          "maintain_state": 2,
+          "db_id_list": [
+            "game_db_1"
+          ],
+          "ref_logger": "game_log"
+        },
+        "enable": true
+      },
+      {
+        "node_id": "game-2",
+        "address": ":10020",
+        "rpc_address": "127.0.0.1:10021",
+        "__settings__": {
+          "maintain_state": 2,
+          "db_id_list": [
+            "game_db_1"
+          ],
+          "ref_logger": "game_log"
+        },
+        "enable": true
+      }
+    ]
+  },
+  "logger": {
+    "game_log": {
+      "level": "debug",
+      "enable_write_file": true,
+      "enable_console": true,
+      "file_path": "logs/game.log",
+      "max_size": 128,
+      "max_age": 7,
+      "max_backups": 0,
+      "compress": false,
+      "time_format": "15:04:05.000",
+      "print_caller": true
+    },
+    "master_log": {
+      "level": "debug",
+      "enable_write_file": false,
+      "enable_console": true,
+      "file_path": "logs/master_log.log",
+      "max_size": 16,
+      "max_age": 7,
+      "max_backups": 0,
+      "compress": false,
+      "time_format": "15:04:05.000",
+      "print_caller": true
+    }
+  }
+}

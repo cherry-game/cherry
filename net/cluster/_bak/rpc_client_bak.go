@@ -1,4 +1,4 @@
-package cherryCluster
+package _bak
 
 type RpcNodeInfo struct {
 	Id       string
@@ -58,6 +58,6 @@ type RPCClient struct {
 //    return "", nil
 //}
 //
-//func (*RPCClient) Get(nodeId string) cherryFacade.INode {
+//func (*RPCClient) GetMember(nodeId string) cherryFacade.INode {
 //    return nil
 //}

@@ -46,8 +46,7 @@
         "__settings__": {
           "ref_logger": "game_log"
         },
-        "enable": true,
-        "is_master": true
+        "enable": true
       }
     ]
   },
