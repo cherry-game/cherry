@@ -2,15 +2,14 @@ package cherryConnector
 
 import (
 	"encoding/json"
-	cherryComponent "github.com/cherry-game/cherry/component"
+	"github.com/cherry-game/cherry/component"
 	"github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/agent"
-	cherryCluster "github.com/cherry-game/cherry/net/cluster"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/packet"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/session"
 	"time"
 )
 
@@ -24,7 +23,7 @@ type (
 		connector        facade.IConnector
 		sessionComponent *cherrySession.Component
 		handlerComponent cherryComponent.IHandlerComponent
-		clusterComponent *cherryCluster.Component
+		clusterComponent cherryComponent.IClusterComponent
 		isClusterMode    bool
 	}
 )
@@ -89,7 +88,7 @@ func (c *Component) OnAfterInit() {
 	}
 
 	if c.isClusterMode {
-		c.clusterComponent, found = c.App().Find(cherryConst.ClusterComponent).(*cherryCluster.Component)
+		c.clusterComponent, found = c.App().Find(cherryConst.ClusterComponent).(cherryComponent.IClusterComponent)
 		if found == false {
 			panic("cluster component must be preloaded.")
 		}

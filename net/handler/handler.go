@@ -15,7 +15,7 @@ type (
 		eventFn          map[string][]facade.EventFn  // event func
 		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
 		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
-		handlerComponent IComponent                   // handler component
+		handlerComponent *Component                   // handler component
 		sessionComponent *cherrySession.Component     // session component
 	}
 )
@@ -39,7 +39,7 @@ func (h *Handler) OnPreInit() {
 		panic("session component not found.")
 	}
 
-	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(IComponent)
+	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(*Component)
 	if found == false {
 		panic("handler component not found.")
 	}
@@ -81,7 +81,7 @@ func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
 	return invoke, found
 }
 
-func (h *Handler) Component() IComponent {
+func (h *Handler) Component() *Component {
 	return h.handlerComponent
 }
 

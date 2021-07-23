@@ -12,14 +12,6 @@ import (
 )
 
 type (
-	IComponent interface {
-		Register(handlerGroup *HandlerGroup)
-		PostEvent(event facade.IEvent)
-		PostMessage(session *cherrySession.Session, msg *cherryMessage.Message)
-		AddBeforeFilter(beforeFilters ...FilterFn)
-		AddAfterFilter(afterFilters ...FilterFn)
-	}
-
 	//Component handler component
 	Component struct {
 		options
