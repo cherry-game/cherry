@@ -70,7 +70,7 @@ func (s *settings) GetInt(key string) int {
 	return value
 }
 
-// Int8 returns the value associated with the key as a int8.
+// GetInt8 returns the value associated with the key as a int8.
 func (s *settings) GetInt8(key string) int8 {
 	s.RLock()
 	defer s.RUnlock()
@@ -87,7 +87,7 @@ func (s *settings) GetInt8(key string) int8 {
 	return value
 }
 
-// Int16 returns the value associated with the key as a int16.
+// GetInt16 returns the value associated with the key as a int16.
 func (s *settings) GetInt16(key string) int16 {
 	s.RLock()
 	defer s.RUnlock()
@@ -104,7 +104,7 @@ func (s *settings) GetInt16(key string) int16 {
 	return value
 }
 
-// Int32 returns the value associated with the key as a int32.
+// GetInt32 returns the value associated with the key as a int32.
 func (s *settings) GetInt32(key string) int32 {
 	s.RLock()
 	defer s.RUnlock()
@@ -121,7 +121,7 @@ func (s *settings) GetInt32(key string) int32 {
 	return value
 }
 
-// Int64 returns the value associated with the key as a int64.
+// GetInt64 returns the value associated with the key as a int64.
 func (s *settings) GetInt64(key string) int64 {
 	s.RLock()
 	defer s.RUnlock()
@@ -138,7 +138,7 @@ func (s *settings) GetInt64(key string) int64 {
 	return value
 }
 
-// Uint returns the value associated with the key as a uint.
+// GetUint returns the value associated with the key as a uint.
 func (s *settings) GetUint(key string) uint {
 	s.RLock()
 	defer s.RUnlock()
@@ -155,7 +155,7 @@ func (s *settings) GetUint(key string) uint {
 	return value
 }
 
-// Uint8 returns the value associated with the key as a uint8.
+// GetUint8 returns the value associated with the key as a uint8.
 func (s *settings) GetUint8(key string) uint8 {
 	s.RLock()
 	defer s.RUnlock()
@@ -172,7 +172,7 @@ func (s *settings) GetUint8(key string) uint8 {
 	return value
 }
 
-// Uint16 returns the value associated with the key as a uint16.
+// GetUint16 returns the value associated with the key as a uint16.
 func (s *settings) GetUint16(key string) uint16 {
 	s.RLock()
 	defer s.RUnlock()
@@ -189,7 +189,7 @@ func (s *settings) GetUint16(key string) uint16 {
 	return value
 }
 
-// Uint32 returns the value associated with the key as a uint32.
+// GetUint32 returns the value associated with the key as a uint32.
 func (s *settings) GetUint32(key string) uint32 {
 	s.RLock()
 	defer s.RUnlock()
@@ -206,7 +206,7 @@ func (s *settings) GetUint32(key string) uint32 {
 	return value
 }
 
-// Uint64 returns the value associated with the key as a uint64.
+// GetUint64 returns the value associated with the key as a uint64.
 func (s *settings) GetUint64(key string) uint64 {
 	s.RLock()
 	defer s.RUnlock()
@@ -223,7 +223,7 @@ func (s *settings) GetUint64(key string) uint64 {
 	return value
 }
 
-// Float32 returns the value associated with the key as a float32.
+// GetFloat32 returns the value associated with the key as a float32.
 func (s *settings) GetFloat32(key string) float32 {
 	s.RLock()
 	defer s.RUnlock()
@@ -240,7 +240,7 @@ func (s *settings) GetFloat32(key string) float32 {
 	return value
 }
 
-// Float64 returns the value associated with the key as a float64.
+// GetFloat64 returns the value associated with the key as a float64.
 func (s *settings) GetFloat64(key string) float64 {
 	s.RLock()
 	defer s.RUnlock()
@@ -257,7 +257,7 @@ func (s *settings) GetFloat64(key string) float64 {
 	return value
 }
 
-// String returns the value associated with the key as a string.
+// GetString returns the value associated with the key as a string.
 func (s *settings) GetString(key string) string {
 	s.RLock()
 	defer s.RUnlock()
@@ -274,7 +274,7 @@ func (s *settings) GetString(key string) string {
 	return value
 }
 
-// Value returns the value associated with the key as a interface{}.
+// GetValue returns the value associated with the key as a interface{}.
 func (s *settings) GetValue(key string) interface{} {
 	s.RLock()
 	defer s.RUnlock()

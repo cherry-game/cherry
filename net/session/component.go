@@ -8,15 +8,6 @@ import (
 )
 
 type (
-	IComponent interface {
-		Create(entity facade.INetwork) *Session
-		Bind(sid facade.SID, uid facade.UID) error
-		Unbind(sid facade.SID)
-		CloseAll()
-		AddOnCreate(listener ...SessionListener)
-		AddOnClose(listener ...SessionListener)
-	}
-
 	//Component session component
 	Component struct {
 		sync.RWMutex
