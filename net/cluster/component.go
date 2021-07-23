@@ -2,10 +2,14 @@ package cherryCluster
 
 import (
 	"context"
+	cherryComponent "github.com/cherry-game/cherry/component"
 	cherryConst "github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
+	cherryRoute "github.com/cherry-game/cherry/net/route"
+	cherrySession "github.com/cherry-game/cherry/net/session"
 	cherryProfile "github.com/cherry-game/cherry/profile"
 	"google.golang.org/grpc"
 	"net"
@@ -17,10 +21,11 @@ var (
 
 type Component struct {
 	facade.Component
-	mode       string
-	discovery  facade.IDiscovery
-	rpcServer  *grpc.Server
-	clientPool *connPool
+	mode             string
+	discovery        facade.IDiscovery
+	rpcServer        *grpc.Server
+	clientPool       *connPool
+	handlerComponent cherryComponent.IHandlerComponent
 }
 
 func NewComponent() *Component {
@@ -61,6 +66,7 @@ func (c *Component) Init() {
 	c.initRPCServer()
 
 	c.clientPool = newPool(GrpcOptions...)
+
 }
 
 func (c *Component) initRPCServer() {
@@ -117,7 +123,27 @@ func (c *Component) CloseSession(_ context.Context, _ *cherryProto.SessionId) (*
 }
 
 func (c *Component) Forward(_ context.Context, _ *cherryProto.Message) (*cherryProto.Response, error) {
+
+	// 接收到远程过来的消息
+	// 区分 user 和 sys 类型
+	// 转到handlerComponent执行
+
 	return &cherryProto.Response{}, nil
+}
+
+func (c *Component) SendUserMessage(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message) {
+	cherryLogger.Info("forward message to remote server ")
+
+	// 根据 nodeType() 获取 路由的策略
+	// 获取clienPool 连接信息
+	// 转发消息
+
+	route.NodeType()
+	//c.clientPool.GetMemberClient()
+}
+
+func (c *Component) SendSysMessage(nodeId string, msg *cherryProto.Message) {
+
 }
 
 // SendCloseSession move to handlerComponent

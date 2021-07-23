@@ -2,26 +2,30 @@ package cherryConnector
 
 import (
 	"encoding/json"
+	cherryComponent "github.com/cherry-game/cherry/component"
 	"github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/agent"
-	"github.com/cherry-game/cherry/net/handler"
+	cherryCluster "github.com/cherry-game/cherry/net/cluster"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/packet"
-	"github.com/cherry-game/cherry/net/session"
+	cherrySession "github.com/cherry-game/cherry/net/session"
 	"time"
 )
 
 type (
+
 	// Component (连接器组件适用于前端节点)
 	Component struct {
 		facade.Component
 		cherryAgent.Options
 		ConnectStat      *ConnectStat
 		connector        facade.IConnector
-		sessionComponent cherrySession.IComponent
-		handlerComponent cherryHandler.IComponent
+		sessionComponent *cherrySession.Component
+		handlerComponent cherryComponent.IHandlerComponent
+		clusterComponent *cherryCluster.Component
+		isClusterMode    bool
 	}
 )
 
@@ -57,9 +61,10 @@ func NewWSComponent(address string) *Component {
 
 func NewComponentWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
 	return &Component{
-		Options:     opts,
-		ConnectStat: &ConnectStat{},
-		connector:   connector,
+		Options:       opts,
+		ConnectStat:   &ConnectStat{},
+		connector:     connector,
+		isClusterMode: true, //  TODO  config!!
 	}
 }
 
@@ -73,17 +78,24 @@ func (c *Component) Init() {
 
 func (c *Component) OnAfterInit() {
 	var found = false
-	c.sessionComponent, found = c.App().Find(cherryConst.SessionComponent).(cherrySession.IComponent)
+	c.sessionComponent, found = c.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
 	if found == false {
 		panic("session component must be preloaded.")
 	}
 
-	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(cherryHandler.IComponent)
+	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(cherryComponent.IHandlerComponent)
 	if found == false {
 		panic("handler component must be preloaded.")
 	}
 
-	// set rpc handler
+	if c.isClusterMode {
+		c.clusterComponent, found = c.App().Find(cherryConst.ClusterComponent).(*cherryCluster.Component)
+		if found == false {
+			panic("cluster component must be preloaded.")
+		}
+	}
+
+	// set rpc handler TODO clusterComponent提供接口
 	c.Options.RPCHandler = c.handlerComponent.PostMessage
 
 	c.sessionComponent.AddOnCreate(func(session *cherrySession.Session) (next bool) {
@@ -99,7 +111,7 @@ func (c *Component) OnAfterInit() {
 		return true
 	})
 
-	//add packet listener
+	//add default packet listener
 	c.AddPacketHandle(cherryPacket.Handshake, c.handshake)
 	c.AddPacketHandle(cherryPacket.HandshakeAck, c.handshakeACK)
 	c.AddPacketHandle(cherryPacket.Heartbeat, c.heartbeat)
