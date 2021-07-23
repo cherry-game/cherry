@@ -26,8 +26,3 @@ type HandlerFn struct {
 	InArgs  []reflect.Type
 	OutArgs []reflect.Type
 }
-
-type IExecutor interface {
-	Invoke()
-	String() string
-}
