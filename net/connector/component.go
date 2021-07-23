@@ -23,8 +23,6 @@ type (
 		connector        facade.IConnector
 		sessionComponent *cherrySession.Component
 		handlerComponent cherryComponent.IHandlerComponent
-		clusterComponent cherryComponent.IClusterComponent
-		isClusterMode    bool
 	}
 )
 
@@ -60,10 +58,9 @@ func NewWSComponent(address string) *Component {
 
 func NewComponentWithOpt(opts cherryAgent.Options, connector facade.IConnector) *Component {
 	return &Component{
-		Options:       opts,
-		ConnectStat:   &ConnectStat{},
-		connector:     connector,
-		isClusterMode: true, //  TODO  config!!
+		Options:     opts,
+		ConnectStat: &ConnectStat{},
+		connector:   connector,
 	}
 }
 
@@ -85,13 +82,6 @@ func (c *Component) OnAfterInit() {
 	c.handlerComponent, found = c.App().Find(cherryConst.HandlerComponent).(cherryComponent.IHandlerComponent)
 	if found == false {
 		panic("handler component must be preloaded.")
-	}
-
-	if c.isClusterMode {
-		c.clusterComponent, found = c.App().Find(cherryConst.ClusterComponent).(cherryComponent.IClusterComponent)
-		if found == false {
-			panic("cluster component must be preloaded.")
-		}
 	}
 
 	// set rpc handler TODO clusterComponent提供接口

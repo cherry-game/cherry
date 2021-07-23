@@ -193,9 +193,15 @@ func (a *Application) Shutdown() {
 }
 
 func (a *Application) SetSerializer(serializer facade.ISerializer) {
+	if a.Running() {
+		return
+	}
 	a.ISerializer = serializer
 }
 
 func (a *Application) SetPacketCodec(codec facade.IPacketCodec) {
+	if a.Running() {
+		return
+	}
 	a.IPacketCodec = codec
 }
