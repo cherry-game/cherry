@@ -9,7 +9,7 @@ var (
 )
 
 func init() {
-	RegisterDiscovery(&DiscoveryNode{})
+	RegisterDiscovery(&DiscoveryFile{})
 	RegisterDiscovery(&DiscoveryMaster{})
 }
 

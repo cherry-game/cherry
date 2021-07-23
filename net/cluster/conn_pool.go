@@ -2,33 +2,33 @@ package cherryCluster
 
 import (
 	"context"
+	cherryMap "github.com/cherry-game/cherry/extend/map"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	"google.golang.org/grpc"
-	"sync"
 	"time"
 )
 
 type (
 	connPool struct {
-		sync.RWMutex
 		opts  []grpc.DialOption
-		pools sync.Map
+		pools *cherryMap.SafeMap
 	}
 
 	conn struct {
-		nodeId       string
-		address      string
-		clientConn   *grpc.ClientConn
-		masterClient cherryProto.MasterServiceClient
-		memberClient cherryProto.MemberServiceClient
+		nodeId        string
+		address       string
+		rpcClientConn *grpc.ClientConn
+		masterClient  cherryProto.MasterServiceClient
+		memberClient  cherryProto.MemberServiceClient
 	}
 )
 
 func newPool(opts ...grpc.DialOption) *connPool {
 	c := &connPool{
-		opts: opts,
+		opts:  opts,
+		pools: cherryMap.NewSafeMap(),
 	}
 	return c
 }
@@ -52,51 +52,52 @@ func (c *connPool) GetMasterClient(nodeId string) (cherryProto.MasterServiceClie
 }
 
 func (c *connPool) add(member cherryFacade.IMember) {
-	if value, found := c.pools.Load(member.GetNodeId()); found {
+	value := c.pools.Get(member.GetNodeId())
+	if value != nil {
 		clientConn := value.(*conn)
 		if clientConn.address == member.GetAddress() {
 			return
 		}
-
 		c.remove(member.GetNodeId())
 	}
 
-	clientConn, err := c.buildClientConn(member.GetAddress())
+	rpcClientConn, err := c.buildRpcClientConn(member.GetAddress())
 	if err != nil {
 		cherryLogger.Warnf("build client conn error. [error = %s]", err)
 		return
 	}
 
 	newConn := &conn{
-		nodeId:       member.GetNodeId(),
-		address:      member.GetAddress(),
-		clientConn:   clientConn,
-		masterClient: cherryProto.NewMasterServiceClient(clientConn),
-		memberClient: cherryProto.NewMemberServiceClient(clientConn),
+		nodeId:        member.GetNodeId(),
+		address:       member.GetAddress(),
+		rpcClientConn: rpcClientConn,
+		masterClient:  cherryProto.NewMasterServiceClient(rpcClientConn),
+		memberClient:  cherryProto.NewMemberServiceClient(rpcClientConn),
 	}
 
-	c.pools.Store(member.GetNodeId(), newConn)
+	c.pools.Set(member.GetNodeId(), newConn)
 }
 
 func (c *connPool) remove(nodeId string) {
-	clientConn, found := c.getConn(nodeId)
+	newConn, found := c.getConn(nodeId)
 	if found == false {
 		return
 	}
 
-	clientConn.disconnect()
+	newConn.disconnect()
 	c.pools.Delete(nodeId)
 }
 
 func (c *connPool) getConn(nodeId string) (*conn, bool) {
-	if clientConn, found := c.pools.Load(nodeId); found {
-		return clientConn.(*conn), true
+	value := c.pools.Get(nodeId)
+	if value != nil {
+		return value.(*conn), true
 	}
 
 	return nil, false
 }
 
-func (c *connPool) buildClientConn(address string) (*grpc.ClientConn, error) {
+func (c *connPool) buildRpcClientConn(address string) (*grpc.ClientConn, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	dialConn, err := grpc.DialContext(
 		ctx,
@@ -113,8 +114,8 @@ func (c *connPool) buildClientConn(address string) (*grpc.ClientConn, error) {
 }
 
 func (c *conn) disconnect() {
-	if c.clientConn != nil {
-		err := c.clientConn.Close()
+	if c.rpcClientConn != nil {
+		err := c.rpcClientConn.Close()
 		if err != nil {
 			cherryLogger.Error(err)
 		}
@@ -122,15 +123,11 @@ func (c *conn) disconnect() {
 }
 
 func (c *connPool) close() {
-	c.RLock()
-	defer c.RUnlock()
-
-	c.pools.Range(func(key, value interface{}) bool {
+	for key, value := range c.pools.Items() {
 		con := value.(*conn)
 		con.disconnect()
 		c.pools.Delete(key)
-		return true
-	})
+	}
 
 	cherryLogger.Infof("conn pool is closed.")
 }

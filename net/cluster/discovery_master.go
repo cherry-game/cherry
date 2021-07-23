@@ -13,11 +13,9 @@ import (
 	"time"
 )
 
-// DiscoveryMaster master类型节点发现
-//
-// 通过master节点同步成员数据(master为单点服务)
+// DiscoveryMaster master节点模式(master为单点)
 type DiscoveryMaster struct {
-	DiscoveryNode
+	DiscoveryFile
 	facade.IApplication
 	masterMember  facade.IMember
 	rpcServer     *grpc.Server
@@ -201,13 +199,11 @@ func (m *DiscoveryMaster) Unregister(ctx context.Context, nodeId *cherryProto.No
 }
 
 func (m *DiscoveryMaster) AddMember(member facade.IMember) {
-	m.DiscoveryNode.AddMember(member)
 	m.clientPool.add(member)
+	m.DiscoveryFile.AddMember(member)
 }
 
 func (m *DiscoveryMaster) RemoveMember(nodeId string) {
-	m.DiscoveryNode.RemoveMember(nodeId)
-	// clean conn
 	m.clientPool.remove(nodeId)
-
+	m.DiscoveryFile.RemoveMember(nodeId)
 }

@@ -35,14 +35,14 @@ service MasterService {
 
 // rpc类型
 enum RPCType {
-  User = 0; // 用户消息
+  User = 0; // 用户消息，(需要保存，前端节点Id)
   Sys  = 1; // 系统消息
 }
 
 // rpc消息包装
 message Message {
-  RPCType rpcType = 1; // rpc 类型
-  int32   msgType = 2; // 消息类型(none,request,notify,response,push)
+  RPCType rpcType = 1; // rpc类型
+  int32   msgType = 2; // 消息类型(request,notify,response,push)
   string  nodeId  = 3; // 节点id
   int64   sid     = 4; // session id
   uint64  id      = 5; // 消息唯一id

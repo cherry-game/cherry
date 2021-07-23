@@ -11,21 +11,21 @@ import (
 	"sync"
 )
 
-// DiscoveryNode 读取配置类型节点发现
+// DiscoveryFile 读取文件配置模式
 //
 // 该类型发现服务仅用于开发测试使用，直接读取profile.json->node配置
-type DiscoveryNode struct {
+type DiscoveryFile struct {
 	sync.RWMutex
 	memberList       []*cherryProto.Member // key:nodeId,value:Member
 	onAddListener    []facade.MemberListener
 	onRemoveListener []facade.MemberListener
 }
 
-func (n *DiscoveryNode) Name() string {
-	return "node"
+func (n *DiscoveryFile) Name() string {
+	return "file"
 }
 
-func (n *DiscoveryNode) Init(_ facade.IApplication, _ *grpc.Server, _ jsoniter.Any) {
+func (n *DiscoveryFile) Init(_ facade.IApplication, _ *grpc.Server, _ jsoniter.Any) {
 	nodes := cherryProfile.Config().Get(n.Name())
 	if nodes.LastError() != nil {
 		cherryLogger.Error("`nodes` property not found in profile file.")
@@ -65,11 +65,11 @@ func (n *DiscoveryNode) Init(_ facade.IApplication, _ *grpc.Server, _ jsoniter.A
 	}
 }
 
-func (n *DiscoveryNode) OnStop() {
+func (n *DiscoveryFile) OnStop() {
 
 }
 
-func (n *DiscoveryNode) List() []facade.IMember {
+func (n *DiscoveryFile) List() []facade.IMember {
 	var list []facade.IMember
 	for _, member := range n.memberList {
 		list = append(list, member)
@@ -77,7 +77,7 @@ func (n *DiscoveryNode) List() []facade.IMember {
 	return list
 }
 
-func (n *DiscoveryNode) GetType(nodeId string) (nodeType string, err error) {
+func (n *DiscoveryFile) GetType(nodeId string) (nodeType string, err error) {
 	member, found := n.GetMember(nodeId)
 	if found == false {
 		return "", cherryError.Errorf("nodeId = %s not found.", nodeId)
@@ -85,7 +85,7 @@ func (n *DiscoveryNode) GetType(nodeId string) (nodeType string, err error) {
 	return member.GetNodeType(), nil
 }
 
-func (n *DiscoveryNode) GetMember(nodeId string) (facade.IMember, bool) {
+func (n *DiscoveryFile) GetMember(nodeId string) (facade.IMember, bool) {
 	for _, member := range n.memberList {
 		if member.GetNodeId() == nodeId {
 			return member, true
@@ -95,21 +95,21 @@ func (n *DiscoveryNode) GetMember(nodeId string) (facade.IMember, bool) {
 	return nil, false
 }
 
-func (n *DiscoveryNode) OnAddMember(listener facade.MemberListener) {
+func (n *DiscoveryFile) OnAddMember(listener facade.MemberListener) {
 	if listener == nil {
 		return
 	}
 	n.onAddListener = append(n.onAddListener, listener)
 }
 
-func (n *DiscoveryNode) OnRemoveMember(listener facade.MemberListener) {
+func (n *DiscoveryFile) OnRemoveMember(listener facade.MemberListener) {
 	if listener == nil {
 		return
 	}
 	n.onRemoveListener = append(n.onRemoveListener, listener)
 }
 
-func (n *DiscoveryNode) AddMember(member facade.IMember) {
+func (n *DiscoveryFile) AddMember(member facade.IMember) {
 	if _, found := n.GetMember(member.GetNodeId()); found {
 		cherryLogger.Warnf("duplicate nodeId. [nodeType = %s], [nodeId = %s]",
 			member.GetNodeType(), member.GetNodeId())
@@ -133,7 +133,7 @@ func (n *DiscoveryNode) AddMember(member facade.IMember) {
 	cherryLogger.Debugf("add new member. [member = %s]", member)
 }
 
-func (n *DiscoveryNode) RemoveMember(nodeId string) {
+func (n *DiscoveryFile) RemoveMember(nodeId string) {
 	defer n.Unlock()
 	n.Lock()
 

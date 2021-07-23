@@ -15,18 +15,17 @@ type (
 
 	// IDiscovery 节点发现接口
 	IDiscovery interface {
-		Name() string
-		Init(app IApplication, rpcServer *grpc.Server, discoveryConfig jsoniter.Any)
-		List() []IMember
-		GetType(nodeId string) (nodeType string, err error)
-		GetMember(nodeId string) (member IMember, found bool)
-		AddMember(member IMember)
-		RemoveMember(nodeId string)
-		OnAddMember(listener MemberListener)
-		OnRemoveMember(listener MemberListener)
-		OnStop()
+		Name() string                                                    // 发现服务名称
+		Init(app IApplication, server *grpc.Server, config jsoniter.Any) // 初始化函数
+		List() []IMember                                                 // 获取成员列表
+		GetType(nodeId string) (nodeType string, err error)              // 根据节点id获取类型
+		GetMember(nodeId string) (member IMember, found bool)            // 获取成员
+		AddMember(member IMember)                                        // 添加成员
+		RemoveMember(nodeId string)                                      // 移除成员
+		OnAddMember(listener MemberListener)                             // 添加成员监听函数
+		OnRemoveMember(listener MemberListener)                          // 移除成员监听函数
+		OnStop()                                                         // 停止当前发现服务
 	}
 
-	// MemberListener 成员增、删监听函数
-	MemberListener func(member IMember)
+	MemberListener func(member IMember) // MemberListener 成员增、删监听函数
 )

@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	gameApp := cherry.NewApp("../config/", "test", "game-2")
+	gameApp := cherry.NewApp("../../config/", "test", "game-2")
 
 	gameApp.Startup(
 		cherryCluster.NewComponent(),

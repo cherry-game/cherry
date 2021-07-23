@@ -113,7 +113,6 @@ func (c *Component) CloseSession(_ context.Context, _ *cherryProto.SessionId) (*
 	// 获取sessionComponent
 	// 移除session
 	// 发布一个 session close 事件
-
 	return &cherryProto.Response{}, nil
 }
 
@@ -122,7 +121,7 @@ func (c *Component) Forward(_ context.Context, _ *cherryProto.Message) (*cherryP
 }
 
 // SendCloseSession move to handlerComponent
-func (c *Component) SendCloseSession(session *cherryProto.SessionId) error {
+func (c *Component) SendCloseSession(sessionId facade.SID) error {
 	for _, member := range c.discovery.List() {
 		if member.GetNodeId() == c.App().NodeId() {
 			continue
@@ -134,7 +133,7 @@ func (c *Component) SendCloseSession(session *cherryProto.SessionId) error {
 			continue
 		}
 
-		_, err := client.CloseSession(context.Background(), session)
+		_, err := client.CloseSession(context.Background(), &cherryProto.SessionId{Sid: sessionId})
 		if err != nil {
 			return err
 		}
