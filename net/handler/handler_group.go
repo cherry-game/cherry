@@ -20,10 +20,10 @@ type (
 
 	Queue struct {
 		index    int
-		dataChan chan facade.IExecutor
+		dataChan chan IExecutor
 	}
 
-	QueueHash func(executor facade.IExecutor, queueNum int) int
+	QueueHash func(executor IExecutor, queueNum int) int
 )
 
 func NewGroupWithHandler(handlers ...facade.IHandler) *HandlerGroup {
@@ -53,7 +53,7 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 	for i := 0; i < queueNum; i++ {
 		q := &Queue{
 			index:    i,
-			dataChan: make(chan facade.IExecutor, queueCap),
+			dataChan: make(chan IExecutor, queueCap),
 		}
 		g.queueMaps[i] = q
 	}
@@ -75,7 +75,7 @@ func (h *HandlerGroup) SetQueueHash(fn QueueHash) {
 	h.queueHash = fn
 }
 
-func (h *HandlerGroup) inQueue(index int, executor facade.IExecutor) {
+func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
 	if index > h.queueNum {
 		index = 0
 	}
@@ -109,7 +109,7 @@ func (h *HandlerGroup) run(app facade.IApplication) {
 	}
 }
 
-func (h *HandlerGroup) invokeExecutor(executor facade.IExecutor) {
+func (h *HandlerGroup) invokeExecutor(executor IExecutor) {
 	defer func() {
 		if r := recover(); r != nil {
 			cherryLogger.Warnf("recover in executor. %s", string(debug.Stack()))
@@ -137,7 +137,7 @@ func (h *HandlerGroup) printInfo(handler facade.IHandler) {
 	cherryLogger.Debug("--------------------------------------")
 }
 
-func DefaultQueueHash(executor facade.IExecutor, queueNum int) int {
+func DefaultQueueHash(executor IExecutor, queueNum int) int {
 	var i = 0
 	switch e := executor.(type) {
 	case *MessageExecutor:
