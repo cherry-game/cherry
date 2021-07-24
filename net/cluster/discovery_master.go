@@ -15,7 +15,7 @@ import (
 
 // DiscoveryMaster master节点模式(master为单点)
 type DiscoveryMaster struct {
-	DiscoveryFile
+	DiscoveryNode
 	facade.IApplication
 	masterMember  facade.IMember
 	rpcServer     *grpc.Server
@@ -200,10 +200,10 @@ func (m *DiscoveryMaster) Unregister(ctx context.Context, nodeId *cherryProto.No
 
 func (m *DiscoveryMaster) AddMember(member facade.IMember) {
 	m.clientPool.add(member)
-	m.DiscoveryFile.AddMember(member)
+	m.DiscoveryNode.AddMember(member)
 }
 
 func (m *DiscoveryMaster) RemoveMember(nodeId string) {
 	m.clientPool.remove(nodeId)
-	m.DiscoveryFile.RemoveMember(nodeId)
+	m.DiscoveryNode.RemoveMember(nodeId)
 }
