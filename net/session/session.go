@@ -14,9 +14,17 @@ func NextSID() facade.SID {
 	return atomic.AddInt64(&nextSessionId, 1)
 }
 
+const (
+	Init = iota
+	WaitAck
+	Working
+	Closed
+)
+
 type (
 	Session struct {
 		settings
+		state      int32             // current session state
 		entity     facade.INetwork   // network
 		sid        facade.SID        // session id
 		uid        facade.UID        // user unique id
@@ -46,6 +54,14 @@ func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INet
 	}
 
 	return session
+}
+
+func (s *Session) State() int32 {
+	return atomic.LoadInt32(&s.state)
+}
+
+func (s *Session) SetState(state int32) {
+	atomic.StoreInt32(&s.state, state)
 }
 
 func (s *Session) SID() facade.SID {

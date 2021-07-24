@@ -38,7 +38,7 @@ func app() {
 
 	handlerGroup1 := cherryHandler.NewGroup(10, 128)
 	handlerGroup1.AddHandlers(NewTestHandler())
-	handlerGroup1.SetQueueHash(func(executor cherryFacade.IExecutor, queueNum int) int {
+	handlerGroup1.SetQueueHash(func(executor cherryHandler.IExecutor, queueNum int) int {
 		return rand.Int() % queueNum
 	})
 

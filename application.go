@@ -1,10 +1,14 @@
 package cherry
 
 import (
+	"fmt"
+	cherryConst "github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/extend/utils"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
 	"github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
@@ -26,8 +30,60 @@ type (
 	}
 )
 
+// NewApp create new application instance
+func NewApp(profilePath, profileName, nodeId string) *Application {
+	_, err := cherryProfile.Init(profilePath, profileName)
+	if err != nil {
+		panic(fmt.Sprintf("init profile fail. error = %s", err))
+	}
+
+	node, err := cherryProfile.LoadNode(nodeId)
+	if err != nil {
+		panic(fmt.Sprintf("error = %s", err))
+	}
+
+	// set logger
+	cherryLogger.SetNodeLogger(node)
+
+	// print version info
+	cherryLogger.Info(cherryConst.GetLOGO())
+
+	app := &Application{
+		INode:        node,
+		startTime:    cherryTime.Now(),
+		running:      0,
+		die:          make(chan bool),
+		ISerializer:  cherrySerializer.NewProtobuf(),
+		IPacketCodec: cherryPacket.NewPomeloCodec(),
+	}
+
+	return app
+}
+
 func (a *Application) Running() bool {
 	return a.running > 0
+}
+
+func (a *Application) Register(components ...facade.IComponent) {
+	if a.Running() {
+		return
+	}
+
+	for _, c := range components {
+		if c == nil || c.Name() == "" {
+			cherryLogger.Errorf("[component = %T] name is nil", c)
+			return
+		}
+
+		result := a.Find(c.Name())
+		if result != nil {
+			cherryLogger.Errorf("[component name = %s] is duplicate.", c.Name())
+			return
+		}
+
+		a.components = append(a.components, c)
+		cherryLogger.Debugf("[component = %s] is added.", c.Name())
+	}
 }
 
 func (a *Application) Find(name string) facade.IComponent {
@@ -85,6 +141,9 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		cherryLogger.Flush()
 	}()
 
+	// add components
+	a.Register(components...)
+
 	// is running
 	atomic.AddInt32(&a.running, 1)
 
@@ -103,24 +162,7 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	cherryLogger.Infof("[serializer  = %s]", a.ISerializer.Name())
 	cherryLogger.Info("-------------------------------------------------")
 
-	// add components & init
-	for _, c := range components {
-		if c == nil || c.Name() == "" {
-			cherryLogger.Errorf("[component = %T] name is nil", c)
-			return
-		}
-
-		result := a.Find(c.Name())
-		if result != nil {
-			cherryLogger.Errorf("[component name = %s] is duplicate.", c.Name())
-			return
-		}
-
-		a.components = append(a.components, c)
-		cherryLogger.Debugf("[component = %s] is added.", c.Name())
-	}
-
-	// execute Load()
+	// execute Init()
 	for _, c := range a.components {
 		c.Set(a)
 		cherryLogger.Debugf("[component = %s] -> OnInit().", c.Name())

@@ -3,12 +3,11 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	cherryTime "github.com/cherry-game/cherry/extend/time"
+	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	cherryConnector "github.com/cherry-game/cherry/net/connector"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	"testing"
@@ -79,13 +78,10 @@ func createHandler() *cherryHandler.Component {
 
 func createWebsocket() *cherryConnector.Component {
 	connector := cherryConnector.NewWS("127.0.0.1:34590")
+	component := cherryConnector.NewComponent(connector)
+	component.OnConnect(func(conn facade.INetConn) {
 
-	component := cherryConnector.NewComponentWithOpt(cherryAgent.Options{
-		Heartbeat:       60 * time.Second,
-		DataCompression: false,
-		PacketListener:  make(map[cherryPacket.Type]cherryAgent.PacketListener),
-		RPCHandler:      nil,
-	}, connector)
+	})
 
 	return component
 }

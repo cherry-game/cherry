@@ -1,0 +1,22 @@
+{
+  "debug": true,
+  "include": [
+    "common/logger.json"
+  ],
+  "node": {
+    "game": [
+      {
+        "enable": true,
+        "node_id": "game-1",
+        "address": "127.0.0.1:34590",
+        "rpc_address": "127.0.0.1:20860",
+        "__settings__": {
+          "db_id_list": [
+            "game_db_1"
+          ],
+          "ref_logger": "game_log"
+        }
+      }
+    ]
+  }
+}

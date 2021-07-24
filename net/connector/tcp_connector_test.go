@@ -15,15 +15,15 @@ func TestNewTCPConnector(t *testing.T) {
 		//session := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
 		//
 		//session.OnMessage(func(bytes []byte) (err error) {
-		//	cherryLogger.Infof("session id=%d bytes=[%s]", session.SID(), bytes)
+		//    cherryLogger.Infof("session id=%d bytes=[%s]", session.SID(), bytes)
 		//
-		//	session.Send(bytes)
+		//    session.Send(bytes)
 		//
-		//	if len(bytes) == 1 && bytes[0] == 3 {
-		//		session.Close()
-		//	}
+		//    if len(bytes) == 1 && bytes[0] == 3 {
+		//        session.Close()
+		//    }
 		//
-		//	return nil
+		//    return nil
 		//})
 		//
 		//session.run()

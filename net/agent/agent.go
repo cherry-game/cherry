@@ -5,48 +5,38 @@ import (
 	"github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/command"
 	"github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/cherry-game/cherry/net/packet"
+	"github.com/cherry-game/cherry/net/session"
 	"net"
 	"sync/atomic"
 	"time"
 )
 
 const (
-	agentWriteBacklog = 64
-)
-
-const (
-	Init = iota
-	WaitAck
-	Working
-	Closed
+	WriteBacklog = 64
 )
 
 type (
 	RPCHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
 
-	// PacketListener process packet listener function
-	PacketListener func(agent *Agent, packet cherryFacade.IPacket)
-
 	Options struct {
-		Heartbeat       time.Duration                        // heartbeat(sec)
-		DataCompression bool                                 // data compression
-		PacketListener  map[cherryPacket.Type]PacketListener // process packet listener function
-		RPCHandler      RPCHandler                           // rpc handler
+		Heartbeat  time.Duration                                // heartbeat(sec)
+		Command    map[cherryPacket.Type]cherryCommand.ICommand // commands
+		RPCHandler RPCHandler                                   // rpc handler
 	}
 
 	Agent struct {
-		Options
-		app     cherryFacade.IApplication
+		*Options
+		cherryFacade.IApplication
 		Session *cherrySession.Session // session
 		conn    cherryFacade.INetConn  // low-level conn fd
-		state   int32                  // current session state
-		chDie   chan bool              // wait for close
-		chSend  chan pendingMessage    // push message queue
-		chWrite chan []byte            // push bytes queue
-		lastAt  int64                  // last heartbeat unix time stamp
+		//state   int32                  // current session state
+		chDie   chan bool           // wait for close
+		chSend  chan pendingMessage // push message queue
+		chWrite chan []byte         // push bytes queue
+		lastAt  int64               // last heartbeat unix time stamp
 	}
 
 	pendingMessage struct {
@@ -62,27 +52,19 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(app cherryFacade.IApplication, opt Options, conn cherryFacade.INetConn) *Agent {
+func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *Options) *Agent {
 	agent := &Agent{
-		app:     app,
-		Options: opt,
-		conn:    conn,
-		state:   Init,
+		IApplication: app,
+		Options:      opts,
+		conn:         conn,
+		//state:        Init,
 		chDie:   make(chan bool),
-		chSend:  make(chan pendingMessage, agentWriteBacklog),
-		chWrite: make(chan []byte, agentWriteBacklog),
+		chSend:  make(chan pendingMessage, WriteBacklog),
+		chWrite: make(chan []byte, WriteBacklog),
 		lastAt:  time.Now().Unix(),
 	}
 
 	return agent
-}
-
-func (a *Agent) Status() int32 {
-	return atomic.LoadInt32(&a.state)
-}
-
-func (a *Agent) SetStatus(state int32) {
-	atomic.StoreInt32(&a.state, state)
 }
 
 func (a *Agent) SetLastAt() {
@@ -95,11 +77,11 @@ func (a *Agent) SendRaw(bytes []byte) error {
 }
 
 func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) (err error) {
-	if a.Status() == Closed {
+	if a.Session.State() == cherrySession.Closed {
 		return cherryError.ClusterBrokenPipe
 	}
 
-	if len(a.chSend) >= agentWriteBacklog {
+	if len(a.chSend) >= WriteBacklog {
 		return cherryError.ClusterBufferExceed
 	}
 
@@ -117,7 +99,7 @@ func (a *Agent) Push(route string, val interface{}) error {
 
 // RPC implementation for session.NetworkEntity interface
 func (a *Agent) RPC(route string, val interface{}) error {
-	if a.Status() == Closed {
+	if a.Session.State() == cherrySession.Closed {
 		return cherryError.ClusterBrokenPipe
 	}
 
@@ -125,7 +107,7 @@ func (a *Agent) RPC(route string, val interface{}) error {
 		return cherryError.ClusterRPCHandleNotFound
 	}
 
-	data, err := a.app.Marshal(val)
+	data, err := a.Marshal(val)
 	if err != nil {
 		return err
 	}
@@ -153,12 +135,12 @@ func (a *Agent) Response(mid uint, v interface{}, isError ...bool) error {
 
 // Kick kick session
 func (a *Agent) Kick(reason interface{}) error {
-	bytes, err := a.app.Marshal(reason)
+	bytes, err := a.Marshal(reason)
 	if err != nil {
 		a.Session.Debugf("kick fail. marshal error[%s], reason[%v].", err, reason)
 	}
 
-	pkg, err := a.app.PacketEncode(cherryPacket.Kick, bytes)
+	pkg, err := a.PacketEncode(cherryPacket.Kick, bytes)
 	if err != nil {
 		return err
 	}
@@ -175,12 +157,11 @@ func (a *Agent) Kick(reason interface{}) error {
 
 // Close closes the Agent, clean inner state and close low-level connection.
 func (a *Agent) Close() {
-	if a.Status() == Closed {
+	if a.Session.State() == cherrySession.Closed {
 		return
 	}
 
-	a.SetStatus(Closed)
-
+	a.Session.SetState(cherrySession.Closed)
 	a.Session.OnCloseProcess()
 
 	if err := a.conn.Close(); err != nil {
@@ -213,7 +194,7 @@ func (a *Agent) read() {
 			return
 		}
 
-		packets, err := a.app.PacketDecode(msg)
+		packets, err := a.PacketDecode(msg)
 		if err != nil {
 			a.Session.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
 			continue
@@ -230,13 +211,14 @@ func (a *Agent) read() {
 }
 
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
-	listener, found := a.PacketListener[packet.Type()]
+	cmd, found := a.Command[packet.Type()]
 	if found == false {
-		a.Session.Debugf("packet[%s] not found.", packet)
+		a.Session.Debugf("packet[%s] type not found.", packet)
 		return
 	}
 
-	listener(a, packet)
+	cmd.Do(a.Session, packet)
+
 	// update last time
 	a.SetLastAt()
 }
@@ -272,7 +254,7 @@ func (a *Agent) write() {
 			}
 
 		case data := <-a.chSend:
-			payload, err := a.app.Marshal(data.payload)
+			payload, err := a.Marshal(data.payload)
 			if err != nil {
 				a.Session.Debug("message serializer error. data[%s]", data.String())
 				return
@@ -294,7 +276,7 @@ func (a *Agent) write() {
 			}
 
 			// encode packet
-			p, err := a.app.PacketEncode(cherryPacket.Data, em)
+			p, err := a.PacketEncode(cherryPacket.Data, em)
 			if err != nil {
 				cherryLogger.Warn(err)
 				break

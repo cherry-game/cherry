@@ -2,13 +2,11 @@ package cherryCluster
 
 import (
 	"context"
-	cherryComponent "github.com/cherry-game/cherry/component"
 	cherryConst "github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryRoute "github.com/cherry-game/cherry/net/route"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	cherryProfile "github.com/cherry-game/cherry/profile"
 	"google.golang.org/grpc"
@@ -25,7 +23,8 @@ type Component struct {
 	discovery        facade.IDiscovery
 	rpcServer        *grpc.Server
 	clientPool       *connPool
-	handlerComponent cherryComponent.IHandlerComponent
+	onCloseSessionFn func(sid facade.SID)
+	onForwardFn      func(msg *cherryProto.Message)
 }
 
 func NewComponent() *Component {
@@ -115,30 +114,33 @@ func (c *Component) RemoveMember(_ context.Context, node *cherryProto.NodeId) (*
 	return &cherryProto.Response{}, nil
 }
 
-func (c *Component) CloseSession(_ context.Context, _ *cherryProto.SessionId) (*cherryProto.Response, error) {
-	// 获取sessionComponent
-	// 移除session
-	// 发布一个 session close 事件
-	return &cherryProto.Response{}, nil
-}
-
-func (c *Component) Forward(_ context.Context, _ *cherryProto.Message) (*cherryProto.Response, error) {
-
-	// 接收到远程过来的消息
-	// 区分 user 和 sys 类型
-	// 转到handlerComponent执行
+func (c *Component) CloseSession(_ context.Context, session *cherryProto.SessionId) (*cherryProto.Response, error) {
+	if c.onCloseSessionFn != nil {
+		c.onCloseSessionFn(session.Sid)
+	} else {
+		cherryLogger.Warnf("on close session function not found. [sessionId = %d]", session.Sid)
+	}
 
 	return &cherryProto.Response{}, nil
 }
 
-func (c *Component) SendUserMessage(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message) {
+func (c *Component) Forward(_ context.Context, msg *cherryProto.Message) (*cherryProto.Response, error) {
+	if c.onForwardFn != nil {
+		c.onForwardFn(msg)
+	} else {
+		cherryLogger.Warnf("on forward function not found. [message = %v]", msg)
+	}
+
+	return &cherryProto.Response{}, nil
+}
+
+func (c *Component) SendUserMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
 	cherryLogger.Info("forward message to remote server ")
 
 	// 根据 nodeType() 获取 路由的策略
 	// 获取clienPool 连接信息
 	// 转发消息
 
-	route.NodeType()
 	//c.clientPool.GetMemberClient()
 }
 
@@ -147,7 +149,7 @@ func (c *Component) SendSysMessage(nodeId string, msg *cherryProto.Message) {
 }
 
 // SendCloseSession move to handlerComponent
-func (c *Component) SendCloseSession(sessionId facade.SID) error {
+func (c *Component) SendCloseSession(sid facade.SID) {
 	for _, member := range c.discovery.List() {
 		if member.GetNodeId() == c.App().NodeId() {
 			continue
@@ -159,11 +161,18 @@ func (c *Component) SendCloseSession(sessionId facade.SID) error {
 			continue
 		}
 
-		_, err := client.CloseSession(context.Background(), &cherryProto.SessionId{Sid: sessionId})
+		_, err := client.CloseSession(context.Background(), &cherryProto.SessionId{Sid: sid})
 		if err != nil {
-			return err
+			cherryLogger.Warnf("[sessionId = %d] send close session fail. [error = %s]", sid, err)
+			return
 		}
 	}
+}
 
-	return nil
+func (c *Component) OnCloseSession(func(sid facade.SID)) {
+
+}
+
+func (c *Component) OnForward(func(msg *cherryProto.Message)) {
+
 }

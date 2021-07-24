@@ -25,32 +25,6 @@ type (
 	}
 )
 
-func (t *tcpConn) GetNextMessage() (b []byte, err error) {
-	header, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(cherryPacket.HeadLength)))
-	if err != nil {
-		return nil, err
-	}
-	// if the header has no data, we can consider it as a closed connection
-	if len(header) == 0 {
-		return nil, cherryError.PacketConnectClosed
-	}
-
-	msgSize, _, err := cherryPacket.ParseHeader(header)
-	if err != nil {
-		return nil, err
-	}
-
-	msgData, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(msgSize)))
-	if err != nil {
-		return nil, err
-	}
-	if len(msgData) < msgSize {
-		return nil, cherryError.PacketMsgSmallerThanExpected
-	}
-
-	return append(header, msgData...), nil
-}
-
 func NewTCP(address string) *TCPConnector {
 	if address == "" {
 		cherryLogger.Warn("create tcp socket fail. address is null.")
@@ -80,7 +54,6 @@ func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	}
 }
 
-// OnStart
 func (t *TCPConnector) OnStart() {
 	if len(t.onConnectListener) < 1 {
 		panic("onConnectListener() not set.")
@@ -128,4 +101,30 @@ func (t *TCPConnector) OnStop() {
 
 func (t *TCPConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
 	t.onConnectListener = append(t.onConnectListener, listener...)
+}
+
+func (t *tcpConn) GetNextMessage() (b []byte, err error) {
+	header, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(cherryPacket.HeadLength)))
+	if err != nil {
+		return nil, err
+	}
+	// if the header has no data, we can consider it as a closed connection
+	if len(header) == 0 {
+		return nil, cherryError.PacketConnectClosed
+	}
+
+	msgSize, _, err := cherryPacket.ParseHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	msgData, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(msgSize)))
+	if err != nil {
+		return nil, err
+	}
+	if len(msgData) < msgSize {
+		return nil, cherryError.PacketMsgSmallerThanExpected
+	}
+
+	return append(header, msgData...), nil
 }

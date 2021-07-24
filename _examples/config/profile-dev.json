@@ -10,7 +10,7 @@
       {
         "enable": true,
         "node_id": "web-1",
-        "address": ":10820",
+        "address": "127.0.0.1:10820",
         "rpc_address": "127.0.0.1:20820",
         "__settings__": {
           "maintain_state": 2,
@@ -22,7 +22,7 @@
       {
         "enable": true,
         "node_id": "game-1",
-        "address": ":10860",
+        "address": "127.0.0.1:10860",
         "rpc_address": "127.0.0.1:20860",
         "__settings__": {
           "maintain_state": 2,

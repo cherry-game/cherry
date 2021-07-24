@@ -12,9 +12,6 @@ const (
 	ClusterComponent    = "cluster_component"
 	DataConfigComponent = "data_config_component"
 	ORMComponent        = "db_orm_component"
-
-	RPCServerComponent = "rpc_server_component"
-	RPCClientComponent = "rpc_client_component"
 )
 
 const (

@@ -55,7 +55,6 @@ func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
 	return w
 }
 
-// ListenAndServe listens and serve in the specified addr
 func (w *WSConnector) OnStart() {
 	if len(w.onConnectListener) < 1 {
 		panic("onConnectListener() not set.")

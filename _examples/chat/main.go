@@ -3,47 +3,39 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/gin"
-	cherryORM "github.com/cherry-game/cherry/component/orm"
-	"github.com/cherry-game/cherry/net/connector"
+	cherryConnector "github.com/cherry-game/cherry/net/connector"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/serializer"
-	"github.com/cherry-game/cherry/net/session"
 )
 
 func main() {
-	app := cherry.NewApp("../config/", "dev", "game-1")
-	app.SetSerializer(cherrySerializer.NewJSON())
+	app := cherry.Configure("../config/", "chat", "game-1")
+
+	cherry.SetSerializer(cherrySerializer.NewJSON())
 
 	httpComp := cherryGin.New("127.0.0.1:80", cherryGin.RecoveryWithZap(true))
 	httpComp.StaticFS("/", "./web/")
+	cherry.RegisterComponent(httpComp)
 
-	sessionComp := cherrySession.NewComponent()
+	cherry.RegisterConnector(cherryConnector.NewWS(app.Address()))
+	//cherry.RegisterConnector(cherryConnector.NewTCP(app.Address())
 
-	connectorComp := cherryConnector.NewWSComponent(app.Address())
-	//connectorComp := cherryConnector.NewTCPComponent(app.Address())
+	handlerComponent()
 
-	app.Startup(
-		cherryORM.NewComponent(),
-		sessionComp,
-		handlerComponent(),
-		httpComp,
-		connectorComp,
-	)
-
+	cherry.Run()
 }
 
-func handlerComponent() *cherryHandler.Component {
-	component := cherryHandler.NewComponent(
+func handlerComponent() {
+	cherry.SetHandlerOptions(
 		cherryHandler.WithPrintRouteLog(true),
 	)
 
 	group1 := cherryHandler.NewGroup(10, 256)
 	group1.AddHandlers(&userHandler{})
-	component.Register(group1)
+
+	cherry.RegisterHandlerGroup(group1)
 
 	group2 := cherryHandler.NewGroup(10, 256)
 	group2.AddHandlers(&roomHandler{})
-	component.Register(group2)
-
-	return component
+	cherry.RegisterHandlerGroup(group2)
 }

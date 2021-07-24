@@ -1,58 +1,232 @@
 package cherry
 
 import (
-	"flag"
-	"fmt"
-	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/extend/time"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/packet"
-	"github.com/cherry-game/cherry/net/serializer"
-	"github.com/cherry-game/cherry/profile"
+	cherryFacade "github.com/cherry-game/cherry/facade"
+	cherryAgent "github.com/cherry-game/cherry/net/agent"
+	cherryCluster "github.com/cherry-game/cherry/net/cluster"
+	cherryCommand "github.com/cherry-game/cherry/net/command"
+	cherryConnector "github.com/cherry-game/cherry/net/connector"
+	cherryHandler "github.com/cherry-game/cherry/net/handler"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
+	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	cherrySession "github.com/cherry-game/cherry/net/session"
+	"time"
 )
 
-var thisNode *Application
+var (
+	_thisApp *Application
+)
+
+var (
+	_serializer       cherryFacade.ISerializer
+	_codec            cherryFacade.IPacketCodec
+	_components       []cherryFacade.IComponent
+	_clusterComponent *cherryCluster.Component
+)
+
+var (
+	_commands      = make(map[cherryPacket.Type]cherryCommand.ICommand)
+	_handshakeData = make(map[string]interface{})
+	_heartbeat     = 60 * time.Second
+	_connector     cherryFacade.IConnector
+)
+
+var (
+	_handlerOpts      []cherryHandler.Option
+	_handlerGroups    []*cherryHandler.HandlerGroup
+	_handlerComponent *cherryHandler.Component
+)
 
 func App() *Application {
-	return thisNode
+	return _thisApp
 }
 
-func NewDefaultApp() *Application {
-	var configPath, profile, nodeId string
-	flag.StringVar(&configPath, "path", "./config", "-path=~/git/project/config")
-	flag.StringVar(&profile, "profile", "local", "-profile=local")
-	flag.StringVar(&nodeId, "node", "game-1", "-node=game-1")
-	flag.Parse()
-
-	return NewApp(configPath, profile, nodeId)
+func Configure(profilePath, profileName, nodeId string) cherryFacade.IApplication {
+	_thisApp = NewApp(profilePath, profileName, nodeId)
+	return _thisApp
 }
 
-// NewApp create new application instance
-func NewApp(profilePath, profileName, nodeId string) *Application {
-	_, err := cherryProfile.Init(profilePath, profileName)
-	if err != nil {
-		panic(fmt.Sprintf("init profile fail. error = %s", err))
+func Run() {
+	if _thisApp == nil {
+		panic("please call the configure function first.")
 	}
 
-	node, err := cherryProfile.LoadNode(nodeId)
-	if err != nil {
-		panic(fmt.Sprintf("error = %s", err))
+	if _thisApp.Running() {
+		return
 	}
 
-	// set logger
-	cherryLogger.SetNodeLogger(node)
-
-	// print version info
-	cherryLogger.Info(cherryConst.GetLOGO())
-
-	thisNode = &Application{
-		INode:        node,
-		startTime:    cherryTime.Now(),
-		running:      0,
-		die:          make(chan bool),
-		ISerializer:  cherrySerializer.NewProtobuf(),
-		IPacketCodec: cherryPacket.NewPomeloCodec(),
+	if _codec != nil {
+		_thisApp.SetPacketCodec(_codec)
 	}
 
-	return thisNode
+	if _serializer != nil {
+		_thisApp.SetSerializer(_serializer)
+	}
+
+	// register session component
+	sessionComponent := cherrySession.NewComponent()
+	_thisApp.Register(sessionComponent)
+
+	// register handler component
+	_handlerComponent = cherryHandler.NewComponent(_handlerOpts...)
+	for _, group := range _handlerGroups {
+		_handlerComponent.Register(group)
+	}
+	_thisApp.Register(_handlerComponent)
+
+	// ad developer registered components
+	_thisApp.Register(_components...)
+
+	// register cluster component
+	if _clusterComponent != nil {
+		_thisApp.Register(_clusterComponent)
+		//配置 cluster 消息路由
+	}
+
+	// register connector component
+	if _connector != nil {
+		initConnectorComponent(sessionComponent)
+	}
+
+	_thisApp.Startup()
+}
+
+func initConnectorComponent(sessionComponent *cherrySession.Component) {
+	if len(_handshakeData) < 1 {
+		_handshakeData["heartbeat"] = _heartbeat.Seconds()
+	}
+
+	initCommand()
+
+	connectorComponent := cherryConnector.NewComponent(_connector)
+	stat := connectorComponent.ConnectStat
+
+	sessionComponent.AddOnCreate(func(session *cherrySession.Session) (next bool) {
+		stat.IncreaseConn()
+
+		session.Debugf("session on create. address[%s], state[%s]",
+			session.RemoteAddress(),
+			stat.PrintInfo(),
+		)
+		return true
+	})
+
+	sessionComponent.AddOnClose(func(session *cherrySession.Session) (next bool) {
+		stat.DecreaseConn()
+		session.Debugf("session on closed. address[%s], state[%s]",
+			session.RemoteAddress(),
+			stat.PrintInfo(),
+		)
+		return true
+	})
+
+	agentOptions := &cherryAgent.Options{
+		Heartbeat: _heartbeat,
+		Command:   _commands,
+	}
+
+	if _clusterComponent != nil {
+		// set rpc handler TODO clusterComponent提供接口
+		agentOptions.RPCHandler = _clusterComponent.SendUserMessage
+	} else {
+		agentOptions.RPCHandler = _handlerComponent.PostMessage
+	}
+
+	// new client connect
+	connectorComponent.OnConnect(func(conn cherryFacade.INetConn) {
+		// create agent
+		agent := cherryAgent.NewAgent(_thisApp, conn, agentOptions)
+
+		// create new session
+		session := sessionComponent.Create(agent)
+		agent.Session = session
+		// run agent
+		agent.Run()
+	})
+
+	_thisApp.Register(connectorComponent)
+}
+
+func initCommand() {
+	if len(_commands) > 0 {
+		return
+	}
+
+	// default values
+	handshakeCommand := cherryCommand.NewHandshake(_thisApp, _handshakeData)
+	RegisterCommand(handshakeCommand)
+
+	handshakeAckCommand := cherryCommand.NewHandshakeACK()
+	RegisterCommand(handshakeAckCommand)
+
+	heartbeatCommand := cherryCommand.NewHeartbeat(_thisApp)
+	RegisterCommand(heartbeatCommand)
+
+	handDataCommand := cherryCommand.NewData(_handlerComponent.PostMessage)
+	RegisterCommand(handDataCommand)
+}
+
+func SetHandlerOptions(opts ...cherryHandler.Option) {
+	_handlerOpts = append(_handlerOpts, opts...)
+}
+
+func SetSerializer(serializer cherryFacade.ISerializer) {
+	_serializer = serializer
+}
+
+func SetPacketCodec(codec cherryFacade.IPacketCodec) {
+	_codec = codec
+}
+
+func SetHeartbeat(time time.Duration) {
+	_heartbeat = time
+}
+
+func SetHandshake(key string, value interface{}) {
+	_handshakeData[key] = value
+}
+
+func SetDictionary(dict map[string]uint16) {
+	if _thisApp.Running() {
+		return
+	}
+
+	cherryMessage.SetDictionary(dict)
+}
+
+func SetMessageCompression(compression bool) {
+	if _thisApp.Running() {
+		return
+	}
+
+	cherryMessage.SetDataCompression(compression)
+}
+
+func SetOnShutdown(fn ...func()) {
+	_thisApp.OnShutdown(fn...)
+}
+
+func RegisterHandler(handler ...cherryFacade.IHandler) {
+	handlerGroup := cherryHandler.NewGroupWithHandler(handler...)
+	_handlerGroups = append(_handlerGroups, handlerGroup)
+}
+
+func RegisterHandlerGroup(group ...*cherryHandler.HandlerGroup) {
+	_handlerGroups = append(_handlerGroups, group...)
+}
+
+func RegisterComponent(component ...cherryFacade.IComponent) {
+	_components = append(_components, component...)
+}
+
+func RegisterConnector(connector cherryFacade.IConnector) {
+	_connector = connector
+}
+
+func RegisterCommand(command cherryCommand.ICommand) {
+	_commands[command.GetType()] = command
+}
+
+func RegisterCluster() {
+	_clusterComponent = cherryCluster.NewComponent()
 }
