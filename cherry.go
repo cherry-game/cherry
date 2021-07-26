@@ -74,7 +74,7 @@ func Run() {
 	}
 	_thisApp.Register(_handlerComponent)
 
-	// ad developer registered components
+	// add developer registered components
 	_thisApp.Register(_components...)
 
 	// register cluster component
