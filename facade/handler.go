@@ -11,8 +11,8 @@ type IHandler interface {
 	OnInit()                                          // 初始方法(PreInit之后)
 	OnAfterInit()                                     // 最后的初始化方法(Init之后)
 	OnStop()                                          // 停止handler运行
-	Events() map[string][]EventFn                     // 已注册的事件列表
-	Event(name string) ([]EventFn, bool)              // 根据事件名获取事件列表
+	Events() map[string][]EventFunc                   // 已注册的事件列表
+	Event(name string) ([]EventFunc, bool)            // 根据事件名获取事件列表
 	LocalHandlers() map[string]*HandlerFn             // 已注册的本地handler列表(网络消息的逻辑处理函数)
 	LocalHandler(funcName string) (*HandlerFn, bool)  // 根据handler名称获取本地handler
 	RemoteHandlers() map[string]*HandlerFn            // 已注册的远程handler列表(内部rpc调用的逻辑处理函数)

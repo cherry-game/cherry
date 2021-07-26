@@ -11,12 +11,12 @@ import (
 type (
 	Handler struct {
 		facade.AppContext
-		name             string                       // unique name
-		eventFn          map[string][]facade.EventFn  // event func
-		localHandlers    map[string]*facade.HandlerFn // local invoke Handler functions
-		remoteHandlers   map[string]*facade.HandlerFn // remote invoke Handler functions
-		handlerComponent *Component                   // handler component
-		sessionComponent *cherrySession.Component     // session component
+		name             string                        // unique name
+		eventSlice       map[string][]facade.EventFunc // event func
+		localHandlers    map[string]*facade.HandlerFn  // local invoke Handler functions
+		remoteHandlers   map[string]*facade.HandlerFn  // remote invoke Handler functions
+		handlerComponent *Component                    // handler component
+		sessionComponent *cherrySession.Component      // session component
 	}
 )
 
@@ -29,7 +29,7 @@ func (h *Handler) SetName(name string) {
 }
 
 func (h *Handler) OnPreInit() {
-	h.eventFn = make(map[string][]facade.EventFn)
+	h.eventSlice = make(map[string][]facade.EventFunc)
 	h.localHandlers = make(map[string]*facade.HandlerFn)
 	h.remoteHandlers = make(map[string]*facade.HandlerFn)
 
@@ -54,12 +54,12 @@ func (h *Handler) OnAfterInit() {
 func (h *Handler) OnStop() {
 }
 
-func (h *Handler) Events() map[string][]facade.EventFn {
-	return h.eventFn
+func (h *Handler) Events() map[string][]facade.EventFunc {
+	return h.eventSlice
 }
 
-func (h *Handler) Event(name string) ([]facade.EventFn, bool) {
-	events, found := h.eventFn[name]
+func (h *Handler) Event(name string) ([]facade.EventFunc, bool) {
+	events, found := h.eventSlice[name]
 	return events, found
 }
 
@@ -127,7 +127,7 @@ func (h *Handler) AddRemote(name string, fn interface{}) {
 	h.remoteHandlers[name] = invokeFunc
 }
 
-func (h *Handler) AddEvent(eventName string, fn facade.EventFn) {
+func (h *Handler) AddEvent(eventName string, fn facade.EventFunc) {
 	if eventName == "" {
 		cherryLogger.Warn("eventName is nil")
 		return
@@ -138,10 +138,10 @@ func (h *Handler) AddEvent(eventName string, fn facade.EventFn) {
 		return
 	}
 
-	events := h.eventFn[eventName]
+	events := h.eventSlice[eventName]
 	events = append(events, fn)
 
-	h.eventFn[eventName] = events
+	h.eventSlice[eventName] = events
 }
 
 func (h *Handler) PostEvent(e facade.IEvent) {

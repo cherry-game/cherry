@@ -6,5 +6,5 @@ type IEvent interface {
 	UniqueId() string // 事件唯一id
 }
 
-// EventFn 事件注册函数
-type EventFn func(e IEvent)
+// EventFunc 事件注册函数
+type EventFunc func(e IEvent)

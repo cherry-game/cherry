@@ -4,13 +4,13 @@ import facade "github.com/cherry-game/cherry/facade"
 
 type (
 	EventExecutor struct {
-		Event   facade.IEvent
-		EventFn []facade.EventFn
+		Event      facade.IEvent
+		EventSlice []facade.EventFunc
 	}
 )
 
 func (e *EventExecutor) Invoke() {
-	for _, fn := range e.EventFn {
+	for _, fn := range e.EventSlice {
 		fn(e.Event)
 	}
 }
