@@ -121,20 +121,18 @@ func (h *HandlerGroup) invokeExecutor(executor IExecutor) {
 }
 
 func (h *HandlerGroup) printInfo(handler facade.IHandler) {
-	cherryLogger.Debug("--------------------------------------")
-	cherryLogger.Debugf("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
+	cherryLogger.Infof("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
 	for key := range handler.Events() {
-		cherryLogger.Debugf("[Handler = %s] event = %s", handler.Name(), key)
+		cherryLogger.Infof("[Handler = %s] event = %s", handler.Name(), key)
 	}
 
 	for key := range handler.LocalHandlers() {
-		cherryLogger.Debugf("[Handler = %s] localHandler = %s", handler.Name(), key)
+		cherryLogger.Infof("[Handler = %s] localHandler = %s", handler.Name(), key)
 	}
 
 	for key := range handler.RemoteHandlers() {
-		cherryLogger.Debugf("[Handler = %s] removeHandler = %s", handler.Name(), key)
+		cherryLogger.Infof("[Handler = %s] removeHandler = %s", handler.Name(), key)
 	}
-	cherryLogger.Debug("--------------------------------------")
 }
 
 func DefaultQueueHash(executor IExecutor, queueNum int) int {

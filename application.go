@@ -164,22 +164,23 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	// component list
 	for _, c := range a.components {
 		c.Set(a)
-		cherryLogger.Debugf("[component = %s] is added.", c.Name())
+		cherryLogger.Infof("[component = %s] is added.", c.Name())
 	}
 	cherryLogger.Info("-------------------------------------------------")
 
 	// execute Init()
 	for _, c := range a.components {
-		cherryLogger.Debugf("[component = %s] -> OnInit().", c.Name())
+		cherryLogger.Infof("[component = %s] -> OnInit().", c.Name())
 		c.Init()
 	}
+	cherryLogger.Info("-------------------------------------------------")
 
 	//execute OnAfterInit()
 	for _, c := range a.components {
-		cherryLogger.Debugf("[component = %s] -> OnAfterInit().", c.Name())
+		cherryLogger.Infof("[component = %s] -> OnAfterInit().", c.Name())
 		c.OnAfterInit()
 	}
-
+	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId = %s] application is running.", a.NodeId())
 	cherryLogger.Info("-------------------------------------------------")
 
