@@ -61,7 +61,7 @@ func (s *Component) Bind(sid facade.SID, uid facade.UID) error {
 
 	session, found := s.sidMap[sid]
 	if found == false {
-		return cherryError.Errorf(" sid:[%d] does not exist.", sid)
+		return cherryError.Errorf("sid[%d] does not exist.", sid)
 	}
 
 	if session.UID() > 0 && session.UID() == uid {
@@ -97,7 +97,7 @@ func (s *Component) Import(sid facade.SID, key string, value interface{}) error 
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, sid:%d", sid)
+	return cherryError.Errorf("session does not exist, sid[%d]", sid)
 }
 
 func (s *Component) ImportAll(sid facade.SID, settings map[string]interface{}) error {
@@ -108,7 +108,7 @@ func (s *Component) ImportAll(sid facade.SID, settings map[string]interface{}) e
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, sid:%d", sid)
+	return cherryError.Errorf("session does not exist, sid[%d]", sid)
 }
 
 func (s *Component) Kick(uid facade.UID) error {
@@ -117,7 +117,7 @@ func (s *Component) Kick(uid facade.UID) error {
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, uid:%s", uid)
+	return cherryError.Errorf("session does not exist, uid[%d]", uid)
 }
 
 func (s *Component) KickBySID(sid facade.SID) error {
@@ -126,7 +126,7 @@ func (s *Component) KickBySID(sid facade.SID) error {
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, sid:%d", sid)
+	return cherryError.Errorf("session does not exist, sid[%d]", sid)
 }
 
 func (s *Component) ForEachSIDSession(fn func(s *Session)) {
