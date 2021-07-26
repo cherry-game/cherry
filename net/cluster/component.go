@@ -7,6 +7,7 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
+	cherryRoute "github.com/cherry-game/cherry/net/route"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	cherryProfile "github.com/cherry-game/cherry/profile"
 	"google.golang.org/grpc"
@@ -16,6 +17,14 @@ import (
 var (
 	GrpcOptions = []grpc.DialOption{grpc.WithInsecure()}
 )
+
+type IComponent interface {
+	SendUserMessage(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message)
+	SendSysMessage(nodeId string, msg *cherryProto.Message)
+	SendCloseSession(sessionId facade.SID)
+	OnCloseSession(func(sid facade.SID))
+	OnForward(func(msg *cherryProto.Message))
+}
 
 type Component struct {
 	facade.Component

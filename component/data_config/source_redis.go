@@ -43,7 +43,7 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 	}
 
 	r.prefixKey = redisNode.Get("prefix_key").ToString()
-	r.subscribeKey = redisNode.Get("subscribe_flush_key").ToString()
+	r.subscribeKey = redisNode.Get("subscribe_key").ToString()
 	r.address = redisNode.Get("address").ToString()
 	r.password = redisNode.Get("password").ToString()
 	r.db = redisNode.Get("db").ToInt()
@@ -62,6 +62,10 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 }
 
 func (r *SourceRedis) newSubscribe() {
+	if r.subscribeKey == "" {
+		panic("subscribe key is empty.")
+	}
+
 	sub := r.rdb.Subscribe(context.Background(), r.subscribeKey)
 
 	defer func(sub *redis.PubSub) {

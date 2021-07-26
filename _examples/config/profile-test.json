@@ -4,7 +4,7 @@
     "rpc": {
     },
     "discovery": {
-      "mode": "node",
+      "mode": "master",
       "@mode": "mode可配置: node,master,etcd，对应读取下面的配置信息",
       "master": "master-1",
       "etcd": {}
