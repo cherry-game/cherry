@@ -21,6 +21,7 @@ var (
 	_serializer       cherryFacade.ISerializer
 	_codec            cherryFacade.IPacketCodec
 	_components       []cherryFacade.IComponent
+	_sessionComponent *cherrySession.Component
 	_clusterComponent *cherryCluster.Component
 )
 
@@ -64,8 +65,8 @@ func Run() {
 	}
 
 	// register session component
-	sessionComponent := cherrySession.NewComponent()
-	_thisApp.Register(sessionComponent)
+	_sessionComponent = cherrySession.NewComponent()
+	_thisApp.Register(_sessionComponent)
 
 	// register handler component
 	_handlerComponent = cherryHandler.NewComponent(_handlerOpts...)
@@ -85,13 +86,13 @@ func Run() {
 
 	// register connector component
 	if _connector != nil {
-		initConnectorComponent(sessionComponent)
+		initConnectorComponent()
 	}
 
 	_thisApp.Startup()
 }
 
-func initConnectorComponent(sessionComponent *cherrySession.Component) {
+func initConnectorComponent() {
 	if len(_handshakeData) < 1 {
 		_handshakeData["heartbeat"] = _heartbeat.Seconds()
 	}
@@ -101,7 +102,7 @@ func initConnectorComponent(sessionComponent *cherrySession.Component) {
 	connectorComponent := cherryConnector.NewComponent(_connector)
 	stat := connectorComponent.ConnectStat
 
-	sessionComponent.AddOnCreate(func(session *cherrySession.Session) (next bool) {
+	_sessionComponent.AddOnCreate(func(session *cherrySession.Session) (next bool) {
 		stat.IncreaseConn()
 
 		session.Debugf("session on create. address[%s], state[%s]",
@@ -111,7 +112,7 @@ func initConnectorComponent(sessionComponent *cherrySession.Component) {
 		return true
 	})
 
-	sessionComponent.AddOnClose(func(session *cherrySession.Session) (next bool) {
+	_sessionComponent.AddOnClose(func(session *cherrySession.Session) (next bool) {
 		stat.DecreaseConn()
 		session.Debugf("session on closed. address[%s], state[%s]",
 			session.RemoteAddress(),
@@ -138,7 +139,7 @@ func initConnectorComponent(sessionComponent *cherrySession.Component) {
 		agent := cherryAgent.NewAgent(_thisApp, conn, agentOptions)
 
 		// create new session
-		session := sessionComponent.Create(agent)
+		session := _sessionComponent.Create(agent)
 		agent.Session = session
 		// run agent
 		agent.Run()

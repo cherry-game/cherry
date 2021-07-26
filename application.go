@@ -82,7 +82,6 @@ func (a *Application) Register(components ...facade.IComponent) {
 		}
 
 		a.components = append(a.components, c)
-		cherryLogger.Debugf("[component = %s] is added.", c.Name())
 	}
 }
 
@@ -141,12 +140,6 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		cherryLogger.Flush()
 	}()
 
-	// add components
-	a.Register(components...)
-
-	// is running
-	atomic.AddInt32(&a.running, 1)
-
 	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
 	cherryLogger.Infof("[pid         = %d]", os.Getpid())
@@ -162,9 +155,21 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	cherryLogger.Infof("[serializer  = %s]", a.ISerializer.Name())
 	cherryLogger.Info("-------------------------------------------------")
 
-	// execute Init()
+	// add components
+	a.Register(components...)
+
+	// is running
+	atomic.AddInt32(&a.running, 1)
+
+	// component list
 	for _, c := range a.components {
 		c.Set(a)
+		cherryLogger.Debugf("[component = %s] is added.", c.Name())
+	}
+	cherryLogger.Info("-------------------------------------------------")
+
+	// execute Init()
+	for _, c := range a.components {
 		cherryLogger.Debugf("[component = %s] -> OnInit().", c.Name())
 		c.Init()
 	}
