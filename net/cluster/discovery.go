@@ -1,6 +1,7 @@
 package cherryCluster
 
 import (
+	"fmt"
 	facade "github.com/cherry-game/cherry/facade"
 )
 
@@ -9,7 +10,7 @@ var (
 )
 
 func init() {
-	RegisterDiscovery(&DiscoveryNode{})
+	RegisterDiscovery(&DiscoveryDefault{})
 	RegisterDiscovery(&DiscoveryMaster{})
 }
 
@@ -19,7 +20,7 @@ func RegisterDiscovery(discovery facade.IDiscovery) {
 	}
 
 	if discovery.Name() == "" {
-		panic("discovery name is empty.")
+		panic(fmt.Sprintf("discovery name is empty. %T", discovery))
 	}
 
 	discoveryMap[discovery.Name()] = discovery
