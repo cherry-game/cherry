@@ -114,7 +114,7 @@ func initClusterComponent() {
 
 func initConnectorComponent() {
 	if _connector == nil {
-		return
+		panic("need to add IConnector")
 	}
 
 	if len(_handshakeData) < 1 {
@@ -143,9 +143,7 @@ func initConnectorComponent() {
 			stat.PrintInfo(),
 		)
 
-		//这会产生问题， 如果是前端服务器，则需要这么通知
-		//后端服务器，不必要通知
-		if _connector != nil && _clusterComponent != nil {
+		if _thisApp.isFrontend && _thisApp.nodeMode == Cluster {
 			_clusterComponent.SendCloseSession(session.SID())
 		}
 
@@ -157,8 +155,7 @@ func initConnectorComponent() {
 		Commands:  _commands,
 	}
 
-	// TODO rpc send interface
-	if _clusterComponent != nil {
+	if _thisApp.nodeMode == Cluster {
 		//如果是集群，则转发到这里
 		agentOptions.RPCHandler = _clusterComponent.SendSysMessage
 	} else {
