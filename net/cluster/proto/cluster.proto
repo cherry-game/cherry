@@ -45,7 +45,7 @@ message Message {
   int32   msgType = 2; // 消息类型(request,notify,response,push)
   string  nodeId  = 3; // 节点id
   int64   sid     = 4; // session id
-  uint64  id      = 5; // 消息唯一id
+  int32   id      = 5; // 消息唯一id
   string  route   = 6; // 路由
   bytes   data    = 7; // 数据
 }

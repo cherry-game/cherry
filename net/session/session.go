@@ -2,17 +2,10 @@ package cherrySession
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"sync/atomic"
 )
-
-var nextSessionId int64
-
-func NextSID() facade.SID {
-	return atomic.AddInt64(&nextSessionId, 1)
-}
 
 const (
 	Init = iota
@@ -29,11 +22,10 @@ type (
 		sid        facade.SID        // session id
 		uid        facade.UID        // user unique id
 		frontendId facade.FrontendId // frontend node id
-		component  *Component
 	}
 )
 
-func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INetwork, component *Component) *Session {
+func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INetwork) *Session {
 	session := &Session{
 		settings: settings{
 			data: make(map[string]interface{}),
@@ -42,14 +34,11 @@ func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INet
 		sid:        sid,
 		uid:        0,
 		frontendId: frontendId,
-		component:  component,
 	}
 
-	if component != nil {
-		for _, listener := range component.onCreate {
-			if listener(session) == false {
-				break
-			}
+	for _, listener := range onCreateListener {
+		if listener(session) == false {
+			break
 		}
 	}
 
@@ -80,18 +69,6 @@ func (s *Session) IsBind() bool {
 	return s.uid > 0
 }
 
-func (s *Session) Bind(uid facade.UID) error {
-	if uid < 1 {
-		return cherryError.SessionIllegalUID
-	}
-
-	return s.component.Bind(s.sid, uid)
-}
-
-func (s *Session) Unbind() {
-	s.component.Unbind(s.sid)
-}
-
 func (s *Session) SendRaw(bytes []byte) error {
 	if s.entity == nil {
 		s.Debug("entity is nil")
@@ -113,8 +90,8 @@ func (s *Session) Push(route string, v interface{}) error {
 
 // Response responses message to client, mid is
 // request message ID
-func (s *Session) Response(mid uint, v interface{}) error {
-	return s.entity.Response(mid, v)
+func (s *Session) Response(mid uint, v interface{}, isError ...bool) error {
+	return s.entity.Response(mid, v, isError...)
 }
 
 func (s *Session) Kick(reason string, close bool) {
@@ -137,14 +114,12 @@ func (s *Session) Close() {
 
 func (s *Session) OnCloseProcess() {
 	// when session closed,the func is executed
-	if s.component != nil {
-		for _, listener := range s.component.onClose {
-			if listener(s) == false {
-				break
-			}
+	for _, listener := range onCloseListener {
+		if listener(s) == false {
+			break
 		}
 	}
-	s.Unbind()
+	Unbind(s.sid)
 }
 
 func (s *Session) RemoteAddress() string {

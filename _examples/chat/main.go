@@ -22,7 +22,7 @@ func main() {
 
 	handlerComponent()
 
-	cherry.Run()
+	cherry.Run(true, cherry.Standalone)
 }
 
 func handlerComponent() {

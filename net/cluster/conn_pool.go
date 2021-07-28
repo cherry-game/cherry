@@ -51,7 +51,7 @@ func (c *connPool) GetMasterClient(nodeId string) (cherryProto.MasterServiceClie
 	return clientConn.masterClient, true
 }
 
-func (c *connPool) add(member cherryFacade.IMember) {
+func (c *connPool) addConn(member cherryFacade.IMember) {
 	value := c.pools.Get(member.GetNodeId())
 	if value != nil {
 		clientConn := value.(*conn)

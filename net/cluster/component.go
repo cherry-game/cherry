@@ -7,7 +7,6 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryRoute "github.com/cherry-game/cherry/net/route"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	cherryProfile "github.com/cherry-game/cherry/profile"
 	"google.golang.org/grpc"
@@ -19,21 +18,20 @@ var (
 )
 
 type IComponent interface {
-	SendUserMessage(session *cherrySession.Session, route *cherryRoute.Route, msg *cherryMessage.Message)
-	SendSysMessage(nodeId string, msg *cherryProto.Message)
-	SendCloseSession(sessionId facade.SID)
+	SendUserMessage(session *cherrySession.Session, msg *cherryMessage.Message)
+	SendSysMessage(session *cherrySession.Session, msg *cherryMessage.Message)
+	SendCloseSession(sid facade.SID)
 	OnCloseSession(func(sid facade.SID))
 	OnForward(func(msg *cherryProto.Message))
 }
 
 type Component struct {
 	facade.Component
-	mode             string
-	discovery        facade.IDiscovery
-	rpcServer        *grpc.Server
-	clientPool       *connPool
-	onCloseSessionFn func(sid facade.SID)
-	onForwardFn      func(msg *cherryProto.Message)
+	mode        string
+	discovery   facade.IDiscovery
+	grpcServer  *grpc.Server
+	clientPool  *connPool
+	onForwardFn func(msg *cherryProto.Message)
 }
 
 func NewComponent() *Component {
@@ -69,12 +67,14 @@ func (c *Component) Init() {
 		return
 	}
 
-	c.rpcServer = grpc.NewServer()
-	c.discovery.Init(c.App(), c.rpcServer, discoveryConfig)
+	c.grpcServer = grpc.NewServer()
+	c.discovery.Init(c.App(), discoveryConfig, c.grpcServer)
 	c.initRPCServer()
 
 	c.clientPool = newPool(GrpcOptions...)
+}
 
+func (c *Component) OnAfterInit() {
 }
 
 func (c *Component) initRPCServer() {
@@ -83,10 +83,10 @@ func (c *Component) initRPCServer() {
 		panic(err)
 	}
 
-	cherryProto.RegisterMemberServiceServer(c.rpcServer, c)
+	cherryProto.RegisterMemberServiceServer(c.grpcServer, c)
 
 	go func() {
-		err := c.rpcServer.Serve(listener)
+		err := c.grpcServer.Serve(listener)
 		if err != nil {
 			cherryLogger.Errorf("start current master server node failed: %v", err)
 		}
@@ -96,7 +96,10 @@ func (c *Component) initRPCServer() {
 }
 
 func (c *Component) OnStop() {
-	c.rpcServer.GracefulStop()
+	if c.grpcServer != nil {
+		c.grpcServer.GracefulStop()
+	}
+
 	c.clientPool.close()
 	c.discovery.OnStop()
 }
@@ -123,13 +126,10 @@ func (c *Component) RemoveMember(_ context.Context, node *cherryProto.NodeId) (*
 	return &cherryProto.Response{}, nil
 }
 
-func (c *Component) CloseSession(_ context.Context, session *cherryProto.SessionId) (*cherryProto.Response, error) {
-	if c.onCloseSessionFn != nil {
-		c.onCloseSessionFn(session.Sid)
-	} else {
-		cherryLogger.Warnf("on close session function not found. [sessionId = %d]", session.Sid)
+func (c *Component) CloseSession(_ context.Context, sessionId *cherryProto.SessionId) (*cherryProto.Response, error) {
+	if session, found := cherrySession.GetBySID(sessionId.Sid); found {
+		session.Close()
 	}
-
 	return &cherryProto.Response{}, nil
 }
 
@@ -146,18 +146,45 @@ func (c *Component) Forward(_ context.Context, msg *cherryProto.Message) (*cherr
 func (c *Component) SendUserMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
 	cherryLogger.Info("forward message to remote server ")
 
-	// 根据 nodeType() 获取 路由的策略
-	// 获取clienPool 连接信息
-	// 转发消息
-
-	//c.clientPool.GetMemberClient()
+	//根据 msg.Route，与配置的路由策略规则获取 nodeId
+	var nodeId = ""
+	message := &cherryProto.Message{
+		RpcType: cherryProto.RPCType_User,
+		MsgType: int32(msg.Type),
+		NodeId:  nodeId,
+		Sid:     session.SID(),
+		Id:      int32(msg.ID),
+		Route:   msg.Route,
+		Data:    msg.Data,
+	}
+	c.sendRPC(nodeId, message)
 }
 
-func (c *Component) SendSysMessage(nodeId string, msg *cherryProto.Message) {
-
+func (c *Component) SendSysMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
+	//根据 msg.Route，与配置的路由策略规则获取 nodeId
+	var nodeId = ""
+	message := &cherryProto.Message{
+		RpcType: cherryProto.RPCType_Sys,
+		MsgType: int32(msg.Type),
+		NodeId:  nodeId,
+		Sid:     session.SID(),
+		Id:      int32(msg.ID),
+		Route:   msg.Route,
+		Data:    msg.Data,
+	}
+	c.sendRPC(nodeId, message)
 }
 
-// SendCloseSession move to handlerComponent
+func (c *Component) sendRPC(nodeId string, message *cherryProto.Message) {
+	client, found := c.clientPool.GetMemberClient(nodeId)
+	if found {
+		_, err := client.Forward(context.Background(), message)
+		if err != nil {
+			cherryLogger.Warnf("nodeId[%s], msg[%s], err[%s]", nodeId, message, err)
+		}
+	}
+}
+
 func (c *Component) SendCloseSession(sid facade.SID) {
 	for _, member := range c.discovery.List() {
 		if member.GetNodeId() == c.App().NodeId() {
@@ -182,6 +209,6 @@ func (c *Component) OnCloseSession(func(sid facade.SID)) {
 
 }
 
-func (c *Component) OnForward(func(msg *cherryProto.Message)) {
-
+func (c *Component) OnForward(fn func(msg *cherryProto.Message)) {
+	c.onForwardFn = fn
 }

@@ -11,7 +11,7 @@ type SafeMap struct {
 	m    map[interface{}]interface{}
 }
 
-// NewSafeMap return new safemap
+// NewSafeMap return new SafeMap
 func NewSafeMap() *SafeMap {
 	return &SafeMap{
 		lock: new(sync.RWMutex),

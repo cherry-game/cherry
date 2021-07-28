@@ -8,7 +8,11 @@
       "reload_time": 3000
     },
     "redis": {
-      "redis_key": "config:server:xgame"
+      "prefix_key": "data_config",
+      "subscribe_key": "data_config_change",
+      "address": "127.0.0.1:6379",
+      "password": "",
+      "db": 7
     }
   }
 }

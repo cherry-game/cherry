@@ -23,7 +23,7 @@ type (
 
 	Options struct {
 		Heartbeat  time.Duration                                // heartbeat(sec)
-		Command    map[cherryPacket.Type]cherryCommand.ICommand // commands
+		Commands   map[cherryPacket.Type]cherryCommand.ICommand // commands
 		RPCHandler RPCHandler                                   // rpc handler
 	}
 
@@ -97,7 +97,7 @@ func (a *Agent) Push(route string, val interface{}) error {
 	return a.Send(cherryMessage.Push, route, 0, val, false)
 }
 
-// RPC implementation for session.NetworkEntity interface
+// RPC implementation for cherryFacade.INetwork interface
 func (a *Agent) RPC(route string, val interface{}) error {
 	if a.Session.State() == cherrySession.Closed {
 		return cherryError.ClusterBrokenPipe
@@ -211,7 +211,7 @@ func (a *Agent) read() {
 }
 
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
-	cmd, found := a.Command[packet.Type()]
+	cmd, found := a.Commands[packet.Type()]
 	if found == false {
 		a.Session.Debugf("packet[%s] type not found.", packet)
 		return

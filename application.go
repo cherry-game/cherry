@@ -17,11 +17,20 @@ import (
 	"syscall"
 )
 
+const (
+	Cluster    NodeMode = 1 // 集群模式
+	Standalone NodeMode = 2 // 单机模式
+)
+
 type (
+	NodeMode byte
+
 	Application struct {
 		facade.INode
 		facade.ISerializer
 		facade.IPacketCodec
+		isFrontend   bool
+		nodeMode     NodeMode
 		startTime    cherryTime.CherryTime // application start time
 		running      int32                 // is running
 		die          chan bool             // wait for end application
@@ -55,9 +64,19 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 		die:          make(chan bool),
 		ISerializer:  cherrySerializer.NewProtobuf(),
 		IPacketCodec: cherryPacket.NewPomeloCodec(),
+		isFrontend:   true,
+		nodeMode:     Standalone,
 	}
 
 	return app
+}
+
+func (a *Application) IsFrontend() bool {
+	return a.isFrontend
+}
+
+func (a *Application) NodeMode() NodeMode {
+	return a.nodeMode
 }
 
 func (a *Application) Running() bool {

@@ -5,7 +5,6 @@ import (
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/session"
 )
 
 type (
@@ -16,7 +15,6 @@ type (
 		localHandlers    map[string]*facade.HandlerFn  // local invoke Handler functions
 		remoteHandlers   map[string]*facade.HandlerFn  // remote invoke Handler functions
 		handlerComponent *Component                    // handler component
-		sessionComponent *cherrySession.Component      // session component
 	}
 )
 
@@ -34,11 +32,6 @@ func (h *Handler) OnPreInit() {
 	h.remoteHandlers = make(map[string]*facade.HandlerFn)
 
 	var found = false
-	h.sessionComponent, found = h.App().Find(cherryConst.SessionComponent).(*cherrySession.Component)
-	if found == false {
-		panic("session component not found.")
-	}
-
 	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(*Component)
 	if found == false {
 		panic("handler component not found.")
@@ -151,14 +144,6 @@ func (h *Handler) PostEvent(e facade.IEvent) {
 	}
 
 	h.handlerComponent.PostEvent(e)
-}
-
-func (h *Handler) AddOnCreate(listener ...cherrySession.SessionListener) {
-	h.sessionComponent.AddOnCreate(listener...)
-}
-
-func (h *Handler) AddOnClose(listener ...cherrySession.SessionListener) {
-	h.sessionComponent.AddOnClose(listener...)
 }
 
 func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {

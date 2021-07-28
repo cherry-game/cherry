@@ -28,7 +28,7 @@ const (
 type RPCType int32
 
 const (
-	RPCType_User RPCType = 0 // 用户消息
+	RPCType_User RPCType = 0 // 用户消息，(需要保存，前端节点Id)
 	RPCType_Sys  RPCType = 1 // 系统消息
 )
 
@@ -283,11 +283,11 @@ type Message struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	RpcType RPCType `protobuf:"varint,1,opt,name=rpcType,proto3,enum=cherryCluster.RPCType" json:"rpcType,omitempty"` // rpc 类型
-	MsgType int32   `protobuf:"varint,2,opt,name=msgType,proto3" json:"msgType,omitempty"`                            // 消息类型(none,request,notify,response,push)
+	RpcType RPCType `protobuf:"varint,1,opt,name=rpcType,proto3,enum=cherryCluster.RPCType" json:"rpcType,omitempty"` // rpc类型
+	MsgType int32   `protobuf:"varint,2,opt,name=msgType,proto3" json:"msgType,omitempty"`                            // 消息类型(request,notify,response,push)
 	NodeId  string  `protobuf:"bytes,3,opt,name=nodeId,proto3" json:"nodeId,omitempty"`                               // 节点id
 	Sid     int64   `protobuf:"varint,4,opt,name=sid,proto3" json:"sid,omitempty"`                                    // session id
-	Id      uint64  `protobuf:"varint,5,opt,name=id,proto3" json:"id,omitempty"`                                      // 消息唯一id
+	Id      int32   `protobuf:"varint,5,opt,name=id,proto3" json:"id,omitempty"`                                      // 消息唯一id
 	Route   string  `protobuf:"bytes,6,opt,name=route,proto3" json:"route,omitempty"`                                 // 路由
 	Data    []byte  `protobuf:"bytes,7,opt,name=data,proto3" json:"data,omitempty"`                                   // 数据
 }
@@ -352,7 +352,7 @@ func (x *Message) GetSid() int64 {
 	return 0
 }
 
-func (x *Message) GetId() uint64 {
+func (x *Message) GetId() int32 {
 	if x != nil {
 		return x.Id
 	}
@@ -453,7 +453,7 @@ var file_cluster_proto_rawDesc = []byte{
 	0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x18, 0x03, 0x20, 0x01, 0x28, 0x09, 0x52, 0x06, 0x6e, 0x6f,
 	0x64, 0x65, 0x49, 0x64, 0x12, 0x10, 0x0a, 0x03, 0x73, 0x69, 0x64, 0x18, 0x04, 0x20, 0x01, 0x28,
 	0x03, 0x52, 0x03, 0x73, 0x69, 0x64, 0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x05, 0x20, 0x01,
-	0x28, 0x04, 0x52, 0x02, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x18,
+	0x28, 0x05, 0x52, 0x02, 0x69, 0x64, 0x12, 0x14, 0x0a, 0x05, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x18,
 	0x06, 0x20, 0x01, 0x28, 0x09, 0x52, 0x05, 0x72, 0x6f, 0x75, 0x74, 0x65, 0x12, 0x12, 0x0a, 0x04,
 	0x64, 0x61, 0x74, 0x61, 0x18, 0x07, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x04, 0x64, 0x61, 0x74, 0x61,
 	0x22, 0x1d, 0x0a, 0x09, 0x53, 0x65, 0x73, 0x73, 0x69, 0x6f, 0x6e, 0x49, 0x64, 0x12, 0x10, 0x0a,

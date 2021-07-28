@@ -15,7 +15,7 @@ import (
 
 // DiscoveryMaster master节点模式(master为单点)
 type DiscoveryMaster struct {
-	DiscoveryNode
+	DiscoveryDefault
 	facade.IApplication
 	masterMember  facade.IMember
 	rpcServer     *grpc.Server
@@ -27,16 +27,33 @@ func (m *DiscoveryMaster) Name() string {
 	return "master"
 }
 
-func (m *DiscoveryMaster) Init(app facade.IApplication, rpcServer *grpc.Server, discoveryConfig jsoniter.Any) {
+func (m *DiscoveryMaster) Init(app facade.IApplication, config jsoniter.Any, params ...interface{}) {
+	if params == nil || len(params) < 1 {
+		cherryLogger.Warnf("params is empty.")
+		return
+	}
+
+	grpcServer, ok := params[0].(*grpc.Server)
+	if ok == false {
+		cherryLogger.Warnf("params convert to *grpc.Server fail.")
+		return
+	}
+
+	m.rpcServer = grpcServer
 	m.IApplication = app
-	m.rpcServer = rpcServer
 
-	// TODO read from profile config
-	m.retryInterval = 2 * time.Second
+	//get master config info
+	masterConfig := config.Get(m.Name())
 
-	masterId := discoveryConfig.Get(m.Name()).ToString()
+	// read
+	masterId := masterConfig.Get("master_node_id").ToString()
 	if masterId == "" {
 		panic("master node id not config.")
+	}
+
+	m.retryInterval = time.Duration(masterConfig.Get("retry_interval").ToInt())
+	if m.retryInterval < 1 {
+		m.retryInterval = 2 * time.Second
 	}
 
 	// load master node config
@@ -66,12 +83,12 @@ func (m *DiscoveryMaster) serverInit() {
 
 	m.AddMember(m.masterMember)
 
-	cherryLogger.Infof("[discovery = %s] master server node is running. [address = %s]",
+	cherryLogger.Infof("[discoveryName = %s] is running. [address = %s]",
 		m.Name(), m.masterMember.GetAddress())
 }
 
 func (m *DiscoveryMaster) clientInit() {
-	m.clientPool.add(m.masterMember)
+	m.clientPool.addConn(m.masterMember)
 
 	client, found := m.clientPool.GetMasterClient(m.masterMember.GetNodeId())
 	if found == false {
@@ -199,11 +216,11 @@ func (m *DiscoveryMaster) Unregister(ctx context.Context, nodeId *cherryProto.No
 }
 
 func (m *DiscoveryMaster) AddMember(member facade.IMember) {
-	m.clientPool.add(member)
-	m.DiscoveryNode.AddMember(member)
+	m.clientPool.addConn(member)
+	m.DiscoveryDefault.AddMember(member)
 }
 
 func (m *DiscoveryMaster) RemoveMember(nodeId string) {
 	m.clientPool.remove(nodeId)
-	m.DiscoveryNode.RemoveMember(nodeId)
+	m.DiscoveryDefault.RemoveMember(nodeId)
 }

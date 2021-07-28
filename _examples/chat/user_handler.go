@@ -20,7 +20,7 @@ func (h *userHandler) OnInit() {
 	h.AddLocal("login", h.login)
 	h.AddLocal("testLogin", h.testLogin)
 
-	h.AddOnClose(disconnect)
+	cherrySession.AddOnCloseListener(disconnect)
 
 	h.AddBeforeFilter(func(session *cherrySession.Session, message *cherryMessage.Message) bool {
 		//if session.IsBind() == false && message.Route != "game.userHandler.login" {

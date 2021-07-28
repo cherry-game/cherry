@@ -53,7 +53,6 @@ func app() {
 	}(testApp)
 
 	testApp.Startup(
-		cherrySession.NewComponent(),
 		handlerComponent,
 		dataConfigComponent,
 		&mockComponent{},

@@ -3,9 +3,12 @@
     "rpc": {
     },
     "discovery": {
-      "mode": "node",
-      "@mode": "mode值可配置: node,master,etcd，则相应读取下面对应的配置信息",
-      "master": "master-1",
+      "mode": "default",
+      "@mode": "mode值可配置: default,master,etcd，则相应读取下面对应的配置信息",
+      "master": {
+        "master_node_id": "master-1",
+        "retry_interval": 2
+      },
       "etcd": {}
     }
   }

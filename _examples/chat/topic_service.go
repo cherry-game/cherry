@@ -25,7 +25,7 @@ func newUser(s *cherrySession.Session, nickName string) error {
 	atomic.AddInt64(&nextUid, 1)
 
 	uid := nextUid
-	if err := s.Bind(uid); err != nil {
+	if err := cherrySession.Bind(s.SID(), uid); err != nil {
 		return err
 	}
 

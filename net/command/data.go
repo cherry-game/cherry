@@ -9,15 +9,15 @@ import (
 
 type (
 	Data struct {
-		post PostPacketFn
+		post PostHandler
 	}
 
-	PostPacketFn func(session *cherrySession.Session, msg *cherryMessage.Message)
+	PostHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
 )
 
-func NewData(postPacketFn PostPacketFn) *Data {
+func NewData(postHandler PostHandler) *Data {
 	data := &Data{
-		post: postPacketFn,
+		post: postHandler,
 	}
 	return data
 }

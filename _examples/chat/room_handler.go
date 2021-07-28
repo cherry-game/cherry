@@ -22,7 +22,7 @@ func (h *roomHandler) OnInit() {
 	h.AddLocal("joinRoom", h.joinRoom)
 	h.AddLocal("syncMessage", h.syncMessage)
 
-	h.AddOnClose(h.disconnected)
+	cherrySession.AddOnCreateListener(h.disconnected)
 }
 
 func (h *roomHandler) joinRoom(session *cherrySession.Session, _ *cherryMessage.Message, req *joinRoomRequest) error {

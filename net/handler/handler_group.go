@@ -10,7 +10,6 @@ import (
 
 type (
 	HandlerGroup struct {
-		//handlers  map[string]facade.IHandler
 		handlers  map[string]facade.IHandler
 		queueNum  int
 		queueCap  int
