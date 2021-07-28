@@ -8,13 +8,11 @@ import (
 	"net/http"
 )
 
-var resultMaps = make(map[int]*cherryResult.Result)
+var codeMaps = make(map[int]string)
 
-func InitResult(list ...*cherryResult.Result) {
-	resultMaps = make(map[int]*cherryResult.Result)
-
-	for _, result := range list {
-		resultMaps[result.Code] = result
+func InitCode(maps map[int]string) {
+	for k, v := range maps {
+		codeMaps[k] = v
 	}
 }
 
@@ -143,11 +141,9 @@ func (g *Context) RenderHTML(html string) {
 }
 
 func (g *Context) RenderResult(code int, data ...interface{}) {
-	result, found := resultMaps[code]
-	if found == false {
-		result = cherryResult.New(code)
-	}
+	msg := codeMaps[code]
 
+	result := cherryResult.NewResult(code, msg)
 	if len(data) > 0 {
 		result.Data = data[0]
 	}
