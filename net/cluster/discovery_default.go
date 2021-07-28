@@ -25,7 +25,7 @@ func (n *DiscoveryDefault) Name() string {
 }
 
 func (n *DiscoveryDefault) Init(_ facade.IApplication, _ jsoniter.Any, _ ...interface{}) {
-	nodes := cherryProfile.Config().Get(n.Name())
+	nodes := cherryProfile.Config().Get("node")
 	if nodes.LastError() != nil {
 		cherryLogger.Error("`node` property not found in profile file.")
 		return
