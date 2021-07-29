@@ -49,6 +49,10 @@ func IntToString(value int) string {
 	return strconv.Itoa(value)
 }
 
+func Int32ToString(value int32) string {
+	return strconv.FormatInt(int64(value), 10)
+}
+
 func Int64ToString(value int64) string {
 	return strconv.FormatInt(value, 10)
 }
