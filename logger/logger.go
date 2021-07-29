@@ -1,6 +1,7 @@
 package cherryLogger
 
 import (
+	"fmt"
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
@@ -64,7 +65,7 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 
 	jsonConfig := loggerConfigs.Get(refLoggerName)
 	if jsonConfig.LastError() != nil {
-		panic(jsonConfig.LastError())
+		panic(fmt.Sprintf("ref_logger = %s not found. error = %v", refLoggerName, jsonConfig.LastError()))
 	}
 
 	config := NewConfig(jsonConfig)
