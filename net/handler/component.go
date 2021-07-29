@@ -55,13 +55,13 @@ func (c *Component) Name() string {
 }
 
 func (c *Component) Init() {
+}
+
+func (c *Component) OnAfterInit() {
 	//run handler group
 	for _, g := range c.groups {
 		g.run(c.App())
 	}
-}
-
-func (c *Component) OnAfterInit() {
 }
 
 func (c *Component) OnStop() {
