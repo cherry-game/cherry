@@ -141,5 +141,5 @@ func (c *connPool) close() {
 		c.pools.Delete(key)
 	}
 
-	cherryLogger.Infof("clientConn pool is closed.")
+	cherryLogger.Infof("connPool pool is closed.")
 }
