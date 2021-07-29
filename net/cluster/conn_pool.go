@@ -1,13 +1,12 @@
 package cherryCluster
 
 import (
-	"context"
 	cherryMap "github.com/cherry-game/cherry/extend/map"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	"google.golang.org/grpc"
-	"time"
+	"sync"
 )
 
 type (
@@ -16,9 +15,11 @@ type (
 		pools *cherryMap.SafeMap
 	}
 
-	conn struct {
+	clientConn struct {
+		sync.Mutex
 		nodeId        string
 		address       string
+		connected     bool
 		rpcClientConn *grpc.ClientConn
 		masterClient  cherryProto.MasterServiceClient
 		memberClient  cherryProto.MemberServiceClient
@@ -34,45 +35,43 @@ func newPool(opts ...grpc.DialOption) *connPool {
 }
 
 func (c *connPool) GetMemberClient(nodeId string) (cherryProto.MemberServiceClient, bool) {
-	clientConn, found := c.getConn(nodeId)
+	conn, found := c.getConn(nodeId)
 	if found == false {
 		return nil, found
 	}
 
-	return clientConn.memberClient, true
+	if err := conn.connect(); err != nil {
+		cherryLogger.Warnf("[grpc client] unable to connect to server %s at %s: %v", nodeId, conn.address, err)
+		return nil, false
+	}
+
+	return conn.memberClient, true
 }
 
 func (c *connPool) GetMasterClient(nodeId string) (cherryProto.MasterServiceClient, bool) {
-	clientConn, found := c.getConn(nodeId)
+	conn, found := c.getConn(nodeId)
 	if found == false {
 		return nil, found
 	}
 
-	return clientConn.masterClient, true
+	if err := conn.connect(); err != nil {
+		cherryLogger.Warnf("[grpc client] unable to connect to server %s at %s: %v", nodeId, conn.address, err)
+		return nil, false
+	}
+
+	return conn.masterClient, true
 }
 
 func (c *connPool) addConn(member cherryFacade.IMember) {
 	value := c.pools.Get(member.GetNodeId())
 	if value != nil {
-		clientConn := value.(*conn)
-		if clientConn.address == member.GetAddress() {
-			return
-		}
 		c.remove(member.GetNodeId())
 	}
 
-	rpcClientConn, err := c.buildRpcClientConn(member.GetAddress())
-	if err != nil {
-		cherryLogger.Warnf("build client conn error. [error = %s]", err)
-		return
-	}
-
-	newConn := &conn{
-		nodeId:        member.GetNodeId(),
-		address:       member.GetAddress(),
-		rpcClientConn: rpcClientConn,
-		masterClient:  cherryProto.NewMasterServiceClient(rpcClientConn),
-		memberClient:  cherryProto.NewMemberServiceClient(rpcClientConn),
+	newConn := &clientConn{
+		nodeId:    member.GetNodeId(),
+		address:   member.GetAddress(),
+		connected: false,
 	}
 
 	c.pools.Set(member.GetNodeId(), newConn)
@@ -88,32 +87,45 @@ func (c *connPool) remove(nodeId string) {
 	c.pools.Delete(nodeId)
 }
 
-func (c *connPool) getConn(nodeId string) (*conn, bool) {
+func (c *connPool) getConn(nodeId string) (*clientConn, bool) {
 	value := c.pools.Get(nodeId)
 	if value != nil {
-		return value.(*conn), true
+		return value.(*clientConn), true
 	}
 
 	return nil, false
 }
 
-func (c *connPool) buildRpcClientConn(address string) (*grpc.ClientConn, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	dialConn, err := grpc.DialContext(
-		ctx,
-		address,
-		c.opts...,
-	)
-	cancel()
+func (c *clientConn) connect() error {
+	c.Lock()
+	defer c.Unlock()
 
-	if err != nil {
-		return nil, err
+	if c.connected {
+		return nil
 	}
 
-	return dialConn, nil
+	rpcClientConn, err := grpc.Dial(
+		c.address,
+		grpc.WithInsecure(),
+	)
+
+	if err != nil {
+		return err
+	}
+
+	c.masterClient = cherryProto.NewMasterServiceClient(rpcClientConn)
+	c.memberClient = cherryProto.NewMemberServiceClient(rpcClientConn)
+	c.rpcClientConn = rpcClientConn
+	c.connected = true
+
+	return nil
 }
 
-func (c *conn) disconnect() {
+func (c *clientConn) disconnect() {
+	c.Lock()
+	c.connected = false
+	c.Unlock()
+
 	if c.rpcClientConn != nil {
 		err := c.rpcClientConn.Close()
 		if err != nil {
@@ -124,10 +136,10 @@ func (c *conn) disconnect() {
 
 func (c *connPool) close() {
 	for key, value := range c.pools.Items() {
-		con := value.(*conn)
+		con := value.(*clientConn)
 		con.disconnect()
 		c.pools.Delete(key)
 	}
 
-	cherryLogger.Infof("conn pool is closed.")
+	cherryLogger.Infof("clientConn pool is closed.")
 }
