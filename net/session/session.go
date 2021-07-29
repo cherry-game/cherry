@@ -94,7 +94,7 @@ func (s *Session) Response(mid uint, v interface{}, isError ...bool) error {
 	return s.entity.Response(mid, v, isError...)
 }
 
-func (s *Session) Kick(reason string, close bool) {
+func (s *Session) Kick(reason interface{}, close bool) {
 	err := s.entity.Kick(reason)
 	if err != nil {
 		s.Warn(err)
