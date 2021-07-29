@@ -113,6 +113,10 @@ func initClusterComponent() {
 }
 
 func initConnectorComponent() {
+	if _thisApp.isFrontend == false {
+		return
+	}
+
 	if _connector == nil {
 		panic("need to add IConnector")
 	}
