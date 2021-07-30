@@ -75,7 +75,7 @@ func ParseHeader(header []byte) (int, Type, error) {
 
 	typ := header[0]
 	if InvalidType(typ) {
-		return 0, None, cherryError.Errorf("wrong packet type. typ = %d, header = %v", typ, header)
+		return 0, None, cherryError.Errorf("wrong packet type. typ = %d, header = %d", typ, header)
 	}
 
 	size := BytesToInt(header[1:])
