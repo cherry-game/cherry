@@ -71,7 +71,7 @@ func (s *Session) IsBind() bool {
 
 func (s *Session) SendRaw(bytes []byte) error {
 	if s.entity == nil {
-		s.Debug("entity is nil. bytes = %v", bytes)
+		s.Debug("[SendRaw] entity is nil. bytes = %v", bytes)
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func (s *Session) SendRaw(bytes []byte) error {
 // RPC sends message to remote server
 func (s *Session) RPC(route string, val interface{}) error {
 	if s.entity == nil {
-		s.Debug("entity is nil. route = %s, val = %v", route, val)
+		s.Debug("[RPC] entity is nil. route = %s, val = %v", route, val)
 		return nil
 	}
 
@@ -91,7 +91,7 @@ func (s *Session) RPC(route string, val interface{}) error {
 // Push message to client
 func (s *Session) Push(route string, val interface{}) error {
 	if s.entity == nil {
-		s.Debug("entity is nil. route = %s, val = %v", route, val)
+		s.Debug("[Push] entity is nil. route = %s, val = %v", route, val)
 		return nil
 	}
 
@@ -102,7 +102,7 @@ func (s *Session) Push(route string, val interface{}) error {
 // request message ID
 func (s *Session) Response(mid uint, val interface{}, isError ...bool) error {
 	if s.entity == nil {
-		s.Debug("entity is nil. mid = %d, val = %v, isError = %v", mid, val, isError)
+		s.Debug("[Response] entity is nil. mid = %d, val = %v, isError = %v", mid, val, isError)
 		return nil
 	}
 
@@ -111,7 +111,7 @@ func (s *Session) Response(mid uint, val interface{}, isError ...bool) error {
 
 func (s *Session) Kick(reason interface{}, close bool) {
 	if s.entity == nil {
-		s.Debug("entity is nil. reason = %v, close = %v", reason, close)
+		s.Debug("[Kick] entity is nil. reason = %v, close = %v", reason, close)
 		return
 	}
 
@@ -128,7 +128,7 @@ func (s *Session) Kick(reason interface{}, close bool) {
 
 func (s *Session) Close() {
 	if s.entity == nil {
-		s.Debug("entity is nil")
+		s.Debug("[Close] entity is nil")
 		return
 	}
 
@@ -147,7 +147,7 @@ func (s *Session) OnCloseProcess() {
 
 func (s *Session) RemoteAddress() string {
 	if s.entity == nil {
-		s.Debug("entity is nil")
+		s.Debug("[RemoteAddress] entity is nil")
 		return ""
 	}
 
