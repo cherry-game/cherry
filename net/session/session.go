@@ -71,7 +71,7 @@ func (s *Session) IsBind() bool {
 
 func (s *Session) SendRaw(bytes []byte) error {
 	if s.entity == nil {
-		s.Debug("entity is nil")
+		s.Debug("entity is nil. bytes = %v", bytes)
 		return nil
 	}
 
@@ -79,22 +79,42 @@ func (s *Session) SendRaw(bytes []byte) error {
 }
 
 // RPC sends message to remote server
-func (s *Session) RPC(route string, v interface{}) error {
-	return s.entity.RPC(route, v)
+func (s *Session) RPC(route string, val interface{}) error {
+	if s.entity == nil {
+		s.Debug("entity is nil. route = %s, val = %v", route, val)
+		return nil
+	}
+
+	return s.entity.RPC(route, val)
 }
 
 // Push message to client
-func (s *Session) Push(route string, v interface{}) error {
-	return s.entity.Push(route, v)
+func (s *Session) Push(route string, val interface{}) error {
+	if s.entity == nil {
+		s.Debug("entity is nil. route = %s, val = %v", route, val)
+		return nil
+	}
+
+	return s.entity.Push(route, val)
 }
 
 // Response responses message to client, mid is
 // request message ID
-func (s *Session) Response(mid uint, v interface{}, isError ...bool) error {
-	return s.entity.Response(mid, v, isError...)
+func (s *Session) Response(mid uint, val interface{}, isError ...bool) error {
+	if s.entity == nil {
+		s.Debug("entity is nil. mid = %d, val = %v, isError = %v", mid, val, isError)
+		return nil
+	}
+
+	return s.entity.Response(mid, val, isError...)
 }
 
 func (s *Session) Kick(reason interface{}, close bool) {
+	if s.entity == nil {
+		s.Debug("entity is nil. reason = %v, close = %v", reason, close)
+		return
+	}
+
 	err := s.entity.Kick(reason)
 	if err != nil {
 		s.Warn(err)
@@ -107,8 +127,11 @@ func (s *Session) Kick(reason interface{}, close bool) {
 }
 
 func (s *Session) Close() {
-	// 服务器调用Close()主动断开
-	// 客户端主动断开/读取错误断开
+	if s.entity == nil {
+		s.Debug("entity is nil")
+		return
+	}
+
 	s.entity.Close()
 }
 
@@ -124,8 +147,10 @@ func (s *Session) OnCloseProcess() {
 
 func (s *Session) RemoteAddress() string {
 	if s.entity == nil {
+		s.Debug("entity is nil")
 		return ""
 	}
+
 	return s.entity.RemoteAddr().String()
 }
 
