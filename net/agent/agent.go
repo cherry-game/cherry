@@ -10,6 +10,7 @@ import (
 	"github.com/cherry-game/cherry/net/packet"
 	"github.com/cherry-game/cherry/net/session"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 )
@@ -28,6 +29,7 @@ type (
 	}
 
 	Agent struct {
+		sync.RWMutex
 		*Options
 		cherryFacade.IApplication
 		Session *cherrySession.Session // session
@@ -150,25 +152,27 @@ func (a *Agent) Kick(reason interface{}) error {
 		cherryLogger.Warn(err)
 	}
 
-	a.Session.Debugf("kick session. reason[%s]", reason)
+	a.Session.Debugf("kick session. reason[%v]", reason)
 
 	return nil
 }
 
 // Close closes the Agent, clean inner state and close low-level connection.
 func (a *Agent) Close() {
+	a.Lock()
+	defer a.Unlock()
+
 	if a.Session.State() == cherrySession.Closed {
 		return
 	}
-
 	a.Session.SetState(cherrySession.Closed)
+
 	a.Session.OnCloseProcess()
+	//a.chDie <- true
 
 	if err := a.conn.Close(); err != nil {
 		a.Session.Debugf("session close error[%s]", err)
 	}
-
-	a.chDie <- true
 }
 
 // RemoteAddr implementation for session.NetworkEntity interface
@@ -190,7 +194,7 @@ func (a *Agent) read() {
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			a.Session.Debugf("close read goroutine. error[%s]", err.Error())
+			a.Session.Debugf("close read goroutine. error[%s]", err)
 			return
 		}
 
@@ -210,28 +214,17 @@ func (a *Agent) read() {
 	}
 }
 
-func (a *Agent) processPacket(packet cherryFacade.IPacket) {
-	cmd, found := a.Commands[packet.Type()]
-	if found == false {
-		a.Session.Debugf("packet[%s] type not found.", packet)
-		return
-	}
-
-	cmd.Do(a.Session, packet)
-
-	// update last time
-	a.SetLastAt()
-}
-
 func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
 		a.Session.Debugf("close write goroutine.")
 
 		ticker.Stop()
+		a.Close()
+
 		close(a.chSend)
 		close(a.chWrite)
-		close(a.chDie)
+		//close(a.chDie)
 	}()
 
 	for {
@@ -242,7 +235,7 @@ func (a *Agent) write() {
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				a.Session.Debug("connect heartbeat timeout.")
+				a.Session.Debug("check heartbeat timeout.")
 				return
 			}
 
@@ -284,4 +277,22 @@ func (a *Agent) write() {
 			a.chWrite <- p
 		}
 	}
+}
+
+func (a *Agent) processPacket(packet cherryFacade.IPacket) {
+	cmd, found := a.Commands[packet.Type()]
+	if found == false {
+		a.Session.Debugf("packet[%s] type not found.", packet)
+		return
+	}
+
+	if a.Session == nil {
+		cherryLogger.Warnf("session is nil.")
+		return
+	}
+
+	cmd.Do(a.Session, packet)
+
+	// update last time
+	a.SetLastAt()
 }

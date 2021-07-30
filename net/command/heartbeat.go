@@ -2,7 +2,6 @@ package cherryCommand
 
 import (
 	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 )
@@ -24,13 +23,15 @@ func (h *Heartbeat) GetType() cherryPacket.Type {
 func (h *Heartbeat) Do(session *cherrySession.Session, _ facade.IPacket) {
 	bytes, err := h.PacketEncode(cherryPacket.Heartbeat, nil)
 	if err != nil {
-		cherryLogger.Warn(err)
+		session.Warnf("heartbeat packet encode error. error = %s", err)
 		return
 	}
 
 	err = session.SendRaw(bytes)
 	if err != nil {
-		cherryLogger.Error(err)
+		session.Warnf("send heartbeat raw data error. error = %s", err)
+		return
 	}
+
 	session.Debug("request heartbeat.")
 }
