@@ -219,7 +219,7 @@ func Decode(data []byte) (*Message, error) {
 		}
 	}
 
-	if offset >= len(data) {
+	if offset > len(data) {
 		return nil, cherryError.MessageInvalid
 	}
 
