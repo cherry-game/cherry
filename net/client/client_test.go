@@ -30,13 +30,8 @@ func TestClient(t *testing.T) {
 		cherryLogger.Infof("send msgid:%d fail", msgID)
 	}
 
-	for {
-		select {
-		case msg := <-c.MsgChannel():
-			{
-				cherryLogger.Infof("rcv msg route:%s msgid:%d msg:%s", msg.Route, msg.ID, msg.Data)
-			}
-		}
-	}
+	for msg := range c.MsgChannel() {
 
+		cherryLogger.Infof("rcv msg route:%s msgid:%d msg:%s", msg.Route, msg.ID, msg.Data)
+	}
 }
