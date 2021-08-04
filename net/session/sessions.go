@@ -80,11 +80,17 @@ func Unbind(sid facade.SID) {
 }
 
 func GetBySID(sid facade.SID) (*Session, bool) {
+	lock.RLock()
+	defer lock.RUnlock()
+
 	session, found := sidMap[sid]
 	return session, found
 }
 
 func GetByUID(uid facade.UID) (*Session, bool) {
+	lock.RLock()
+	defer lock.RUnlock()
+
 	session, found := uidMap[uid]
 	return session, found
 }
