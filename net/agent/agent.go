@@ -168,7 +168,7 @@ func (a *Agent) Close() {
 	a.Session.SetState(cherrySession.Closed)
 
 	a.Session.OnCloseProcess()
-	//a.chDie <- true
+	a.chDie <- true
 
 	if err := a.conn.Close(); err != nil {
 		a.Session.Debugf("session close error[%s]", err)
