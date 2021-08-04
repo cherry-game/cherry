@@ -3,6 +3,7 @@ package cherryMessage
 import (
 	"encoding/binary"
 	"fmt"
+
 	cherryError "github.com/cherry-game/cherry/error"
 	cherryCompress "github.com/cherry-game/cherry/extend/compress"
 	cherryRoute "github.com/cherry-game/cherry/net/route"
@@ -187,7 +188,7 @@ func Decode(data []byte) (*Message, error) {
 		m.ID = id
 	}
 
-	if offset >= len(data) {
+	if offset > len(data) {
 		return nil, cherryError.MessageInvalid
 	}
 
