@@ -2,17 +2,18 @@ package cherryAgent
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/command"
-	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/packet"
-	"github.com/cherry-game/cherry/net/session"
 	"net"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	cherryError "github.com/cherry-game/cherry/error"
+	cherryFacade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	cherryCommand "github.com/cherry-game/cherry/net/command"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
+	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	cherrySession "github.com/cherry-game/cherry/net/session"
 )
 
 const (
@@ -259,6 +260,7 @@ func (a *Agent) write() {
 				ID:    data.mid,
 				Route: data.route,
 				Data:  payload,
+				Error: data.err,
 			}
 
 			// encode message
