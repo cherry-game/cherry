@@ -3,10 +3,8 @@ package cherryMessage
 import (
 	"encoding/binary"
 	"fmt"
-
 	cherryError "github.com/cherry-game/cherry/error"
 	cherryCompress "github.com/cherry-game/cherry/extend/compress"
-	cherryRoute "github.com/cherry-game/cherry/net/route"
 )
 
 // Message represents a unmarshaled message or a message which to be marshaled
@@ -48,7 +46,7 @@ type Message struct {
 	Data            []byte // payload  消息体的原始数据
 	routeCompressed bool   // is route Compressed 是否启用路由压缩
 	Error           bool   // response error
-	routeInfo       *cherryRoute.Route
+	routeInfo       *Route
 }
 
 func New() *Message {
@@ -68,7 +66,7 @@ func (t *Message) String() string {
 }
 
 func (t *Message) ParseRoute() error {
-	routeInfo, err := cherryRoute.Decode(t.Route)
+	routeInfo, err := DecodeRoute(t.Route)
 	if err != nil {
 		return err
 	}
@@ -77,7 +75,7 @@ func (t *Message) ParseRoute() error {
 	return nil
 }
 
-func (t *Message) RouteInfo() *cherryRoute.Route {
+func (t *Message) RouteInfo() *Route {
 	return t.routeInfo
 }
 
@@ -225,6 +223,5 @@ func Decode(data []byte) (*Message, error) {
 	}
 
 	m.Data = data[offset:]
-
 	return m, nil
 }

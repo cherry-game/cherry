@@ -41,10 +41,6 @@ func Config() jsoniter.Any {
 	return env.json
 }
 
-func GetConfig(name string) jsoniter.Any {
-	return env.json.Get(name)
-}
-
 func Init(profilePath, profileName string) (jsoniter.Any, error) {
 	if profilePath == "" {
 		return nil, cherryError.Error("profilePath parameter is null.")

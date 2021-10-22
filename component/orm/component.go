@@ -6,6 +6,7 @@ import (
 	"github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
+	goSqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/json-iterator/go"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -75,7 +76,7 @@ func (s *Component) Init() {
 		return
 	}
 
-	dbRoot := cherryProfile.GetConfig("db")
+	dbRoot := cherryProfile.Config().Get("db")
 	if dbRoot.LastError() != nil {
 		panic("`db` property not exists in profile file.")
 	}
@@ -108,6 +109,8 @@ func (s *Component) Init() {
 			}
 		}
 	}
+
+	goSqlDriver.SetLogger(cherryLogger.DefaultLogger)
 }
 
 func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
@@ -119,6 +122,10 @@ func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	if cfg.LogMode {
+		return db.Debug(), nil
 	}
 
 	return db, nil
@@ -146,14 +153,14 @@ func (s *Component) GetDb(id string) *gorm.DB {
 	return nil
 }
 
-func (s *Component) GetHashDb(groupId string, hash HashDb) (*gorm.DB, bool) {
+func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*gorm.DB, bool) {
 	dbGroup, found := s.GetDbMap(groupId)
 	if found == false {
 		cherryLogger.Warnf("groupId = %s not found.", groupId)
 		return nil, false
 	}
 
-	dbId := hash(dbGroup)
+	dbId := hashFn(dbGroup)
 	db, found := dbGroup[dbId]
 	return db, found
 }

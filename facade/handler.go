@@ -25,4 +25,5 @@ type HandlerFn struct {
 	Value   reflect.Value
 	InArgs  []reflect.Type
 	OutArgs []reflect.Type
+	IsRaw   bool
 }

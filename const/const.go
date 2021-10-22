@@ -15,7 +15,7 @@ const (
 
 const (
 	ProfileNameFormat = "profile-%s.json"
-	version           = "1.0.0"
+	version           = "1.1.20"
 )
 
 var logo = `

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/cherry-game/cherry/net/handler"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
@@ -18,30 +19,25 @@ func (h *userHandler) Name() string {
 
 func (h *userHandler) OnInit() {
 	h.AddLocal("login", h.login)
-	h.AddLocal("testLogin", h.testLogin)
 
 	cherrySession.AddOnCloseListener(disconnect)
 
-	h.AddBeforeFilter(func(session *cherrySession.Session, message *cherryMessage.Message) bool {
+	h.AddBeforeFilter(func(ctx context.Context, session *cherrySession.Session, message *cherryMessage.Message) bool {
 		//if session.IsBind() == false && message.Route != "game.userHandler.login" {
 		//	//登录后，才能发送后续消息
 		//	session.Kick(fmt.Sprintf("kick %s : not login", session.String()), true)
 		//	return false
 		//}
+		//cherryContext.GetMessageId(ctx)
 		return true
 	})
 }
 
-func (h *userHandler) testLogin(_ *cherrySession.Session, _ *cherryMessage.Message, _ *loginRequest) error {
-	return nil
-}
-
-func (h *userHandler) login(session *cherrySession.Session, msg *cherryMessage.Message, req *loginRequest) error {
+func (h *userHandler) login(ctx context.Context, session *cherrySession.Session, req *loginRequest) {
 	session.Debugf("nickname = %s", req.Nickname)
-
 	if err := newUser(session, req.Nickname); err != nil {
-		return err
+		return
 	}
 
-	return session.Response(msg.ID, &loginResponse{})
+	session.Response(ctx, &loginResponse{})
 }

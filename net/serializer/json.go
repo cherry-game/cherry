@@ -10,6 +10,10 @@ func NewJSON() *JSON {
 
 // Marshal returns the JSON encoding of v.
 func (j *JSON) Marshal(v interface{}) ([]byte, error) {
+	if data, ok := v.([]byte); ok {
+		return data, nil
+	}
+
 	return json.Marshal(v)
 }
 

@@ -48,7 +48,7 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 
 	node, err := cherryProfile.LoadNode(nodeId)
 	if err != nil {
-		panic(fmt.Sprintf("error = %s", err))
+		panic(err)
 	}
 
 	// set logger
@@ -161,10 +161,11 @@ func (a *Application) Startup(components ...facade.IComponent) {
 
 	cherryLogger.Info("-------------------------------------------------")
 	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
+	cherryLogger.Infof("[nodeType    = %s]", a.NodeType())
 	cherryLogger.Infof("[pid         = %d]", os.Getpid())
 	cherryLogger.Infof("[startTime   = %s]", a.StartTime())
 	cherryLogger.Infof("[profile     = %s]", cherryProfile.Name())
-	cherryLogger.Infof("[profileDir  = %s]", cherryProfile.Dir())
+	cherryLogger.Infof("[profilePath = %s]", cherryProfile.Dir())
 	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
 	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
 	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger.Level)
@@ -232,8 +233,8 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	//all components in reverse order
 	for i := len(a.components) - 1; i >= 0; i-- {
 		cherryUtils.Try(func() {
-			a.components[i].OnBeforeStop()
 			cherryLogger.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
+			a.components[i].OnBeforeStop()
 		}, func(errString string) {
 			cherryLogger.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
 		})
@@ -241,8 +242,8 @@ func (a *Application) Startup(components ...facade.IComponent) {
 
 	for i := len(a.components) - 1; i >= 0; i-- {
 		cherryUtils.Try(func() {
-			a.components[i].OnStop()
 			cherryLogger.Infof("[component = %s] -> OnStop().", a.components[i].Name())
+			a.components[i].OnStop()
 		}, func(errString string) {
 			cherryLogger.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
 		})

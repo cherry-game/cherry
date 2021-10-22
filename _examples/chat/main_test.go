@@ -41,7 +41,7 @@ func TestPostMessage(t *testing.T) {
 				return
 			}
 
-			handlerComponent.PostMessage(session, msg)
+			handlerComponent.ProcessLocal(session, msg)
 			//time.Sleep(time.Microsecond * 1)
 
 			i++
@@ -54,7 +54,6 @@ func TestPostMessage(t *testing.T) {
 	}()
 
 	app.Startup(
-		cherrySession.NewComponent(),
 		handlerComponent,
 		createWebsocket(),
 	)

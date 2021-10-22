@@ -1,20 +1,36 @@
 package cherryFile
 
 import (
+	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 	"strings"
 )
 
+func init() {
+	str := GetCurrentPath()
+	fmt.Sprintf(str)
+}
+
 func JudgePath(filePath string) (string, bool) {
-	tmpPath := path.Join(GetMainFuncDir(), filePath)
+	dir := GetMainFuncDir()
+	for _, d := range dir {
+		tmpPath := path.Join(d, filePath)
+		ok := IsDir(tmpPath)
+		if ok {
+			return tmpPath, true
+		}
+	}
+
+	tmpPath := path.Join(GetWorkPath(), filePath)
 	ok := IsDir(tmpPath)
 	if ok {
 		return tmpPath, true
 	}
 
-	tmpPath = path.Join(GetWorkPath(), filePath)
+	tmpPath = path.Join(GetCurrentDirectory(), filePath)
 	ok = IsDir(tmpPath)
 	if ok {
 		return tmpPath, true
@@ -36,26 +52,46 @@ func IsDir(path string) bool {
 	return false
 }
 
+func GetCurrentDirectory() string {
+	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		panic(err)
+	}
+
+	return strings.Replace(dir, "\\", "/", -1)
+}
+
+func GetCurrentPath() string {
+	var absPath string
+	_, filename, _, ok := runtime.Caller(0)
+	if ok {
+		absPath = path.Dir(filename)
+	}
+	return absPath
+}
+
 var (
 	mainFuncDir = ""
 )
 
-func GetMainFuncDir() string {
-	if mainFuncDir == "" {
-		var buf [2 << 16]byte
-		stack := string(buf[:runtime.Stack(buf[:], true)])
+func GetMainFuncDir() []string {
+	var dir []string
 
-		lines := strings.Split(strings.TrimSpace(stack), "\n")
-		lastLine := strings.TrimSpace(lines[len(lines)-1])
+	var buf [2 << 16]byte
+	stack := string(buf[:runtime.Stack(buf[:], true)])
+	lines := strings.Split(strings.TrimSpace(stack), "\n")
 
+	for _, line := range lines {
+		lastLine := strings.TrimSpace(line)
 		lastIndex := strings.LastIndex(lastLine, "/")
 		if lastIndex < 1 {
-			return ""
+			continue
 		}
 
-		mainFuncDir = lastLine[:lastIndex]
+		dir = append(dir, lastLine[:lastIndex])
 	}
-	return mainFuncDir
+
+	return dir
 }
 
 func GetWorkPath() string {

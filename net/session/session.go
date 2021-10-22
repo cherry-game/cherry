@@ -1,9 +1,13 @@
 package cherrySession
 
 import (
+	"context"
 	"fmt"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	cherryContext "github.com/cherry-game/cherry/net/context"
+	cherryProto "github.com/cherry-game/cherry/net/proto"
+	cherryProfile "github.com/cherry-game/cherry/profile"
 	"sync/atomic"
 )
 
@@ -25,21 +29,32 @@ type (
 	}
 )
 
-func NewSession(sid facade.SID, frontendId facade.FrontendId, entity facade.INetwork) *Session {
+func FakeSession(pbSession *cherryProto.Session, network facade.INetwork) *Session {
 	session := &Session{
 		settings: settings{
-			data: make(map[string]interface{}),
+			data: make(map[string]string),
 		},
-		entity:     entity,
+		state:      Working,
+		entity:     network,
+		sid:        pbSession.Sid,
+		uid:        pbSession.Uid,
+		frontendId: pbSession.FrontendId,
+	}
+	session.ImportAll(pbSession.Data)
+
+	return session
+}
+
+func NewSession(sid facade.SID, frontendId facade.FrontendId, network facade.INetwork) *Session {
+	session := &Session{
+		settings: settings{
+			data: make(map[string]string),
+		},
+		state:      Init,
+		entity:     network,
 		sid:        sid,
 		uid:        0,
 		frontendId: frontendId,
-	}
-
-	for _, listener := range onCreateListener {
-		if listener(session) == false {
-			break
-		}
 	}
 
 	return session
@@ -69,57 +84,46 @@ func (s *Session) IsBind() bool {
 	return s.uid > 0
 }
 
-func (s *Session) SendRaw(bytes []byte) error {
+func (s *Session) SendRaw(bytes []byte) {
 	if s.entity == nil {
-		s.Debug("[SendRaw] entity is nil. bytes = %v", bytes)
-		return nil
+		s.Debug("entity is nil")
+		return
 	}
 
-	return s.entity.SendRaw(bytes)
+	s.entity.SendRaw(bytes)
 }
 
 // RPC sends message to remote server
-func (s *Session) RPC(route string, val interface{}) error {
-	if s.entity == nil {
-		s.Debug("[RPC] entity is nil. route = %s, val = %v", route, val)
-		return nil
-	}
-
-	return s.entity.RPC(route, val)
+func (s *Session) RPC(route string, v interface{}) cherryProto.Response {
+	return s.entity.RPC(route, v)
 }
 
 // Push message to client
-func (s *Session) Push(route string, val interface{}) error {
-	if s.entity == nil {
-		s.Debug("[Push] entity is nil. route = %s, val = %v", route, val)
-		return nil
-	}
-
-	return s.entity.Push(route, val)
+func (s *Session) Push(route string, v interface{}) {
+	s.entity.Push(route, v)
 }
 
-// Response responses message to client, mid is
+// ResponseMID responses message to client, mid is
 // request message ID
-func (s *Session) Response(mid uint, val interface{}, isError ...bool) error {
-	if s.entity == nil {
-		s.Debug("[Response] entity is nil. mid = %d, val = %v, isError = %v", mid, val, isError)
-		return nil
-	}
+func (s *Session) ResponseMID(mid uint, v interface{}, isError ...bool) {
+	s.entity.Response(mid, v, isError...)
 
-	return s.entity.Response(mid, val, isError...)
+	if cherryProfile.Debug() {
+		if len(isError) > 0 {
+			s.Debugf("[ResponseMID] [mid = %d] [isError = %v] [data = %v]", mid, isError[0], v)
+		} else {
+			s.Debugf("[Response] [mid = %d] [data = %v]", mid, v)
+		}
+	}
+}
+
+func (s *Session) Response(ctx context.Context, v interface{}, isError ...bool) {
+	mid := cherryContext.GetMessageId(ctx)
+	s.ResponseMID(mid, v, isError...)
 }
 
 func (s *Session) Kick(reason interface{}, close bool) {
-	if s.entity == nil {
-		s.Debug("[Kick] entity is nil. reason = %v, close = %v", reason, close)
-		return
-	}
-
-	err := s.entity.Kick(reason)
-	if err != nil {
-		s.Warn(err)
-		return
-	}
+	s.entity.Kick(reason)
 
 	if close {
 		s.Close()
@@ -127,11 +131,6 @@ func (s *Session) Kick(reason interface{}, close bool) {
 }
 
 func (s *Session) Close() {
-	if s.entity == nil {
-		s.Debug("[Close] entity is nil")
-		return
-	}
-
 	s.entity.Close()
 }
 
@@ -147,15 +146,13 @@ func (s *Session) OnCloseProcess() {
 
 func (s *Session) RemoteAddress() string {
 	if s.entity == nil {
-		s.Debug("[RemoteAddress] entity is nil")
 		return ""
 	}
-
-	return s.entity.RemoteAddr().String()
+	return s.entity.RemoteAddr()
 }
 
 func (s *Session) String() string {
-	return fmt.Sprintf("sid = %d, uid = %d, address = %s",
+	return fmt.Sprintf("sid = %s, uid = %d, address = %s",
 		s.sid,
 		s.uid,
 		s.RemoteAddress(),
@@ -163,7 +160,7 @@ func (s *Session) String() string {
 }
 
 func (s *Session) logPrefix() string {
-	return fmt.Sprintf("[sid=%d, uid=%d] ", s.sid, s.uid)
+	return fmt.Sprintf("[uid = %d] ", s.uid)
 }
 
 func (s *Session) Debug(args ...interface{}) {

@@ -80,9 +80,7 @@ func (c *Group) Multicast(route string, v interface{}, filter SessionFilter) err
 		if !filter(s) {
 			continue
 		}
-		if err := s.Push(route, v); err != nil {
-			s.Warn(err)
-		}
+		s.Push(route, v)
 	}
 
 	return nil
@@ -102,9 +100,7 @@ func (c *Group) Broadcast(route string, v interface{}) error {
 	defer c.mu.RUnlock()
 
 	for _, s := range c.sessions {
-		if err := s.Push(route, v); err != nil {
-			s.Warnf("push message error, SID[%d], UID[%d], Error[%s]", s.SID(), s.UID(), err.Error())
-		}
+		s.Push(route, v)
 	}
 
 	return nil
@@ -165,7 +161,7 @@ func (c *Group) LeaveAll() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.sessions = make(map[int64]*Session)
+	c.sessions = make(map[facade.SID]*Session)
 	return nil
 }
 
@@ -193,6 +189,6 @@ func (c *Group) Close() error {
 	atomic.StoreInt32(&c.status, groupStatusClosed)
 
 	// release all reference
-	c.sessions = make(map[int64]*Session)
+	c.sessions = make(map[facade.SID]*Session)
 	return nil
 }

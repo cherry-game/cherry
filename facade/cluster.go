@@ -1,7 +1,9 @@
 package cherryFacade
 
 import (
+	cherryProto "github.com/cherry-game/cherry/net/proto"
 	jsoniter "github.com/json-iterator/go"
+	"time"
 )
 
 type (
@@ -17,6 +19,7 @@ type (
 		Name() string                                                      // 发现服务名称
 		Init(app IApplication, config jsoniter.Any, params ...interface{}) // 初始化函数
 		List() []IMember                                                   // 获取成员列表
+		ListByType(nodeType string, filterNodeId ...string) []IMember      // 根据节点类型获取列表
 		GetType(nodeId string) (nodeType string, err error)                // 根据节点id获取类型
 		GetMember(nodeId string) (member IMember, found bool)              // 获取成员
 		AddMember(member IMember)                                          // 添加成员
@@ -27,4 +30,21 @@ type (
 	}
 
 	MemberListener func(member IMember) // MemberListener 成员增、删监听函数
+)
+
+type (
+	RPCClient interface {
+		Init(app IApplication)
+		OnStop()
+		CallLocal(nodeId string, packet *cherryProto.LocalPacket) error
+		CallRemote(nodeId string, route string, val interface{}, timeout time.Duration) cherryProto.Response
+		CallRemoteAsync(nodeId string, route string, val interface{})
+		SendKick(nodeId string, uid UID, reason interface{})
+		SendPush(nodeId string, route string, uid UID, val interface{})
+	}
+
+	RPCServer interface {
+		Init(app IApplication)
+		OnStop()
+	}
 )

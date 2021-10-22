@@ -32,7 +32,7 @@ func (d *Component) Name() string {
 
 func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
-	configNode := cherryProfile.GetConfig("data_config")
+	configNode := cherryProfile.Config().Get("data_config")
 	if configNode.LastError() != nil {
 		panic(fmt.Sprintf("`data_config` node in `%s` file not found.", cherryProfile.FileName()))
 	}
@@ -61,7 +61,12 @@ func (d *Component) Init() {
 				cherryLogger.Warnf("load [configName = %s] data fail.", cfg.Name())
 				continue
 			}
-			d.initConfig(cfg, data, false)
+
+			cherryUtils.Try(func() {
+				d.initConfig(cfg, data, false)
+			}, func(errString string) {
+				cherryLogger.Errorf("load error. [configName = %s], [error = %s]", cfg.Name(), errString)
+			})
 		}
 
 		// on change process
@@ -73,13 +78,15 @@ func (d *Component) Init() {
 		})
 
 	}, func(errString string) {
-		cherryLogger.Warn(errString)
+		cherryLogger.Error(errString)
 	})
 }
 
 func (d *Component) initConfig(cfg IConfig, data []byte, reload bool) {
 	d.Lock()
 	defer d.Unlock()
+
+	cherryLogger.Infof("load config data. [name = %s]", cfg.Name())
 
 	var parseObject interface{}
 	err := d.parser.Unmarshal(data, &parseObject)

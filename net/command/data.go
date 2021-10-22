@@ -9,15 +9,19 @@ import (
 
 type (
 	Data struct {
-		post PostHandler
+		facade.IApplication
+		localHandler   ProcessHandler
+		forwardHandler ProcessHandler
 	}
 
-	PostHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
+	ProcessHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
 )
 
-func NewData(postHandler PostHandler) *Data {
+func NewData(app facade.IApplication, localHandler ProcessHandler, forwardHandler ProcessHandler) *Data {
 	data := &Data{
-		post: postHandler,
+		IApplication:   app,
+		localHandler:   localHandler,
+		forwardHandler: forwardHandler,
 	}
 	return data
 }
@@ -38,5 +42,15 @@ func (h *Data) Do(session *cherrySession.Session, packet facade.IPacket) {
 		return
 	}
 
-	h.post(session, msg)
+	err = msg.ParseRoute()
+	if err != nil {
+		session.Warnf("packet decode route error. data[%s], error[%s].", packet.Data(), err)
+		return
+	}
+
+	if msg.RouteInfo().NodeType() == h.NodeType() {
+		h.localHandler(session, msg)
+	} else {
+		h.forwardHandler(session, msg)
+	}
 }

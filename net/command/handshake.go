@@ -36,21 +36,18 @@ func (h *Handshake) Do(session *cherrySession.Session, _ facade.IPacket) {
 
 	jsonData, err := json.Marshal(data)
 	if err != nil {
-		session.Warnf("data marshal error. error = %s", err)
+		cherryLogger.Warn(err)
 		return
 	}
 
 	bytes, err := h.PacketEncode(cherryPacket.Handshake, jsonData)
 	if err != nil {
-		session.Warnf("handshake packet encode error. error = %s", err)
+		cherryLogger.Warn(err)
 		return
 	}
 
 	session.SetState(cherrySession.WaitAck)
-	err = session.SendRaw(bytes)
-	if err != nil {
-		cherryLogger.Error(err)
-	}
+	session.SendRaw(bytes)
 
 	session.Debugf("request handshake. data[%v]", data)
 }

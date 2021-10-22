@@ -1,16 +1,18 @@
 package cherrySession
 
-import "sync"
+import (
+	cherryString "github.com/cherry-game/cherry/extend/string"
+	"sync"
+)
 
 type settings struct {
 	sync.RWMutex
-	data map[string]interface{} // setting data
+	data map[string]string // setting data
 }
 
-func (s *settings) Data() map[string]interface{} {
+func (s *settings) Data() map[string]string {
 	s.RLock()
 	defer s.RUnlock()
-
 	return s.data
 }
 
@@ -21,8 +23,14 @@ func (s *settings) Remove(key string) {
 	delete(s.data, key)
 }
 
-func (s *settings) Set(key string, value interface{}) {
-	if key == "" || value == nil {
+func (s *settings) ImportAll(settings map[string]string) {
+	for k, v := range settings {
+		s.Set(k, v)
+	}
+}
+
+func (s *settings) Set(key string, value string) {
+	if key == "" || value == "" {
 		return
 	}
 
@@ -39,7 +47,7 @@ func (s *settings) Contains(key string) bool {
 	return exist
 }
 
-func (s *settings) Restore(data map[string]interface{}) {
+func (s *settings) Restore(data map[string]string) {
 	s.Lock()
 	defer s.Unlock()
 
@@ -51,7 +59,7 @@ func (s *settings) Clear() {
 	s.Lock()
 	defer s.Unlock()
 
-	s.data = map[string]interface{}{}
+	s.data = map[string]string{}
 }
 
 func (s *settings) GetInt(key string) int {
@@ -63,41 +71,7 @@ func (s *settings) GetInt(key string) int {
 		return 0
 	}
 
-	value, ok := v.(int)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetInt8 returns the value associated with the key as a int8.
-func (s *settings) GetInt8(key string) int8 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(int8)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetInt16 returns the value associated with the key as a int16.
-func (s *settings) GetInt16(key string) int16 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(int16)
+	value, ok := cherryString.ToInt(v)
 	if !ok {
 		return 0
 	}
@@ -114,7 +88,7 @@ func (s *settings) GetInt32(key string) int32 {
 		return 0
 	}
 
-	value, ok := v.(int32)
+	value, ok := cherryString.ToInt32(v)
 	if !ok {
 		return 0
 	}
@@ -131,126 +105,7 @@ func (s *settings) GetInt64(key string) int64 {
 		return 0
 	}
 
-	value, ok := v.(int64)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetUint returns the value associated with the key as a uint.
-func (s *settings) GetUint(key string) uint {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(uint)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetUint8 returns the value associated with the key as a uint8.
-func (s *settings) GetUint8(key string) uint8 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(uint8)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetUint16 returns the value associated with the key as a uint16.
-func (s *settings) GetUint16(key string) uint16 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(uint16)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetUint32 returns the value associated with the key as a uint32.
-func (s *settings) GetUint32(key string) uint32 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(uint32)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetUint64 returns the value associated with the key as a uint64.
-func (s *settings) GetUint64(key string) uint64 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(uint64)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetFloat32 returns the value associated with the key as a float32.
-func (s *settings) GetFloat32(key string) float32 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(float32)
-	if !ok {
-		return 0
-	}
-	return value
-}
-
-// GetFloat64 returns the value associated with the key as a float64.
-func (s *settings) GetFloat64(key string) float64 {
-	s.RLock()
-	defer s.RUnlock()
-
-	v, ok := s.data[key]
-	if !ok {
-		return 0
-	}
-
-	value, ok := v.(float64)
+	value, ok := cherryString.ToInt64(v)
 	if !ok {
 		return 0
 	}
@@ -267,17 +122,5 @@ func (s *settings) GetString(key string) string {
 		return ""
 	}
 
-	value, ok := v.(string)
-	if !ok {
-		return ""
-	}
-	return value
-}
-
-// GetValue returns the value associated with the key as a interface{}.
-func (s *settings) GetValue(key string) interface{} {
-	s.RLock()
-	defer s.RUnlock()
-
-	return s.data[key]
+	return v
 }

@@ -25,7 +25,7 @@ func (f *SourceFile) Name() string {
 
 func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
-	config := cherryProfile.GetConfig("data_config")
+	config := cherryProfile.Config().Get("data_config")
 
 	fileNode := config.Get(f.Name())
 	if fileNode == nil {

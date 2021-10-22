@@ -1,33 +1,37 @@
 package cherry
 
 import (
+	"context"
+	cherryCode "github.com/cherry-game/cherry/code"
 	cherryFacade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	cherryCluster "github.com/cherry-game/cherry/net/cluster"
-	cherryProto "github.com/cherry-game/cherry/net/cluster/proto"
 	cherryCommand "github.com/cherry-game/cherry/net/command"
 	cherryConnector "github.com/cherry-game/cherry/net/connector"
+	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	cherryRouter "github.com/cherry-game/cherry/net/router"
 	cherrySession "github.com/cherry-game/cherry/net/session"
+	"github.com/golang/protobuf/proto"
+	"reflect"
 	"time"
 )
 
 var (
-	_thisApp *Application
+	_thisApp    *Application
+	_components []cherryFacade.IComponent
 )
 
 var (
-	_components       []cherryFacade.IComponent
-	_clusterComponent *cherryCluster.Component
-)
-
-var (
-	_commands      = make(map[cherryPacket.Type]cherryCommand.ICommand)
-	_handshakeData = make(map[string]interface{})
-	_heartbeat     = 60 * time.Second
-	_connector     cherryFacade.IConnector
+	_commands           = make(map[cherryPacket.Type]cherryCommand.ICommand)
+	_handshakeData      = make(map[string]interface{})
+	_heartbeat          = 60 * time.Second
+	_connector          cherryFacade.IConnector
+	_connectorComponent *cherryConnector.Component
+	_clusterComponent   *cherryCluster.Component
 )
 
 var (
@@ -45,14 +49,6 @@ func Configure(profilePath, profileName, nodeId string) cherryFacade.IApplicatio
 	return _thisApp
 }
 
-func SetSerializer(serializer cherryFacade.ISerializer) {
-	_thisApp.SetSerializer(serializer)
-}
-
-func SetPacketCodec(codec cherryFacade.IPacketCodec) {
-	_thisApp.SetPacketCodec(codec)
-}
-
 func Run(isFrontend bool, nodeMode NodeMode) {
 	if _thisApp == nil {
 		panic("please call the configure function first.")
@@ -66,6 +62,7 @@ func Run(isFrontend bool, nodeMode NodeMode) {
 	_thisApp.nodeMode = nodeMode
 
 	initHandlerComponent()
+	initRegisterComponent()
 	initClusterComponent()
 	initConnectorComponent()
 
@@ -75,40 +72,29 @@ func Run(isFrontend bool, nodeMode NodeMode) {
 func initHandlerComponent() {
 	// register handler component
 	_handlerComponent = cherryHandler.NewComponent(_handlerOpts...)
+
+	if _thisApp.isFrontend {
+		// add session handler for frontend node
+		_handlerComponent.Register2Group(&cherryHandler.SessionHandler{})
+	}
+
 	for _, group := range _handlerGroups {
 		_handlerComponent.Register(group)
 	}
-	_thisApp.Register(_handlerComponent)
 
-	// add developer registered components
+	// add handler component
+	_thisApp.Register(_handlerComponent)
+}
+
+func initRegisterComponent() {
 	_thisApp.Register(_components...)
 }
 
 func initClusterComponent() {
 	// register cluster component
 	if _thisApp.NodeMode() == Cluster {
-		_clusterComponent = cherryCluster.NewComponent()
+		_clusterComponent = cherryCluster.NewComponent(_handlerComponent)
 		_thisApp.Register(_clusterComponent)
-
-		//配置 cluster 消息路由
-
-		// cluster 收到rpc forward函数的消息
-		_clusterComponent.OnForward(func(msg *cherryProto.Message) {
-			session, found := cherrySession.GetBySID(msg.Sid)
-			if found {
-				// cluster接收的消息，转到handler统一处理
-				_handlerComponent.PostMessage(session, &cherryMessage.Message{
-					Type:  cherryMessage.Type(msg.GetMsgType()),
-					ID:    uint(msg.Id),
-					Route: msg.Route,
-					Data:  msg.Data,
-					Error: false,
-				})
-			}
-		})
-
-		// TODO setting remote handler
-		_handlerComponent.RemoteHandler = _clusterComponent.SendUserMessage
 	}
 }
 
@@ -118,7 +104,7 @@ func initConnectorComponent() {
 	}
 
 	if _connector == nil {
-		panic("need to add IConnector")
+		panic("call the cherry.RegisterConnector() method add IConnector.")
 	}
 
 	if len(_handshakeData) < 1 {
@@ -127,29 +113,23 @@ func initConnectorComponent() {
 
 	initCommand()
 
-	connectorComponent := cherryConnector.NewComponent(_connector)
-	stat := connectorComponent.ConnectStat
+	_connectorComponent = cherryConnector.NewComponent(_connector)
 
 	cherrySession.AddOnCreateListener(func(session *cherrySession.Session) (next bool) {
-		stat.IncreaseConn()
-
-		session.Debugf("session on create. address[%s], state[%s]",
+		session.Debugf("session create. [nodeId = %s, sid = %s, address = %s]",
+			_thisApp.NodeId(),
+			session.SID(),
 			session.RemoteAddress(),
-			stat.PrintInfo(),
 		)
 		return true
 	})
 
-	cherrySession.AddOnCreateListener(func(session *cherrySession.Session) (next bool) {
-		stat.DecreaseConn()
-		session.Debugf("session on closed. address[%s], state[%s]",
+	cherrySession.AddOnCloseListener(func(session *cherrySession.Session) (next bool) {
+		session.Debugf("session closed. [nodeId = %s, sid = %s, address = %s]",
+			_thisApp.NodeId(),
+			session.SID(),
 			session.RemoteAddress(),
-			stat.PrintInfo(),
 		)
-
-		if _thisApp.isFrontend && _thisApp.nodeMode == Cluster {
-			_clusterComponent.SendCloseSession(session.SID())
-		}
 
 		return true
 	})
@@ -159,27 +139,17 @@ func initConnectorComponent() {
 		Commands:  _commands,
 	}
 
-	if _thisApp.nodeMode == Cluster {
-		//如果是集群，则转发到这里
-		agentOptions.RPCHandler = _clusterComponent.SendSysMessage
-	} else {
-		// 如果是单机，则转到这里
-		agentOptions.RPCHandler = _handlerComponent.PostMessage
-	}
-
 	// new client connect
-	connectorComponent.OnConnect(func(conn cherryFacade.INetConn) {
+	_connectorComponent.OnConnect(func(conn cherryFacade.INetConn) {
 		// create agent
 		agent := cherryAgent.NewAgent(_thisApp, conn, agentOptions)
-
 		// create new session
-		session := cherrySession.Create(_thisApp.NodeId(), agent)
-		agent.Session = session
+		agent.Session = cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
 		// run agent
 		agent.Run()
 	})
 
-	_thisApp.Register(connectorComponent)
+	_thisApp.Register(_connectorComponent)
 }
 
 func initCommand() {
@@ -198,8 +168,20 @@ func initCommand() {
 	RegisterCommand(heartbeatCommand)
 
 	// TODO connector forward message
-	handDataCommand := cherryCommand.NewData(_handlerComponent.PostMessage)
+	handDataCommand := cherryCommand.NewData(
+		_thisApp,
+		_handlerComponent.ProcessLocal,
+		_clusterComponent.ForwardLocal,
+	)
 	RegisterCommand(handDataCommand)
+}
+
+func SetSerializer(serializer cherryFacade.ISerializer) {
+	_thisApp.SetSerializer(serializer)
+}
+
+func SetPacketCodec(codec cherryFacade.IPacketCodec) {
+	_thisApp.SetPacketCodec(codec)
 }
 
 func SetHeartbeat(time time.Duration) {
@@ -245,4 +227,93 @@ func RegisterConnector(connector cherryFacade.IConnector) {
 
 func RegisterCommand(command cherryCommand.ICommand) {
 	_commands[command.GetType()] = command
+}
+
+func AddNodeRouter(nodeType string, routingFunc cherryRouter.RoutingFunc) {
+	cherryRouter.AddRoute(nodeType, routingFunc)
+}
+
+func GetCluster() *cherryCluster.Component {
+	return _clusterComponent
+}
+
+func GetRPCClient() cherryFacade.RPCClient {
+	return _clusterComponent.Client()
+}
+
+func GetConnector() *cherryConnector.Component {
+	return _connectorComponent
+}
+
+func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) (code int32) {
+	if reply != nil && reflect.TypeOf(reply).Kind() != reflect.Ptr {
+		return cherryCode.RPCReplyParamsError
+	}
+
+	var requestTimeout time.Duration
+	if len(timeout) > 0 {
+		requestTimeout = timeout[0]
+	}
+
+	callResult := _clusterComponent.Client().CallRemote(nodeId, route, arg, requestTimeout)
+	if cherryCode.IsFail(callResult.Code) {
+		return code
+	}
+
+	if reply != nil {
+		err := proto.Unmarshal(callResult.GetData(), reply)
+		if err != nil {
+			return cherryCode.RPCUnmarshalError
+		}
+	}
+
+	return cherryCode.OK
+}
+
+func RPCByRoute(route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {
+	rt, err := cherryMessage.DecodeRoute(route)
+	if err != nil {
+		cherryLogger.Warnf("[RPCByRoute] decode route fail.. [error = %s]", err)
+		return cherryCode.RPCRouteDecodeError
+	}
+
+	member, err := cherryRouter.Route(context.Background(), rt.NodeType(), nil)
+	if err != nil {
+		cherryLogger.Warnf("[RPCByRoute]get node router is fail. [route = %s] [error = %s]", route, err)
+		return cherryCode.RPCRouteHashError
+	}
+
+	return RPC(member.GetNodeId(), route, arg, reply, timeout...)
+}
+
+func RPCAsync(nodeId string, route string, arg proto.Message) {
+	if nodeId == "" {
+		decode, err := cherryMessage.DecodeRoute(route)
+		if err != nil {
+			cherryLogger.Warnf("[RPCAsync] decode route fail. [route = %s]", route)
+			return
+		}
+
+		member, err := cherryRouter.Route(context.Background(), decode.NodeType(), nil)
+		if err != nil {
+			cherryLogger.Warnf("[RPCAsync] get node router is fail. [route = %s] [error = %s]", route, err)
+			return
+		}
+
+		nodeId = member.GetNodeId()
+	}
+
+	_clusterComponent.Client().CallRemoteAsync(nodeId, route, arg)
+}
+
+func RPCAsyncByRoute(route string, arg proto.Message) {
+	RPCAsync("", route, arg)
+}
+
+func RPCAsyncByNodeType(nodeType string, route string, arg proto.Message, filterNodeId ...string) {
+	members := cherryDiscovery.ListByType(nodeType, filterNodeId...)
+
+	for _, member := range members {
+		RPCAsync(member.GetNodeId(), route, arg)
+	}
 }

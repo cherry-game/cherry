@@ -1,15 +1,20 @@
 {
   "cluster": {
-    "rpc": {
-    },
     "discovery": {
-      "mode": "default",
-      "@mode": "mode值可配置: default,master,etcd，则相应读取下面对应的配置信息",
-      "master": {
-        "master_node_id": "master-1",
-        "retry_interval": 2
-      },
-      "etcd": {}
+      "mode": "nats",
+      "@mode": "mode可配置: default,nats,etcd，对应读取下面的配置信息",
+      "etcd": {},
+      "nats": {
+        "master_node_id": "master-1"
+      }
+    },
+    "nats": {
+      "address": "nats://127.0.0.1:4222",
+      "reconnect_delay": 1,
+      "max_reconnects": 10,
+      "request_timeout": 2,
+      "user": "",
+      "password": ""
     }
   }
 }

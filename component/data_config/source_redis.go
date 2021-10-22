@@ -34,7 +34,7 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 	r.close = make(chan struct{})
 
 	//read data_config->file node
-	config := cherryProfile.GetConfig("data_config")
+	config := cherryProfile.Config().Get("data_config")
 
 	redisNode := config.Get(r.Name())
 	if redisNode == nil {

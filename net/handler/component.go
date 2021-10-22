@@ -1,10 +1,11 @@
 package cherryHandler
 
 import (
+	"context"
 	"github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
+	cherryContext "github.com/cherry-game/cherry/net/context"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
@@ -16,8 +17,7 @@ type (
 	Component struct {
 		options
 		facade.Component
-		groups        []*HandlerGroup
-		RemoteHandler cherryAgent.RPCHandler
+		groups []*HandlerGroup
 	}
 
 	options struct {
@@ -29,7 +29,7 @@ type (
 
 	Option func(options *options)
 
-	FilterFn func(session *cherrySession.Session, message *cherryMessage.Message) bool
+	FilterFn func(ctx context.Context, session *cherrySession.Session, message *cherryMessage.Message) bool
 )
 
 func NewComponent(opts ...Option) *Component {
@@ -78,7 +78,7 @@ func (c *Component) OnStop() {
 		}
 
 		// wait...
-		cherryLogger.Debugf("queue is not empty! wait %d seconds.", waitSecond.Seconds())
+		cherryLogger.Debugf("queue is not empty! waiting %d seconds.", waitSecond.Seconds())
 		time.Sleep(waitSecond)
 	}
 }
@@ -128,9 +128,8 @@ func (c *Component) PostEvent(event facade.IEvent) {
 
 	for _, group := range c.groups {
 		for _, handler := range group.handlers {
-
 			if eventSlice, found := handler.Event(event.Name()); found {
-				executor := &EventExecutor{
+				executor := &ExecutorEvent{
 					Event:      event,
 					EventSlice: eventSlice,
 				}
@@ -142,6 +141,28 @@ func (c *Component) PostEvent(event facade.IEvent) {
 	}
 }
 
+func (c *Component) GetHandler(route string) (*cherryMessage.Route, *HandlerGroup, facade.IHandler, bool) {
+	r, err := cherryMessage.DecodeRoute(route)
+	if err != nil {
+		cherryLogger.Warnf("[Route = %s] decode fail.", route)
+		return nil, nil, nil, false
+	}
+
+	handlerName := c.nameFn(r.HandleName())
+	if handlerName == "" {
+		cherryLogger.Warnf("[Route = %s] could not find handle name.", route)
+		return nil, nil, nil, false
+	}
+
+	group, handler := c.getGroup(handlerName)
+	if group == nil || handler == nil {
+		cherryLogger.Warnf("[Route = %s] could not find handler group.", route)
+		return nil, nil, nil, false
+	}
+
+	return r, group, handler, true
+}
+
 func (c *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler) {
 	for _, group := range c.groups {
 		if handler, found := group.handlers[handlerName]; found {
@@ -151,9 +172,16 @@ func (c *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
-func (c *Component) PostMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
+func (c *Component) DoLocalMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
+	if msg.RouteInfo().NodeType() == c.App().NodeType() {
+		c.ProcessLocal(session, msg)
+	} else {
+
+	}
+}
+
+func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if !c.App().Running() {
-		//ignore message
 		return
 	}
 
@@ -167,61 +195,73 @@ func (c *Component) PostMessage(session *cherrySession.Session, msg *cherryMessa
 		return
 	}
 
-	err := msg.ParseRoute()
-	if err != nil {
-		session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
+	if msg.RouteInfo() == nil {
+		err := msg.ParseRoute()
+		if err != nil {
+			session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
+			return
+		}
+	}
+
+	if msg.RouteInfo().NodeType() != c.App().NodeType() {
+		session.Warnf("msg node type error. route = %s", msg.Route)
 		return
 	}
 
-	if msg.RouteInfo().NodeType() == c.App().NodeType() {
-		c.localProcess(session, msg)
-	} else {
-		c.remoteProcess(session, msg)
-	}
-}
+	ctx := cherryContext.Add(context.Background(), cherryConst.MessageIdKey, msg.ID)
+	ctx = cherryContext.Add(ctx, cherryConst.RouteKey, msg.Route)
 
-func (c *Component) localProcess(session *cherrySession.Session, msg *cherryMessage.Message) {
-	handlerName := c.nameFn(msg.RouteInfo().HandleName())
-	if handlerName == "" {
-		cherryLogger.Warnf("[Route = %v] could not find handle name. ", msg.RouteInfo())
-		return
+	for _, filter := range c.beforeFilters {
+		if filter(ctx, session, msg) == false {
+			return
+		}
 	}
 
-	group, handler := c.getGroup(handlerName)
-	if group == nil || handler == nil {
-		cherryLogger.Warnf("[Route = %v] could not find handler for route.", msg.RouteInfo())
-		return
-	}
-
-	fn, found := handler.LocalHandler(msg.RouteInfo().Method())
+	rt, group, handler, found := c.GetHandler(msg.Route)
 	if found == false {
-		cherryLogger.Debugf("[Route = %v] could not find method[%s] for route.", msg.RouteInfo().Method())
+		cherryLogger.Warnf("route not found handler. [route = %s]", msg.Route)
 		return
 	}
 
-	executor := &MessageExecutor{
-		App:           c.App(),
-		Session:       session,
-		Msg:           msg,
-		HandlerFn:     fn,
-		BeforeFilters: c.beforeFilters,
-		AfterFilters:  c.afterFilters,
+	fn, found := handler.LocalHandler(rt.Method())
+	if found == false {
+		cherryLogger.Debugf("[Route = %v] could not find method[%s] for route.", msg.Route, rt.Method())
+		return
+	}
+
+	executor := &ExecutorLocal{
+		IApplication: c.App(),
+		Session:      session,
+		Msg:          msg,
+		HandlerFn:    fn,
+		Ctx:          ctx,
+		AfterFilters: c.afterFilters,
 	}
 
 	index := group.queueHash(executor, group.queueNum)
+	group.inQueue(index, executor)
 
 	if c.printRouteLog {
-		session.Debugf("execute handler[%s], route[%s], group-index[%d]", handlerName, msg.RouteInfo(), index)
+		session.Debugf("[local handler] [route = %s], [group-index = %d]",
+			msg.RouteInfo(),
+			index,
+		)
 	}
-
-	group.inQueue(index, executor)
 }
 
-func (c *Component) remoteProcess(session *cherrySession.Session, msg *cherryMessage.Message) {
-	if c.RemoteHandler != nil {
-		c.RemoteHandler(session, msg)
-	} else {
-		c.localProcess(session, msg)
+func (c *Component) ProcessRemote(group *HandlerGroup, executor *ExecutorRemote) {
+	if !c.App().Running() {
+		return
+	}
+
+	index := group.queueHash(executor, group.queueNum)
+	group.inQueue(index, executor)
+
+	if c.printRouteLog {
+		cherryLogger.Debugf("[remote handler] [route = %s], [group-index = %d]",
+			executor.String(),
+			index,
+		)
 	}
 }
 

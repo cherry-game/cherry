@@ -80,9 +80,16 @@ func (w *WSConnector) OnStart() {
 		CheckOrigin:     CheckOrigin,
 	}
 
-	defer w.OnStop()
+	defer func() {
+		if err := w.listener.Close(); err != nil {
+			cherryLogger.Error(err)
+		}
+	}()
 
-	_ = http.Serve(w.listener, w)
+	err = http.Serve(w.listener, w)
+	if err != nil {
+		cherryLogger.Error(err)
+	}
 }
 
 func (w *WSConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
@@ -90,9 +97,6 @@ func (w *WSConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
 }
 
 func (w *WSConnector) OnStop() {
-	if err := w.listener.Close(); err != nil {
-		cherryLogger.Error(err)
-	}
 }
 
 //ServerHTTP server.Handler

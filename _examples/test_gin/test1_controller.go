@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/cherry-game/cherry/component/gin"
-	"github.com/cherry-game/cherry/component/snowflake"
+	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -30,5 +30,5 @@ func (t *Test1Controller) panic(c *gin.Context) {
 
 func (t *Test1Controller) renderResult(c *cherryGin.Context) {
 	str := cherrySnowflake.Next().Base58()
-	c.RenderResult(0, str)
+	c.RenderDataResult(0, str)
 }

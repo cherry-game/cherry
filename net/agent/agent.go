@@ -2,18 +2,18 @@ package cherryAgent
 
 import (
 	"fmt"
-	"net"
+	cherryCode "github.com/cherry-game/cherry/code"
+	"github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	"github.com/cherry-game/cherry/net/command"
+	"github.com/cherry-game/cherry/net/message"
+	"github.com/cherry-game/cherry/net/packet"
+	cherryProto "github.com/cherry-game/cherry/net/proto"
+	"github.com/cherry-game/cherry/net/session"
+	cherryProfile "github.com/cherry-game/cherry/profile"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryCommand "github.com/cherry-game/cherry/net/command"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherrySession "github.com/cherry-game/cherry/net/session"
 )
 
 const (
@@ -21,12 +21,9 @@ const (
 )
 
 type (
-	RPCHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
-
 	Options struct {
-		Heartbeat  time.Duration                                // heartbeat(sec)
-		Commands   map[cherryPacket.Type]cherryCommand.ICommand // commands
-		RPCHandler RPCHandler                                   // rpc handler
+		Heartbeat time.Duration                                // heartbeat(sec)
+		Commands  map[cherryPacket.Type]cherryCommand.ICommand // commands
 	}
 
 	Agent struct {
@@ -35,11 +32,10 @@ type (
 		cherryFacade.IApplication
 		Session *cherrySession.Session // session
 		conn    cherryFacade.INetConn  // low-level conn fd
-		//state   int32                  // current session state
-		chDie   chan bool           // wait for close
-		chSend  chan pendingMessage // push message queue
-		chWrite chan []byte         // push bytes queue
-		lastAt  int64               // last heartbeat unix time stamp
+		chDie   chan bool              // wait for close
+		chSend  chan pendingMessage    // push message queue
+		chWrite chan []byte            // push bytes queue
+		lastAt  int64                  // last heartbeat unix time stamp
 	}
 
 	pendingMessage struct {
@@ -60,11 +56,13 @@ func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *O
 		IApplication: app,
 		Options:      opts,
 		conn:         conn,
-		//state:        Init,
-		chDie:   make(chan bool),
-		chSend:  make(chan pendingMessage, WriteBacklog),
-		chWrite: make(chan []byte, WriteBacklog),
-		lastAt:  time.Now().Unix(),
+		chDie:        make(chan bool),
+		chSend:       make(chan pendingMessage, WriteBacklog),
+		chWrite:      make(chan []byte, WriteBacklog),
+	}
+
+	if agent.Heartbeat.Seconds() < 1 {
+		agent.Heartbeat = 60 * time.Second
 	}
 
 	return agent
@@ -74,78 +72,20 @@ func (a *Agent) SetLastAt() {
 	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
 }
 
-func (a *Agent) SendRaw(bytes []byte) error {
-	a.chWrite <- bytes
-	return nil
+func (a *Agent) Push(route string, val interface{}) {
+	a.Send(cherryMessage.Push, route, 0, val, false)
 }
 
-func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) (err error) {
-	if a.Session.State() == cherrySession.Closed {
-		return cherryError.ClusterBrokenPipe
-	}
-
-	if len(a.chSend) >= WriteBacklog {
-		return cherryError.ClusterBufferExceed
-	}
-
-	p := pendingMessage{typ: typ, mid: mid, route: route, payload: v, err: isError}
-
-	a.chSend <- p
-
-	return nil
-}
-
-// Push implementation for session.NetworkEntity interface
-func (a *Agent) Push(route string, val interface{}) error {
-	return a.Send(cherryMessage.Push, route, 0, val, false)
-}
-
-// RPC implementation for cherryFacade.INetwork interface
-func (a *Agent) RPC(route string, val interface{}) error {
-	if a.Session.State() == cherrySession.Closed {
-		return cherryError.ClusterBrokenPipe
-	}
-
-	if a.RPCHandler == nil {
-		return cherryError.ClusterRPCHandleNotFound
-	}
-
-	data, err := a.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	msg := &cherryMessage.Message{
-		Type:  cherryMessage.Notify,
-		Route: route,
-		Data:  data,
-	}
-
-	a.RPCHandler(a.Session, msg)
-
-	return nil
-}
-
-// Response implementation for session.NetworkEntity interface
-func (a *Agent) Response(mid uint, v interface{}, isError ...bool) error {
-	err := false
-	if len(isError) > 0 {
-		err = isError[0]
-	}
-
-	return a.Send(cherryMessage.Response, "", mid, v, err)
-}
-
-// Kick kick session
-func (a *Agent) Kick(reason interface{}) error {
+func (a *Agent) Kick(reason interface{}) {
 	bytes, err := a.Marshal(reason)
 	if err != nil {
-		a.Session.Debugf("kick fail. marshal error[%s], reason[%v].", err, reason)
+		a.Session.Warnf("[Kick] marshal fail. [reason = %v] [error = %s].", reason, err)
 	}
 
 	pkg, err := a.PacketEncode(cherryPacket.Kick, bytes)
 	if err != nil {
-		return err
+		a.Session.Warnf("[kick] packet encode error.[reason = %v] [error = %s].", reason, err)
+		return
 	}
 
 	_, err = a.conn.Write(pkg)
@@ -153,12 +93,39 @@ func (a *Agent) Kick(reason interface{}) error {
 		cherryLogger.Warn(err)
 	}
 
-	a.Session.Debugf("kick session. reason[%v]", reason)
-
-	return nil
+	if cherryProfile.Debug() {
+		a.Session.Debugf("[Kick] [reason = %v]", reason)
+	}
 }
 
-// Close closes the Agent, clean inner state and close low-level connection.
+func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
+	err := false
+	if len(isError) > 0 {
+		err = isError[0]
+	}
+
+	a.Send(cherryMessage.Response, "", mid, v, err)
+}
+
+func (a *Agent) RPC(route string, val interface{}) cherryProto.Response {
+	cherryLogger.Errorf("cluster no implement. [route = %s] [val = %v]", route, val)
+	return cherryProto.Response{
+		Code: cherryCode.RPCNotImplement,
+	}
+}
+
+func (a *Agent) SendRaw(bytes []byte) {
+	a.chWrite <- bytes
+}
+
+func (a *Agent) RemoteAddr() string {
+	if a.conn != nil {
+		return a.conn.RemoteAddr().String()
+	}
+
+	return ""
+}
+
 func (a *Agent) Close() {
 	a.Lock()
 	defer a.Unlock()
@@ -166,9 +133,10 @@ func (a *Agent) Close() {
 	if a.Session.State() == cherrySession.Closed {
 		return
 	}
-	a.Session.SetState(cherrySession.Closed)
 
+	a.Session.SetState(cherrySession.Closed)
 	a.Session.OnCloseProcess()
+
 	a.chDie <- true
 
 	if err := a.conn.Close(); err != nil {
@@ -176,10 +144,19 @@ func (a *Agent) Close() {
 	}
 }
 
-// RemoteAddr implementation for session.NetworkEntity interface
-// returns the remote network address.
-func (a *Agent) RemoteAddr() net.Addr {
-	return a.conn.RemoteAddr()
+func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) {
+	if a.Session.State() == cherrySession.Closed {
+		a.Session.Warnf("[send] session status == Closed")
+		return
+	}
+
+	if len(a.chSend) >= WriteBacklog {
+		a.Session.Warnf("[send] session send buffer exceed")
+		return
+	}
+
+	pending := pendingMessage{typ: typ, mid: mid, route: route, payload: v, err: isError}
+	a.chSend <- pending
 }
 
 func (a *Agent) Run() {
@@ -195,7 +172,6 @@ func (a *Agent) read() {
 	for {
 		msg, err := a.conn.GetNextMessage()
 		if err != nil {
-			a.Session.Debugf("close read goroutine. error[%s]", err)
 			return
 		}
 
@@ -218,7 +194,7 @@ func (a *Agent) read() {
 func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		a.Session.Debugf("close write goroutine.")
+		a.Session.Debugf("close session. [sid = %s]", a.Session.SID())
 
 		ticker.Stop()
 		a.Close()
@@ -239,7 +215,6 @@ func (a *Agent) write() {
 				a.Session.Debug("check heartbeat timeout.")
 				return
 			}
-
 		case bytes := <-a.chWrite:
 			_, err := a.conn.Write(bytes)
 			if err != nil {
@@ -250,7 +225,7 @@ func (a *Agent) write() {
 		case data := <-a.chSend:
 			payload, err := a.Marshal(data.payload)
 			if err != nil {
-				a.Session.Debug("message serializer error. data[%s]", data.String())
+				a.Session.Debugf("message serializer error. data[%s]", data.String())
 				return
 			}
 

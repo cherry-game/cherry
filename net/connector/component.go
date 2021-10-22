@@ -9,15 +9,13 @@ type (
 	// Component (连接器组件适用于前端节点)
 	Component struct {
 		facade.Component
-		ConnectStat *ConnectStat
-		connector   facade.IConnector
+		connector facade.IConnector
 	}
 )
 
 func NewComponent(connector facade.IConnector) *Component {
 	return &Component{
-		ConnectStat: &ConnectStat{},
-		connector:   connector,
+		connector: connector,
 	}
 }
 

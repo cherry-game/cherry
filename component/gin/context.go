@@ -1,20 +1,18 @@
 package cherryGin
 
 import (
-	"github.com/cherry-game/cherry/extend/result"
-	cherryString "github.com/cherry-game/cherry/extend/string"
+	cherryCode "github.com/cherry-game/cherry/code"
+	"github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
 )
 
-var codeMaps = make(map[int]string)
-
-func InitCode(maps map[int]string) {
-	for k, v := range maps {
-		codeMaps[k] = v
-	}
-}
+const (
+	contentType     = "Content-Type"
+	htmlContentType = "text/html; charset=utf-8"
+	jsonContentType = "application/json; charset=utf-8"
+)
 
 type Context struct {
 	*gin.Context
@@ -70,6 +68,20 @@ func (g *Context) GetInt(name string, defaultValue int, checkPost ...bool) int {
 	}
 
 	intValue, ok := cherryString.ToInt(value)
+	if ok {
+		return intValue
+	}
+
+	return defaultValue
+}
+
+func (g *Context) GetInt32(name string, defaultValue int32, checkPost ...bool) int32 {
+	value := g.GetString(name, "", checkPost...)
+	if value == "" {
+		return defaultValue
+	}
+
+	intValue, ok := cherryString.ToInt32(value)
 	if ok {
 		return intValue
 	}
@@ -136,17 +148,20 @@ func (g *Context) RenderJSON(value interface{}) {
 }
 
 func (g *Context) RenderHTML(html string) {
-	g.Header("Content-Type", "text/html; charset=utf-8")
+	g.Header(contentType, htmlContentType)
 	g.String(http.StatusOK, html)
 }
 
-func (g *Context) RenderResult(code int, data ...interface{}) {
-	msg := codeMaps[code]
+func (g *Context) RenderJsonString(json string) {
+	g.Header(contentType, jsonContentType)
+	g.String(http.StatusOK, json)
+}
 
-	result := cherryResult.NewResult(code, msg)
+func (g *Context) RenderDataResult(code int32, data ...interface{}) {
+	result := cherryCode.NewDataResult(code)
 	if len(data) > 0 {
 		result.Data = data[0]
 	}
 
-	g.Context.JSON(http.StatusOK, result)
+	g.Context.JSON(http.StatusOK, &result)
 }

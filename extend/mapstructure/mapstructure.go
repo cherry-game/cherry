@@ -1,5 +1,4 @@
-// Package cherryMapStructure
-// code from https://github.com/goinggo/mapstructure
+// Package cherryMapStructure file from https://github.com/mitchellh/mapstructure
 // The mapstructure package exposes functionality to convert an
 // abitrary map[string]interface{} into a native Go structure.
 //

@@ -1,10 +1,15 @@
 package cherryHandler
 
 import (
+	"context"
+	cherryCode "github.com/cherry-game/cherry/code"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	cherryMessage "github.com/cherry-game/cherry/net/message"
+	cherrySession "github.com/cherry-game/cherry/net/session"
+	"reflect"
 )
 
 type (
@@ -90,7 +95,7 @@ func (h *Handler) AddLocals(localFns ...interface{}) {
 }
 
 func (h *Handler) AddLocal(name string, fn interface{}) {
-	f, err := cherryReflect.GetInvokeFunc(name, fn)
+	f, err := getInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
@@ -111,13 +116,28 @@ func (h *Handler) AddRemotes(remoteFns ...interface{}) {
 }
 
 func (h *Handler) AddRemote(name string, fn interface{}) {
-	invokeFunc, err := cherryReflect.GetInvokeFunc(name, fn)
+	invokeFunc, err := getInvokeFunc(name, fn)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
 	}
 
 	h.remoteHandlers[name] = invokeFunc
+}
+
+func getInvokeFunc(name string, fn interface{}) (*facade.HandlerFn, error) {
+	invokeFunc, err := cherryReflect.GetInvokeFunc(name, fn)
+	if err != nil {
+		return invokeFunc, err
+	}
+
+	if len(invokeFunc.InArgs) == 2 {
+		if invokeFunc.InArgs[1] == reflect.TypeOf(&cherryMessage.Message{}) {
+			invokeFunc.IsRaw = true
+		}
+	}
+
+	return invokeFunc, err
 }
 
 func (h *Handler) AddEvent(eventName string, fn facade.EventFunc) {
@@ -156,4 +176,13 @@ func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
 	if h.handlerComponent != nil {
 		h.handlerComponent.AddAfterFilter(afterFilters...)
 	}
+}
+
+func (h *Handler) ResponseCode(ctx context.Context, session *cherrySession.Session, code int32) {
+	statusCode := cherryCode.GetCodeResult(code)
+	session.Response(ctx, statusCode)
+}
+
+func (h *Handler) Response(ctx context.Context, session *cherrySession.Session, data interface{}) {
+	session.Response(ctx, data)
 }

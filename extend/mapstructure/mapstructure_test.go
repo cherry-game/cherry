@@ -1,4 +1,4 @@
-// file from https://github.com/goinggo/mapstructure
+// Package cherryMapStructure file from https://github.com/mitchellh/mapstructure
 package cherryMapStructure
 
 import (
@@ -1004,12 +1004,12 @@ func TestDecodeWithEmbeddedSlice(t *testing.T) {
 
 	age := 10
 	if items.Peoples[0].Age != 10 {
-		t.Errorf("items.Peoples[0].Age should be '%d', we got '%s'", age, items.Peoples[0].Age)
+		t.Errorf("items.Peoples[0].Age should be '%d', we got '%d'", age, items.Peoples[0].Age)
 	}
 
 	barks := "yes"
 	if items.Peoples[0].Animals[0].Barks != barks {
-		t.Errorf("items.Peoples[0].Animals[0].Barks should be '%d', we got '%s'", barks, items.Peoples[0].Animals[0].Barks)
+		t.Errorf("items.Peoples[0].Animals[0].Barks should be '%s', we got '%s'", barks, items.Peoples[0].Animals[0].Barks)
 	}
 }
 

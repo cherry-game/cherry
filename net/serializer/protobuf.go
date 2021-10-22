@@ -15,6 +15,10 @@ func NewProtobuf() *Protobuf {
 
 // Marshal returns the protobuf encoding of v.
 func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
+	if data, ok := v.([]byte); ok {
+		return data, nil
+	}
+
 	pb, ok := v.(proto.Message)
 	if !ok {
 		return nil, cherryError.ProtobufWrongValueType

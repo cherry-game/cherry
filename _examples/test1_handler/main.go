@@ -44,17 +44,15 @@ func app() {
 
 	handlerComponent.Register(handlerGroup1)
 
-	dataConfigComponent := cherryDataConfig.NewComponent()
-
 	go func(testApp *cherry.Application) {
 		//10秒后退出应用
-		time.Sleep(10 * time.Second)
+		time.Sleep(60 * time.Second)
 		testApp.Shutdown()
 	}(testApp)
 
 	testApp.Startup(
 		handlerComponent,
-		dataConfigComponent,
+		cherryDataConfig.NewComponent(),
 		&mockComponent{},
 	)
 }
@@ -98,7 +96,7 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 			},
 		}
 
-		handler.PostMessage(session, msg)
+		handler.ProcessLocal(session, msg)
 		//time.Sleep(time.Microsecond * 1)
 
 		i++
@@ -118,7 +116,7 @@ func mockRequestMsg2(app cherryFacade.IApplication, handler *cherryHandler.Compo
 			Route: "game.testHandler.test222",
 		}
 
-		handler.PostMessage(session, msg)
+		handler.ProcessLocal(session, msg)
 
 		//time.Sleep(time.Millisecond * 1)
 	}

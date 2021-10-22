@@ -26,8 +26,8 @@ func (t *TestHandler) OnInit() {
 		t.testMethod2,
 	)
 
-	t.AddLocal("testLocalMethod", t.testMethod)
-	t.AddRemote("testRemoteMethod", t.testRemote)
+	t.AddLocal("testLocalMethod", t.testLocalMethod)
+	t.AddRemote("testRemoteMethod", t.testRemoteMethod)
 }
 
 func (t *TestHandler) testMethod1(_ *cherrySession.Session, _ *cherryMessage.Message) {
@@ -38,10 +38,10 @@ func (t *TestHandler) testMethod2(session *cherrySession.Session, message *cherr
 	cherryLogger.Debug(session, message)
 }
 
-func (t *TestHandler) testMethod(session *cherrySession.Session, message *cherryMessage.Message) {
+func (t *TestHandler) testLocalMethod(session *cherrySession.Session, message *cherryMessage.Message) {
 }
 
-func (t *TestHandler) testRemote(ctx context.Context, msg proto.Message) {
+func (t *TestHandler) testRemoteMethod(ctx context.Context, msg proto.Message) {
 	cherryLogger.Debug(ctx, msg)
 }
 

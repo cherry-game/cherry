@@ -1,13 +1,22 @@
-// Package cherySlice code from: https://github.com/beego/beego/blob/develop/core/utils/slice.go
-package cherySlice
+// Package cherrySlice code from: https://github.com/beego/beego/blob/develop/core/utils/slice.go
+package cherrySlice
 
 import (
 	"math/rand"
 	"time"
 )
 
-// In checks given string in string slice or not.
-func In(v string, sl []string) bool {
+func Int32In(v int32, sl []int32) bool {
+	for _, vv := range sl {
+		if vv == v {
+			return true
+		}
+	}
+	return false
+}
+
+// StringIn checks given string in string slice or not.
+func StringIn(v string, sl []string) bool {
 	for _, vv := range sl {
 		if vv == v {
 			return true

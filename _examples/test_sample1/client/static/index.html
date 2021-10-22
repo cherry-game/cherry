@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>test demo</title>
+</head>
+<body>
+<input type="button" onclick="sendActorSelect()" id="button1" name="button1" value="send actor select">
+<script src="protocol.js" type="text/javascript"></script>
+<script src="starx-wsclient.js" type="text/javascript"></script>
+<script>
+    var onMessage = function (msg) {
+        console.log(msg);
+        v.messages.push(msg)
+    };
+
+    var onNewUser = function (data) {
+        console.log(data);
+        v.messages.push({name: 'system', content: data.content});
+    };
+
+    var onBalance = function (data) {
+        console.log(data);
+        //v.balance = data.currentBalance;
+    };
+
+    var onMembers = function (data) {
+        console.log(data);
+        v.messages.push({name: 'system', content: "members: " + data.members});
+    };
+
+
+    var login = function (data) {
+        console.log(data);
+        if (data.code === 0) {
+            v.messages.push({name: 'system', content: data.result});
+            starx.on('onMessage', onMessage)
+        }
+    };
+
+    var sendActorSelect = function () {
+        starx.request("game.actorHandler.select", {"time": Date.now()}, actorSelect);
+    }
+
+    var actorSelect = function (data) {
+        console.log(data);
+    }
+
+    // gate address
+    var gateHost = "127.0.0.1";
+    var gatePort = 10010;
+    starx.init({host: gateHost, port: gatePort, path: '/nano'}, function () {
+        console.log("initialized");
+        starx.on("onNewUser", onNewUser);
+        starx.on("onMembers", onMembers);
+        starx.on("onBalance", onBalance);
+
+        starx.request("gate.userHandler.login", {"server_id": "1000", "token": "111"}, login);
+    })
+</script>
+</body>
+</html>

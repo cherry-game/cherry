@@ -26,11 +26,15 @@ func GetStructName(v interface{}) string {
 }
 
 func GetFuncName(fn interface{}) string {
+	if reflect.TypeOf(fn).Kind() != reflect.Func {
+		panic(fmt.Sprintf("[fn = %v] is not func type.", fn))
+	}
+
 	fullName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
 	return cherryString.CutLastString(fullName, ".", "-")
 }
 
-//getInvokeFunc reflect function convert to HandlerFn
+//GetInvokeFunc reflect function convert to HandlerFn
 func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error) {
 	if name == "" {
 		return nil, cherryError.Error("func name is nil")

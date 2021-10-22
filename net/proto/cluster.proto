@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+option go_package = "/cherryProto";
+
+package cherryCluster;
+
+
+// string type
+message String {
+  string value = 1;
+}
+
+// int64 type
+message Int64 {
+  int64 value = 1;
+}
+
+// 成员结构
+message Member {
+  string              nodeId   = 1; // 节点id
+  string              nodeType = 2; // 节点类型
+  string              address  = 3; // rpc连接地址
+  map<string, string> settings = 4; // 节点配置参数
+}
+
+// 成员列表结构
+message MemberList {
+  repeated Member list = 1;
+}
+
+// Session
+message Session {
+  string              sid        = 1; // sid
+  int64               uid        = 2; // uid
+  string              frontendId = 3; // 前端节点id
+  string              ip         = 4; // client ip
+  map<string, string> data       = 5; // 附带的参数
+}
+
+// 本地消息包(适用于网关消息转发到当前节点执行localHandle的逻辑)
+message LocalPacket {
+  Session session = 1; // session
+  int32   msgType = 2; // 消息类型(request,notify,response,push)
+  uint32  msgId   = 3; // 消息序号id
+  string  route   = 4; // 路由
+  bool    isError = 5; // 是否返回错误
+  bytes   data    = 6; // 自定义数据
+}
+
+// 远程消息包(用于RPC调用)
+message RemotePacket {
+  string route = 1; // 路由
+  bytes  data  = 3; // 自定义数据
+}
+
+// 推送消息结构(推送到网关转发到用户客户端)
+message PushRequest {
+  string route = 1; // 路由
+  int64  uid   = 2; // session uid
+  bytes  data  = 3; // 自定义数据
+}
+
+// 踢下线消息结构(推送到网关踢用户下线)
+message KickRequest {
+  int64 uid    = 1; // 踢下线的uid
+  bytes reason = 2; // 原因
+}
+
+// 状态码
+message CodeResult {
+  int32  code    = 1; //状态码
+  string message = 2; //消息内容
+}
+
+// 响应结构
+message Response {
+  int32 code = 1; // message code
+  bytes data = 2; // 自定义数据
+}

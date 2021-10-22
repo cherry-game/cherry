@@ -87,7 +87,13 @@ func (h *HandlerGroup) run(app facade.IApplication) {
 	for _, handler := range h.handlers {
 		handler.Set(app)
 		handler.OnPreInit()
+	}
+
+	for _, handler := range h.handlers {
 		handler.OnInit()
+	}
+
+	for _, handler := range h.handlers {
 		handler.OnAfterInit()
 		h.printInfo(handler)
 	}
@@ -120,37 +126,37 @@ func (h *HandlerGroup) invokeExecutor(executor IExecutor) {
 }
 
 func (h *HandlerGroup) printInfo(handler facade.IHandler) {
-	cherryLogger.Infof("[Handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
+	cherryLogger.Infof("[handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
 	for key := range handler.Events() {
-		cherryLogger.Infof("[Handler = %s] event = %s", handler.Name(), key)
+		cherryLogger.Infof("[handler = %s] event = %s", handler.Name(), key)
 	}
 
 	for key := range handler.LocalHandlers() {
-		cherryLogger.Infof("[Handler = %s] localHandler = %s", handler.Name(), key)
+		cherryLogger.Infof("[handler = %s] localHandler = %s", handler.Name(), key)
 	}
 
 	for key := range handler.RemoteHandlers() {
-		cherryLogger.Infof("[Handler = %s] removeHandler = %s", handler.Name(), key)
+		cherryLogger.Infof("[handler = %s] remoteHandler = %s", handler.Name(), key)
 	}
 }
 
 func DefaultQueueHash(executor IExecutor, queueNum int) int {
+	if queueNum <= 1 {
+		return 0
+	}
+
 	var i = 0
 	switch e := executor.(type) {
-	case *MessageExecutor:
+	case *ExecutorLocal:
 		if e.Session.UID() > 0 {
 			i = int(e.Session.UID() % int64(queueNum))
 		} else {
-			i = int(e.Session.SID() % int64(queueNum))
+			i = crypto.CRC32(e.Session.SID()) % queueNum
 		}
-	case *EventExecutor:
+	case *ExecutorEvent:
 		i = crypto.CRC32(e.Event.UniqueId()) % queueNum
-	case *UserRPCExecutor:
-		i = 0
-
-	case *SysRPCExecutor:
-		i = 0
+	case *ExecutorRemote:
+		i = crypto.CRC32(e.String()) % queueNum
 	}
-
 	return i
 }

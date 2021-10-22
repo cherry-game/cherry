@@ -37,6 +37,14 @@ func ToInt(value string) (int, bool) {
 	return val, true
 }
 
+func ToInt32(value string) (int32, bool) {
+	val, err := strconv.ParseInt(value, 10, 32)
+	if err != nil {
+		return 0, false
+	}
+	return int32(val), true
+}
+
 func ToInt64(value string) (int64, bool) {
 	val, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
@@ -66,4 +74,37 @@ func ToStringSlice(val []interface{}) []string {
 		}
 	}
 	return result
+}
+
+func StringToInt(val string, def ...int) int {
+	i, err := strconv.Atoi(val)
+	if err != nil {
+		if len(def) > 0 {
+			return def[0]
+		}
+		return 0
+	}
+	return i
+}
+
+func StringToInt32(val string, def ...int32) int32 {
+	i, err := strconv.ParseInt(val, 10, 32)
+	if err != nil {
+		if len(def) > 0 {
+			return def[0]
+		}
+		return 0
+	}
+	return int32(i)
+}
+
+func StringToInt64(val string, def ...int64) int64 {
+	i, err := strconv.ParseInt(val, 10, 64)
+	if err != nil {
+		if len(def) > 0 {
+			return def[0]
+		}
+		return 0
+	}
+	return i
 }

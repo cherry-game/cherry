@@ -3,7 +3,7 @@ package cherryLogger
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/profile"
+	cherryProfile "github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/natefinch/lumberjack.v2"
@@ -27,6 +27,10 @@ type CherryLogger struct {
 	*Config
 }
 
+func (c *CherryLogger) Print(v ...interface{}) {
+	c.Warn(v)
+}
+
 func SetNodeLogger(node cherryFacade.INode) {
 	refLogger := node.Settings().Get("ref_logger").ToString()
 
@@ -39,10 +43,10 @@ func SetNodeLogger(node cherryFacade.INode) {
 }
 
 func Flush() {
-	DefaultLogger.Sync()
+	_ = DefaultLogger.Sync()
 
 	for _, logger := range loggers {
-		logger.Sync()
+		_ = logger.Sync()
 	}
 }
 
@@ -58,7 +62,7 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 		return logger
 	}
 
-	loggerConfigs := cherryProfile.GetConfig("logger")
+	loggerConfigs := cherryProfile.Config().Get("logger")
 	if loggerConfigs.LastError() != nil {
 		panic(loggerConfigs.LastError())
 	}
