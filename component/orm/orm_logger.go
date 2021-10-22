@@ -9,5 +9,5 @@ type ormLogger struct {
 }
 
 func (l ormLogger) Printf(s string, i ...interface{}) {
-	l.log.Infof(s, i...)
+	l.log.Debugf(s, i...)
 }
