@@ -12,9 +12,10 @@ import (
 )
 
 var (
+	rw            sync.RWMutex             // mutex
 	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
 	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	rw            sync.RWMutex
+	nodeId        string                   // current node id
 )
 
 func init() {
@@ -32,6 +33,8 @@ func (c *CherryLogger) Print(v ...interface{}) {
 }
 
 func SetNodeLogger(node cherryFacade.INode) {
+	nodeId = node.NodeId()
+
 	refLogger := node.Settings().Get("ref_logger").ToString()
 
 	if refLogger == "" {
@@ -82,6 +85,9 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 
 func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "ts",
+		LevelKey:       "level",
+		CallerKey:      "caller",
 		MessageKey:     "msg",
 		NameKey:        "name",
 		StacktraceKey:  "stack",
@@ -90,16 +96,22 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	if config.PrintCaller {
-		encoderConfig.TimeKey = "ts"
 		encoderConfig.EncodeTime = config.TimeEncoder()
-		encoderConfig.LevelKey = "level"
-		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-		encoderConfig.CallerKey = "caller"
-		encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 		encoderConfig.EncodeName = zapcore.FullNameEncoder
 		encoderConfig.FunctionKey = zapcore.OmitKey
-
 		opts = append(opts, zap.AddCaller())
+	}
+
+	encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+		enc.AppendString(level.CapitalString())
+	}
+
+	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
+		if nodeId != "" {
+			encoder.AppendString("[node=" + nodeId + "]")
+		}
+
+		encoder.AppendString(caller.TrimmedPath())
 	}
 
 	level := GetLevel(config.Level)
@@ -122,23 +134,22 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		writers = append(writers, zapcore.AddSync(os.Stderr))
 	}
 
-	cl := &CherryLogger{
-		SugaredLogger: NewSugaredLogger(encoderConfig, zapcore.NewMultiWriteSyncer(writers...), level, opts...),
-		Config:        config,
-	}
-
-	return cl
-}
-
-func NewSugaredLogger(config zapcore.EncoderConfig, writer zapcore.WriteSyncer, level zapcore.Level, opts ...zap.Option) *zap.SugaredLogger {
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(config),
-		zapcore.AddSync(writer),
+		zapcore.NewConsoleEncoder(encoderConfig),
+		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
 		zap.NewAtomicLevelAt(level),
 	)
 
-	zapLogger := zap.New(core, opts...)
+	cherryLogger := &CherryLogger{
+		SugaredLogger: NewSugaredLogger(core, opts...),
+		Config:        config,
+	}
 
+	return cherryLogger
+}
+
+func NewSugaredLogger(core zapcore.Core, opts ...zap.Option) *zap.SugaredLogger {
+	zapLogger := zap.New(core, opts...)
 	return zapLogger.Sugar()
 }
 
