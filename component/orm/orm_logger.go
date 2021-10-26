@@ -2,6 +2,7 @@ package cherryORM
 
 import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
+	"strings"
 )
 
 type ormLogger struct {
@@ -9,5 +10,5 @@ type ormLogger struct {
 }
 
 func (l ormLogger) Printf(s string, i ...interface{}) {
-	l.log.Debugf(s, i...)
+	l.log.Debugf(strings.ReplaceAll(s, "\n", ""), i...)
 }
