@@ -26,6 +26,10 @@ func (d *DropConfigs) Name() string {
 	return "dropConfig"
 }
 
+func (d *DropConfigs) Init() {
+
+}
+
 func (d *DropConfigs) Load(maps interface{}, reload bool) error {
 	list, ok := maps.([]interface{})
 	if ok == false {

@@ -56,6 +56,8 @@ func (d *Component) Init() {
 
 		// read register IConfig
 		for _, cfg := range d.configs {
+			cfg.Init()
+
 			data, found := d.GetBytes(cfg.Name())
 			if !found {
 				cherryLogger.Warnf("load [configName = %s] data fail.", cfg.Name())

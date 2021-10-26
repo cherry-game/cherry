@@ -30,6 +30,7 @@ type (
 	// IConfig 配置接口
 	IConfig interface {
 		Name() string                             // 配置名称
+		Init()                                    // 结构体初始化
 		Load(maps interface{}, reload bool) error // 配置序列化后，执行该函数
 	}
 )

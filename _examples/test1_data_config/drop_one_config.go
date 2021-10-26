@@ -16,6 +16,10 @@ func (d *DropOneConfig) Name() string {
 	return "dropOneConfig"
 }
 
+func (d *DropOneConfig) Init() {
+
+}
+
 func (d *DropOneConfig) Load(maps interface{}, _ bool) error {
 	return cherryMapStructure.Decode(maps, d)
 }
