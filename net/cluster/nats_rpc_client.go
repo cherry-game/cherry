@@ -135,10 +135,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 	subject := GetRemoteNodeSubject(nodeType, nodeId)
 
 	if cherryProfile.Debug() {
-		cherryLogger.Debugf("[CallRemote] [route = %s] [val = %v]",
-			packet.Route,
-			val,
-		)
+		cherryLogger.Debugf("[CallRemote] [route = %s]", packet.Route)
 	}
 
 	rspData, err := n.nats.Request(subject, msg, timeout)

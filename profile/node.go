@@ -64,7 +64,7 @@ func LoadNode(nodeId string) (cherryFacade.INode, error) {
 		for i := 0; i < typeJson.Size(); i++ {
 			item := typeJson.Get(i)
 
-			if item.Get("node_id").ToString() != nodeId {
+			if foundNodeId(nodeId, item.Get("node_id")) == false {
 				continue
 			}
 
@@ -82,4 +82,18 @@ func LoadNode(nodeId string) (cherryFacade.INode, error) {
 	}
 
 	return nil, cherryError.Errorf("nodeId = %s not found.", nodeId)
+}
+
+func foundNodeId(nodeId string, nodeIdJson jsoniter.Any) bool {
+	if nodeIdJson.ToString() == nodeId {
+		return true
+	}
+
+	for i := 0; i < nodeIdJson.Size(); i++ {
+		if nodeIdJson.Get(i).ToString() == nodeId {
+			return true
+		}
+	}
+
+	return false
 }
