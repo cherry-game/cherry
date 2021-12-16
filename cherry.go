@@ -245,7 +245,7 @@ func GetConnector() *cherryConnector.Component {
 	return _connectorComponent
 }
 
-func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) (code int32) {
+func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {
 	if reply != nil && reflect.TypeOf(reply).Kind() != reflect.Ptr {
 		return cherryCode.RPCReplyParamsError
 	}
@@ -257,7 +257,7 @@ func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, ti
 
 	callResult := _clusterComponent.Client().CallRemote(nodeId, route, arg, requestTimeout)
 	if cherryCode.IsFail(callResult.Code) {
-		return code
+		return callResult.Code
 	}
 
 	if reply != nil {

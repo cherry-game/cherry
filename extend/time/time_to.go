@@ -1,10 +1,9 @@
 package cherryTime
 
-import "time"
-
-func (c CherryTime) ToMillisecond() int64 {
-	return c.UnixNano() / 1e6
-}
+import (
+	cherryString "github.com/cherry-game/cherry/extend/string"
+	"time"
+)
 
 // ToTimestamp ToTimestampWithSecond的简称
 func (c CherryTime) ToTimestamp() int64 {
@@ -14,6 +13,11 @@ func (c CherryTime) ToTimestamp() int64 {
 // ToTimestampWithSecond 输出秒级时间戳
 func (c CherryTime) ToTimestampWithSecond() int64 {
 	return c.Unix()
+}
+
+// ToMillisecond 输出毫秒级时间戳
+func (c CherryTime) ToMillisecond() int64 {
+	return c.ToTimestampWithMillisecond()
 }
 
 // ToTimestampWithMillisecond 输出毫秒级时间戳
@@ -54,6 +58,13 @@ func (c CherryTime) ToShortDateTimeFormat() string {
 // ToShortDateFormat 20060102
 func (c CherryTime) ToShortDateFormat() string {
 	return c.Format(ShortDateFormat)
+}
+
+// ToShortIntDateFormat 20060102
+func (c CherryTime) ToShortIntDateFormat() int32 {
+	strDate := c.ToShortDateFormat()
+	intDate, _ := cherryString.ToInt32(strDate)
+	return intDate
 }
 
 // ToShortTimeFormat 150405

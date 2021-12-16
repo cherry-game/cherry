@@ -7,10 +7,15 @@ import (
 )
 
 func ToJson(i interface{}) string {
+	if i == nil {
+		return ""
+	}
+
 	bytes, err := encodingJson.Marshal(i)
 	if err != nil {
 		return ""
 	}
+
 	return string(bytes)
 }
 
