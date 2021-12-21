@@ -201,7 +201,8 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		c.OnAfterInit()
 	}
 	cherryLogger.Info("-------------------------------------------------")
-	cherryLogger.Infof("[nodeId = %s] application is running.", a.NodeId())
+	spendTime := a.startTime.DiffInMillisecond(cherryTime.Now())
+	cherryLogger.Infof("[nodeId = %s] [spend time = %dms] application is running.", a.NodeId(), spendTime)
 	cherryLogger.Info("-------------------------------------------------")
 
 	sg := make(chan os.Signal)

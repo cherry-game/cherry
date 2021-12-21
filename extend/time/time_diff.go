@@ -84,3 +84,8 @@ func (c CherryTime) DiffInSeconds(end CherryTime) int64 {
 func (c CherryTime) DiffInSecondsWithAbs(end CherryTime) int64 {
 	return GetAbsValue(c.DiffInSeconds(end))
 }
+
+// DiffInMillisecond 相差多少毫秒
+func (c CherryTime) DiffInMillisecond(end CherryTime) int64 {
+	return end.ToTimestampWithMillisecond() - c.ToTimestampWithMillisecond()
+}

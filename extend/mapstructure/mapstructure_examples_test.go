@@ -1,8 +1,6 @@
-// Package cherryMapStructure file from https://github.com/mitchellh/mapstructure
 package cherryMapStructure
 
 import (
-	"encoding/json"
 	"fmt"
 )
 
@@ -64,11 +62,11 @@ func ExampleDecode_errors() {
 	// Output:
 	// 5 error(s) decoding:
 	//
-	// * 'Name' expected type 'string', got unconvertible type 'int'
-	// * 'Age' expected type 'int', got unconvertible type 'string'
-	// * 'Emails[0]' expected type 'string', got unconvertible type 'int'
-	// * 'Emails[1]' expected type 'string', got unconvertible type 'int'
-	// * 'Emails[2]' expected type 'string', got unconvertible type 'int'
+	// * 'Age' expected type 'int', got unconvertible type 'string', value: 'bad value'
+	// * 'Emails[0]' expected type 'string', got unconvertible type 'int', value: '1'
+	// * 'Emails[1]' expected type 'string', got unconvertible type 'int', value: '2'
+	// * 'Emails[2]' expected type 'string', got unconvertible type 'int', value: '3'
+	// * 'Name' expected type 'string', got unconvertible type 'int', value: '123'
 }
 
 func ExampleDecode_metadata() {
@@ -146,179 +144,113 @@ func ExampleDecode_weaklyTypedInput() {
 	// Output: mapstructure.Person{Name:"123", Age:42, Emails:[]string{}}
 }
 
-func ExampleDecodePath() {
-	var document string = `{
-    "userContext": {
-        "conversationCredentials": {
-            "sessionToken": "06142010_1:75bf6a413327dd71ebe8f3f30c5a4210a9b11e93c028d6e11abfca7ff"
-        },
-        "valid": true,
-        "isPasswordExpired": false,
-        "cobrandId": 10000004,
-        "channelId": -1,
-        "locale": "en_US",
-        "tncVersion": 2,
-        "applicationId": "17CBE222A42161A3FF450E47CF4C1A00",
-        "cobrandConversationCredentials": {
-            "sessionToken": "06142010_1:b8d011fefbab8bf1753391b074ffedf9578612d676ed2b7f073b5785b"
-        },
-        "preferenceInfo": {
-            "currencyCode": "USD",
-            "timeZone": "PST",
-            "dateFormat": "MM/dd/yyyy",
-            "currencyNotationType": {
-                "currencyNotationType": "SYMBOL"
-            },
-            "numberFormat": {
-                "decimalSeparator": ".",
-                "groupingSeparator": ",",
-                "groupPattern": "###,##0.##"
-            }
-        }
-    },
-    "lastLoginTime": 1375686841,
-    "loginCount": 299,
-    "passwordRecovered": false,
-    "emailAddress": "johndoe@email.com",
-    "loginName": "sptest1",
-    "userId": 10483860,
-    "userType":
-        {
-        "userTypeId": 1,
-        "userTypeName": "normal_user"
-        }
-}`
-
-	type UserType struct {
-		UserTypeId   int
-		UserTypeName string
+func ExampleDecode_tags() {
+	// Note that the mapstructure tags defined in the struct type
+	// can indicate which fields the values are mapped to.
+	type Person struct {
+		Name string `mapstructure:"person_name"`
+		Age  int    `mapstructure:"person_age"`
 	}
 
-	type NumberFormat struct {
-		DecimalSeparator  string `jpath:"userContext.preferenceInfo.numberFormat.decimalSeparator"`
-		GroupingSeparator string `jpath:"userContext.preferenceInfo.numberFormat.groupingSeparator"`
-		GroupPattern      string `jpath:"userContext.preferenceInfo.numberFormat.groupPattern"`
+	input := map[string]interface{}{
+		"person_name": "Mitchell",
+		"person_age":  91,
 	}
 
-	type User struct {
-		Session      string   `jpath:"userContext.cobrandConversationCredentials.sessionToken"`
-		CobrandId    int      `jpath:"userContext.cobrandId"`
-		UserType     UserType `jpath:"userType"`
-		LoginName    string   `jpath:"loginName"`
-		NumberFormat          // This can also be a pointer to the struct (*NumberFormat)
+	var result Person
+	err := Decode(input, &result)
+	if err != nil {
+		panic(err)
 	}
 
-	docScript := []byte(document)
-	var docMap map[string]interface{}
-	json.Unmarshal(docScript, &docMap)
-
-	var user User
-	DecodePath(docMap, &user)
-
-	fmt.Printf("%#v", user)
+	fmt.Printf("%#v", result)
 	// Output:
-	// mapstructure.User{Session:"06142010_1:b8d011fefbab8bf1753391b074ffedf9578612d676ed2b7f073b5785b", CobrandId:10000004, UserType:mapstructure.UserType{UserTypeId:1, UserTypeName:"normal_user"}, LoginName:"sptest1", NumberFormat:mapstructure.NumberFormat{DecimalSeparator:".", GroupingSeparator:",", GroupPattern:"###,##0.##"}}
+	// mapstructure.Person{Name:"Mitchell", Age:91}
 }
 
-func ExampleDecodeSlicePath() {
-	var document = `[{"name":"bill"},{"name":"lisa"}]`
-
-	type NameDoc struct {
-		Name string `jpath:"name"`
+func ExampleDecode_embeddedStruct() {
+	// Squashing multiple embedded structs is allowed using the squash tag.
+	// This is demonstrated by creating a composite struct of multiple types
+	// and decoding into it. In this case, a person can carry with it both
+	// a Family and a Location, as well as their own FirstName.
+	type Family struct {
+		LastName string
+	}
+	type Location struct {
+		City string
+	}
+	type Person struct {
+		Family    `mapstructure:",squash"`
+		Location  `mapstructure:",squash"`
+		FirstName string
 	}
 
-	sliceScript := []byte(document)
-	var sliceMap []map[string]interface{}
-	json.Unmarshal(sliceScript, &sliceMap)
+	input := map[string]interface{}{
+		"FirstName": "Mitchell",
+		"LastName":  "Hashimoto",
+		"City":      "San Francisco",
+	}
 
-	var myslice []NameDoc
-	DecodeSlicePath(sliceMap, &myslice)
+	var result Person
+	err := Decode(input, &result)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Printf("%#v", myslice)
+	fmt.Printf("%s %s, %s", result.FirstName, result.LastName, result.City)
 	// Output:
-	// []mapstructure.NameDoc{mapstructure.NameDoc{Name:"bill"}, mapstructure.NameDoc{Name:"lisa"}}
+	// Mitchell Hashimoto, San Francisco
 }
 
-func ExampleDecodeWithEmbeddedSlice() {
-	var document string = `{
-	  "cobrandId": 10010352,
-	  "channelId": -1,
-	  "locale": "en_US",
-	  "tncVersion": 2,
-	  "categories":["rabbit","bunny","frog"],
-	  "people": [
-	 	{
-			"name": "jack",
-			"age": {
-				"birth":10,
-				"year":2000,
-				"animals": [
-					{
-						"barks":"yes",
-						"tail":"yes"
-					},
-					{
-						"barks":"no",
-						"tail":"yes"
-					}
-				]
-			}
-		},
-		{
-			"name": "jill",
-			"age": {
-				"birth":11,
-				"year":2001
-			}
-		}
-	  ]
-}`
-
-	type Animal struct {
-		Barks string `jpath:"barks"`
+func ExampleDecode_remainingData() {
+	// Note that the mapstructure tags defined in the struct type
+	// can indicate which fields the values are mapped to.
+	type Person struct {
+		Name  string
+		Age   int
+		Other map[string]interface{} `mapstructure:",remain"`
 	}
 
-	type People struct {
-		Age     int      `jpath:"age.birth"` // jpath is relative to the array
-		Animals []Animal `jpath:"age.animals"`
+	input := map[string]interface{}{
+		"name":  "Mitchell",
+		"age":   91,
+		"email": "mitchell@example.com",
 	}
 
-	type Items struct {
-		Categories []string `jpath:"categories"`
-		Peoples    []People `jpath:"people"` // Specify the location of the array
+	var result Person
+	err := Decode(input, &result)
+	if err != nil {
+		panic(err)
 	}
 
-	docScript := []byte(document)
-	var docMap map[string]interface{}
-	json.Unmarshal(docScript, &docMap)
-
-	var items Items
-	DecodePath(docMap, &items)
-
-	fmt.Printf("%#v", items)
+	fmt.Printf("%#v", result)
 	// Output:
-	// mapstructure.Items{Categories:[]string{"rabbit", "bunny", "frog"}, Peoples:[]mapstructure.People{mapstructure.People{Age:10, Animals:[]mapstructure.Animal{mapstructure.Animal{Barks:"yes"}, mapstructure.Animal{Barks:"no"}}}, mapstructure.People{Age:11, Animals:[]mapstructure.Animal(nil)}}}
+	// mapstructure.Person{Name:"Mitchell", Age:91, Other:map[string]interface {}{"email":"mitchell@example.com"}}
 }
 
-func ExampleDecodeWithAbstractField() {
-	var document = `{"Error":[{"errorDetail":"Invalid Cobrand Credentials"}]}`
-
-	type YodleeError struct {
-		Error []map[string]interface{} `jpath:"Error"`
+func ExampleDecode_omitempty() {
+	// Add omitempty annotation to avoid map keys for empty values
+	type Family struct {
+		LastName string
+	}
+	type Location struct {
+		City string
+	}
+	type Person struct {
+		*Family   `mapstructure:",omitempty"`
+		*Location `mapstructure:",omitempty"`
+		Age       int
+		FirstName string
 	}
 
-	type CobrandContext struct {
-		YodleeError
+	result := &map[string]interface{}{}
+	input := Person{FirstName: "Somebody"}
+	err := Decode(input, &result)
+	if err != nil {
+		panic(err)
 	}
 
-	docScript := []byte(document)
-	var docMap map[string]interface{}
-	json.Unmarshal(docScript, &docMap)
-
-	var cobrandContext CobrandContext
-	DecodePath(docMap, &cobrandContext)
-
-	fmt.Printf("%#v", cobrandContext)
+	fmt.Printf("%+v", result)
 	// Output:
-	// mapstructure.CobrandContext{YodleeError:mapstructure.YodleeError{Error:[]map[string]interface {}{map[string]interface {}{"errorDetail":"Invalid Cobrand Credentials"}}}}
+	// &map[Age:0 FirstName:Somebody]
 }
