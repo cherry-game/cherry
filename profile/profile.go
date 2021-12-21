@@ -18,7 +18,9 @@ var (
 		fileName    string       // profile fileName
 		json        jsoniter.Any // profile-x.json parse to json object
 		debug       bool         // debug default is true
-	}{}
+	}{
+		debug: true,
+	}
 )
 
 func Dir() string {
