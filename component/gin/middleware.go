@@ -3,7 +3,6 @@ package cherryGin
 
 import (
 	"github.com/cherry-game/cherry/logger"
-	"github.com/gin-gonic/gin"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -13,7 +12,7 @@ import (
 	"time"
 )
 
-func GinDefaultZap() gin.HandlerFunc {
+func GinDefaultZap() HandlerFunc {
 	return GinZap(time.RFC3339, true)
 }
 
@@ -25,8 +24,8 @@ func GinDefaultZap() gin.HandlerFunc {
 // It receives:
 //   1. A time package format string (e.g. time.RFC3339).
 //   2. A boolean stating whether to use UTC time zone or local.
-func GinZap(timeFormat string, utc bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func GinZap(timeFormat string, utc bool) HandlerFunc {
+	return func(c *Context) {
 		start := time.Now()
 		// some evil middlewares modify this values
 		path := c.Request.URL.Path
@@ -64,8 +63,8 @@ func GinZap(timeFormat string, utc bool) gin.HandlerFunc {
 // All errors are logged using zap.Error().
 // stack means whether output the stack info.
 // The stack info is easy to find where the error occurs but the stack info is too large.
-func RecoveryWithZap(stack bool) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func RecoveryWithZap(stack bool) HandlerFunc {
+	return func(c *Context) {
 		defer func() {
 			if err := recover(); err != nil {
 				// Check for a broken connection, as it is not really a
@@ -114,8 +113,8 @@ func RecoveryWithZap(stack bool) gin.HandlerFunc {
 	}
 }
 
-func Cors(domain ...string) gin.HandlerFunc {
-	return func(c *gin.Context) {
+func Cors(domain ...string) HandlerFunc {
+	return func(c *Context) {
 		method := c.Request.Method
 
 		if len(domain) > 0 {

@@ -39,7 +39,11 @@ func (g *Context) GetParams(checkPost ...bool) map[string]string {
 	}
 
 	if len(checkPost) > 0 && checkPost[0] == true {
-		g.Request.ParseForm()
+		err := g.Request.ParseForm()
+		if err != nil {
+			return maps
+		}
+
 		for k, v := range g.Request.PostForm {
 			maps[k] = v[0]
 		}
