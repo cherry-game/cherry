@@ -151,7 +151,7 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	}()
 
 	if a.Running() {
-		cherryLogger.Errorf("[nodeId = %s] application has running.", a.NodeId())
+		cherryLogger.Error("application has running.")
 		return
 	}
 
@@ -210,15 +210,15 @@ func (a *Application) Startup(components ...facade.IComponent) {
 
 	select {
 	case <-a.die:
-		cherryLogger.Infof("[nodeId = %s] -> invoke shutdown().", a.NodeId())
+		cherryLogger.Info("invoke shutdown().")
 	case <-sg:
-		cherryLogger.Infof("[nodeId = %s] -> receive shutdown signal = %v.", a.NodeId(), sg)
+		cherryLogger.Infof("receive shutdown signal = %v.", sg)
 	}
 
 	// stop status
 	atomic.StoreInt32(&a.running, 0)
 
-	cherryLogger.Infof("------- [nodeId = %s] application will shutdown -------", a.NodeId())
+	cherryLogger.Info("------- application will shutdown -------")
 
 	cherryUtils.Try(func() {
 		if a.onShutdownFn != nil {
@@ -250,7 +250,7 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		})
 	}
 
-	cherryLogger.Infof("------- [nodeId = %s] application has been shutdown... -------", a.NodeId())
+	cherryLogger.Info("------- application has been shutdown... -------")
 }
 
 func (a *Application) OnShutdown(fn ...func()) {
