@@ -1,24 +1,22 @@
 package main
 
 import (
-	"github.com/cherry-game/cherry/extend/timer"
+	"github.com/cherry-game/cherry"
+	cherryTimer "github.com/cherry-game/cherry/component/timer"
+	cherryTime "github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"time"
 )
 
 func main() {
-	t := cherryTimer.NewTimer(func() {
-		//time.Sleep(time.Second * 3)
-		cherryLogger.Infof("execute func....")
-	}, time.Second*1, 3)
+	testApp := cherry.NewApp("../config/", "local", "web-1")
+	defer testApp.OnShutdown()
 
-	cherryTimer.AddTimer(t)
+	timerComponent := cherryTimer.NewComponent()
 
-	go func() {
-		for {
-			cherryTimer.Cron()
-		}
-	}()
+	cherryTimer.NewCycleTimer(func() {
+		cherryLogger.Infof("execute func.... %s", cherryTime.Now().ToDateTimeFormat())
+	}, 1*time.Second)
 
-	time.Sleep(time.Second * 10000)
+	testApp.Startup(timerComponent)
 }

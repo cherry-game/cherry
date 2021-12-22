@@ -53,7 +53,7 @@ var (
 
 type (
 	// Func represents a function which will be called periodically in main
-	// logic gorontine.
+	// logic goroutine.
 	Func func()
 
 	// Condition represents a checker that returns true when cron job needs
@@ -93,8 +93,7 @@ func RemoveTimer(id int64) {
 }
 
 // NewTimer creates a cron job
-func NewTimer(fn Func, interval time.Duration, counter int) *Timer {
-	//atomic原子操作
+func NewTimer(fn Func, interval time.Duration, counter int, autoAdd ...bool) *Timer {
 	id := atomic.AddInt64(&Manager.incrementID, 1)
 	t := &Timer{
 		ID:       id,
@@ -107,7 +106,17 @@ func NewTimer(fn Func, interval time.Duration, counter int) *Timer {
 
 	// add to manager
 	Manager.ChCreatedTimer <- t
+
+	if len(autoAdd) > 0 && autoAdd[0] == true {
+		AddTimer(t)
+	}
+
 	return t
+}
+
+// NewCycleTimer creates a cycle cron job
+func NewCycleTimer(fn Func, interval time.Duration) *Timer {
+	return NewTimer(fn, interval, LoopForever, true)
 }
 
 // SetCondition sets the condition used for verifying when the cron job should run

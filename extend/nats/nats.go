@@ -38,7 +38,10 @@ func ParseOptions(cfg *cherryProfile.NatsConfig) []nats.Option {
 	}))
 
 	options = append(options, nats.ClosedHandler(func(nc *nats.Conn) {
-		cherryLogger.Infof("exiting. [error = %v]", nc.LastError())
+		cherryLogger.Infof("exiting... %s", cfg.Address)
+		if nc.LastError() != nil {
+			cherryLogger.Infof(".[error = %v]", nc.LastError())
+		}
 	}))
 
 	if cfg.User != "" {
