@@ -96,7 +96,7 @@ func (p *HttpServer) StaticFile(relativePath string, staticDir string) {
 	p.Engine.StaticFile(relativePath, dir)
 }
 
-func (p *HttpServer) Run() {
+func (p *HttpServer) Run(async ...bool) {
 	if p.server.Addr == "" {
 		cherryLogger.Warn("no set listener address.")
 		return
@@ -127,23 +127,32 @@ func (p *HttpServer) Run() {
 		controller.Init()
 	}
 
-	go func() {
-		var err error
+	asyncFlag := false
+	if len(async) > 0 {
+		asyncFlag = async[0]
+	}
 
-		if p.options.CertFile != "" && p.options.KeyFile != "" {
-			cherryLogger.Infof("https run. https://%s, certFile = %s, keyFile = %s",
-				p.server.Addr, p.options.CertFile, p.options.KeyFile)
+	if asyncFlag {
+		go p.listener()
+	} else {
+		p.listener()
+	}
+}
 
-			err = p.server.ListenAndServeTLS(p.options.CertFile, p.options.KeyFile)
-		} else {
-			cherryLogger.Infof("http run. http://%s", p.server.Addr)
-			err = p.server.ListenAndServe()
-		}
+func (p *HttpServer) listener() {
+	var err error
+	if p.options.CertFile != "" && p.options.KeyFile != "" {
+		cherryLogger.Infof("https run. https://%s, certFile = %s, keyFile = %s",
+			p.server.Addr, p.options.CertFile, p.options.KeyFile)
+		err = p.server.ListenAndServeTLS(p.options.CertFile, p.options.KeyFile)
+	} else {
+		cherryLogger.Infof("http run. http://%s", p.server.Addr)
+		err = p.server.ListenAndServe()
+	}
 
-		if err != http.ErrServerClosed {
-			cherryLogger.Infof("run error = %s", err)
-		}
-	}()
+	if err != http.ErrServerClosed {
+		cherryLogger.Infof("run error = %s", err)
+	}
 }
 
 func (p *HttpServer) Stop() {
