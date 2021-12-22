@@ -23,8 +23,8 @@ type (
 	}
 
 	HttpServer struct {
-		appContext cherryFacade.IApplication
-		*gin.Engine
+		appContext  cherryFacade.IApplication
+		Engine      *gin.Engine
 		server      *http.Server
 		options     Options
 		controllers []IController
@@ -78,6 +78,10 @@ func (p *HttpServer) Register(controllers ...IController) *HttpServer {
 	return p
 }
 
+func (p *HttpServer) Static(relativePath string, staticDir string) {
+	p.StaticFS(relativePath, staticDir)
+}
+
 func (p *HttpServer) StaticFS(relativePath string, staticDir string) {
 	dir, ok := cherryFile.JudgePath(staticDir)
 	if !ok {
@@ -96,7 +100,11 @@ func (p *HttpServer) StaticFile(relativePath string, staticDir string) {
 	p.Engine.StaticFile(relativePath, dir)
 }
 
-func (p *HttpServer) Run(async ...bool) {
+func (p *HttpServer) LoadHTMLGlob(pattern string) {
+	p.Engine.LoadHTMLGlob(pattern)
+}
+
+func (p *HttpServer) Run() {
 	if p.server.Addr == "" {
 		cherryLogger.Warn("no set listener address.")
 		return
@@ -127,16 +135,7 @@ func (p *HttpServer) Run(async ...bool) {
 		controller.Init()
 	}
 
-	asyncFlag := false
-	if len(async) > 0 {
-		asyncFlag = async[0]
-	}
-
-	if asyncFlag {
-		go p.listener()
-	} else {
-		p.listener()
-	}
+	p.listener()
 }
 
 func (p *HttpServer) listener() {

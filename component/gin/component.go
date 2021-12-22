@@ -76,7 +76,7 @@ func (g *Component) Init() {
 
 func (g *Component) OnAfterInit() {
 	g.httpServer.SetIApplication(g.App())
-	g.httpServer.Run(true)
+	go g.httpServer.Run()
 }
 
 func (g *Component) OnBeforeStop() {
