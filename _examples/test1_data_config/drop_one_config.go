@@ -20,6 +20,7 @@ func (d *DropOneConfig) Init() {
 
 }
 
-func (d *DropOneConfig) Load(maps interface{}, _ bool) error {
-	return cherryMapStructure.Decode(maps, d)
+func (d *DropOneConfig) Load(maps interface{}, _ bool) (int, error) {
+	err := cherryMapStructure.Decode(maps, d)
+	return 0, err
 }

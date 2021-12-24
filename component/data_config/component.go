@@ -41,14 +41,14 @@ func (d *Component) Init() {
 	sourceName := configNode.Get("data_source").ToString()
 	d.dataSource = GetDataSource(sourceName)
 	if d.dataSource == nil {
-		panic(fmt.Sprintf("data source not found. sourceName = %s", sourceName))
+		panic(fmt.Sprintf("[sourceName = %s] data source not found.", sourceName))
 	}
 
 	// get parser
 	parserName := configNode.Get("parser").ToString()
 	d.parser = GetParser(parserName)
 	if d.parser == nil {
-		panic(fmt.Sprintf("parser not found. parserName = %s", parserName))
+		panic(fmt.Sprintf("[parserName = %s] parser not found.", parserName))
 	}
 
 	cherryUtils.Try(func() {
@@ -60,14 +60,14 @@ func (d *Component) Init() {
 
 			data, found := d.GetBytes(cfg.Name())
 			if !found {
-				cherryLogger.Warnf("load [configName = %s] data fail.", cfg.Name())
+				cherryLogger.Warnf("[config = %s] load data fail.", cfg.Name())
 				continue
 			}
 
 			cherryUtils.Try(func() {
 				d.initConfig(cfg, data, false)
 			}, func(errString string) {
-				cherryLogger.Errorf("load error. [configName = %s], [error = %s]", cfg.Name(), errString)
+				cherryLogger.Errorf("[config = %s] init config error. [error = %s]", cfg.Name(), errString)
 			})
 		}
 
@@ -88,20 +88,21 @@ func (d *Component) initConfig(cfg IConfig, data []byte, reload bool) {
 	d.Lock()
 	defer d.Unlock()
 
-	cherryLogger.Infof("load config data. [name = %s]", cfg.Name())
-
 	var parseObject interface{}
 	err := d.parser.Unmarshal(data, &parseObject)
 	if err != nil {
-		cherryLogger.Warnf("unmarshal data error = %v, configName = %s", err, cfg.Name())
+		cherryLogger.Warnf("[config = %s] unmarshal error = %v", err, cfg.Name())
 		return
 	}
 
 	// load data
-	err = cfg.Load(parseObject, reload)
+	size, err := cfg.Load(parseObject, reload)
 	if err != nil {
-		cherryLogger.Warnf("read name = %s on init error = %s", cfg.Name(), err)
+		cherryLogger.Warnf("[config = %s] execute Load() error = %s", cfg.Name(), err)
+		return
 	}
+
+	cherryLogger.Infof("[config = %s] loaded. [size = %d]", cfg.Name(), size)
 
 	d.configMaps[cfg.Name()] = cfg
 }

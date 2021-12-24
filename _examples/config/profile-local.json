@@ -86,7 +86,7 @@
   },
   "data_config": {
     "parser": "json",
-    "data_source": "redis",
+    "data_source": "file",
     "file": {
       "file_path": "data/",
       "ext_name": ".json",
