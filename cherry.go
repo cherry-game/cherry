@@ -317,3 +317,11 @@ func RPCAsyncByNodeType(nodeType string, route string, arg proto.Message, filter
 		RPCAsync(member.GetNodeId(), route, arg)
 	}
 }
+
+func PostEvent(event cherryFacade.IEvent) {
+	if _handlerComponent == nil {
+		cherryLogger.Warnf("post event fail. handler component is nil.")
+		return
+	}
+	_handlerComponent.PostEvent(event)
+}
