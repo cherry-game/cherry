@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// ToTimestamp ToTimestampWithSecond的简称
+// ToTimestamp 输出秒级时间戳
 func (c CherryTime) ToTimestamp() int64 {
 	return c.ToTimestampWithSecond()
 }

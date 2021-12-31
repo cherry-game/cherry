@@ -20,7 +20,10 @@ func (d *DropOneConfig) Init() {
 
 }
 
-func (d *DropOneConfig) Load(maps interface{}, _ bool) (int, error) {
+func (d *DropOneConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 	err := cherryMapStructure.Decode(maps, d)
 	return 0, err
+}
+
+func (d *DropOneConfig) OnAfterLoad(reload bool) {
 }

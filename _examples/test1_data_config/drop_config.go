@@ -30,7 +30,7 @@ func (d *DropConfigs) Init() {
 
 }
 
-func (d *DropConfigs) Load(maps interface{}, reload bool) (int, error) {
+func (d *DropConfigs) OnLoad(maps interface{}, reload bool) (int, error) {
 	list, ok := maps.([]interface{})
 	if ok == false {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
@@ -49,6 +49,9 @@ func (d *DropConfigs) Load(maps interface{}, reload bool) (int, error) {
 	}
 
 	return len(list), nil
+}
+
+func (d *DropConfigs) OnAfterLoad(reload bool) {
 }
 
 func (d *DropConfigs) Get(dropId int) *DropConfig {

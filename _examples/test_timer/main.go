@@ -14,7 +14,7 @@ func main() {
 
 	timerComponent := cherryTimer.NewComponent()
 
-	cherryTimer.NewCycleTimer(func() {
+	cherryTimer.NewTimer(func() {
 		cherryLogger.Infof("execute func.... %s", cherryTime.Now().ToDateTimeFormat())
 	}, 1*time.Second)
 

@@ -154,7 +154,7 @@ func DefaultQueueHash(executor IExecutor, queueNum int) int {
 			i = crypto.CRC32(e.Session.SID()) % queueNum
 		}
 	case *ExecutorEvent:
-		i = crypto.CRC32(e.Event.UniqueId()) % queueNum
+		i = int(e.Event.UniqueId() % int64(queueNum))
 	case *ExecutorRemote:
 		i = crypto.CRC32(e.String()) % queueNum
 	}

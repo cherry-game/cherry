@@ -41,3 +41,8 @@ func (c *CherryTime) SetMinute(minute int) {
 func (c *CherryTime) SetSecond(second int) {
 	c.Time = time.Date(c.Year(), c.Time.Month(), c.Day(), c.Hour(), c.Minute(), second, c.Nanosecond(), c.Location())
 }
+
+// SetNanoSecond 设置纳秒
+func (c *CherryTime) SetNanoSecond(nanoSecond int) {
+	c.Time = time.Date(c.Year(), c.Time.Month(), c.Day(), c.Hour(), c.Minute(), c.Second(), nanoSecond, c.Location())
+}

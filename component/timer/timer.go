@@ -21,6 +21,7 @@
 package cherryTimer
 
 import (
+	cherryTime "github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/logger"
 	"sync"
 	"sync/atomic"
@@ -92,8 +93,13 @@ func RemoveTimer(id int64) {
 	Manager.timers.Delete(id)
 }
 
-// NewTimer creates a cron job
-func NewTimer(fn Func, interval time.Duration, counter int, autoAdd ...bool) *Timer {
+// NewTimer creates a loop forever cron job
+func NewTimer(fn Func, interval time.Duration) *Timer {
+	return NewCounterTimer(fn, interval, LoopForever)
+}
+
+// NewCounterTimer creates a cron job
+func NewCounterTimer(fn Func, interval time.Duration, counter int) *Timer {
 	id := atomic.AddInt64(&Manager.incrementID, 1)
 	t := &Timer{
 		ID:       id,
@@ -106,17 +112,27 @@ func NewTimer(fn Func, interval time.Duration, counter int, autoAdd ...bool) *Ti
 
 	// add to manager
 	Manager.ChCreatedTimer <- t
-
-	if len(autoAdd) > 0 && autoAdd[0] == true {
-		AddTimer(t)
-	}
+	AddTimer(t)
 
 	return t
 }
 
-// NewCycleTimer creates a cycle cron job
-func NewCycleTimer(fn Func, interval time.Duration) *Timer {
-	return NewTimer(fn, interval, LoopForever, true)
+func NewEveryDayTimer(fn Func, hour, minutes, seconds int) *Timer {
+	ct := cherryTime.Now()
+	ct.SetHour(hour)
+	ct.SetMinute(minutes)
+	ct.SetSecond(seconds)
+
+	now := cherryTime.Now()
+	if ct.ToTimestamp() < now.ToTimestamp() {
+		ct.SetSecond(int(cherryTime.SecondsPerDay + now.ToTimestamp()))
+	}
+
+	return nil
+}
+
+func NewEveryMinuteTimer(fn Func, minute int) *Timer {
+	return nil
 }
 
 // SetCondition sets the condition used for verifying when the cron job should run

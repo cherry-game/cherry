@@ -29,8 +29,9 @@ type (
 
 	// IConfig 配置接口
 	IConfig interface {
-		Name() string                                    // 配置名称
-		Init()                                           // 结构体初始化
-		Load(maps interface{}, reload bool) (int, error) // 配置序列化后，执行该函数 (size,error)
+		Name() string                                      // 配置名称
+		Init()                                             // 结构体初始化
+		OnLoad(maps interface{}, reload bool) (int, error) // 配置序列化后，执行该函数 (size,error)
+		OnAfterLoad(reload bool)                           // 所有配置加载后再执行该函数
 	}
 )

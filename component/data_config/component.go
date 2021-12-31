@@ -54,10 +54,13 @@ func (d *Component) Init() {
 	cherryUtils.Try(func() {
 		d.dataSource.Init(d)
 
-		// read register IConfig
+		// init
 		for _, cfg := range d.configs {
 			cfg.Init()
+		}
 
+		// read register IConfig
+		for _, cfg := range d.configs {
 			data, found := d.GetBytes(cfg.Name())
 			if !found {
 				cherryLogger.Warnf("[config = %s] load data fail.", cfg.Name())
@@ -65,17 +68,23 @@ func (d *Component) Init() {
 			}
 
 			cherryUtils.Try(func() {
-				d.initConfig(cfg, data, false)
+				d.onLoadConfig(cfg, data, false)
 			}, func(errString string) {
 				cherryLogger.Errorf("[config = %s] init config error. [error = %s]", cfg.Name(), errString)
 			})
+		}
+
+		// on after load
+		for _, cfg := range d.configs {
+			cfg.OnAfterLoad(false)
 		}
 
 		// on change process
 		d.dataSource.OnChange(func(configName string, data []byte) {
 			configFile := d.GetIConfigFile(configName)
 			if configFile != nil {
-				d.initConfig(configFile, data, true)
+				d.onLoadConfig(configFile, data, true)
+				configFile.OnAfterLoad(true)
 			}
 		})
 
@@ -84,7 +93,7 @@ func (d *Component) Init() {
 	})
 }
 
-func (d *Component) initConfig(cfg IConfig, data []byte, reload bool) {
+func (d *Component) onLoadConfig(cfg IConfig, data []byte, reload bool) {
 	d.Lock()
 	defer d.Unlock()
 
@@ -96,7 +105,7 @@ func (d *Component) initConfig(cfg IConfig, data []byte, reload bool) {
 	}
 
 	// load data
-	size, err := cfg.Load(parseObject, reload)
+	size, err := cfg.OnLoad(parseObject, reload)
 	if err != nil {
 		cherryLogger.Warnf("[config = %s] execute Load() error = %s", cfg.Name(), err)
 		return
