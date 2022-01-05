@@ -12,6 +12,7 @@ const (
 	DataConfigComponent = "data_config_component"
 	ORMComponent        = "db_orm_component"
 	TimerComponent      = "timer_component"
+	MiniComponent       = "mini_component_"
 )
 
 const (

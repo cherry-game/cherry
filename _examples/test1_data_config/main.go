@@ -3,7 +3,8 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/data_config"
-	"github.com/cherry-game/cherry/facade"
+	cherryMini "github.com/cherry-game/cherry/component/mini"
+	cf "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/handler"
 	"time"
@@ -27,26 +28,19 @@ func app() {
 		testApp.Shutdown()
 	}(testApp)
 
+	mockComponent := cherryMini.New("mock")
+	mockComponent.SetAfterInit(func(app cf.IApplication) {
+		go getDropConfig(app)
+	})
+
 	testApp.Startup(
 		handlers,
 		dataConfig,
-		&mockComponent{},
+		mockComponent,
 	)
 }
 
-type mockComponent struct {
-	cherryFacade.Component
-}
-
-func (m *mockComponent) Name() string {
-	return "mock_component"
-}
-
-func (m *mockComponent) OnAfterInit() {
-	go getDropConfig(m.App())
-}
-
-func getDropConfig(_ cherryFacade.IApplication) {
+func getDropConfig(_ cf.IApplication) {
 
 	time.Sleep(5 * time.Second)
 
