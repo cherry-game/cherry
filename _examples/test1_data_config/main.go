@@ -28,15 +28,34 @@ func app() {
 		testApp.Shutdown()
 	}(testApp)
 
-	mockComponent := cherryMini.New("mock")
-	mockComponent.SetAfterInit(func(app cf.IApplication) {
-		go getDropConfig(app)
-	})
+	mockComponent := cherryMini.New(
+		"mock",
+		cherryMini.WithAfterInit(func(app cf.IApplication) {
+			go getDropConfig(app)
+		}),
+	)
+
+	mock1Component1 := cherryMini.New(
+		"mock1",
+		cherryMini.WithInitFunc(func(_ cf.IApplication) {
+			cherryLogger.Info("call init func")
+		}),
+		cherryMini.WithAfterInit(func(_ cf.IApplication) {
+			cherryLogger.Info("call after init func")
+		}),
+		cherryMini.WithBeforeStop(func(_ cf.IApplication) {
+			cherryLogger.Info("call before stop func")
+		}),
+		cherryMini.WithStop(func(_ cf.IApplication) {
+			cherryLogger.Info("call stop func")
+		}),
+	)
 
 	testApp.Startup(
 		handlers,
 		dataConfig,
 		mockComponent,
+		mock1Component1,
 	)
 }
 

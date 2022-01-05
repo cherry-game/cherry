@@ -5,24 +5,40 @@ import (
 	cf "github.com/cherry-game/cherry/facade"
 )
 
-// Component mini wrapper component
-type Component struct {
-	cf.Component
-	name           string
-	initFunc       func(cf.IApplication)
-	afterInitFunc  func(cf.IApplication)
-	beforeStopFunc func(cf.IApplication)
-	stopFunc       func(cf.IApplication)
-}
+type (
+	appFunc func(cf.IApplication)
+	Options func(options *options)
 
-func New(name string) *Component {
-	return &Component{
+	options struct {
+		initFunc       appFunc
+		afterInitFunc  appFunc
+		beforeStopFunc appFunc
+		stopFunc       appFunc
+	}
+
+	// Component mini wrapper component
+	Component struct {
+		cf.Component
+		name string
+		options
+	}
+)
+
+func New(name string, opts ...Options) *Component {
+	comp := &Component{
 		name: name,
 	}
+
+	// fill options
+	for _, opt := range opts {
+		opt(&comp.options)
+	}
+
+	return comp
 }
 
 func (p *Component) Name() string {
-	return cc.MiniComponent + p.name
+	return cc.MiniComponentPrefix + p.name
 }
 
 func (p *Component) Init() {
@@ -49,22 +65,26 @@ func (p *Component) OnStop() {
 	}
 }
 
-func (p *Component) SetInit(fn func(cf.IApplication)) *Component {
-	p.initFunc = fn
-	return p
+func WithInitFunc(fn func(cf.IApplication)) Options {
+	return func(options *options) {
+		options.initFunc = fn
+	}
 }
 
-func (p *Component) SetAfterInit(fn func(cf.IApplication)) *Component {
-	p.afterInitFunc = fn
-	return p
+func WithAfterInit(fn func(cf.IApplication)) Options {
+	return func(options *options) {
+		options.afterInitFunc = fn
+	}
 }
 
-func (p *Component) SetBeforeStop(fn func(cf.IApplication)) *Component {
-	p.beforeStopFunc = fn
-	return p
+func WithBeforeStop(fn func(cf.IApplication)) Options {
+	return func(options *options) {
+		options.beforeStopFunc = fn
+	}
 }
 
-func (p *Component) SetStop(fn func(cf.IApplication)) *Component {
-	p.stopFunc = fn
-	return p
+func WithStop(fn func(cf.IApplication)) Options {
+	return func(options *options) {
+		options.stopFunc = fn
+	}
 }
