@@ -2,6 +2,7 @@
 package cherryGin
 
 import (
+	cherrySync "github.com/cherry-game/cherry/extend/sync"
 	"github.com/cherry-game/cherry/logger"
 	"net"
 	"net/http"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func GinDefaultZap() HandlerFunc {
+func GinDefaultZap() GinHandlerFunc {
 	return GinZap(time.RFC3339, true)
 }
 
@@ -24,7 +25,7 @@ func GinDefaultZap() HandlerFunc {
 // It receives:
 //   1. A time package format string (e.g. time.RFC3339).
 //   2. A boolean stating whether to use UTC time zone or local.
-func GinZap(timeFormat string, utc bool) HandlerFunc {
+func GinZap(timeFormat string, utc bool) GinHandlerFunc {
 	return func(c *Context) {
 		start := time.Now()
 		// some evil middlewares modify this values
@@ -63,7 +64,7 @@ func GinZap(timeFormat string, utc bool) HandlerFunc {
 // All errors are logged using zap.Error().
 // stack means whether output the stack info.
 // The stack info is easy to find where the error occurs but the stack info is too large.
-func RecoveryWithZap(stack bool) HandlerFunc {
+func RecoveryWithZap(stack bool) GinHandlerFunc {
 	return func(c *Context) {
 		defer func() {
 			if err := recover(); err != nil {
@@ -113,7 +114,7 @@ func RecoveryWithZap(stack bool) HandlerFunc {
 	}
 }
 
-func Cors(domain ...string) HandlerFunc {
+func Cors(domain ...string) GinHandlerFunc {
 	return func(c *Context) {
 		method := c.Request.Method
 
@@ -132,5 +133,24 @@ func Cors(domain ...string) HandlerFunc {
 			c.AbortWithStatus(http.StatusNoContent)
 		}
 		c.Next()
+	}
+}
+
+// MaxConnect limit max connect
+func MaxConnect(n int) GinHandlerFunc {
+	latch := cherrySync.NewLimit(n)
+
+	return func(c *Context) {
+		if latch.TryBorrow() {
+			defer func() {
+				if err := latch.Return(); err != nil {
+					cherryLogger.Warn(err)
+				}
+			}()
+			c.Next()
+		} else {
+			cherryLogger.Warnf("limit = %d, service unavailable. url = %s", n, c.Request.RequestURI)
+			c.AbortWithStatus(http.StatusServiceUnavailable)
+		}
 	}
 }

@@ -6,14 +6,14 @@ import (
 )
 
 type (
-	appFunc func(cf.IApplication)
-	Options func(options *options)
+	callFunc   func(cf.IApplication)
+	OptionFunc func(options *options)
 
 	options struct {
-		initFunc       appFunc
-		afterInitFunc  appFunc
-		beforeStopFunc appFunc
-		stopFunc       appFunc
+		initFunc       callFunc
+		afterInitFunc  callFunc
+		beforeStopFunc callFunc
+		stopFunc       callFunc
 	}
 
 	// Component mini wrapper component
@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func New(name string, opts ...Options) *Component {
+func New(name string, opts ...OptionFunc) *Component {
 	comp := &Component{
 		name: name,
 	}
@@ -65,25 +65,25 @@ func (p *Component) OnStop() {
 	}
 }
 
-func WithInitFunc(fn func(cf.IApplication)) Options {
+func WithInitFunc(fn func(cf.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.initFunc = fn
 	}
 }
 
-func WithAfterInit(fn func(cf.IApplication)) Options {
+func WithAfterInit(fn func(cf.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.afterInitFunc = fn
 	}
 }
 
-func WithBeforeStop(fn func(cf.IApplication)) Options {
+func WithBeforeStop(fn func(cf.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.beforeStopFunc = fn
 	}
 }
 
-func WithStop(fn func(cf.IApplication)) Options {
+func WithStop(fn func(cf.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.stopFunc = fn
 	}

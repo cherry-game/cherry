@@ -23,7 +23,7 @@ type (
 	}
 )
 
-func NewConsoleConfig() *Config {
+func defaultConsoleConfig() *Config {
 	config := &Config{
 		Level:           "debug",
 		StackLevel:      "error",
@@ -41,7 +41,7 @@ func NewConsoleConfig() *Config {
 }
 
 func NewConfig(jsonConfig jsoniter.Any) *Config {
-	config := NewConsoleConfig()
+	config := defaultConsoleConfig()
 
 	if jsonConfig.LastError() == nil {
 		if jsonConfig.Get("level").LastError() == nil {

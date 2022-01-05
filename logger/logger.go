@@ -19,7 +19,7 @@ var (
 )
 
 func init() {
-	DefaultLogger = NewConfigLogger(NewConsoleConfig(), zap.AddCallerSkip(1))
+	DefaultLogger = NewConfigLogger(defaultConsoleConfig(), zap.AddCallerSkip(1))
 	loggers = make(map[string]*CherryLogger)
 }
 
@@ -102,19 +102,22 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		opts = append(opts, zap.AddCaller())
 	}
 
-	encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
-		enc.AppendString(level.CapitalString())
+	if config.EnableConsole {
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	} else {
+		encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
+			enc.AppendString(level.CapitalString())
+		}
 	}
 
 	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
 		if nodeId != "" {
-			encoder.AppendString("[node=" + nodeId + "]")
+			encoder.AppendString(nodeId) // node prefix
 		}
 
 		encoder.AppendString(caller.TrimmedPath())
 	}
 
-	level := GetLevel(config.Level)
 	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
 
 	var writers []zapcore.WriteSyncer
@@ -137,7 +140,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
-		zap.NewAtomicLevelAt(level),
+		zap.NewAtomicLevelAt(GetLevel(config.Level)),
 	)
 
 	cherryLogger := &CherryLogger{

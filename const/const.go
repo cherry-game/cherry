@@ -13,6 +13,7 @@ const (
 	ORMComponent        = "db_orm_component"
 	TimerComponent      = "timer_component"
 	MiniComponentPrefix = "mini_component_"
+	HttpComponentPrefix = "http_component_"
 )
 
 const (

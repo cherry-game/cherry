@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type HandlerFunc func(ctx *Context)
+type GinHandlerFunc func(ctx *Context)
 
 type IController interface {
 	PreInit(app cherryFacade.IApplication, engine *gin.Engine)
@@ -15,7 +15,7 @@ type IController interface {
 	Stop()
 }
 
-func BindHandlers(handlers []HandlerFunc) []gin.HandlerFunc {
+func BindHandlers(handlers []GinHandlerFunc) []gin.HandlerFunc {
 	var list []gin.HandlerFunc
 	for _, handler := range handlers {
 		list = append(list, BindHandler(handler))
@@ -49,21 +49,21 @@ func (b *BaseController) Stop() {
 
 }
 
-func (b *BaseController) Group(relativePath string, handlers ...HandlerFunc) *Group {
+func (b *BaseController) Group(relativePath string, handlers ...GinHandlerFunc) *Group {
 	group := &Group{
 		RouterGroup: b.Engine.Group(relativePath, BindHandlers(handlers)...),
 	}
 	return group
 }
 
-func (b *BaseController) Any(relativePath string, handlers ...HandlerFunc) {
+func (b *BaseController) Any(relativePath string, handlers ...GinHandlerFunc) {
 	b.Engine.Any(relativePath, BindHandlers(handlers)...)
 }
 
-func (b *BaseController) GET(relativePath string, handlers ...HandlerFunc) {
+func (b *BaseController) GET(relativePath string, handlers ...GinHandlerFunc) {
 	b.Engine.GET(relativePath, BindHandlers(handlers)...)
 }
 
-func (b *BaseController) POST(relativePath string, handlers ...HandlerFunc) {
+func (b *BaseController) POST(relativePath string, handlers ...GinHandlerFunc) {
 	b.Engine.POST(relativePath, BindHandlers(handlers)...)
 }

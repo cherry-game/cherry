@@ -16,20 +16,20 @@ var (
 	postContentType = "application/x-www-form-urlencoded"
 	jsonContentType = "application/json"
 
-	Timeout = 5 * time.Second
+	DefaultTimeout = 5 * time.Second
 )
 
-func GET(url string, values ...map[string]string) (string, error) {
-	client := http.Client{Timeout: Timeout}
+func GET(url string, values ...map[string]string) (string, *http.Response, error) {
+	client := http.Client{Timeout: DefaultTimeout}
 
 	if len(values) > 0 {
 		rst := ToUrlValues(values[0])
-		url = addParams(url, rst)
+		url = AddParams(url, rst)
 	}
 
 	rsp, err := client.Get(url)
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
 	defer func(body io.ReadCloser) {
@@ -41,19 +41,19 @@ func GET(url string, values ...map[string]string) (string, error) {
 
 	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
-	return string(body), nil
+	return string(body), rsp, nil
 }
 
-func POST(url string, values map[string]string) (string, error) {
-	client := http.Client{Timeout: Timeout}
+func POST(url string, values map[string]string) (string, *http.Response, error) {
+	client := http.Client{Timeout: DefaultTimeout}
 
 	rst := ToUrlValues(values)
-	resp, err := client.Post(url, postContentType, strings.NewReader(rst.Encode()))
+	rsp, err := client.Post(url, postContentType, strings.NewReader(rst.Encode()))
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
 	defer func(body io.ReadCloser) {
@@ -61,27 +61,27 @@ func POST(url string, values map[string]string) (string, error) {
 		if e != nil {
 			cherryLogger.Warnf("HTTP POST [url = %s], error = %s", url, e)
 		}
-	}(resp.Body)
+	}(rsp.Body)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
-	return string(body), nil
+	return string(body), rsp, nil
 }
 
-func PostJSON(url string, values map[string]string) (string, error) {
-	client := http.Client{Timeout: Timeout}
+func PostJSON(url string, values interface{}) (string, *http.Response, error) {
+	client := http.Client{Timeout: DefaultTimeout}
 
 	jsonBytes, err := json.Marshal(values)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	resp, err := client.Post(url, jsonContentType, bytes.NewBuffer(jsonBytes))
+	rsp, err := client.Post(url, jsonContentType, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -89,17 +89,17 @@ func PostJSON(url string, values map[string]string) (string, error) {
 		if e != nil {
 			cherryLogger.Warnf("HTTP PostJSON [url = %s], error = %s", url, e)
 		}
-	}(resp.Body)
+	}(rsp.Body)
 
-	body, err := ioutil.ReadAll(resp.Body)
+	body, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", err
+		return "", rsp, err
 	}
 
-	return string(body), nil
+	return string(body), rsp, nil
 }
 
-func addParams(url string, params url.Values) string {
+func AddParams(url string, params url.Values) string {
 	if len(params) == 0 {
 		return url
 	}

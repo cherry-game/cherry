@@ -11,7 +11,8 @@ func main() {
 
 	cherry.SetSerializer(cherrySerializer.NewJSON())
 
-	httpComp := cherryGin.New(webApp.Address(), cherryGin.RecoveryWithZap(true))
+	httpComp := cherryGin.New("web", webApp.Address())
+	httpComp.Use(cherryGin.RecoveryWithZap(true))
 	httpComp.StaticFS("/", "./static/")
 	cherry.RegisterComponent(httpComp)
 

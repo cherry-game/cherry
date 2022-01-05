@@ -11,6 +11,8 @@ import (
 )
 
 type (
+	OptionFunc func(opts *Options)
+
 	// Options http server parameter
 	Options struct {
 		ReadTimeout       time.Duration
@@ -23,10 +25,10 @@ type (
 	}
 
 	HttpServer struct {
-		appContext  cherryFacade.IApplication
+		cherryFacade.IApplication
+		Options
 		Engine      *gin.Engine
 		server      *http.Server
-		options     Options
 		controllers []IController
 	}
 )
@@ -39,36 +41,47 @@ func SetMode(value string) {
 	gin.SetMode(value)
 }
 
-func NewHttpServer(address string, middleware ...HandlerFunc) *HttpServer {
-	return NewHttpsServer(address, "", "", middleware...)
-}
+func NewHttpServer(address string, opts ...OptionFunc) *HttpServer {
+	if address == "" {
+		cherryLogger.Error("listener address is empty.")
+		return nil
+	}
 
-func NewHttpsServer(address, certFile, keyFile string, middleware ...HandlerFunc) *HttpServer {
-	httpServer := &HttpServer{}
-	httpServer.Engine = gin.New()
-	httpServer.Use(middleware...)
+	httpServer := &HttpServer{
+		Engine: gin.New(),
+	}
+
 	httpServer.server = &http.Server{
 		Addr:    address,
 		Handler: httpServer.Engine,
 	}
-	httpServer.options = Options{
-		CertFile: certFile,
-		KeyFile:  keyFile,
+
+	httpServer.Options = defaultOptions()
+	for _, opt := range opts {
+		opt(&httpServer.Options)
 	}
 
 	return httpServer
 }
 
-func (p *HttpServer) SetOptions(options Options) {
-	p.options = options
+func defaultOptions() Options {
+	return Options{
+		ReadTimeout:       0,
+		ReadHeaderTimeout: 0,
+		WriteTimeout:      0,
+		IdleTimeout:       0,
+		MaxHeaderBytes:    0,
+		CertFile:          "",
+		KeyFile:           "",
+	}
 }
 
-func (p *HttpServer) Use(middleware ...HandlerFunc) {
+func (p *HttpServer) Use(middleware ...GinHandlerFunc) {
 	p.Engine.Use(BindHandlers(middleware)...)
 }
 
-func (p *HttpServer) SetIApplication(appContext cherryFacade.IApplication) {
-	p.appContext = appContext
+func (p *HttpServer) SetIApplication(app cherryFacade.IApplication) {
+	p.IApplication = app
 }
 
 func (p *HttpServer) Register(controllers ...IController) *HttpServer {
@@ -110,28 +123,28 @@ func (p *HttpServer) Run() {
 		return
 	}
 
-	if p.options.ReadTimeout > 0 {
-		p.server.ReadTimeout = p.options.ReadTimeout
+	if p.Options.ReadTimeout > 0 {
+		p.server.ReadTimeout = p.Options.ReadTimeout
 	}
 
-	if p.options.ReadHeaderTimeout > 0 {
-		p.server.ReadHeaderTimeout = p.options.ReadHeaderTimeout
+	if p.Options.ReadHeaderTimeout > 0 {
+		p.server.ReadHeaderTimeout = p.Options.ReadHeaderTimeout
 	}
 
-	if p.options.WriteTimeout > 0 {
-		p.server.WriteTimeout = p.options.WriteTimeout
+	if p.Options.WriteTimeout > 0 {
+		p.server.WriteTimeout = p.Options.WriteTimeout
 	}
 
-	if p.options.IdleTimeout > 0 {
-		p.server.IdleTimeout = p.options.IdleTimeout
+	if p.Options.IdleTimeout > 0 {
+		p.server.IdleTimeout = p.Options.IdleTimeout
 	}
 
-	if p.options.MaxHeaderBytes > 0 {
-		p.server.MaxHeaderBytes = p.options.MaxHeaderBytes
+	if p.Options.MaxHeaderBytes > 0 {
+		p.server.MaxHeaderBytes = p.Options.MaxHeaderBytes
 	}
 
 	for _, controller := range p.controllers {
-		controller.PreInit(p.appContext, p.Engine)
+		controller.PreInit(p.IApplication, p.Engine)
 		controller.Init()
 	}
 
@@ -140,10 +153,10 @@ func (p *HttpServer) Run() {
 
 func (p *HttpServer) listener() {
 	var err error
-	if p.options.CertFile != "" && p.options.KeyFile != "" {
+	if p.Options.CertFile != "" && p.Options.KeyFile != "" {
 		cherryLogger.Infof("https run. https://%s, certFile = %s, keyFile = %s",
-			p.server.Addr, p.options.CertFile, p.options.KeyFile)
-		err = p.server.ListenAndServeTLS(p.options.CertFile, p.options.KeyFile)
+			p.server.Addr, p.Options.CertFile, p.Options.KeyFile)
+		err = p.server.ListenAndServeTLS(p.Options.CertFile, p.Options.KeyFile)
 	} else {
 		cherryLogger.Infof("http run. http://%s", p.server.Addr)
 		err = p.server.ListenAndServe()
@@ -168,4 +181,38 @@ func (p *HttpServer) Stop() {
 	}
 
 	cherryLogger.Infof("shutdown http server on %s", p.server.Addr)
+}
+
+func WithReadTimeout(t time.Duration) OptionFunc {
+	return func(opts *Options) {
+		opts.ReadTimeout = t
+	}
+}
+
+func WithReadHeaderTimeout(t time.Duration) OptionFunc {
+	return func(opts *Options) {
+		opts.ReadHeaderTimeout = t
+	}
+}
+
+func WithIdleTimeout(t time.Duration) OptionFunc {
+	return func(opts *Options) {
+		opts.IdleTimeout = t
+	}
+}
+
+func WithMaxHeaderBytes(val int) OptionFunc {
+	return func(opts *Options) {
+		opts.MaxHeaderBytes = val
+	}
+}
+
+func WithCert(certFile, keyFile string) OptionFunc {
+	return func(opts *Options) {
+		if certFile == "" || keyFile == "" {
+			return
+		}
+		opts.CertFile = certFile
+		opts.KeyFile = keyFile
+	}
 }
