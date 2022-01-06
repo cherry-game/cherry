@@ -4,19 +4,19 @@ import (
 	facade "github.com/cherry-game/cherry/facade"
 )
 
-// DiscoveryETCD etcd方式发现服务
-type DiscoveryETCD struct {
+// DiscoveryEtcd etcd方式发现服务
+type DiscoveryEtcd struct {
 	DiscoveryDefault
 }
 
-func (p *DiscoveryETCD) Name() string {
+func (p *DiscoveryEtcd) Name() string {
 	return "etcd"
 }
 
-func (p *DiscoveryETCD) Init(_ facade.IApplication) {
+func (p *DiscoveryEtcd) Init(_ facade.IApplication) {
 
 }
 
-func (p *DiscoveryETCD) OnStop() {
+func (p *DiscoveryEtcd) OnStop() {
 
 }
