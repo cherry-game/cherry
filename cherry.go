@@ -63,8 +63,8 @@ func Run(isFrontend bool, nodeMode NodeMode) {
 	_thisApp.nodeMode = nodeMode
 
 	initHandlerComponent()
-	initRegisterComponent()
 	initClusterComponent()
+	initRegisterComponent()
 	initConnectorComponent()
 
 	_thisApp.Startup()

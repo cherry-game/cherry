@@ -26,10 +26,17 @@ type (
 )
 
 func (p *NatsConnect) Connect() {
-	var err error
-	p.Conn, err = nats.Connect(p.Address, p.GetNatsOption()...)
-	if err != nil {
-		cherryLogger.Fatalf("nats address = %s, err = %s", p.Address, err)
+	for {
+		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
+		if err != nil {
+			cherryLogger.Warnf("nats connect fail! waiting... err = %s", p.Address, err)
+			time.Sleep(3 * time.Second)
+			continue
+		}
+
+		p.Conn = conn
+		cherryLogger.Infof("nats is connected! [address = %s]", p.Address)
+		break
 	}
 }
 
