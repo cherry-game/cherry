@@ -15,7 +15,7 @@ var (
 	rw            sync.RWMutex             // mutex
 	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
 	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodeId        string                   // current node id
+	nodePrefix    string                   // current node id
 )
 
 func init() {
@@ -33,7 +33,7 @@ func (c *CherryLogger) Print(v ...interface{}) {
 }
 
 func SetNodeLogger(node cherryFacade.INode) {
-	nodeId = node.NodeId()
+	nodePrefix = fmt.Sprintf("[node-%s]", node.NodeId())
 
 	refLogger := node.Settings().Get("ref_logger").ToString()
 
@@ -95,6 +95,13 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		EncodeDuration: zapcore.StringDurationEncoder,
 	}
 
+	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
+		if nodePrefix != "" {
+			encoder.AppendString(nodePrefix) // node prefix
+		}
+		encoder.AppendString(caller.TrimmedPath())
+	}
+
 	if config.PrintCaller {
 		encoderConfig.EncodeTime = config.TimeEncoder()
 		encoderConfig.EncodeName = zapcore.FullNameEncoder
@@ -108,14 +115,6 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(level.CapitalString())
 		}
-	}
-
-	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
-		if nodeId != "" {
-			encoder.AppendString(nodeId) // node prefix
-		}
-
-		encoder.AppendString(caller.TrimmedPath())
 	}
 
 	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))

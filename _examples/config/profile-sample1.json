@@ -3,13 +3,12 @@
   "cluster": {
     "discovery": {
       "mode": "nats",
-      "@mode": "mode可配置: default,nats,etcd，对应读取下面的配置信息",
-      "etcd": {},
-      "nats": {
-        "master_node_id": "master-1"
-      }
+      "@mode": "mode=default,从profile-{x}.json读取node节点的配置数据",
+      "@mode": "mode=nats,通过nats->master_node_id获取已注册的节点",
+      "@mode": "mode=etcd,通过etcd同步已注册节点",
     },
     "nats": {
+      "master_node_id": "master-1",
       "address": "nats://127.0.0.1:4222",
       "reconnect_delay": 1,
       "max_reconnects": 10,

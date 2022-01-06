@@ -7,7 +7,6 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryProfile "github.com/cherry-game/cherry/profile"
-	jsoniter "github.com/json-iterator/go"
 	"sync"
 )
 
@@ -25,7 +24,9 @@ func (n *DiscoveryDefault) Name() string {
 	return "default"
 }
 
-func (n *DiscoveryDefault) Init(_ facade.IApplication, _ jsoniter.Any, _ ...interface{}) {
+func (n *DiscoveryDefault) Init(_ facade.IApplication) {
+
+	// load node info from profile file
 	nodes := cherryProfile.Config().Get("node")
 	if nodes.LastError() != nil {
 		cherryLogger.Error("`node` property not found in profile file.")

@@ -7,12 +7,13 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	cherryCluster "github.com/cherry-game/cherry/net/cluster"
+	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryCommand "github.com/cherry-game/cherry/net/command"
 	cherryConnector "github.com/cherry-game/cherry/net/connector"
-	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
+	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryRouter "github.com/cherry-game/cherry/net/router"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	"github.com/golang/protobuf/proto"
@@ -91,9 +92,9 @@ func initRegisterComponent() {
 }
 
 func initClusterComponent() {
-	// register cluster component
 	if _thisApp.NodeMode() == Cluster {
-		_clusterComponent = cherryCluster.NewComponent(_handlerComponent)
+		// register cluster component
+		_clusterComponent = cherryCluster.NewComponent()
 		_thisApp.Register(_clusterComponent)
 	}
 }
@@ -255,13 +256,14 @@ func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, ti
 		requestTimeout = timeout[0]
 	}
 
-	callResult := _clusterComponent.Client().CallRemote(nodeId, route, arg, requestTimeout)
-	if cherryCode.IsFail(callResult.Code) {
-		return callResult.Code
+	rsp := &cherryProto.Response{}
+	_clusterComponent.Client().CallRemote(nodeId, route, arg, requestTimeout, rsp)
+	if cherryCode.IsFail(rsp.Code) {
+		return rsp.Code
 	}
 
 	if reply != nil {
-		err := proto.Unmarshal(callResult.GetData(), reply)
+		err := proto.Unmarshal(rsp.GetData(), reply)
 		if err != nil {
 			return cherryCode.RPCUnmarshalError
 		}

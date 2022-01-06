@@ -2,7 +2,6 @@ package cherryAgent
 
 import (
 	"fmt"
-	cherryCode "github.com/cherry-game/cherry/code"
 	"github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/command"
@@ -107,11 +106,8 @@ func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
 	a.Send(cherryMessage.Response, "", mid, v, err)
 }
 
-func (a *Agent) RPC(route string, val interface{}) cherryProto.Response {
+func (a *Agent) RPC(route string, val interface{}, _ *cherryProto.Response) {
 	cherryLogger.Errorf("cluster no implement. [route = %s] [val = %v]", route, val)
-	return cherryProto.Response{
-		Code: cherryCode.RPCNotImplement,
-	}
 }
 
 func (a *Agent) SendRaw(bytes []byte) {

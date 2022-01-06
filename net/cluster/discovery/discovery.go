@@ -1,7 +1,6 @@
 package cherryDiscovery
 
 import (
-	"fmt"
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryProfile "github.com/cherry-game/cherry/profile"
@@ -9,33 +8,34 @@ import (
 
 var (
 	discoveryMap  = make(map[string]facade.IDiscovery)
-	isInit        = false
 	thisDiscovery facade.IDiscovery
 )
 
 func init() {
 	RegisterDiscovery(&DiscoveryDefault{})
-	RegisterDiscovery(&DiscoveryNats{})
+	RegisterDiscovery(&DiscoveryNATS{})
+	RegisterDiscovery(&DiscoveryETCD{})
 }
 
 func RegisterDiscovery(discovery facade.IDiscovery) {
 	if discovery == nil {
-		panic("discovery is nil")
+		cherryLogger.Fatal("discovery object is nil")
+		return
 	}
 
 	if discovery.Name() == "" {
-		panic(fmt.Sprintf("discovery name is empty. %T", discovery))
+		cherryLogger.Fatalf("discovery name is empty. %T", discovery)
+		return
 	}
 
 	discoveryMap[discovery.Name()] = discovery
 }
 
-func Init(app facade.IApplication, params ...interface{}) {
-	if isInit {
-		cherryLogger.Error("discovery is init.")
+func Init(app facade.IApplication) {
+	if app.Running() {
+		cherryLogger.Error("node is running, execute init() fail!")
 		return
 	}
-	isInit = true
 
 	clusterConfig := cherryProfile.Config().Get("cluster")
 	if clusterConfig.LastError() != nil {
@@ -57,12 +57,12 @@ func Init(app facade.IApplication, params ...interface{}) {
 
 	discovery, found := discoveryMap[mode]
 	if discovery == nil || found == false {
-		cherryLogger.Errorf("not found mode = %s property in discovery config.", mode)
+		cherryLogger.Errorf("mode = %s property not found in discovery config.", mode)
 		return
 	}
-
-	discovery.Init(app, discoveryConfig, params...)
 	thisDiscovery = discovery
+	thisDiscovery.Init(app)
+
 	cherryLogger.Infof("discovery init complete! [mode = %s]", mode)
 }
 

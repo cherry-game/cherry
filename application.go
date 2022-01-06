@@ -178,9 +178,6 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	// add components
 	a.Register(components...)
 
-	// is running
-	atomic.AddInt32(&a.running, 1)
-
 	// component list
 	for _, c := range a.components {
 		c.Set(a)
@@ -204,6 +201,9 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	spendTime := a.startTime.DiffInMillisecond(cherryTime.Now())
 	cherryLogger.Infof("[spend time = %dms] application is running.", spendTime)
 	cherryLogger.Info("-------------------------------------------------")
+
+	// set application is running
+	atomic.AddInt32(&a.running, 1)
 
 	sg := make(chan os.Signal)
 	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)

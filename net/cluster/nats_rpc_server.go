@@ -2,9 +2,11 @@ package cherryCluster
 
 import (
 	cherryCode "github.com/cherry-game/cherry/code"
+	cherryConst "github.com/cherry-game/cherry/const"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryAgent "github.com/cherry-game/cherry/net/agent"
+	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
@@ -15,42 +17,43 @@ import (
 type (
 	NatsRPCServer struct {
 		cherryFacade.IApplication
-		running          bool
-		nats             *nats.Conn
 		localChan        chan *nats.Msg
 		remoteChan       chan *nats.Msg
 		handlerComponent *cherryHandler.Component
 		rpcClient        cherryFacade.RPCClient
 	}
-
-	NatsMessageProcess func(msgType int32, data []byte)
 )
 
-func NewRpcServer(handler *cherryHandler.Component, conn *nats.Conn, rpcClient cherryFacade.RPCClient) *NatsRPCServer {
+func NewRPCServer(rpcClient cherryFacade.RPCClient) *NatsRPCServer {
 	return &NatsRPCServer{
-		handlerComponent: handler,
-		nats:             conn,
-		localChan:        make(chan *nats.Msg, 2048),
-		remoteChan:       make(chan *nats.Msg, 2048),
-		rpcClient:        rpcClient,
+		localChan:  make(chan *nats.Msg, 2048),
+		remoteChan: make(chan *nats.Msg, 2048),
+		rpcClient:  rpcClient,
 	}
 }
 
 func (n *NatsRPCServer) Init(app cherryFacade.IApplication) {
 	n.IApplication = app
-	n.running = true
+	n.loadHandler()
 
 	go n.processLocal()
 	go n.processRemote()
 }
 
 func (n *NatsRPCServer) OnStop() {
-	n.running = false
+}
+
+func (n *NatsRPCServer) loadHandler() {
+	handlerComponent, found := n.Find(cherryConst.HandlerComponent).(*cherryHandler.Component)
+	if found == false {
+		cherryLogger.Fatalf("%s not found", cherryConst.HandlerComponent)
+	}
+	n.handlerComponent = handlerComponent
 }
 
 func (n *NatsRPCServer) processLocal() {
 	nodeSubject := GetLocalNodeSubject(n.NodeType(), n.NodeId())
-	_, err := n.nats.ChanSubscribe(nodeSubject, n.localChan)
+	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.localChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [error = %s]", err)
 		return
@@ -118,7 +121,7 @@ func (n *NatsRPCServer) processLocal() {
 
 func (n *NatsRPCServer) processRemote() {
 	nodeSubject := GetRemoteNodeSubject(n.NodeType(), n.NodeId())
-	_, err := n.nats.ChanSubscribe(nodeSubject, n.remoteChan)
+	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.remoteChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [error = %s]", err)
 		return

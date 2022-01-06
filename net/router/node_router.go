@@ -5,7 +5,7 @@ import (
 	cherryError "github.com/cherry-game/cherry/error"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
+	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	"math/rand"
 	"time"

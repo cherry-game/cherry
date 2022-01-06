@@ -94,8 +94,8 @@ func (s *Session) SendRaw(bytes []byte) {
 }
 
 // RPC sends message to remote server
-func (s *Session) RPC(route string, v interface{}) cherryProto.Response {
-	return s.entity.RPC(route, v)
+func (s *Session) RPC(route string, v interface{}, rsp *cherryProto.Response) {
+	s.entity.RPC(route, v, rsp)
 }
 
 // Push message to client

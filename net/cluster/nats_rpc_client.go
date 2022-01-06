@@ -5,11 +5,11 @@ import (
 	cherryError "github.com/cherry-game/cherry/error"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
+	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
+	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryProfile "github.com/cherry-game/cherry/profile"
-	"github.com/nats-io/nats.go"
 	"time"
 )
 
@@ -20,29 +20,21 @@ const (
 
 type NatsRPCClient struct {
 	cherryFacade.IApplication
-	running    bool
-	nats       *nats.Conn
-	natsConfig *cherryProfile.NatsConfig
 }
 
-func NewNatsRPCClient(conn *nats.Conn, natsConfig *cherryProfile.NatsConfig) *NatsRPCClient {
-	return &NatsRPCClient{
-		nats:       conn,
-		natsConfig: natsConfig,
-	}
+func NewRPCClient() *NatsRPCClient {
+	return &NatsRPCClient{}
 }
 
 func (n *NatsRPCClient) Init(app cherryFacade.IApplication) {
 	n.IApplication = app
-	n.running = true
 }
 
 func (n *NatsRPCClient) OnStop() {
-	n.running = false
 }
 
 func (n *NatsRPCClient) Publish(subject string, val interface{}) error {
-	if !n.running {
+	if n.IApplication.Running() == false {
 		return cherryError.ClusterRPCClientIsStop
 	}
 
@@ -51,7 +43,7 @@ func (n *NatsRPCClient) Publish(subject string, val interface{}) error {
 		return err
 	}
 
-	return n.nats.Publish(subject, msg)
+	return cherryNats.Conn().Publish(subject, msg)
 }
 
 func (n *NatsRPCClient) CallLocal(nodeId string, packet *cherryProto.LocalPacket) error {
@@ -76,11 +68,7 @@ func (n *NatsRPCClient) CallLocal(nodeId string, packet *cherryProto.LocalPacket
 	return n.Publish(subject, packet)
 }
 
-func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{}, timeout time.Duration) cherryProto.Response {
-	rsp := cherryProto.Response{
-		Code: cherryCode.OK,
-	}
-
+func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{}, timeout time.Duration, rsp *cherryProto.Response) {
 	nodeType, err := cherryDiscovery.GetType(nodeId)
 	if err != nil {
 		cherryLogger.Warnf("[CallRemote] get nodeType fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
@@ -91,7 +79,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		)
 
 		rsp.Code = cherryCode.DiscoveryNotFoundNode
-		return rsp
+		return
 	}
 
 	var data []byte
@@ -106,7 +94,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 			)
 
 			rsp.Code = cherryCode.RPCMarshalError
-			return rsp
+			return
 		}
 	}
 
@@ -125,11 +113,11 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		)
 
 		rsp.Code = cherryCode.RPCMarshalError
-		return rsp
+		return
 	}
 
 	if timeout < 1 {
-		timeout = n.natsConfig.RequestTimeout
+		timeout = cherryNats.Conn().RequestTimeout
 	}
 
 	subject := GetRemoteNodeSubject(nodeType, nodeId)
@@ -138,7 +126,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		cherryLogger.Debugf("[CallRemote] [route = %s]", packet.Route)
 	}
 
-	rspData, err := n.nats.Request(subject, msg, timeout)
+	rspData, err := cherryNats.Conn().Request(subject, msg, timeout)
 	if err != nil {
 		cherryLogger.Warnf("[CallRemote] nats request fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
 			nodeId,
@@ -148,10 +136,10 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		)
 
 		rsp.Code = cherryCode.RPCNetError
-		return rsp
+		return
 	}
 
-	err = n.Unmarshal(rspData.Data, &rsp)
+	err = n.Unmarshal(rspData.Data, rsp)
 	if err != nil {
 		cherryLogger.Warnf("[CallRemote] unmarshal fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
 			nodeId,
@@ -161,10 +149,10 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		)
 
 		rsp.Code = cherryCode.RPCUnmarshalError
-		return rsp
+		return
 	}
 
-	return rsp
+	rsp.Code = cherryCode.OK
 }
 
 func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interface{}) {

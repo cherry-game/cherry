@@ -4,32 +4,23 @@ import (
 	"context"
 	cherryCode "github.com/cherry-game/cherry/code"
 	cherryConst "github.com/cherry-game/cherry/const"
-	cherryNATS "github.com/cherry-game/cherry/extend/nats"
 	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
+	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
+	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryRouter "github.com/cherry-game/cherry/net/router"
 	cherrySession "github.com/cherry-game/cherry/net/session"
-	cherryProfile "github.com/cherry-game/cherry/profile"
-	"github.com/nats-io/nats.go"
 )
 
 type Component struct {
 	facade.Component
-	natsConfig       *cherryProfile.NatsConfig
-	nats             *nats.Conn
-	client           facade.RPCClient
-	server           facade.RPCServer
-	handlerComponent *cherryHandler.Component
+	client facade.RPCClient
+	server facade.RPCServer
 }
 
-func NewComponent(handlerComponent *cherryHandler.Component) *Component {
-	return &Component{
-		handlerComponent: handlerComponent,
-	}
+func NewComponent() *Component {
+	return &Component{}
 }
 
 func (c *Component) Name() string {
@@ -45,31 +36,23 @@ func (c *Component) Server() facade.RPCServer {
 }
 
 func (c *Component) Init() {
+	cherryNats.Init()
+
+	c.client = NewRPCClient()
+	c.client.Init(c.App())
+
+	c.server = NewRPCServer(c.client)
+	c.server.Init(c.App())
+
 	// init discovery
 	cherryDiscovery.Init(c.App())
-
-	c.natsConfig = cherryProfile.NewNatsConfig()
-
-	var err error
-	c.nats, err = cherryNATS.Connect(c.natsConfig)
-	if err != nil {
-		cherryLogger.Warnf("err = %s", err)
-		return
-	}
-
-	c.client = NewNatsRPCClient(c.nats, c.natsConfig)
-	c.server = NewRpcServer(c.handlerComponent, c.nats, c.client)
-
-	c.client.Init(c.App())
-	c.server.Init(c.App())
 }
 
 func (c *Component) OnStop() {
 	cherryDiscovery.OnStop()
 	c.client.OnStop()
 	c.server.OnStop()
-
-	c.nats.Close()
+	cherryNats.Conn().Close()
 }
 
 // ForwardLocal forward message to backend node

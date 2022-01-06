@@ -78,16 +78,12 @@ func (a *AgentBackend) SendRaw(_ []byte) {
 	a.session.Warnf("[SendRaw] %v", cherryError.ClusterNoImplement)
 }
 
-func (a *AgentBackend) RPC(route string, val interface{}) cherryProto.Response {
-	rsp := cherryProto.Response{
-		Code: cherryCode.OK,
-	}
-
+func (a *AgentBackend) RPC(route string, val interface{}, rsp *cherryProto.Response) {
 	decode, err := cherryMessage.DecodeRoute(route)
 	if err != nil {
 		cherryLogger.Warnf("[RPC] decode route fail. [route = %s] [error = %v]", route, err)
 		rsp.Code = cherryCode.RPCRouteDecodeError
-		return rsp
+		return
 	}
 
 	ctx := context.WithValue(context.Background(), cherryConst.SessionKey, a.session)
@@ -95,10 +91,10 @@ func (a *AgentBackend) RPC(route string, val interface{}) cherryProto.Response {
 	if err != nil {
 		cherryLogger.Warnf("get node router is fail. [error = %s]", err)
 		rsp.Code = cherryCode.RPCRouteHashError
-		return rsp
+		return
 	}
 
-	return a.rpcClient.CallRemote(member.GetNodeId(), route, val, 0)
+	a.rpcClient.CallRemote(member.GetNodeId(), route, val, 0, rsp)
 }
 
 func (a *AgentBackend) Close() {
