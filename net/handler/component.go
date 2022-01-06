@@ -77,8 +77,7 @@ func (c *Component) OnStop() {
 			return
 		}
 
-		// wait...
-		cherryLogger.Debugf("queue is not empty! waiting %d seconds.", waitSecond.Seconds())
+		cherryLogger.Debugf("queue is not empty! retrying in %d seconds.", waitSecond.Seconds())
 		time.Sleep(waitSecond)
 	}
 }

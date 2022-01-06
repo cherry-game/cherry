@@ -29,7 +29,7 @@ func (p *NatsConnect) Connect() {
 	for {
 		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
 		if err != nil {
-			cherryLogger.Warnf("nats connect fail! waiting... err = %s", p.Address, err)
+			cherryLogger.Warnf("nats connect fail! retrying in 3 seconds. err = %s", p.Address, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
