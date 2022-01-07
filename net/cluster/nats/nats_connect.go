@@ -63,7 +63,7 @@ func (p *NatsConnect) loadConfig(config jsoniter.Any) {
 
 	maxReconnects := config.Get("max_reconnects").ToInt()
 	if maxReconnects < 1 {
-		maxReconnects = 10
+		maxReconnects = 0
 	}
 
 	requestTimeout := config.Get("request_timeout").ToInt64()

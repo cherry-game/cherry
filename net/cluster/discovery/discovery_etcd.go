@@ -49,7 +49,7 @@ func (p *DiscoveryETCD) Init(app facade.IApplication) {
 	p.getLeaseId()
 	p.watch()
 
-	cherryLogger.Infof("[etcd] init complete! [leaseId = %d]", p.leaseID)
+	cherryLogger.Infof("[etcd] init complete! [endpoints = %v] [leaseId = %d]", p.config.Endpoints, p.leaseID)
 }
 
 func (p *DiscoveryETCD) OnStop() {
