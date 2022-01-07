@@ -12,7 +12,7 @@ type (
 
 	Options struct {
 		Address        string
-		ReconnectDelay time.Duration
+		ReconnectDelay int
 		MaxReconnects  int
 		RequestTimeout time.Duration
 		User           string
@@ -29,7 +29,7 @@ func (p *NatsConnect) Connect() {
 	for {
 		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
 		if err != nil {
-			cherryLogger.Warnf("nats connect fail! retrying in 3 seconds. err = %s", p.Address, err)
+			cherryLogger.Warnf("nats connect fail! retrying in 3 seconds. address = %s, err = %s", p.Address, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -41,13 +41,12 @@ func (p *NatsConnect) Connect() {
 }
 
 func NewNats(opts ...OptionFunc) *NatsConnect {
-	nats := &NatsConnect{}
-
+	natsConn := &NatsConnect{}
 	for _, opt := range opts {
-		opt(&nats.Options)
+		opt(&natsConn.Options)
 	}
 
-	return nats
+	return natsConn
 }
 
 func (p *NatsConnect) loadConfig(config jsoniter.Any) {
@@ -56,25 +55,10 @@ func (p *NatsConnect) loadConfig(config jsoniter.Any) {
 		panic("address is empty!")
 	}
 
-	reconnectDelay := config.Get("reconnect_delay").ToInt64()
-	if reconnectDelay < 1 {
-		reconnectDelay = 1
-	}
-
-	maxReconnects := config.Get("max_reconnects").ToInt()
-	if maxReconnects < 1 {
-		maxReconnects = 0
-	}
-
-	requestTimeout := config.Get("request_timeout").ToInt64()
-	if requestTimeout < 1 {
-		requestTimeout = 1
-	}
-
 	p.Address = address
-	p.ReconnectDelay = time.Duration(reconnectDelay) * time.Second
-	p.MaxReconnects = maxReconnects
-	p.RequestTimeout = time.Duration(requestTimeout) * time.Second
+	p.ReconnectDelay = config.Get("reconnect_delay").ToInt()
+	p.MaxReconnects = config.Get("max_reconnects").ToInt()
+	p.RequestTimeout = time.Duration(config.Get("request_timeout").ToInt()) * time.Second
 	p.User = config.Get("user").ToString()
 	p.Password = config.Get("password").ToString()
 }
@@ -83,7 +67,7 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 	var options []nats.Option
 
 	if p.ReconnectDelay > 0 {
-		options = append(options, nats.ReconnectWait(p.ReconnectDelay))
+		options = append(options, nats.ReconnectWait(time.Duration(p.ReconnectDelay)*time.Second))
 	}
 
 	if p.MaxReconnects > 0 {
@@ -103,7 +87,7 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 	options = append(options, nats.ClosedHandler(func(nc *nats.Conn) {
 		cherryLogger.Infof("exiting... %s", p.Address)
 		if nc.LastError() != nil {
-			cherryLogger.Infof(".[error = %v]", nc.LastError())
+			cherryLogger.Infof("error = %v", nc.LastError())
 		}
 	}))
 
@@ -114,13 +98,13 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 	return options
 }
 
-func WithAdreess(address string) OptionFunc {
+func WithAddress(address string) OptionFunc {
 	return func(opts *Options) {
 		opts.Address = address
 	}
 }
 
-func WithParamsAdreess(reconnectDelay time.Duration, maxReconnects int, requestTimeout time.Duration) OptionFunc {
+func WithParams(reconnectDelay int, maxReconnects int, requestTimeout time.Duration) OptionFunc {
 	return func(opts *Options) {
 		opts.ReconnectDelay = reconnectDelay
 		opts.MaxReconnects = maxReconnects
