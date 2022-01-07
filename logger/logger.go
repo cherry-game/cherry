@@ -33,7 +33,7 @@ func (c *CherryLogger) Print(v ...interface{}) {
 }
 
 func SetNodeLogger(node cherryFacade.INode) {
-	nodePrefix = fmt.Sprintf("[node-%s]", node.NodeId())
+	nodePrefix = fmt.Sprintf("[node#%s]", node.NodeId())
 
 	refLogger := node.Settings().Get("ref_logger").ToString()
 

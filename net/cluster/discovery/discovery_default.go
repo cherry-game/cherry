@@ -126,12 +126,16 @@ func (n *DiscoveryDefault) AddMember(member facade.IMember) {
 		listener(member)
 	}
 
-	cherryLogger.Debugf("add new member. [member = %s]", member)
+	cherryLogger.Debugf("addMember new member. [member = %s]", member)
 }
 
 func (n *DiscoveryDefault) RemoveMember(nodeId string) {
 	defer n.Unlock()
 	n.Lock()
+
+	if nodeId == "" {
+		return
+	}
 
 	var member facade.IMember
 	for i := 0; i < len(n.memberList); i++ {
@@ -139,7 +143,6 @@ func (n *DiscoveryDefault) RemoveMember(nodeId string) {
 
 		if member.GetNodeId() == nodeId {
 			n.memberList = append(n.memberList[:i], n.memberList[i+1:]...)
-
 			cherryLogger.Debugf("remove member. [member = %v]", member)
 
 			for _, listener := range n.onRemoveListener {

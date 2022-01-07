@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option go_package = "/cherryProto";
+option go_package = "github.com/cherry-game/cherry/net/proto/proto;cherryProto";
 
-package cherryCluster;
+package cherryProto;
 
 
 // string type

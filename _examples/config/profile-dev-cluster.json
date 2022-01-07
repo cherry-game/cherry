@@ -14,6 +14,17 @@
       "request_timeout": 2,
       "user": "",
       "password": ""
+    },
+    "etcd": {
+      "end_points": "127.0.0.1:2379",
+      "end_points": "127.0.0.1:2379,127.0.0.2:2379",
+      "prefix" : "cherry",
+      "ttl": 5,
+      "dial_timeout": 3,
+      "dial_keep_alive_time": 1,
+      "dial_keep_alive_timeout": 1,
+      "user": "",
+      "password": ""
     }
   }
 }

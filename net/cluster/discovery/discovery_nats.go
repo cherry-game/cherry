@@ -15,8 +15,8 @@ import (
 // 先启动一个master节点
 // 其他节点启动时Request(cherry.discovery.register)，到master节点注册
 // master节点subscribe(cherry.discovery.register)，返回已注册节点列表
-// master节点publish(cherry.discovery.add)，当前已注册的节点到
-// 所有客户端节点subscribe(cherry.discovery.add)，接收新节点
+// master节点publish(cherry.discovery.addMember)，当前已注册的节点到
+// 所有客户端节点subscribe(cherry.discovery.addMember)，接收新节点
 // 所有节点subscribe(cherry.discovery.unregister)，退出时注销节点
 type DiscoveryNATS struct {
 	DiscoveryDefault
@@ -74,7 +74,7 @@ func (m *DiscoveryNATS) init() {
 	masterNodeId := m.masterMember.GetNodeId()
 	m.registerSubject = fmt.Sprintf("cherry.discovery.%s.register", masterNodeId)
 	m.unregisterSubject = fmt.Sprintf("cherry.discovery.%s.unregister", masterNodeId)
-	m.addSubject = fmt.Sprintf("cherry.discovery.%s.add", masterNodeId)
+	m.addSubject = fmt.Sprintf("cherry.discovery.%s.addMember", masterNodeId)
 
 	m.subscribe(m.unregisterSubject, func(msg *nats.Msg) {
 		unregisterMember := &cherryProto.Member{}
@@ -103,7 +103,7 @@ func (m *DiscoveryNATS) serverInit() {
 		return
 	}
 
-	//add master node
+	//addMember master node
 	m.AddMember(m.masterMember)
 
 	// subscribe register message
@@ -115,7 +115,7 @@ func (m *DiscoveryNATS) serverInit() {
 			return
 		}
 
-		// add new member
+		// addMember new member
 		m.AddMember(newMember)
 
 		// response member list
@@ -145,7 +145,7 @@ func (m *DiscoveryNATS) serverInit() {
 			return
 		}
 
-		// publish add new node
+		// publish addMember new node
 		err = cherryNats.Conn().Publish(m.addSubject, msg.Data)
 		if err != nil {
 			cherryLogger.Warnf("publish fail. err = %s", err)
