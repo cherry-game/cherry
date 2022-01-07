@@ -19,6 +19,7 @@ type (
 		ISerializer
 		IPacketCodec
 		Running() bool                    // 是否运行中
+		DieChan() chan bool               // die chan
 		IsFrontend() bool                 // 是否为前端节点
 		Find(name string) IComponent      // 根据name获取组件对象
 		Remove(name string) IComponent    // 根据name移除组件对象

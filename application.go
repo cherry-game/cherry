@@ -33,7 +33,7 @@ type (
 		nodeMode     NodeMode
 		startTime    cherryTime.CherryTime // application start time
 		running      int32                 // is running
-		die          chan bool             // wait for end application
+		dieChan      chan bool             // wait for end application
 		components   []facade.IComponent   // all components
 		onShutdownFn []func()              // on shutdown execute functions
 	}
@@ -59,13 +59,13 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 
 	app := &Application{
 		INode:        node,
-		startTime:    cherryTime.Now(),
-		running:      0,
-		die:          make(chan bool),
 		ISerializer:  cherrySerializer.NewProtobuf(),
 		IPacketCodec: cherryPacket.NewPomeloCodec(),
 		isFrontend:   true,
 		nodeMode:     Standalone,
+		startTime:    cherryTime.Now(),
+		running:      0,
+		dieChan:      make(chan bool),
 	}
 
 	return app
@@ -81,6 +81,10 @@ func (a *Application) NodeMode() NodeMode {
 
 func (a *Application) Running() bool {
 	return a.running > 0
+}
+
+func (a *Application) DieChan() chan bool {
+	return a.dieChan
 }
 
 func (a *Application) Register(components ...facade.IComponent) {
@@ -209,7 +213,7 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
 
 	select {
-	case <-a.die:
+	case <-a.dieChan:
 		cherryLogger.Info("invoke shutdown().")
 	case <-sg:
 		cherryLogger.Infof("receive shutdown signal = %v.", sg)
@@ -258,7 +262,7 @@ func (a *Application) OnShutdown(fn ...func()) {
 }
 
 func (a *Application) Shutdown() {
-	a.die <- true
+	a.dieChan <- true
 }
 
 func (a *Application) SetSerializer(serializer facade.ISerializer) {
