@@ -16,7 +16,7 @@ func main() {
 
 	cherryTimer.NewTimer(func() {
 		cherryLogger.Infof("execute func.... %s", cherryTime.Now().ToDateTimeFormat())
-	}, 1*time.Second)
+	}, 1*time.Second, 0)
 
 	testApp.Startup(timerComponent)
 }

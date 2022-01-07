@@ -94,19 +94,19 @@ func RemoveTimer(id int64) {
 }
 
 // NewTimer creates a loop forever cron job
-func NewTimer(fn Func, interval time.Duration) *Timer {
-	return NewCounterTimer(fn, interval, LoopForever)
+func NewTimer(fn Func, interval, delay time.Duration) *Timer {
+	return NewCounterTimer(fn, interval, delay, LoopForever)
 }
 
 // NewCounterTimer creates a cron job
-func NewCounterTimer(fn Func, interval time.Duration, counter int) *Timer {
+func NewCounterTimer(fn Func, interval, delay time.Duration, counter int) *Timer {
 	id := atomic.AddInt64(&Manager.incrementID, 1)
 	t := &Timer{
 		ID:       id,
 		fn:       fn,
 		createAt: time.Now().UnixNano(),
 		interval: interval,
-		elapse:   int64(interval), // first execution will be after interval
+		elapse:   delay.Nanoseconds(), // first execution will be after interval
 		counter:  counter,
 	}
 
@@ -117,22 +117,35 @@ func NewCounterTimer(fn Func, interval time.Duration, counter int) *Timer {
 	return t
 }
 
+// NewEveryDayTimer 每天的x分x秒执行一次(每天1次)
 func NewEveryDayTimer(fn Func, hour, minutes, seconds int) *Timer {
 	ct := cherryTime.Now()
 	ct.SetHour(hour)
 	ct.SetMinute(minutes)
 	ct.SetSecond(seconds)
+	ct.SetNanoSecond(1) // offset
 
-	now := cherryTime.Now()
-	if ct.ToTimestamp() < now.ToTimestamp() {
-		ct.SetSecond(int(cherryTime.SecondsPerDay + now.ToTimestamp()))
+	delay := ct.ToMillisecond() - cherryTime.Now().ToMillisecond()
+	if delay < 1 {
+		delay = cherryTime.MillisecondsPerDay + delay
 	}
 
-	return nil
+	return NewTimer(fn, cherryTime.MillisecondsPerDay*time.Millisecond, time.Duration(delay)*time.Millisecond)
 }
 
-func NewEveryMinuteTimer(fn Func, minute int) *Timer {
-	return nil
+// NewEveryHourTimer 每小时的x分x秒执行一次(每天24次)
+func NewEveryHourTimer(fn Func, minute, second int) *Timer {
+	ct := cherryTime.Now()
+	ct.SetMinute(minute)
+	ct.SetSecond(second)
+	ct.SetNanoSecond(1) // offset
+
+	delay := ct.ToMillisecond() - cherryTime.Now().ToMillisecond()
+	if delay < 1 {
+		delay = cherryTime.MillisecondsPerHour + delay
+	}
+
+	return NewTimer(fn, cherryTime.MillisecondsPerHour*time.Millisecond, time.Duration(delay)*time.Millisecond)
 }
 
 // SetCondition sets the condition used for verifying when the cron job should run
@@ -193,7 +206,7 @@ func Cron() {
 		// execute job
 		if t.createAt+t.elapse <= unn {
 			pexec(id, t.fn)
-			t.elapse += int64(t.interval)
+			t.elapse += t.interval.Nanoseconds()
 
 			// update timer counter
 			if t.counter != LoopForever && t.counter > 0 {
