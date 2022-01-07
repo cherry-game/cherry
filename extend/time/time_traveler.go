@@ -12,7 +12,7 @@ func (c *CherryTime) AddDuration(duration string) error {
 		return err
 	}
 
-	c.Time = c.Time.Add(td)
+	c.Time = c.Add(td)
 	return nil
 }
 
@@ -221,8 +221,9 @@ func (c *CherryTime) SubWeek() {
 }
 
 // AddDays N天后
-func (c *CherryTime) AddDays(days int) {
+func (c *CherryTime) AddDays(days int) *CherryTime {
 	c.Time = c.Time.AddDate(0, 0, days)
+	return c
 }
 
 // AddDay 1天后

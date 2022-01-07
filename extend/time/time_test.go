@@ -8,7 +8,7 @@ import (
 func TestCherryTime_Now(t *testing.T) {
 	now := Now()
 
-	AddGlobalOffset(-60)
+	AddOffsetTime(-60)
 
 	now1 := Now()
 	t.Log(fmt.Sprintf("now = %s, now-offset = %s\n", now.ToDateTimeFormat(), now1.ToDateTimeFormat()))
