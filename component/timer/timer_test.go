@@ -13,15 +13,19 @@ func TestNewEveryDayTimer(t *testing.T) {
 	comp := NewComponent()
 	comp.Init()
 
-	NewEveryDayTimer(func() {
-		now := cherryTime.Now()
-		cherryLogger.Infof("每天%d点%d分运行", now.Hour(), now.Minute())
-	}, 10, 11, 0)
+	for i := 0; i <= 23; i++ {
+		NewEveryDayTimer(func() {
+			now := cherryTime.Now()
+			cherryLogger.Infof("每天%d点%d分运行", now.Hour(), now.Minute())
+		}, i, 12, 34)
+		cherryLogger.Infof("添加 每天%d点执行的定时器", i)
+	}
 
-	for i := 54; i <= 59; i++ {
+	for i := 0; i <= 59; i++ {
 		NewEveryHourTimer(func() {
-			cherryLogger.Infof("每小时第%d分执行一次", cherryTime.Now().Minute())
+			cherryLogger.Infof("每小时%d分执行一次", cherryTime.Now().Minute())
 		}, i, 0)
+		cherryLogger.Infof("添加 每小时%d分的定时器", i)
 	}
 
 	wg.Wait()
