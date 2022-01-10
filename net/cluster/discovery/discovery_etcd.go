@@ -45,8 +45,9 @@ func (p *DiscoveryETCD) Init(app facade.IApplication) {
 		return
 	}
 	p.loadConfig(cfg)
-	p.register()
+	p.init()
 	p.getLeaseId()
+	p.register()
 	p.watch()
 
 	cherryLogger.Infof("[etcd] init complete! [endpoints = %v] [leaseId = %d]", p.config.Endpoints, p.leaseID)
@@ -64,7 +65,9 @@ func (p *DiscoveryETCD) OnStop() {
 }
 
 func (p *DiscoveryETCD) loadConfig(config jsoniter.Any) {
-	p.config = clientv3.Config{}
+	p.config = clientv3.Config{
+		Logger: cherryLogger.DefaultLogger.Desugar(),
+	}
 
 	p.config.Endpoints = strings.Split(config.Get("end_points").ToString(), ",")
 	p.config.DialTimeout = time.Duration(config.Get("dial_timeout_second").ToInt64()) * time.Second
@@ -83,6 +86,20 @@ func (p *DiscoveryETCD) loadConfig(config jsoniter.Any) {
 	if p.prefix == "" {
 		p.prefix = "cherry"
 	}
+}
+
+func (p *DiscoveryETCD) init() {
+	var err error
+	p.cli, err = clientv3.New(p.config)
+	if err != nil {
+		cherryLogger.Fatalf("etcd connect fail. err = %v", err)
+		return
+	}
+
+	// set namespace
+	p.cli.KV = namespace.NewKV(p.cli.KV, p.prefix)
+	p.cli.Watcher = namespace.NewWatcher(p.cli.Watcher, p.prefix)
+	p.cli.Lease = namespace.NewLease(p.cli.Lease, p.prefix)
 }
 
 func (p *DiscoveryETCD) getLeaseId() {
@@ -121,18 +138,6 @@ func (p *DiscoveryETCD) getLeaseId() {
 }
 
 func (p *DiscoveryETCD) register() {
-	var err error
-	p.cli, err = clientv3.New(p.config)
-	if err != nil {
-		cherryLogger.Fatalf("etcd connect fail. err = %v", err)
-		return
-	}
-
-	// set namespace
-	p.cli.KV = namespace.NewKV(p.cli.KV, p.prefix)
-	p.cli.Watcher = namespace.NewWatcher(p.cli.Watcher, p.prefix)
-	p.cli.Lease = namespace.NewLease(p.cli.Lease, p.prefix)
-
 	registerMember := &cherryProto.Member{
 		NodeId:   p.NodeId(),
 		NodeType: p.NodeType(),
@@ -147,7 +152,6 @@ func (p *DiscoveryETCD) register() {
 	}
 
 	key := fmt.Sprintf(registerKeyFormat, p.NodeId())
-
 	_, err = p.cli.Put(context.Background(), key, jsonString, clientv3.WithLease(p.leaseID))
 	if err != nil {
 		cherryLogger.Fatal(err)
