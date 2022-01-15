@@ -69,7 +69,7 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 
 	fullPath, err := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
 	if err != nil {
-		return nil, cherryError.Errorf("file not found. err = %v, fullPath = %s", err, fullPath)
+		return nil, cherryError.Errorf("file not found. err = %v", err)
 	}
 
 	if cherryFile.IsDir(fullPath) {

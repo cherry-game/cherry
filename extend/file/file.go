@@ -107,7 +107,7 @@ func JoinPath(elem ...string) (string, error) {
 
 	err := CheckPath(filePath)
 	if err != nil {
-		return "", err
+		return filePath, err
 	}
 	return filePath, nil
 }
