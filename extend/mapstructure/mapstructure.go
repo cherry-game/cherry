@@ -286,10 +286,11 @@ type Metadata struct {
 	Unused []string
 }
 
-func HookDecode(input interface{}, output interface{}, fs []DecodeHookFuncType) error {
+func HookDecode(input interface{}, output interface{}, tagName string, fs []DecodeHookFuncType) error {
 	config := &DecoderConfig{
 		Metadata: nil,
 		Result:   output,
+		TagName:  tagName,
 		DecodeHook: func(f reflect.Value, t reflect.Value) (interface{}, error) {
 			var err error
 			data := f.Interface()
