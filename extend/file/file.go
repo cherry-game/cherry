@@ -14,6 +14,29 @@ func init() {
 	fmt.Sprintf(str)
 }
 
+func JudgeFile(filePath string) (string, bool) {
+	if filePath == "" {
+		return filePath, false
+	}
+
+	var p, n string
+	index := strings.LastIndex(filePath, "/")
+	if index > 0 {
+		p = filePath[0:index]
+		n = filePath[index+1:]
+	} else {
+		p = "./"
+		n = filePath
+	}
+
+	judgePath, ok := JudgePath(p)
+	if ok == false {
+		return "", false
+	}
+
+	return path.Join(judgePath, n), true
+}
+
 func JudgePath(filePath string) (string, bool) {
 	dir := GetMainFuncDir()
 	for _, d := range dir {
