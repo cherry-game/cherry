@@ -2,10 +2,12 @@ package cherryFile
 
 import (
 	"fmt"
+	cherrySlice "github.com/cherry-game/cherry/extend/slice"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 )
 
@@ -29,12 +31,15 @@ func JudgeFile(filePath string) (string, bool) {
 		n = filePath
 	}
 
-	judgePath, ok := JudgePath(p)
-	if ok == false {
-		return "", false
+	dir := GetMainFuncDir()
+	for _, d := range dir {
+		tmpPath := path.Join(d, p, n)
+		if CheckPath(tmpPath) == nil {
+			return tmpPath, true
+		}
 	}
 
-	return path.Join(judgePath, n), true
+	return path.Join(p, n), false
 }
 
 func JudgePath(filePath string) (string, bool) {
@@ -111,8 +116,19 @@ func GetMainFuncDir() []string {
 			continue
 		}
 
-		dir = append(dir, lastLine[:lastIndex])
+		thisDir := lastLine[:lastIndex]
+		if _, err := os.Stat(thisDir); err != nil {
+			continue
+		}
+
+		if cherrySlice.StringIn(thisDir, dir) {
+			continue
+		}
+
+		dir = append(dir, thisDir)
 	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(dir)))
 
 	return dir
 }

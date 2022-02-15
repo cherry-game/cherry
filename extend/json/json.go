@@ -1,7 +1,6 @@
 package cherryJson
 
 import (
-	encodingJson "encoding/json"
 	jsoniter "github.com/json-iterator/go"
 	"io/ioutil"
 )
@@ -11,7 +10,7 @@ func ToJson(i interface{}) string {
 		return ""
 	}
 
-	bytes, err := encodingJson.Marshal(i)
+	bytes, err := jsoniter.Marshal(i)
 	if err != nil {
 		return ""
 	}
