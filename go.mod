@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/websocket v1.4.2
 	github.com/json-iterator/go v1.1.11
 	github.com/nats-io/nats-server/v2 v2.3.4 // indirect
-	github.com/nats-io/nats.go v1.11.1-0.20210623165838-4b75fc59ae30
+	github.com/nats-io/nats.go v1.13.0
 	github.com/radovskyb/watcher v1.0.7
 	github.com/satori/go.uuid v1.2.0
 	go.etcd.io/etcd/api/v3 v3.5.1
