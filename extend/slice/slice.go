@@ -25,6 +25,15 @@ func StringIn(v string, sl []string) bool {
 	return false
 }
 
+func StringIndex(v string, sl []string) (int, bool) {
+	for i, vv := range sl {
+		if vv == v {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
 // InInterface checks given interface in interface slice.
 func InInterface(v interface{}, sl []interface{}) bool {
 	for _, vv := range sl {

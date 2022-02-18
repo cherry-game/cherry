@@ -1,7 +1,6 @@
 package cherryFile
 
 import (
-	"fmt"
 	cherrySlice "github.com/cherry-game/cherry/extend/slice"
 	"os"
 	"path"
@@ -10,11 +9,6 @@ import (
 	"sort"
 	"strings"
 )
-
-func init() {
-	str := GetCurrentPath()
-	fmt.Sprintf(str)
-}
 
 func JudgeFile(filePath string) (string, bool) {
 	if filePath == "" {
@@ -31,7 +25,7 @@ func JudgeFile(filePath string) (string, bool) {
 		n = filePath
 	}
 
-	dir := GetMainFuncDir()
+	dir := GetStackDir()
 	for _, d := range dir {
 		tmpPath := path.Join(d, p, n)
 		if CheckPath(tmpPath) == nil {
@@ -43,7 +37,7 @@ func JudgeFile(filePath string) (string, bool) {
 }
 
 func JudgePath(filePath string) (string, bool) {
-	dir := GetMainFuncDir()
+	dir := GetStackDir()
 	for _, d := range dir {
 		tmpPath := path.Join(d, filePath)
 		ok := IsDir(tmpPath)
@@ -98,11 +92,7 @@ func GetCurrentPath() string {
 	return absPath
 }
 
-var (
-	mainFuncDir = ""
-)
-
-func GetMainFuncDir() []string {
+func GetStackDir() []string {
 	var dir []string
 
 	var buf [2 << 16]byte
