@@ -70,9 +70,7 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 		options = append(options, nats.ReconnectWait(time.Duration(p.ReconnectDelay)*time.Second))
 	}
 
-	if p.MaxReconnects > 0 {
-		options = append(options, nats.MaxReconnects(p.MaxReconnects))
-	}
+	options = append(options, nats.MaxReconnects(p.MaxReconnects))
 
 	options = append(options, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
