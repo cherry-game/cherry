@@ -63,25 +63,15 @@
       "level": "debug",
       "enable_write_file": true,
       "enable_console": true,
-      "file_path": "logs/game.log",
-      "max_size": 128,
-      "max_age": 7,
-      "max_backups": 0,
-      "compress": false,
-      "time_format": "15:04:05.000",
-      "print_caller": true
+      "file_link_path": "logs/game.log",
+      "file_path_format": "logs/game_%Y%m%d%H%M.log"
     },
     "master_log": {
       "level": "debug",
       "enable_write_file": false,
       "enable_console": true,
-      "file_path": "logs/master_log.log",
-      "max_size": 16,
-      "max_age": 7,
-      "max_backups": 0,
-      "compress": false,
-      "time_format": "15:04:05.000",
-      "print_caller": true
+      "file_link_path": "logs/master_log.log",
+      "file_path_format": "logs/master_log_%Y%m%d%H%M.log"
     }
   }
 }

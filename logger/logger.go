@@ -3,12 +3,13 @@ package cherryLogger
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/facade"
+	"github.com/cherry-game/cherry/logger/rotatelogs"
 	cherryProfile "github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
@@ -110,7 +111,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	if config.EnableConsole {
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
 	} else {
 		encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
 			enc.AppendString(level.CapitalString())
@@ -121,15 +122,19 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 
 	var writers []zapcore.WriteSyncer
 
-	if config.EnableWriteFile && config.FilePath != "" {
-		lumberConfig := &lumberjack.Logger{
-			Filename:   config.FilePath,
-			MaxSize:    config.MaxSize,
-			MaxAge:     config.MaxAge,
-			MaxBackups: config.MaxBackups,
-			Compress:   config.Compress,
+	if config.EnableWriteFile {
+		hook, err := rotatelogs.New(
+			config.FilePathFormat, //filename+"_%Y%m%d%H%M.log",
+			rotatelogs.WithLinkName(config.FileLinkPath),
+			rotatelogs.WithMaxAge(time.Hour*24*time.Duration(config.MaxAge)),
+			rotatelogs.WithRotationTime(time.Second*time.Duration(config.RotationTime)),
+		)
+
+		if err != nil {
+			panic(err)
 		}
-		writers = append(writers, zapcore.AddSync(lumberConfig))
+
+		writers = append(writers, zapcore.AddSync(hook))
 	}
 
 	if config.EnableConsole {

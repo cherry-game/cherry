@@ -2,26 +2,26 @@
   "logger": {
     "game_log": {
       "level": "debug",
-      "enable_write_file": true,
+      "stack_level": "error",
       "enable_console": true,
-      "file_path": "logs/game.log",
-      "max_size": 128,
+      "enable_write_file": true,
       "max_age": 7,
-      "max_backups": 0,
-      "compress": false,
       "time_format": "15:04:05.000",
-      "print_caller": true
+      "print_caller": true,
+      "rotation_time": 3600,
+      "@rotation_time": [
+        "3600(秒):每小时分割日志",
+        "86400(秒):每天分割日志"
+      ],
+      "file_link_path": "logs/game.link",
+      "file_path_format": "logs/game_%Y%m%d%H%M.log"
     },
     "test_handler": {
       "level": "debug",
-      "enable_write_file": true,
       "enable_console": false,
-      "file_path": "logs/test_handler.log",
-      "max_size": 128,
-      "max_age": 7,
-      "max_backups": 0,
-      "compress": false,
-      "time_format": "15:04:05.000"
+      "enable_write_file": true,
+      "file_link_path": "logs/test_handler.log",
+      "file_path_format": "logs/test_handler_%Y%m%d%H%M.log"
     }
   }
 }
