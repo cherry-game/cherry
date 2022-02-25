@@ -6,35 +6,26 @@ import (
 	"time"
 )
 
-func Int32In(v int32, sl []int32) bool {
-	for _, vv := range sl {
+func Int32In(v int32, sl []int32) (int, bool) {
+	for i, vv := range sl {
 		if vv == v {
-			return true
+			return i, true
 		}
 	}
-	return false
+	return 0, false
 }
 
-func Int64In(v int64, sl []int64) bool {
-	for _, vv := range sl {
+func Int64In(v int64, sl []int64) (int, bool) {
+	for i, vv := range sl {
 		if vv == v {
-			return true
+			return i, true
 		}
 	}
-	return false
+	return 0, false
 }
 
 // StringIn checks given string in string slice or not.
-func StringIn(v string, sl []string) bool {
-	for _, vv := range sl {
-		if vv == v {
-			return true
-		}
-	}
-	return false
-}
-
-func StringIndex(v string, sl []string) (int, bool) {
+func StringIn(v string, sl []string) (int, bool) {
 	for i, vv := range sl {
 		if vv == v {
 			return i, true

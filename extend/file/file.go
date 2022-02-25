@@ -111,7 +111,7 @@ func GetStackDir() []string {
 			continue
 		}
 
-		if cherrySlice.StringIn(thisDir, dir) {
+		if _, ok := cherrySlice.StringIn(thisDir, dir); ok {
 			continue
 		}
 

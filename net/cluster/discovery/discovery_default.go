@@ -77,8 +77,10 @@ func (n *DiscoveryDefault) List() []facade.IMember {
 func (n *DiscoveryDefault) ListByType(nodeType string, filterNodeId ...string) []facade.IMember {
 	var list []facade.IMember
 	for _, member := range n.memberList {
-		if member.GetNodeType() == nodeType && cherrySlice.StringIn(member.GetNodeId(), filterNodeId) == false {
-			list = append(list, member)
+		if member.GetNodeType() == nodeType {
+			if _, ok := cherrySlice.StringIn(member.GetNodeId(), filterNodeId); ok == false {
+				list = append(list, member)
+			}
 		}
 	}
 	return list
