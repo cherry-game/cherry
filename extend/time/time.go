@@ -59,8 +59,12 @@ func NewTime(tt time.Time, setGlobal bool) CherryTime {
 	return ct
 }
 
-func NewUnixTime(tt int64, setGlobal bool) CherryTime {
-	return NewTime(time.Unix(tt, 0), setGlobal)
+func NewSecond(second int64) CherryTime {
+	return NewTime(time.Unix(second, 0), true)
+}
+
+func NewMillisecond(millisecond int64) CherryTime {
+	return NewTime(time.UnixMilli(millisecond), true)
 }
 
 func Now() CherryTime {
