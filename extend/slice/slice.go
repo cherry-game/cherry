@@ -15,6 +15,15 @@ func Int32In(v int32, sl []int32) bool {
 	return false
 }
 
+func Int64In(v int64, sl []int64) bool {
+	for _, vv := range sl {
+		if vv == v {
+			return true
+		}
+	}
+	return false
+}
+
 // StringIn checks given string in string slice or not.
 func StringIn(v string, sl []string) bool {
 	for _, vv := range sl {
