@@ -151,8 +151,6 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		rsp.Code = cherryCode.RPCUnmarshalError
 		return
 	}
-
-	rsp.Code = cherryCode.OK
 }
 
 func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interface{}) {
