@@ -13,6 +13,7 @@ var (
 	uidMap           = make(map[facade.UID]*Session) // uid -> Session
 	onCreateListener = make([]SessionListener, 0)    // on create execute listener function
 	onCloseListener  = make([]SessionListener, 0)    // on close execute listener function
+	onDataListener   = make([]SessionListener, 0)    // on receive data execute listener function
 )
 
 type (
@@ -144,4 +145,8 @@ func AddOnCreateListener(listener ...SessionListener) {
 
 func AddOnCloseListener(listener ...SessionListener) {
 	onCloseListener = append(onCloseListener, listener...)
+}
+
+func AddOnDataListener(listener ...SessionListener) {
+	onDataListener = append(onDataListener, listener...)
 }

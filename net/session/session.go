@@ -134,7 +134,7 @@ func (s *Session) Close() {
 	s.entity.Close()
 }
 
-func (s *Session) OnCloseProcess() {
+func (s *Session) OnCloseListener() {
 	// when session closed,the func is executed
 	for _, listener := range onCloseListener {
 		if listener(s) == false {
@@ -142,6 +142,16 @@ func (s *Session) OnCloseProcess() {
 		}
 	}
 	Unbind(s.sid)
+}
+
+func (s *Session) OnDataListener() bool {
+	for _, listener := range onDataListener {
+		if listener(s) == false {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (s *Session) RemoteAddress() string {
