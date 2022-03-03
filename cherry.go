@@ -145,8 +145,9 @@ func initConnectorComponent() {
 		// create agent
 		agent := cherryAgent.NewAgent(_thisApp, conn, agentOptions)
 		// create new session
-		agent.Session = cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
+		newSession := cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
 		// run agent
+		agent.SetSession(newSession)
 		agent.Run()
 	})
 

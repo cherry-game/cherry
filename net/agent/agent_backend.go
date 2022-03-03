@@ -103,7 +103,7 @@ func (a *AgentBackend) Close() {
 	}
 
 	a.session.SetState(cherrySession.Closed)
-	a.session.OnCloseProcess()
+	a.session.OnCloseListener()
 }
 
 func (a *AgentBackend) RemoteAddr() string {

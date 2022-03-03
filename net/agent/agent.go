@@ -30,7 +30,7 @@ type (
 		sync.RWMutex
 		*Options
 		cherryFacade.IApplication
-		Session *cherrySession.Session // session
+		session *cherrySession.Session // session
 		conn    cherryFacade.INetConn  // low-level conn fd
 		chDie   chan bool              // wait for close
 		chSend  chan pendingMessage    // push message queue
@@ -68,6 +68,10 @@ func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *O
 	return agent
 }
 
+func (a *Agent) SetSession(session *cherrySession.Session) {
+	a.session = session
+}
+
 func (a *Agent) SetLastAt() {
 	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
 }
@@ -79,12 +83,12 @@ func (a *Agent) Push(route string, val interface{}) {
 func (a *Agent) Kick(reason interface{}) {
 	bytes, err := a.Marshal(reason)
 	if err != nil {
-		a.Session.Warnf("[Kick] marshal fail. [reason = %v] [error = %s].", reason, err)
+		a.session.Warnf("[Kick] marshal fail. [reason = %v] [error = %s].", reason, err)
 	}
 
 	pkg, err := a.PacketEncode(cherryPacket.Kick, bytes)
 	if err != nil {
-		a.Session.Warnf("[kick] packet encode error.[reason = %v] [error = %s].", reason, err)
+		a.session.Warnf("[kick] packet encode error.[reason = %v] [error = %s].", reason, err)
 		return
 	}
 
@@ -94,7 +98,7 @@ func (a *Agent) Kick(reason interface{}) {
 	}
 
 	if cherryProfile.Debug() {
-		a.Session.Debugf("[Kick] [reason = %v]", reason)
+		a.session.Debugf("[Kick] [reason = %v]", reason)
 	}
 }
 
@@ -127,28 +131,28 @@ func (a *Agent) Close() {
 	a.Lock()
 	defer a.Unlock()
 
-	if a.Session.State() == cherrySession.Closed {
+	if a.session.State() == cherrySession.Closed {
 		return
 	}
 
-	a.Session.SetState(cherrySession.Closed)
-	a.Session.OnCloseProcess()
+	a.session.SetState(cherrySession.Closed)
+	a.session.OnCloseListener()
 
 	a.chDie <- true
 
 	if err := a.conn.Close(); err != nil {
-		a.Session.Debugf("session close error[%s]", err)
+		a.session.Debugf("session close error[%s]", err)
 	}
 }
 
 func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) {
-	if a.Session.State() == cherrySession.Closed {
-		a.Session.Warnf("[send] session status == Closed")
+	if a.session.State() == cherrySession.Closed {
+		a.session.Warnf("[send] session status == Closed")
 		return
 	}
 
 	if len(a.chSend) >= WriteBacklog {
-		a.Session.Warnf("[send] session send buffer exceed")
+		a.session.Warnf("[send] session send buffer exceed")
 		return
 	}
 
@@ -157,6 +161,11 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface
 }
 
 func (a *Agent) Run() {
+	if a.session == nil {
+		cherryLogger.Error("session is nil. run fail.")
+		return
+	}
+
 	go a.read()
 	go a.write()
 }
@@ -174,7 +183,7 @@ func (a *Agent) read() {
 
 		packets, err := a.PacketDecode(msg)
 		if err != nil {
-			a.Session.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
+			a.session.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
 			continue
 		}
 
@@ -191,7 +200,7 @@ func (a *Agent) read() {
 func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		a.Session.Debugf("close session. [sid = %s]", a.Session.SID())
+		a.session.Debugf("close session. [sid = %s]", a.session.SID())
 
 		ticker.Stop()
 		a.Close()
@@ -209,7 +218,7 @@ func (a *Agent) write() {
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				a.Session.Debug("check heartbeat timeout.")
+				a.session.Debug("check heartbeat timeout.")
 				return
 			}
 		case bytes := <-a.chWrite:
@@ -222,7 +231,7 @@ func (a *Agent) write() {
 		case data := <-a.chSend:
 			payload, err := a.Marshal(data.payload)
 			if err != nil {
-				a.Session.Debugf("message serializer error. data[%s]", data.String())
+				a.session.Debugf("message serializer error. data[%s]", data.String())
 				return
 			}
 
@@ -256,16 +265,16 @@ func (a *Agent) write() {
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
 	cmd, found := a.Commands[packet.Type()]
 	if found == false {
-		a.Session.Debugf("packet[%s] type not found.", packet)
+		a.session.Debugf("packet[%s] type not found.", packet)
 		return
 	}
 
-	if a.Session == nil {
-		cherryLogger.Warnf("session is nil.")
+	result := a.session.OnDataListener()
+	if result == false {
 		return
 	}
 
-	cmd.Do(a.Session, packet)
+	cmd.Do(a.session, packet)
 
 	// update last time
 	a.SetLastAt()
