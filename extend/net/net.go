@@ -23,3 +23,19 @@ func LocalIPV4() string {
 	})
 	return localIPv4Str
 }
+
+func GetIPV4(addr net.Addr) string {
+	if addr == nil {
+		return ""
+	}
+
+	if ipNet, ok := addr.(*net.TCPAddr); ok {
+		return ipNet.IP.String()
+	}
+
+	if ipNet, ok := addr.(*net.UDPAddr); ok {
+		return ipNet.IP.String()
+	}
+
+	return ""
+}

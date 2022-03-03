@@ -2,6 +2,7 @@ package cherryAgent
 
 import (
 	"fmt"
+	cherryNet "github.com/cherry-game/cherry/extend/net"
 	"github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/command"
@@ -116,7 +117,7 @@ func (a *Agent) SendRaw(bytes []byte) {
 
 func (a *Agent) RemoteAddr() string {
 	if a.conn != nil {
-		return a.conn.RemoteAddr().String()
+		return cherryNet.GetIPV4(a.conn.RemoteAddr())
 	}
 
 	return ""
