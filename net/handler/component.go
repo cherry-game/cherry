@@ -171,14 +171,6 @@ func (c *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler
 	return nil, nil
 }
 
-func (c *Component) DoLocalMessage(session *cherrySession.Session, msg *cherryMessage.Message) {
-	if msg.RouteInfo().NodeType() == c.App().NodeType() {
-		c.ProcessLocal(session, msg)
-	} else {
-
-	}
-}
-
 func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if !c.App().Running() {
 		return
