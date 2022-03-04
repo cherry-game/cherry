@@ -1,6 +1,7 @@
 package cherryTimer
 
 import (
+	"github.com/cherry-game/cherry"
 	cherryConst "github.com/cherry-game/cherry/const"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
@@ -15,6 +16,10 @@ func NewComponent() *Component {
 	return &Component{
 		close: make(chan bool),
 	}
+}
+
+func RegisterComponent() {
+	cherry.RegisterComponent(NewComponent())
 }
 
 func (p *Component) Name() string {
