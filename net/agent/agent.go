@@ -263,14 +263,14 @@ func (a *Agent) write() {
 }
 
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
-	cmd, found := a.Commands[packet.Type()]
-	if found == false {
-		a.session.Debugf("packet[%s] type not found.", packet)
+	result := a.session.OnDataListener()
+	if result == false {
 		return
 	}
 
-	result := a.session.OnDataListener()
-	if result == false {
+	cmd, found := a.Commands[packet.Type()]
+	if found == false {
+		a.session.Debugf("packet[%s] type not found.", packet)
 		return
 	}
 
