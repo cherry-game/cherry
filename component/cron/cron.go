@@ -55,7 +55,7 @@ func AddFunc(spec string, cmd func()) (cron.EntryID, error) {
 	return _cron.AddJob(spec, cron.FuncJob(cmd))
 }
 
-// AddEveryDayFunc 每天的x分x秒执行一次(每天1次)
+// AddEveryDayFunc 每天的x时x分x秒执行一次(每天1次)
 func AddEveryDayFunc(cmd func(), hour, minutes, seconds int) (cron.EntryID, error) {
 	spec := fmt.Sprintf("%d %d %d * * ?", seconds, minutes, hour)
 	return _cron.AddFunc(spec, cmd)
@@ -64,6 +64,20 @@ func AddEveryDayFunc(cmd func(), hour, minutes, seconds int) (cron.EntryID, erro
 // AddEveryHourFunc 每小时的x分x秒执行一次(每天24次)
 func AddEveryHourFunc(cmd func(), minute, second int) (cron.EntryID, error) {
 	spec := fmt.Sprintf("%d %d * * * ?", second, minute)
+	return _cron.AddFunc(spec, cmd)
+}
+
+// AddDurationFunc 每间隔x秒执行一次
+func AddDurationFunc(cmd func(), duration time.Duration) (cron.EntryID, error) {
+	spec := fmt.Sprintf("@every %ds", int(duration.Seconds()))
+	cherryLogger.Info(spec)
+	return _cron.AddFunc(spec, cmd)
+}
+
+// AddSecondFunc 每x秒执行一次
+func AddSecondFunc(cmd func(), t time.Duration) (cron.EntryID, error) {
+	spec := fmt.Sprintf("@every %ds", int(t.Seconds()))
+	cherryLogger.Info(spec)
 	return _cron.AddFunc(spec, cmd)
 }
 

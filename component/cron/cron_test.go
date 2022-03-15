@@ -4,6 +4,7 @@ import (
 	cherryTime "github.com/cherry-game/cherry/extend/time"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"testing"
+	"time"
 )
 
 func TestAddEveryDayFunc(t *testing.T) {
@@ -15,6 +16,10 @@ func TestAddEveryDayFunc(t *testing.T) {
 		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
 		panic("print panic~~~")
 	}, 5, 5)
+
+	AddSecondFunc(func() {
+		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
+	}, 1*time.Minute)
 
 	Run()
 }
