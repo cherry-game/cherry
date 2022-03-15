@@ -11,7 +11,6 @@ const (
 	ClusterComponent    = "cluster_component"
 	DataConfigComponent = "data_config_component"
 	ORMComponent        = "db_orm_component"
-	TimerComponent      = "timer_component"
 	MiniComponentPrefix = "mini_component_"
 	HttpComponentPrefix = "http_component_"
 )

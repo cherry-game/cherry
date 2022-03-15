@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	cherryTimer "github.com/cherry-game/cherry/component/timer"
 	"github.com/cherry-game/cherry/logger/rotatelogs"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -16,18 +15,6 @@ var sugarLogger *zap.SugaredLogger
 func main() {
 	InitLogger()
 	defer sugarLogger.Sync()
-
-	timerComponent := cherryTimer.NewComponent()
-	timerComponent.Init()
-
-	defer timerComponent.OnStop()
-
-	cherryTimer.NewTimer(func() {
-		sugarLogger.Debug("hello world")
-		sugarLogger.Info("hello world")
-		sugarLogger.Error("hello world")
-		fmt.Println("write ok")
-	}, time.Second*2, 0)
 
 	httpServer()
 }
