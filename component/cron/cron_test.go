@@ -17,7 +17,7 @@ func TestAddEveryDayFunc(t *testing.T) {
 		panic("print panic~~~")
 	}, 5, 5)
 
-	AddSecondFunc(func() {
+	AddDurationFunc(func() {
 		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
 	}, 1*time.Minute)
 

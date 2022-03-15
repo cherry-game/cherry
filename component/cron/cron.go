@@ -74,13 +74,6 @@ func AddDurationFunc(cmd func(), duration time.Duration) (cron.EntryID, error) {
 	return _cron.AddFunc(spec, cmd)
 }
 
-// AddSecondFunc 每x秒执行一次
-func AddSecondFunc(cmd func(), t time.Duration) (cron.EntryID, error) {
-	spec := fmt.Sprintf("@every %ds", int(t.Seconds()))
-	cherryLogger.Info(spec)
-	return _cron.AddFunc(spec, cmd)
-}
-
 func AddJob(spec string, cmd cron.Job) (cron.EntryID, error) {
 	return _cron.AddJob(spec, cmd)
 }
