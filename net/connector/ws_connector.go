@@ -107,7 +107,7 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	conn, err := newWSConn(wsConn)
+	conn, err := NewWSConn(wsConn)
 	if err != nil {
 		cherryLogger.Errorf("Failed to create new ws connection: %s", err.Error())
 		return
@@ -123,22 +123,22 @@ func (w *WSConnector) processNewConn(conn cherryFacade.INetConn) {
 	}
 }
 
-// wsConn is an adapter to t.INetConn, which implements all t.INetConn
+// WSConn is an adapter to t.INetConn, which implements all t.INetConn
 // interface base on *websocket.INetConn
-type wsConn struct {
+type WSConn struct {
 	conn   *websocket.Conn
 	typ    int // message type
 	reader io.Reader
 }
 
-// newWSConn return an initialized *wsConn
-func newWSConn(conn *websocket.Conn) (*wsConn, error) {
-	c := &wsConn{conn: conn}
+// NewWSConn return an initialized *WSConn
+func NewWSConn(conn *websocket.Conn) (*WSConn, error) {
+	c := &WSConn{conn: conn}
 	return c, nil
 }
 
 // GetNextMessage reads the next message available in the stream
-func (c *wsConn) GetNextMessage() (b []byte, err error) {
+func (c *WSConn) GetNextMessage() (b []byte, err error) {
 	_, msgBytes, err := c.conn.ReadMessage()
 	if err != nil {
 		return nil, err
@@ -164,7 +164,7 @@ func (c *wsConn) GetNextMessage() (b []byte, err error) {
 	return msgBytes, err
 }
 
-func (c *wsConn) Read(b []byte) (int, error) {
+func (c *WSConn) Read(b []byte) (int, error) {
 	if c.reader == nil {
 		t, r, err := c.conn.NextReader()
 		if err != nil {
@@ -187,7 +187,7 @@ func (c *wsConn) Read(b []byte) (int, error) {
 	return n, nil
 }
 
-func (c *wsConn) Write(b []byte) (int, error) {
+func (c *WSConn) Write(b []byte) (int, error) {
 	err := c.conn.WriteMessage(websocket.BinaryMessage, b)
 	if err != nil {
 		return 0, err
@@ -196,19 +196,19 @@ func (c *wsConn) Write(b []byte) (int, error) {
 	return len(b), nil
 }
 
-func (c *wsConn) Close() error {
+func (c *WSConn) Close() error {
 	return c.conn.Close()
 }
 
-func (c *wsConn) LocalAddr() net.Addr {
+func (c *WSConn) LocalAddr() net.Addr {
 	return c.conn.LocalAddr()
 }
 
-func (c *wsConn) RemoteAddr() net.Addr {
+func (c *WSConn) RemoteAddr() net.Addr {
 	return c.conn.RemoteAddr()
 }
 
-func (c *wsConn) SetDeadline(t time.Time) error {
+func (c *WSConn) SetDeadline(t time.Time) error {
 	if err := c.SetReadDeadline(t); err != nil {
 		return err
 	}
@@ -216,10 +216,10 @@ func (c *wsConn) SetDeadline(t time.Time) error {
 	return c.SetWriteDeadline(t)
 }
 
-func (c *wsConn) SetReadDeadline(t time.Time) error {
+func (c *WSConn) SetReadDeadline(t time.Time) error {
 	return c.conn.SetReadDeadline(t)
 }
 
-func (c *wsConn) SetWriteDeadline(t time.Time) error {
+func (c *WSConn) SetWriteDeadline(t time.Time) error {
 	return c.conn.SetWriteDeadline(t)
 }

@@ -1,16 +1,32 @@
 package cherryClient
 
 import (
+	"fmt"
 	"testing"
 	"time"
 )
 
 func TestClient(t *testing.T) {
+	client := New(
+		WithRequestTimeout(1 * time.Second),
+	)
+	client.TagName = "dog egg"
+	client.ConnectToWS("172.16.124.137:21000", "")
 
-	c := New(100 * time.Millisecond)
+	defer client.Disconnect()
 
-	c.ConnectTo("127.0.0.1:34590")
+	time.Sleep(1 * time.Hour)
 
-	defer c.Disconnect()
+}
 
+func BenchmarkClient(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		client := New(
+			WithRequestTimeout(1 * time.Second),
+		)
+		client.TagName = fmt.Sprintf("c-%d", i)
+		client.ConnectToWS("172.16.124.137:21000", "")
+
+		client.Disconnect()
+	}
 }

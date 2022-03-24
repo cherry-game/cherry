@@ -54,7 +54,7 @@ func (u UserHello) Hello(name string) {
 }
 
 func TestIUser(t *testing.T) {
-	u := User{} //UserHello{Id: 1, Name: "HaHaHa", Age: 88}
+	u := User{} //UserHello{ID: 1, Name: "HaHaHa", Age: 88}
 	reflectInterface(u)
 }
 

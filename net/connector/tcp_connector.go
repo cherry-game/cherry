@@ -20,7 +20,7 @@ type (
 		onConnectListener []cherryFacade.OnConnectListener
 	}
 
-	tcpConn struct {
+	TcpConn struct {
 		net.Conn
 	}
 )
@@ -80,7 +80,7 @@ func (t *TCPConnector) OnStart() {
 		}
 
 		// open goroutine for new connection
-		go t.processNewConn(&tcpConn{Conn: conn})
+		go t.processNewConn(&TcpConn{Conn: conn})
 	}
 }
 
@@ -103,7 +103,7 @@ func (t *TCPConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
 	t.onConnectListener = append(t.onConnectListener, listener...)
 }
 
-func (t *tcpConn) GetNextMessage() (b []byte, err error) {
+func (t *TcpConn) GetNextMessage() (b []byte, err error) {
 	header, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(cherryPacket.HeadLength)))
 	if err != nil {
 		return nil, err
