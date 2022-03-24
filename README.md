@@ -43,7 +43,7 @@ cherry game server engine for golang
 ### 集群
 - 配置方式加载节点
 - etcd方式加载&更新节点
-- grpc
+- nats.io
 
 ### 其他
 - mysql db队列
