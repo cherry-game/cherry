@@ -19,7 +19,7 @@ var (
 	DefaultTimeout = 5 * time.Second
 )
 
-func GET(url string, values ...map[string]string) (string, *http.Response, error) {
+func GET(url string, values ...map[string]string) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	if len(values) > 0 {
@@ -29,7 +29,7 @@ func GET(url string, values ...map[string]string) (string, *http.Response, error
 
 	rsp, err := client.Get(url)
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
 	defer func(body io.ReadCloser) {
@@ -39,21 +39,21 @@ func GET(url string, values ...map[string]string) (string, *http.Response, error
 		}
 	}(rsp.Body)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
-	return string(body), rsp, nil
+	return bytes, rsp, nil
 }
 
-func POST(url string, values map[string]string) (string, *http.Response, error) {
+func POST(url string, values map[string]string) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	rst := ToUrlValues(values)
 	rsp, err := client.Post(url, postContentType, strings.NewReader(rst.Encode()))
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
 	defer func(body io.ReadCloser) {
@@ -63,25 +63,25 @@ func POST(url string, values map[string]string) (string, *http.Response, error) 
 		}
 	}(rsp.Body)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
-	return string(body), rsp, nil
+	return bytes, rsp, nil
 }
 
-func PostJSON(url string, values interface{}) (string, *http.Response, error) {
+func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	jsonBytes, err := json.Marshal(values)
 	if err != nil {
-		return "", nil, err
+		return nil, nil, err
 	}
 
 	rsp, err := client.Post(url, jsonContentType, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
 	defer func(Body io.ReadCloser) {
@@ -91,12 +91,12 @@ func PostJSON(url string, values interface{}) (string, *http.Response, error) {
 		}
 	}(rsp.Body)
 
-	body, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := ioutil.ReadAll(rsp.Body)
 	if err != nil {
-		return "", rsp, err
+		return nil, rsp, err
 	}
 
-	return string(body), rsp, nil
+	return bytes, rsp, nil
 }
 
 func AddParams(url string, params url.Values) string {
