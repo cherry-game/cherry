@@ -1,5 +1,9 @@
 # cherry
-cherry game server engine for golang
+- 这是一款分布式的go游戏服务器框架。 
+- 基于golang + nats.io + pomelo protocol技术构建。
+- 它具备高性能、可伸缩、分布式、协程分组管理等特点。并且上手简单、易学。 
+- 让开发者更多的关注游戏业务，高效完成功能实现。
+- 文档陆续补充中。。。
 
 
 # TODO
@@ -16,7 +20,7 @@ cherry game server engine for golang
 
 
 ### 消息&路由
-- 包结构
+- 包结构(pomelo)
 - 包解码编码
 - 消息路由
 - 消息序列化
@@ -41,7 +45,7 @@ cherry game server engine for golang
 
 
 ### 集群
-- 配置方式加载节点
+- 文件配置方式加载节点
 - etcd方式加载&更新节点
 - nats.io
 
