@@ -9,6 +9,7 @@ import (
 	cherryConnector "github.com/cherry-game/cherry/net/connector"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/packet"
+	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
 	"github.com/gorilla/websocket"
 	jsoniter "github.com/json-iterator/go"
@@ -24,16 +25,17 @@ type (
 	// Client struct
 	Client struct {
 		options
-		TagName         string                      // 客户标识
-		conn            cherryFacade.INetConn       // 连接对象
-		connected       bool                        // 是否连接
-		incomingMsgChan chan *cherryMessage.Message // 接收消息队列
-		responseMaps    sync.Map                    // 响应消息队列 key:ID, value:Message
-		pushMsgMaps     sync.Map                    // push消息回调列表 key:route, value: OnMessageFn
-		nextID          uint32                      // 消息自增id
-		closeChan       chan struct{}               // 关闭chan
+		TagName      string                // 客户标识
+		conn         cherryFacade.INetConn // 连接对象
+		connected    bool                  // 是否连接
+		responseMaps sync.Map              // 响应消息队列 key:ID, value:Message
+		pushMsgMaps  sync.Map              // push消息回调列表 key:route, value: OnMessageFn
+		nextID       uint32                // 消息自增id
+		closeChan    chan struct{}         // 关闭chan
+		actionChan   chan ActionFn         // 动作执行队列
 	}
 
+	ActionFn    func() error
 	OnMessageFn func(msg *cherryMessage.Message)
 )
 
@@ -47,12 +49,13 @@ func New(opts ...Option) *Client {
 			codec:          cherryPacket.NewPomeloCodec(),
 			heartBeat:      30,
 			requestTimeout: 3 * time.Second,
+			isErrorBreak:   true,
 		},
-		incomingMsgChan: make(chan *cherryMessage.Message, 256),
-		responseMaps:    sync.Map{},
-		pushMsgMaps:     sync.Map{},
-		nextID:          0,
-		closeChan:       make(chan struct{}),
+		responseMaps: sync.Map{},
+		pushMsgMaps:  sync.Map{},
+		nextID:       0,
+		closeChan:    make(chan struct{}),
+		actionChan:   make(chan ActionFn, 128),
 	}
 
 	for _, opt := range opts {
@@ -60,84 +63,6 @@ func New(opts ...Option) *Client {
 	}
 
 	return client
-}
-
-func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message, error) {
-	data, err := p.serializer.Marshal(val)
-	if err != nil {
-		return nil, cherryError.Error("serializer error.")
-	}
-
-	id, err := p.Send(cherryMessage.Request, route, data)
-	if err != nil {
-		return nil, err
-	}
-
-	ticker := time.NewTicker(p.requestTimeout)
-	ch := make(chan bool)
-
-	rsp := &cherryMessage.Message{}
-
-	go func() {
-		for {
-			if m, found := p.responseMaps.LoadAndDelete(id); found {
-				rsp = m.(*cherryMessage.Message)
-				ch <- true
-				break
-			}
-		}
-	}()
-
-	select {
-	case <-ch:
-		{
-			//ok
-			return rsp, nil
-		}
-	case <-ticker.C:
-		{
-			return nil, cherryError.Error("time out")
-		}
-	}
-}
-
-// Notify sends a notify to the server
-func (p *Client) Notify(route string, val interface{}) error {
-	data, err := p.serializer.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.Send(cherryMessage.Notify, route, data)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// On listener route
-func (p *Client) On(route string, fn OnMessageFn) {
-	p.pushMsgMaps.Store(route, fn)
-}
-
-// IsConnected return the connection status
-func (p *Client) IsConnected() bool {
-	return p.connected
-}
-
-// Disconnect disconnects the client
-func (p *Client) Disconnect() {
-	for p.connected {
-		p.connected = false
-		close(p.closeChan)
-		err := p.conn.Close()
-		if err != nil {
-			cherryLogger.Error(err)
-		}
-
-		cherryLogger.Debugf("[%s] is disconnect.", p.TagName)
-	}
 }
 
 func (p *Client) ConnectToWS(addr string, path string, tlsConfig ...*tls.Config) error {
@@ -195,32 +120,103 @@ func (p *Client) ConnectToTCP(addr string, tlsConfig ...*tls.Config) error {
 	return nil
 }
 
-func (p *Client) handleHandshake() error {
-	if err := p.sendHandshakeRequest(); err != nil {
+func (p *Client) Disconnect() {
+	for p.connected {
+		p.connected = false
+		close(p.closeChan)
+		err := p.conn.Close()
+		if err != nil {
+			cherryLogger.Error(err)
+		}
+
+		cherryLogger.Debugf("[%s] is disconnect.", p.TagName)
+	}
+}
+
+func (p *Client) AddAction(actionFn ActionFn) {
+	p.actionChan <- actionFn
+}
+
+func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message, error) {
+	data, err := p.serializer.Marshal(val)
+	if err != nil {
+		return nil, cherryError.Error("serializer error.")
+	}
+
+	id, err := p.Send(cherryMessage.Request, route, data)
+	if err != nil {
+		return nil, err
+	}
+
+	ticker := time.NewTicker(p.requestTimeout)
+	ch := make(chan bool)
+
+	rsp := &cherryMessage.Message{}
+
+	go func() {
+		for {
+			if m, found := p.responseMaps.LoadAndDelete(id); found {
+				rsp = m.(*cherryMessage.Message)
+				ch <- true
+				break
+			}
+		}
+	}()
+
+	select {
+	case <-ch:
+		{
+			if rsp.Error {
+				errRsp := &cherryProto.CodeResult{}
+				if e := p.serializer.Unmarshal(rsp.Data, errRsp); e != nil {
+					return nil, e
+				}
+
+				return nil, cherryError.Errorf("[route = %s, val = %+v] statusCode = %s", route, val, errRsp.String())
+			} else {
+				//ok
+				return rsp, nil
+			}
+		}
+	case <-ticker.C:
+		{
+			return nil, cherryError.Error("time out")
+		}
+	}
+}
+
+// Notify sends a notify to the server
+func (p *Client) Notify(route string, val interface{}) error {
+	data, err := p.serializer.Marshal(val)
+	if err != nil {
 		return err
 	}
 
-	if err := p.handleHandshakeResponse(); err != nil {
+	_, err = p.Send(cherryMessage.Notify, route, data)
+	if err != nil {
 		return err
 	}
-
-	go p.handlePackets()
-	go p.handleData()
 
 	return nil
 }
 
-func (p *Client) sendHandshakeRequest() error {
-	pkg, err := p.codec.PacketEncode(cherryPacket.Handshake, []byte(p.handshake))
-	if err != nil {
-		return err
-	}
-	_, err = p.conn.Write(pkg)
-	return err
+// On listener route
+func (p *Client) On(route string, fn OnMessageFn) {
+	p.pushMsgMaps.Store(route, fn)
 }
 
-func (p *Client) handleHandshakeResponse() error {
-	packets, err := p.readPackets()
+// IsConnected return the connection status
+func (p *Client) IsConnected() bool {
+	return p.connected
+}
+
+func (p *Client) handleHandshake() error {
+	// send handshake message
+	if err := p.SendRaw(cherryPacket.Handshake, []byte(p.handshake)); err != nil {
+		return err
+	}
+
+	packets, err := p.getPackets()
 	if err != nil {
 		return err
 	}
@@ -230,7 +226,7 @@ func (p *Client) handleHandshakeResponse() error {
 		return cherryError.Errorf("[%s] got handshake packet error.", p.TagName)
 	}
 
-	handshake := &HandshakeData{}
+	handshakeData := &HandshakeData{}
 	if cherryCompress.IsCompressed(handshakePacket.Data()) {
 		data, err := cherryCompress.InflateData(handshakePacket.Data())
 		if err != nil {
@@ -239,43 +235,39 @@ func (p *Client) handleHandshakeResponse() error {
 		handshakePacket.SetData(data)
 	}
 
-	err = jsoniter.Unmarshal(handshakePacket.Data(), handshake)
+	err = jsoniter.Unmarshal(handshakePacket.Data(), handshakeData)
 	if err != nil {
 		return err
 	}
 
-	cherryLogger.Debugf("[%s] got handshake from sv, data: %+v", p.TagName, handshake)
+	cherryLogger.Debugf("[%s] [Handshake] response data: %+v", p.TagName, handshakeData)
 
-	if handshake.Sys.Dict != nil {
-		cherryMessage.SetDictionary(handshake.Sys.Dict)
+	if handshakeData.Sys.Dict != nil {
+		cherryMessage.SetDictionary(handshakeData.Sys.Dict)
 	}
 
-	pkg, err := p.codec.PacketEncode(cherryPacket.HandshakeAck, []byte{})
-	if err != nil {
-		return err
+	if handshakeData.Sys.Heartbeat > 1 {
+		p.heartBeat = handshakeData.Sys.Heartbeat
 	}
 
-	_, err = p.conn.Write(pkg)
+	err = p.SendRaw(cherryPacket.HandshakeAck, []byte{})
 	if err != nil {
 		return err
 	}
 
 	p.connected = true // is connected
 
-	if handshake.Sys.Heartbeat > 1 {
-		p.heartBeat = handshake.Sys.Heartbeat
-	}
+	go p.handlePackets()
+	go p.handleData()
 
 	return nil
 }
 
 func (p *Client) handlePackets() {
-	defer p.Disconnect()
-
 	for p.connected {
-		packets, err := p.readPackets()
+		packets, err := p.getPackets()
 		if err != nil {
-			cherryLogger.Error(err)
+			cherryLogger.Warn(err)
 			break
 		}
 
@@ -289,7 +281,7 @@ func (p *Client) handlePackets() {
 						return
 					}
 
-					p.incomingMsgChan <- m
+					p.processMessage(m)
 				}
 			case cherryPacket.Kick:
 				{
@@ -306,23 +298,24 @@ func (p *Client) handleData() {
 
 	defer func() {
 		heartBeatTicker.Stop()
+		defer p.Disconnect()
 	}()
 
 	for {
 		select {
-		case msg := <-p.incomingMsgChan:
+		case actionFn := <-p.actionChan:
 			{
-				p.processMessage(msg)
+				if err := actionFn(); err != nil {
+					cherryLogger.Warn(err)
+					if p.isErrorBreak {
+						return
+					}
+				}
 			}
 		case <-heartBeatTicker.C:
 			{
-				pkg, _ := p.codec.PacketEncode(cherryPacket.Heartbeat, []byte{})
-				_, err := p.conn.Write(pkg)
-				if err != nil {
+				if err := p.SendRaw(cherryPacket.Heartbeat, []byte{}); err != nil {
 					cherryLogger.Warnf("[%s] packet encode error. %s", p.TagName, err.Error())
-					return
-				} else {
-					cherryLogger.Debugf("[%s] Send heart beat", p.TagName)
 				}
 			}
 		case <-p.closeChan:
@@ -355,7 +348,7 @@ func (p *Client) processMessage(msg *cherryMessage.Message) {
 	}
 }
 
-func (p *Client) readPackets() ([]cherryFacade.IPacket, error) {
+func (p *Client) getPackets() ([]cherryFacade.IPacket, error) {
 	data, err := p.conn.GetNextMessage()
 	if err != nil {
 		return nil, err
@@ -369,20 +362,6 @@ func (p *Client) readPackets() ([]cherryFacade.IPacket, error) {
 	return packets, nil
 }
 
-func (p *Client) buildPacket(msg *cherryMessage.Message) ([]byte, error) {
-	encMsg, err := cherryMessage.Encode(msg)
-	if err != nil {
-		return nil, err
-	}
-
-	bytes, err := p.codec.PacketEncode(cherryPacket.Data, encMsg)
-	if err != nil {
-		return nil, err
-	}
-
-	return bytes, nil
-}
-
 // Send send the message to the server
 func (p *Client) Send(msgType cherryMessage.Type, route string, data []byte) (uint, error) {
 	m := &cherryMessage.Message{
@@ -392,11 +371,25 @@ func (p *Client) Send(msgType cherryMessage.Type, route string, data []byte) (ui
 		Data:  data,
 	}
 
-	pkg, err := p.buildPacket(m)
+	encMsg, err := cherryMessage.Encode(m)
 	if err != nil {
-		return m.ID, err
+		return 0, err
 	}
 
-	_, err = p.conn.Write(pkg)
+	bytes, err := p.codec.PacketEncode(cherryPacket.Data, encMsg)
+	if err != nil {
+		return 0, err
+	}
+
+	_, err = p.conn.Write(bytes)
 	return m.ID, err
+}
+
+func (p *Client) SendRaw(typ cherryPacket.Type, data []byte) error {
+	pkg, err := p.codec.PacketEncode(typ, data)
+	if err != nil {
+		return err
+	}
+	_, err = p.conn.Write(pkg)
+	return err
 }
