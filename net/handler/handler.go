@@ -2,7 +2,7 @@ package cherryHandler
 
 import (
 	"context"
-	cherryCode "github.com/cherry-game/cherry/code"
+	"github.com/cherry-game/cherry/code"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
@@ -179,8 +179,12 @@ func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
 }
 
 func (h *Handler) ResponseCode(ctx context.Context, session *cherrySession.Session, code int32) {
-	statusCode := cherryCode.GetCodeResult(code)
-	session.Response(ctx, statusCode)
+	codeResult := cherryCode.GetCodeResult(code)
+	if cherryCode.IsOK(code) {
+		session.Response(ctx, codeResult)
+	} else {
+		session.Response(ctx, codeResult, true)
+	}
 }
 
 func (h *Handler) Response(ctx context.Context, session *cherrySession.Session, data interface{}) {
