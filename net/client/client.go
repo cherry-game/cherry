@@ -180,7 +180,7 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 		}
 	case <-ticker.C:
 		{
-			return nil, cherryError.Error("time out")
+			return nil, cherryError.Errorf("[route = %s, val = %+v] time out", route, val)
 		}
 	}
 }
