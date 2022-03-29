@@ -25,6 +25,7 @@ type (
 		heartBeat      int                       // second
 		requestTimeout time.Duration             // Send request timeout
 		handshake      string                    // hand shake content
+		isErrorBreak   bool                      // an error occurs,is it break
 	}
 
 	Option func(options *options)
@@ -77,5 +78,11 @@ func WithRequestTimeout(requestTimeout time.Duration) Option {
 func WithHandshake(handshake string) Option {
 	return func(options *options) {
 		options.handshake = handshake
+	}
+}
+
+func WithErrorBreak(isBreak bool) Option {
+	return func(options *options) {
+		options.isErrorBreak = isBreak
 	}
 }
