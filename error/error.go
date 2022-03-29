@@ -10,7 +10,7 @@ func Error(text string) error {
 }
 
 func Errorf(format string, a ...interface{}) error {
-	return errors.New(fmt.Sprintf(format, a))
+	return errors.New(fmt.Sprintf(format, a...))
 }
 
 // session
