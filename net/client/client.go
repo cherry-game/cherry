@@ -317,7 +317,7 @@ func (p *Client) handleData() {
 				if err := p.SendRaw(cherryPacket.Heartbeat, []byte{}); err != nil {
 					cherryLogger.Warnf("[%s] packet encode error. %s", p.TagName, err.Error())
 				} else {
-					cherryLogger.Debug("[%s] heart beat.", p.TagName)
+					cherryLogger.Debugf("[%s] heart beat.", p.TagName)
 				}
 			}
 		case <-p.closeChan:
