@@ -13,15 +13,22 @@ import (
 type (
 	ExecutorLocal struct {
 		facade.IApplication
-		Session      *cherrySession.Session
-		Msg          *cherryMessage.Message
-		HandlerFn    *facade.HandlerFn
-		Ctx          context.Context
-		AfterFilters []FilterFn
+		Session       *cherrySession.Session
+		Msg           *cherryMessage.Message
+		HandlerFn     *facade.HandlerFn
+		Ctx           context.Context
+		BeforeFilters []FilterFn
+		AfterFilters  []FilterFn
 	}
 )
 
 func (m *ExecutorLocal) Invoke() {
+	for _, filter := range m.BeforeFilters {
+		if filter(m.Ctx, m.Session, m.Msg) == false {
+			return
+		}
+	}
+
 	argsLen := len(m.HandlerFn.InArgs)
 	if argsLen < 2 || argsLen > 3 {
 		cherryLogger.Warnf("[Route = %v] method in args error.", m.Msg.Route)
