@@ -65,7 +65,7 @@ func (c *Component) OnAfterInit() {
 }
 
 func (c *Component) OnStop() {
-	waitSecond := time.Duration(2)
+	waitSecond := 2 * time.Second
 
 	for {
 		if c.queueIsEmpty() {
@@ -77,7 +77,7 @@ func (c *Component) OnStop() {
 			return
 		}
 
-		cherryLogger.Debugf("queue is not empty! retrying in %d seconds.", waitSecond.Seconds())
+		cherryLogger.Debugf("queue is not empty! retrying in %d seconds.", int(waitSecond.Seconds()))
 		time.Sleep(waitSecond)
 	}
 }
@@ -86,6 +86,7 @@ func (c *Component) queueIsEmpty() bool {
 	for _, group := range c.groups {
 		for _, queue := range group.queueMaps {
 			if len(queue.dataChan) > 0 {
+				cherryLogger.Debugf("handler group len = %d", len(queue.dataChan))
 				return false
 			}
 		}
@@ -202,12 +203,6 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	ctx := cherryContext.Add(context.Background(), cherryConst.MessageIdKey, msg.ID)
 	ctx = cherryContext.Add(ctx, cherryConst.RouteKey, msg.Route)
 
-	for _, filter := range c.beforeFilters {
-		if filter(ctx, session, msg) == false {
-			return
-		}
-	}
-
 	rt, group, handler, found := c.GetHandler(msg.Route)
 	if found == false {
 		cherryLogger.Warnf("route not found handler. [route = %s]", msg.Route)
@@ -221,12 +216,13 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	}
 
 	executor := &ExecutorLocal{
-		IApplication: c.App(),
-		Session:      session,
-		Msg:          msg,
-		HandlerFn:    fn,
-		Ctx:          ctx,
-		AfterFilters: c.afterFilters,
+		IApplication:  c.App(),
+		Session:       session,
+		Msg:           msg,
+		HandlerFn:     fn,
+		Ctx:           ctx,
+		BeforeFilters: c.beforeFilters,
+		AfterFilters:  c.afterFilters,
 	}
 
 	index := group.queueHash(executor, group.queueNum)
