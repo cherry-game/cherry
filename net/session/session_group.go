@@ -70,7 +70,7 @@ func (c *Group) Multicast(route string, v interface{}, filter SessionFilter) err
 	}
 
 	if cherryProfile.Debug() {
-		cherryLogger.Debugf("multicast[%s], Data[%+v]", route, v)
+		cherryLogger.Debugf("multicast. [route = %s, data = %+v]", route, v)
 	}
 
 	c.mu.RLock()
@@ -93,7 +93,7 @@ func (c *Group) Broadcast(route string, v interface{}) error {
 	}
 
 	if cherryProfile.Debug() {
-		cherryLogger.Debugf("broadcast[%s], data[%+v]", route, v)
+		cherryLogger.Debugf("broadcast. [route = %s, data = %+v]", route, v)
 	}
 
 	c.mu.RLock()
@@ -119,7 +119,7 @@ func (c *Group) Add(session *Session) error {
 	}
 
 	if cherryProfile.Debug() {
-		session.Debugf("add session to group[%s], SID[%d], UID[%d]", c.name, session.SID(), session.UID())
+		session.Debugf("add session to [group = %s, SID = %v, UID = %d]", c.name, session.SID(), session.UID())
 	}
 
 	c.mu.Lock()
@@ -142,7 +142,7 @@ func (c *Group) Leave(s *Session) error {
 	}
 
 	if cherryProfile.Debug() {
-		s.Debugf("remove session from group[%s], UID[%d]", c.name, s.UID())
+		s.Debugf("remove session from [group = %s, UID = %d]", c.name, s.UID())
 	}
 
 	c.mu.Lock()

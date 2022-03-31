@@ -159,7 +159,7 @@ func (h *Handler) AddEvent(eventName string, fn facade.EventFunc) {
 
 func (h *Handler) PostEvent(e facade.IEvent) {
 	if h.handlerComponent == nil {
-		cherryLogger.Errorf("handler handlerComponent is nil. event[%s]", e)
+		cherryLogger.Errorf("handlerComponent is nil. [event = %s]", e)
 		return
 	}
 

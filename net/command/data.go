@@ -32,19 +32,19 @@ func (h *Data) GetType() cherryPacket.Type {
 
 func (h *Data) Do(session *cherrySession.Session, packet facade.IPacket) {
 	if session.State() != cherrySession.Working {
-		session.Warnf("state is not working. state[%d]", session.State())
+		session.Warnf("state is not working. [state = %d]", session.State())
 		return
 	}
 
 	msg, err := cherryMessage.Decode(packet.Data())
 	if err != nil {
-		session.Warnf("packet decode error. data[%s], error[%s].", packet.Data(), err)
+		session.Warnf("packet decode error. [data = %s, error = %s]", packet.Data(), err)
 		return
 	}
 
 	err = msg.ParseRoute()
 	if err != nil {
-		session.Warnf("packet decode route error. data[%s], error[%s].", packet.Data(), err)
+		session.Warnf("packet decode route error. [data = %s, error = %s]", packet.Data(), err)
 		return
 	}
 

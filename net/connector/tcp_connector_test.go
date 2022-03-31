@@ -15,7 +15,7 @@ func TestNewTCPConnector(t *testing.T) {
 		//session := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
 		//
 		//session.OnMessage(func(bytes []byte) (err error) {
-		//    cherryLogger.Infof("session id=%d bytes=[%s]", session.SID(), bytes)
+		//    cherryLogger.Infof("session [id=%d, bytes=%s]", session.SID(), bytes)
 		//
 		//    session.Send(bytes)
 		//

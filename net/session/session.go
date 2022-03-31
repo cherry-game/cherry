@@ -110,9 +110,9 @@ func (s *Session) ResponseMID(mid uint, v interface{}, isError ...bool) {
 
 	if cherryProfile.Debug() {
 		if len(isError) > 0 {
-			s.Debugf("[ResponseMID] [mid = %d] [isError = %v] [data = %v]", mid, isError[0], v)
+			s.Debugf("[ResponseMID] [mid = %d, isError = %v, data = %v]", mid, isError[0], v)
 		} else {
-			s.Debugf("[Response] [mid = %d] [data = %v]", mid, v)
+			s.Debugf("[Response] [mid = %d, data = %v]", mid, v)
 		}
 	}
 }
@@ -162,7 +162,7 @@ func (s *Session) RemoteAddress() string {
 }
 
 func (s *Session) String() string {
-	return fmt.Sprintf("sid = %s, uid = %d, address = %s",
+	return fmt.Sprintf("[sid = %s, uid = %d, address = %s]",
 		s.sid,
 		s.uid,
 		s.RemoteAddress(),

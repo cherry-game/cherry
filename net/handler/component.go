@@ -190,13 +190,13 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	if msg.RouteInfo() == nil {
 		err := msg.ParseRoute()
 		if err != nil {
-			session.Warnf("route decode error. route[%s], error[%s]", msg.Route, err)
+			session.Warnf("route decode error. [route = %s, error = %s]", msg.Route, err)
 			return
 		}
 	}
 
 	if msg.RouteInfo().NodeType() != c.App().NodeType() {
-		session.Warnf("msg node type error. route = %s", msg.Route)
+		session.Warnf("msg node type error. [route = %s]", msg.Route)
 		return
 	}
 
@@ -211,7 +211,7 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 
 	fn, found := handler.LocalHandler(rt.Method())
 	if found == false {
-		cherryLogger.Debugf("[Route = %v] could not find method[%s] for route.", msg.Route, rt.Method())
+		cherryLogger.Debugf("[Route = %v] could not find [method = %s] for route.", msg.Route, rt.Method())
 		return
 	}
 

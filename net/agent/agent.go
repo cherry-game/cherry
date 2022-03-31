@@ -141,7 +141,7 @@ func (a *Agent) Close() {
 	a.chDie <- true
 
 	if err := a.conn.Close(); err != nil {
-		a.session.Debugf("session close error[%s]", err)
+		a.session.Debugf("session close. [error = %s]", err)
 	}
 }
 
@@ -183,7 +183,7 @@ func (a *Agent) read() {
 
 		packets, err := a.PacketDecode(msg)
 		if err != nil {
-			a.session.Warnf("packet decoder error. error[%s], msg[%s]", err, msg)
+			a.session.Warnf("packet decoder error. [error = %s, msg = %s]", err, msg)
 			continue
 		}
 
@@ -231,7 +231,7 @@ func (a *Agent) write() {
 		case data := <-a.chSend:
 			payload, err := a.Marshal(data.payload)
 			if err != nil {
-				a.session.Debugf("message serializer error. data[%s]", data.String())
+				a.session.Debugf("message serializer error. [data = %s]", data.String())
 				return
 			}
 
@@ -270,7 +270,7 @@ func (a *Agent) processPacket(packet cherryFacade.IPacket) {
 
 	cmd, found := a.Commands[packet.Type()]
 	if found == false {
-		a.session.Debugf("packet[%s] type not found.", packet)
+		a.session.Debugf("[packet = %s] type not found.", packet)
 		return
 	}
 

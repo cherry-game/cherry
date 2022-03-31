@@ -42,11 +42,11 @@ func Create(sid facade.SID, frontendId facade.FrontendId, network facade.INetwor
 
 func Bind(sid facade.SID, uid facade.UID) error {
 	if sid == "" {
-		return cherryError.Errorf("sid[%d] less than 1.", sid)
+		return cherryError.Errorf("[sid = %d] less than 1.", sid)
 	}
 
 	if uid < 1 {
-		return cherryError.Errorf("uid[%d] less than 1.", uid)
+		return cherryError.Errorf("[uid = %d] less than 1.", uid)
 	}
 
 	lock.Lock()
@@ -54,11 +54,11 @@ func Bind(sid facade.SID, uid facade.UID) error {
 
 	session, found := sidMap[sid]
 	if found == false {
-		return cherryError.Errorf("sid[%d] does not exist.", sid)
+		return cherryError.Errorf("[sid = %s] does not exist.", sid)
 	}
 
 	if session.UID() > 0 && session.UID() == uid {
-		return cherryError.Errorf("uid[%d] has already bound.", session.UID())
+		return cherryError.Errorf("[uid = %d] has already bound.", session.UID())
 	}
 
 	// set uid
@@ -104,7 +104,7 @@ func Kick(uid facade.UID) error {
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, uid[%d]", uid)
+	return cherryError.Errorf("session does not exist, [uid = %d]", uid)
 }
 
 func KickBySID(sid facade.SID) error {
@@ -113,7 +113,7 @@ func KickBySID(sid facade.SID) error {
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, sid[%d]", sid)
+	return cherryError.Errorf("session does not exist, [sid = %d]", sid)
 }
 
 func ForEachSIDSession(fn func(s *Session)) {

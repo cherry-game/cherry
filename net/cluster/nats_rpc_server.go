@@ -155,7 +155,7 @@ func (n *NatsRPCServer) processRemote() {
 
 		fn, found := handler.RemoteHandler(rt.Method())
 		if found == false {
-			cherryLogger.Debugf("could not find method[%s] for [Route = %v].", rt.Method(), packet.Route)
+			cherryLogger.Debugf("could not find [method = %s] for [Route = %v].", rt.Method(), packet.Route)
 			n.replyError(remote, cherryCode.RPCHandlerError)
 			continue
 		}

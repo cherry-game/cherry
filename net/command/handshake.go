@@ -49,5 +49,5 @@ func (h *Handshake) Do(session *cherrySession.Session, _ facade.IPacket) {
 	session.SetState(cherrySession.WaitAck)
 	session.SendRaw(bytes)
 
-	session.Debugf("request handshake. data[%v]", data)
+	session.Debugf("request handshake. [data = %v]", data)
 }
