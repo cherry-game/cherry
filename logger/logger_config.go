@@ -20,6 +20,8 @@ type (
 		RotationTime    int    `json:"rotation_time"`     // 日期分割时间(秒)
 		FileLinkPath    string `json:"file_link_path"`    // 日志文件连接路径
 		FilePathFormat  string `json:"file_path_format"`  // 日志文件路径格式
+		IncludeStdout   bool   `json:"include_stdout"`    // 是否包含os.stdout输出
+		IncludeStderr   bool   `json:"include_stderr"`    // 是否包含os.stderr输出
 	}
 )
 
@@ -35,6 +37,8 @@ func defaultConsoleConfig() *Config {
 		RotationTime:    86400,
 		FileLinkPath:    "logs/log.log",
 		FilePathFormat:  "logs/log_%Y%m%d%H%M.log",
+		IncludeStdout:   false,
+		IncludeStderr:   false,
 	}
 	return config
 }

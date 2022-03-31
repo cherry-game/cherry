@@ -32,20 +32,20 @@ func (d *Component) Name() string {
 
 func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
-	configNode := cherryProfile.Config().Get("data_config")
-	if configNode.LastError() != nil {
+	dataConfigProfile := cherryProfile.Get("data_config")
+	if dataConfigProfile.LastError() != nil {
 		panic(fmt.Sprintf("`data_config` node in `%s` file not found.", cherryProfile.FileName()))
 	}
 
 	// get data source
-	sourceName := configNode.Get("data_source").ToString()
+	sourceName := dataConfigProfile.Get("data_source").ToString()
 	d.dataSource = GetDataSource(sourceName)
 	if d.dataSource == nil {
 		panic(fmt.Sprintf("[sourceName = %s] data source not found.", sourceName))
 	}
 
 	// get parser
-	parserName := configNode.Get("parser").ToString()
+	parserName := dataConfigProfile.Get("parser").ToString()
 	d.parser = GetParser(parserName)
 	if d.parser == nil {
 		panic(fmt.Sprintf("[parserName = %s] parser not found.", parserName))

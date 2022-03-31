@@ -7,8 +7,7 @@ var (
 )
 
 func Init() {
-	cluster := cherryProfile.Config().Get("cluster")
-	thisNats.loadConfig(cluster.Get("nats"))
+	thisNats.loadConfig(cherryProfile.Get("cluster").Get("nats"))
 	thisNats.Connect()
 }
 

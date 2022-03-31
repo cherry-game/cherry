@@ -76,15 +76,15 @@ func (s *Component) Init() {
 		return
 	}
 
-	dbRoot := cherryProfile.Config().Get("db")
-	if dbRoot.LastError() != nil {
+	dbProfile := cherryProfile.Get("db")
+	if dbProfile.LastError() != nil {
 		panic("`db` property not exists in profile file.")
 	}
 
-	for _, groupId := range dbRoot.Keys() {
+	for _, groupId := range dbProfile.Keys() {
 		s.ormMap[groupId] = make(map[string]*gorm.DB)
 
-		dbGroup := dbRoot.Get(groupId)
+		dbGroup := dbProfile.Get(groupId)
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.Get(i)
 			dbConfig := parseMysqlConfig(groupId, item)

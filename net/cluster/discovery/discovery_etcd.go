@@ -39,12 +39,13 @@ func (p *DiscoveryETCD) Init(app facade.IApplication) {
 	p.IApplication = app
 	p.ttl = 10
 
-	cfg := cherryProfile.Config().Get("cluster").Get(p.Name())
-	if cfg.LastError() != nil {
-		cherryLogger.Fatalf("etcd config not found. err = %v", cfg.LastError())
+	clusterProfile := cherryProfile.Get("cluster").Get(p.Name())
+	if clusterProfile.LastError() != nil {
+		cherryLogger.Fatalf("etcd config not found. err = %v", clusterProfile.LastError())
 		return
 	}
-	p.loadConfig(cfg)
+
+	p.loadConfig(clusterProfile)
 	p.init()
 	p.getLeaseId()
 	p.register()
@@ -64,16 +65,26 @@ func (p *DiscoveryETCD) OnStop() {
 	}
 }
 
+func getDialTimeout(config jsoniter.Any) time.Duration {
+	t := time.Duration(config.Get("dial_timeout_second").ToInt64()) * time.Second
+	if t < 1*time.Second {
+		t = 3 * time.Second
+	}
+
+	return t
+}
+
+func getEndPoints(config jsoniter.Any) []string {
+	return strings.Split(config.Get("end_points").ToString(), ",")
+}
+
 func (p *DiscoveryETCD) loadConfig(config jsoniter.Any) {
 	p.config = clientv3.Config{
 		Logger: cherryLogger.DefaultLogger.Desugar(),
 	}
 
-	p.config.Endpoints = strings.Split(config.Get("end_points").ToString(), ",")
-	p.config.DialTimeout = time.Duration(config.Get("dial_timeout_second").ToInt64()) * time.Second
-	if p.config.DialTimeout < 1*time.Second {
-		p.config.DialTimeout = 3 * time.Second
-	}
+	p.config.Endpoints = getEndPoints(config)
+	p.config.DialTimeout = getDialTimeout(config)
 	p.config.Username = config.Get("user").ToString()
 	p.config.Password = config.Get("password").ToString()
 

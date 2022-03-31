@@ -66,18 +66,17 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 		return logger
 	}
 
-	loggerConfigs := cherryProfile.Config().Get("logger")
-	if loggerConfigs.LastError() != nil {
-		panic(loggerConfigs.LastError())
+	loggerProfile := cherryProfile.Get("logger")
+	if loggerProfile.LastError() != nil {
+		panic(loggerProfile.LastError())
 	}
 
-	jsonConfig := loggerConfigs.Get(refLoggerName)
+	jsonConfig := loggerProfile.Get(refLoggerName)
 	if jsonConfig.LastError() != nil {
 		panic(fmt.Sprintf("ref_logger = %s not found. error = %v", refLoggerName, jsonConfig.LastError()))
 	}
 
 	config := NewConfig(jsonConfig)
-
 	logger := NewConfigLogger(config, opts...)
 	loggers[refLoggerName] = logger
 
@@ -94,6 +93,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		StacktraceKey:  "stack",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeLevel:    zapcore.CapitalLevelEncoder,
 	}
 
 	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
@@ -108,14 +108,6 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		encoderConfig.EncodeName = zapcore.FullNameEncoder
 		encoderConfig.FunctionKey = zapcore.OmitKey
 		opts = append(opts, zap.AddCaller())
-	}
-
-	if config.EnableConsole {
-		encoderConfig.EncodeLevel = zapcore.CapitalLevelEncoder
-	} else {
-		encoderConfig.EncodeLevel = func(level zapcore.Level, enc zapcore.PrimitiveArrayEncoder) {
-			enc.AppendString(level.CapitalString())
-		}
 	}
 
 	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
@@ -139,6 +131,14 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 
 	if config.EnableConsole {
 		writers = append(writers, zapcore.AddSync(os.Stderr))
+	}
+
+	if config.IncludeStdout {
+		writers = append(writers, zapcore.Lock(os.Stdout))
+	}
+
+	if config.IncludeStderr {
+		writers = append(writers, zapcore.Lock(os.Stderr))
 	}
 
 	core := zapcore.NewCore(

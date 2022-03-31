@@ -34,19 +34,17 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 	r.close = make(chan struct{})
 
 	//read data_config->file node
-	config := cherryProfile.Config().Get("data_config")
-
-	redisNode := config.Get(r.Name())
-	if redisNode == nil {
+	redisConfigProfile := cherryProfile.Get("data_config").Get(r.Name())
+	if redisConfigProfile.LastError() != nil {
 		cherryLogger.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cherryProfile.FileName())
 		return
 	}
 
-	r.prefixKey = redisNode.Get("prefix_key").ToString()
-	r.subscribeKey = redisNode.Get("subscribe_key").ToString()
-	r.address = redisNode.Get("address").ToString()
-	r.password = redisNode.Get("password").ToString()
-	r.db = redisNode.Get("db").ToInt()
+	r.prefixKey = redisConfigProfile.Get("prefix_key").ToString()
+	r.subscribeKey = redisConfigProfile.Get("subscribe_key").ToString()
+	r.address = redisConfigProfile.Get("address").ToString()
+	r.password = redisConfigProfile.Get("password").ToString()
+	r.db = redisConfigProfile.Get("db").ToInt()
 
 	r.rdb = redis.NewClient(&redis.Options{
 		Addr:     r.address,

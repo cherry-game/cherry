@@ -27,14 +27,14 @@ func (n *DiscoveryDefault) Name() string {
 func (n *DiscoveryDefault) Init(_ facade.IApplication) {
 
 	// load node info from profile file
-	nodes := cherryProfile.Config().Get("node")
-	if nodes.LastError() != nil {
+	nodeProfile := cherryProfile.Get("node")
+	if nodeProfile.LastError() != nil {
 		cherryLogger.Error("`node` property not found in profile file.")
 		return
 	}
 
-	for _, nodeType := range nodes.Keys() {
-		typeJson := nodes.Get(nodeType)
+	for _, nodeType := range nodeProfile.Keys() {
+		typeJson := nodeProfile.Get(nodeType)
 		for i := 0; i < typeJson.Size(); i++ {
 			item := typeJson.Get(i)
 

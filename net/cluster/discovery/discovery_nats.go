@@ -35,13 +35,13 @@ func (m *DiscoveryNATS) Init(app facade.IApplication) {
 	m.IApplication = app
 
 	//get nats config
-	natsConfig := cherryProfile.Config().Get("cluster").Get(m.Name())
-	if natsConfig.LastError() != nil {
-		cherryLogger.Fatalf("nats config parameter not found. err = %v", natsConfig.LastError())
+	clusterProfile := cherryProfile.Get("cluster").Get(m.Name())
+	if clusterProfile.LastError() != nil {
+		cherryLogger.Fatalf("nats config parameter not found. err = %v", clusterProfile.LastError())
 	}
 
 	// get master node id
-	masterId := natsConfig.Get("master_node_id").ToString()
+	masterId := clusterProfile.Get("master_node_id").ToString()
 	if masterId == "" {
 		cherryLogger.Fatal("master node id not in config.")
 	}

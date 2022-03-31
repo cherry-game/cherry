@@ -37,19 +37,13 @@ func Init(app facade.IApplication) {
 		return
 	}
 
-	clusterConfig := cherryProfile.Config().Get("cluster")
-	if clusterConfig.LastError() != nil {
+	discoveryProfile := cherryProfile.Get("cluster").Get("discovery")
+	if discoveryProfile.LastError() != nil {
 		cherryLogger.Error("`cluster` property not found in profile file.")
 		return
 	}
 
-	discoveryConfig := clusterConfig.Get("discovery")
-	if discoveryConfig.LastError() != nil {
-		cherryLogger.Error("`discovery` property not found in profile file.")
-		return
-	}
-
-	mode := discoveryConfig.Get("mode").ToString()
+	mode := discoveryProfile.Get("mode").ToString()
 	if mode == "" {
 		cherryLogger.Error("`discovery->mode` property not found in profile file.")
 		return

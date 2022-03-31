@@ -54,7 +54,7 @@ func (n *Node) String() string {
 }
 
 func LoadNode(nodeId string) (cherryFacade.INode, error) {
-	nodeJson := Config().Get("node")
+	nodeJson := Get("node")
 	if nodeJson.LastError() != nil {
 		return nil, cherryError.Error("`nodes` property not found in profile file.")
 	}

@@ -25,37 +25,21 @@ func (f *SourceFile) Name() string {
 
 func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
-	config := cherryProfile.Config().Get("data_config")
-
-	fileNode := config.Get(f.Name())
-	if fileNode == nil {
+	fileConfigProfile := cherryProfile.Get("data_config").Get(f.Name())
+	if fileConfigProfile.LastError() != nil {
 		cherryLogger.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cherryProfile.FileName())
 		return
 	}
 
-	filePath := fileNode.Get("file_path").ToString()
-	if filePath == "" {
-		//default value
-		filePath = "data_config/"
-	}
-
-	f.extName = fileNode.Get("ext_name").ToString()
-	if f.extName == "" {
-		// default value
-		f.extName = ".json"
-	}
+	f.extName = cherryProfile.GetString(fileConfigProfile, "ext_name", ".json")
+	f.reloadTime = cherryProfile.GetInt64(fileConfigProfile, "reload_time", 3000)
+	filePath := cherryProfile.GetString(fileConfigProfile, "file_path", "data/")
 
 	var err error
 	f.monitorPath, err = cherryFile.JoinPath(cherryProfile.Dir(), filePath)
 	if err != nil {
 		cherryLogger.Warn(err)
 		return
-	}
-
-	f.reloadTime = fileNode.Get("reload_time").ToInt64()
-	if f.reloadTime < 1 {
-		//default value
-		f.reloadTime = 3000
 	}
 
 	// new watcher
