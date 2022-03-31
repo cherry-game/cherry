@@ -152,10 +152,11 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 	ch := make(chan bool)
 
 	rsp := &cherryMessage.Message{}
-
 	go func() {
 		for {
 			if m, found := p.responseMaps.LoadAndDelete(id); found {
+				ticker.Stop()
+
 				rsp = m.(*cherryMessage.Message)
 				ch <- true
 				break
@@ -180,6 +181,7 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 		}
 	case <-ticker.C:
 		{
+			ticker.Stop()
 			return nil, cherryError.Errorf("[route = %s, val = %+v] time out", route, val)
 		}
 	}
@@ -316,8 +318,6 @@ func (p *Client) handleData() {
 			{
 				if err := p.SendRaw(cherryPacket.Heartbeat, []byte{}); err != nil {
 					cherryLogger.Warnf("[%s] packet encode error. %s", p.TagName, err.Error())
-				} else {
-					cherryLogger.Debugf("[%s] heart beat.", p.TagName)
 				}
 			}
 		case <-p.closeChan:
