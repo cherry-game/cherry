@@ -2,9 +2,9 @@ package cherryProfile
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/extend/file"
+	cherryConst "github.com/cherry-game/cherry/const"
+	cherryError "github.com/cherry-game/cherry/error"
+	cherryFile "github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/extend/json"
 	"github.com/cherry-game/cherry/extend/string"
 	jsoniter "github.com/json-iterator/go"
@@ -18,9 +18,7 @@ var (
 		fileName    string       // profile fileName
 		json        jsoniter.Any // profile-x.json parse to json object
 		debug       bool         // debug default is true
-	}{
-		debug: true,
-	}
+	}{}
 )
 
 func Dir() string {
@@ -37,10 +35,6 @@ func FileName() string {
 
 func Debug() bool {
 	return env.debug
-}
-
-func Config() jsoniter.Any {
-	return env.json
 }
 
 func Init(profilePath, profileName string) (jsoniter.Any, error) {
@@ -67,11 +61,13 @@ func Init(profilePath, profileName string) (jsoniter.Any, error) {
 		return nil, cherryError.Errorf("load profile file error. profilePath = %s", profilePath)
 	}
 
-	if env.json.Get("debug").LastError() == nil {
-		env.debug = env.json.Get("debug").ToBool()
-	}
+	env.debug = GetBool(env.json, "debug", true)
 
 	return env.json, nil
+}
+
+func Get(path ...interface{}) jsoniter.Any {
+	return env.json.Get(path...)
 }
 
 func loadProfileFile(profilePath string, profileFullName string) jsoniter.Any {
