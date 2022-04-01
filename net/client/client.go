@@ -138,12 +138,7 @@ func (p *Client) AddAction(actionFn ActionFn) {
 }
 
 func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message, error) {
-	data, err := p.serializer.Marshal(val)
-	if err != nil {
-		return nil, cherryError.Error("serializer error.")
-	}
-
-	id, err := p.Send(cherryMessage.Request, route, data)
+	id, err := p.Send(cherryMessage.Request, route, val)
 	if err != nil {
 		return nil, err
 	}
@@ -155,13 +150,15 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 	go func() {
 		for {
 			if m, found := p.responseMaps.LoadAndDelete(id); found {
-				ticker.Stop()
-
 				rsp = m.(*cherryMessage.Message)
 				ch <- true
 				break
 			}
 		}
+	}()
+
+	defer func() {
+		ticker.Stop()
 	}()
 
 	select {
@@ -181,7 +178,7 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 		}
 	case <-ticker.C:
 		{
-			ticker.Stop()
+
 			return nil, cherryError.Errorf("[route = %s, val = %+v] time out", route, val)
 		}
 	}
@@ -189,12 +186,7 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 
 // Notify sends a notify to the server
 func (p *Client) Notify(route string, val interface{}) error {
-	data, err := p.serializer.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	_, err = p.Send(cherryMessage.Notify, route, data)
+	_, err := p.Send(cherryMessage.Notify, route, val)
 	if err != nil {
 		return err
 	}
@@ -365,7 +357,12 @@ func (p *Client) getPackets() ([]cherryFacade.IPacket, error) {
 }
 
 // Send send the message to the server
-func (p *Client) Send(msgType cherryMessage.Type, route string, data []byte) (uint, error) {
+func (p *Client) Send(msgType cherryMessage.Type, route string, val interface{}) (uint, error) {
+	data, err := p.serializer.Marshal(val)
+	if err != nil {
+		return 0, cherryError.Errorf("serializer error.[route = %s, val =%v]", route, val)
+	}
+
 	m := &cherryMessage.Message{
 		ID:    uint(atomic.AddUint32(&p.nextID, 1)),
 		Type:  msgType,
