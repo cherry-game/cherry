@@ -9,7 +9,6 @@ import (
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
-	"time"
 )
 
 type (
@@ -65,34 +64,17 @@ func (c *Component) OnAfterInit() {
 }
 
 func (c *Component) OnStop() {
-	waitSecond := 2 * time.Second
-
-	for {
-		if c.queueIsEmpty() {
-			for _, group := range c.groups {
-				for _, handler := range group.handlers {
-					handler.OnStop()
-				}
-			}
-			return
-		}
-
-		cherryLogger.Debugf("queue is not empty! retrying in %d seconds.", int(waitSecond.Seconds()))
-		time.Sleep(waitSecond)
-	}
-}
-
-func (c *Component) queueIsEmpty() bool {
 	for _, group := range c.groups {
-		for _, queue := range group.queueMaps {
-			if len(queue.dataChan) > 0 {
-				cherryLogger.Debugf("handler group len = %d", len(queue.dataChan))
-				return false
+		if group == nil {
+			continue
+		}
+
+		for _, handler := range group.handlers {
+			if handler != nil {
+				handler.OnStop()
 			}
 		}
 	}
-
-	return true
 }
 
 func (c *Component) Register(handlerGroup *HandlerGroup) {
