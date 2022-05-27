@@ -27,7 +27,7 @@ type (
 	HttpServer struct {
 		cherryFacade.IApplication
 		Options
-		Engine      *gin.Engine
+		*gin.Engine
 		server      *http.Server
 		controllers []IController
 	}
@@ -92,29 +92,23 @@ func (p *HttpServer) Register(controllers ...IController) *HttpServer {
 }
 
 func (p *HttpServer) Static(relativePath string, staticDir string) {
-	p.StaticFS(relativePath, staticDir)
-}
-
-func (p *HttpServer) StaticFS(relativePath string, staticDir string) {
 	dir, ok := cherryFile.JudgePath(staticDir)
 	if !ok {
 		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
 		return
 	}
+
 	p.Engine.StaticFS(relativePath, http.Dir(dir))
 }
 
-func (p *HttpServer) StaticFile(relativePath string, staticDir string) {
-	dir, ok := cherryFile.JudgePath(staticDir)
+func (p *HttpServer) StaticFile(relativePath, filepath string) {
+	dir, ok := cherryFile.JudgeFile(filepath)
 	if !ok {
-		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
+		cherryLogger.Errorf("static dir path not found. filePath = %s", filepath)
 		return
 	}
-	p.Engine.StaticFile(relativePath, dir)
-}
 
-func (p *HttpServer) LoadHTMLGlob(pattern string) {
-	p.Engine.LoadHTMLGlob(pattern)
+	p.Engine.StaticFile(relativePath, dir)
 }
 
 func (p *HttpServer) Run() {
