@@ -25,15 +25,17 @@ func JudgeFile(filePath string) (string, bool) {
 		n = filePath
 	}
 
-	dir := GetStackDir()
-	for _, d := range dir {
-		tmpPath := path.Join(d, p, n)
-		if CheckPath(tmpPath) == nil {
-			return tmpPath, true
-		}
+	newPath, found := JudgePath(p)
+	if found == false {
+		return "", false
 	}
 
-	return path.Join(p, n), false
+	fullFilePath := path.Join(newPath, n)
+	if IsFile(fullFilePath) {
+		return fullFilePath, true
+	}
+
+	return "", false
 }
 
 func JudgePath(filePath string) (string, bool) {
@@ -69,6 +71,14 @@ func JudgePath(filePath string) (string, bool) {
 func IsDir(path string) bool {
 	info, err := os.Stat(path)
 	if err == nil && info.IsDir() {
+		return true
+	}
+	return false
+}
+
+func IsFile(fullPath string) bool {
+	info, err := os.Stat(fullPath)
+	if err == nil && info.IsDir() == false {
 		return true
 	}
 	return false
@@ -160,4 +170,22 @@ func GetFileName(filePath string, removeExt bool) string {
 	suffix = path.Ext(fileName)
 
 	return strings.TrimSuffix(fileName, suffix)
+}
+
+func WalkFiles(rootPath string, fileSuffix string) []string {
+	var files []string
+
+	rootPath, found := JudgePath(rootPath)
+	if found == false {
+		return files
+	}
+
+	filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
+		if strings.HasSuffix(path, fileSuffix) {
+			files = append(files, path)
+		}
+		return nil
+	})
+
+	return files
 }
