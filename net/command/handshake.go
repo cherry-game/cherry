@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
 	cherrySession "github.com/cherry-game/cherry/net/session"
 	"time"
@@ -29,9 +28,8 @@ func NewHandshake(app facade.IApplication, sysData map[string]interface{}) *Hand
 
 func (h *Handshake) Do(session *cherrySession.Session, _ facade.IPacket) {
 	data := map[string]interface{}{
-		"code":   200,
-		"sys":    h.sysData,
-		"routes": cherryMessage.GetDictionary(),
+		"code": 200,
+		"sys":  h.sysData,
 	}
 
 	jsonData, err := json.Marshal(data)
@@ -49,5 +47,9 @@ func (h *Handshake) Do(session *cherrySession.Session, _ facade.IPacket) {
 	session.SetState(cherrySession.WaitAck)
 	session.SendRaw(bytes)
 
-	session.Debugf("request handshake. [data = %v]", data)
+	session.Debugf("request handshake. [sid = %s, address = %s, data = %v]",
+		session.SID(),
+		session.RemoteAddress(),
+		data,
+	)
 }

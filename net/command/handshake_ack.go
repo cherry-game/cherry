@@ -19,5 +19,8 @@ func (h *HandshakeACK) GetType() cherryPacket.Type {
 
 func (h *HandshakeACK) Do(session *cherrySession.Session, _ facade.IPacket) {
 	session.SetState(cherrySession.Working)
-	session.Debug("request handshakeACK.")
+	session.Debugf("request handshakeACK. [sid = %s, address = %s]",
+		session.SID(),
+		session.RemoteAddress(),
+	)
 }
