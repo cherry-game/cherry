@@ -52,7 +52,7 @@ func (m *ExecutorLocal) Invoke() {
 	} else {
 		val, err := m.unmarshalData(argsLen - 1)
 		if err != nil {
-			cherryLogger.Warn(err)
+			cherryLogger.Warnf("err = %v, msg = %v", err, m.Msg)
 			return
 		}
 
