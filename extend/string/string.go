@@ -29,6 +29,10 @@ func IsBlank(value string) bool {
 	return value == ""
 }
 
+func IsNotBlank(value string) bool {
+	return value != ""
+}
+
 func ToInt(value string) (int, bool) {
 	val, err := strconv.Atoi(value)
 	if err != nil {
