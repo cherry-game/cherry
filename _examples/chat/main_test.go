@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	cherryTime "github.com/cherry-game/cherry/extend/time"
-	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryConnector "github.com/cherry-game/cherry/net/connector"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
@@ -55,7 +54,7 @@ func TestPostMessage(t *testing.T) {
 
 	app.Startup(
 		handlerComponent,
-		createWebsocket(),
+		cherryConnector.NewWS("127.0.0.1:34590"),
 	)
 }
 
@@ -71,16 +70,6 @@ func createHandler() *cherryHandler.Component {
 	component.Register(group2)
 
 	// add room handler
-
-	return component
-}
-
-func createWebsocket() *cherryConnector.Component {
-	connector := cherryConnector.NewWS("127.0.0.1:34590")
-	component := cherryConnector.NewComponent(connector)
-	component.OnConnect(func(conn facade.INetConn) {
-
-	})
 
 	return component
 }

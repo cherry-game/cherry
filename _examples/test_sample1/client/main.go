@@ -13,7 +13,7 @@ func main() {
 
 	httpComp := cherryGin.New("web", webApp.Address())
 	httpComp.Use(cherryGin.RecoveryWithZap(true))
-	httpComp.StaticFS("/", "./static/")
+	httpComp.Static("/", "./static/")
 	cherry.RegisterComponent(httpComp)
 
 	cherry.Run(false, cherry.Standalone)

@@ -7,7 +7,6 @@ import (
 // component name
 const (
 	HandlerComponent    = "handler_component"
-	ConnectorComponent  = "connector_component"
 	ClusterComponent    = "cluster_component"
 	DataConfigComponent = "data_config_component"
 	ORMComponent        = "db_orm_component"
@@ -17,7 +16,7 @@ const (
 
 const (
 	ProfileNameFormat = "profile-%s.json"
-	version           = "1.1.20"
+	version           = "1.1.29"
 )
 
 var logo = `

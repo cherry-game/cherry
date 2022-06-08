@@ -4,9 +4,12 @@ import "net"
 
 // IConnector 网络连接器接口
 type IConnector interface {
+	IComponent
 	OnStart()
 	OnStop()
-	OnConnect(listener ...OnConnectListener) // 启动前设置连接器监听函数
+	OnConnectListener(listener ...OnConnectListener)
+	IsSetListener() bool
+	GetConnChan() chan INetConn
 }
 
 // OnConnectListener 建立连接时监听的函数

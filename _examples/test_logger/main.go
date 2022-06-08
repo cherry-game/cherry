@@ -10,11 +10,7 @@ func main() {
 		StackLevel:      "error",
 		EnableWriteFile: false,
 		EnableConsole:   true,
-		FilePath:        "",
-		MaxSize:         0,
 		MaxAge:          0,
-		MaxBackups:      0,
-		Compress:        false,
 		TimeFormat:      "",
 		PrintCaller:     false,
 	}

@@ -2,30 +2,24 @@ package cherryConnector
 
 import (
 	cherryFacade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	"sync"
 	"testing"
 )
 
 // websocket client http://www.websocket-test.com/
 func TestNewWSConnector(t *testing.T) {
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
 	connector := NewWS(":9071")
 
-	connector.OnConnect(func(conn cherryFacade.INetConn) {
-		//s := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
-		//cherryLogger.Infof("new session sid = %d, address = %s", s.SID(), s.INetConn().RemoteAddr().String())
-		//
-		//s.OnMessage(func(bytes []byte) (err error) {
-		//	text := string(bytes)
-		//	cherryLogger.Info(text)
-		//
-		//	if len(text) == 1 && text[0] == 99 {
-		//		s.Close()
-		//	}
-		//
-		//	return nil
-		//})
-		//
-		//s.run()
+	connector.OnConnectListener(func(conn cherryFacade.INetConn) {
+		cherryLogger.Infof("new net.INetConn = %s", conn.RemoteAddr())
 	})
 
 	connector.OnStart()
+
+	wg.Wait()
 }

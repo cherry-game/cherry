@@ -2,7 +2,7 @@ package cherryConnector
 
 import (
 	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/packet"
 	"github.com/gorilla/websocket"
@@ -13,12 +13,9 @@ import (
 )
 
 type WSConnector struct {
-	address           string
-	listener          net.Listener
-	up                *websocket.Upgrader
-	certFile          string
-	keyFile           string
-	onConnectListener []cherryFacade.OnConnectListener
+	facade.Component
+	connector
+	up *websocket.Upgrader
 }
 
 func NewWS(address string) *WSConnector {
@@ -28,13 +25,12 @@ func NewWS(address string) *WSConnector {
 	}
 
 	ws := &WSConnector{
-		address:           address,
-		onConnectListener: make([]cherryFacade.OnConnectListener, 0),
+		connector: newConnector(address, "", ""),
 	}
 	return ws
 }
 
-func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
+func NewWSLTS(address, certFile, keyFile string) *WSConnector {
 	if address == "" {
 		cherryLogger.Warn("create websocket fail. address is null.")
 		return nil
@@ -46,13 +42,19 @@ func NewWebsocketLTS(address, certFile, keyFile string) *WSConnector {
 	}
 
 	w := &WSConnector{
-		address:           address,
-		certFile:          certFile,
-		keyFile:           keyFile,
-		onConnectListener: make([]cherryFacade.OnConnectListener, 0),
+		connector: newConnector(address, certFile, keyFile),
 	}
 
 	return w
+}
+
+func (w *WSConnector) Name() string {
+	return "websocket_connector"
+}
+
+func (w *WSConnector) OnAfterInit() {
+	w.executeListener()
+	go w.OnStart()
 }
 
 func (w *WSConnector) OnStart() {
@@ -63,28 +65,23 @@ func (w *WSConnector) OnStart() {
 	var err error
 	w.listener, err = GetNetListener(w.address, w.certFile, w.keyFile)
 	if err != nil {
-		cherryLogger.Fatalf("Failed to listen: %s", err.Error())
+		cherryLogger.Fatalf("failed to listen: %s", err.Error())
 	}
 
 	if w.certFile == "" || w.keyFile == "" {
 		cherryLogger.Infof("websocket connector listening at address ws://%s", w.address)
 	} else {
 		cherryLogger.Infof("websocket connector listening at address wss://%s", w.address)
-		cherryLogger.Infof("certFile = %s", w.certFile)
-		cherryLogger.Infof("keyFile = %s", w.keyFile)
+		cherryLogger.Infof("certFile = %s, keyFile = %s", w.certFile, w.keyFile)
 	}
 
-	w.up = &websocket.Upgrader{
-		ReadBufferSize:  1024,
-		WriteBufferSize: 1024,
-		CheckOrigin:     CheckOrigin,
-	}
-
-	defer func() {
-		if err := w.listener.Close(); err != nil {
-			cherryLogger.Error(err)
+	if w.up == nil {
+		w.up = &websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin:     CheckOrigin,
 		}
-	}()
+	}
 
 	err = http.Serve(w.listener, w)
 	if err != nil {
@@ -92,11 +89,15 @@ func (w *WSConnector) OnStart() {
 	}
 }
 
-func (w *WSConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
-	w.onConnectListener = listener
+func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
+	w.up = upgrade
 }
 
 func (w *WSConnector) OnStop() {
+	err := w.listener.Close()
+	if err != nil {
+		cherryLogger.Errorf("failed to stop: %s", err.Error())
+	}
 }
 
 //ServerHTTP server.Handler
@@ -113,14 +114,7 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//new goroutine process socket connection
-	go w.processNewConn(conn)
-}
-
-func (w *WSConnector) processNewConn(conn cherryFacade.INetConn) {
-	for _, listener := range w.onConnectListener {
-		listener(conn)
-	}
+	w.inChan(conn)
 }
 
 // WSConn is an adapter to t.INetConn, which implements all t.INetConn

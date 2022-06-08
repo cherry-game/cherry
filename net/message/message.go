@@ -104,11 +104,11 @@ func Encode(m *Message) ([]byte, error) {
 	code, compressed := routes[m.Route]
 
 	if compressed {
-		flag |= RouteCompressMask
+		flag |= routeCompressMask
 	}
 
 	if m.Error {
-		flag |= ErrorMask
+		flag |= errorMask
 	}
 
 	buf = append(buf, flag)
@@ -157,14 +157,14 @@ func Encode(m *Message) ([]byte, error) {
 // Decode unmarshal the bytes slice to a message
 // See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
 func Decode(data []byte) (*Message, error) {
-	if len(data) < MsgHeadLength {
+	if len(data) < msgHeadLength {
 		return nil, cherryError.MessageInvalid
 	}
 
 	m := New()
 	flag := data[0]
 	offset := 1
-	m.Type = Type((flag >> 1) & TypeMask)
+	m.Type = Type((flag >> 1) & typeMask)
 
 	if invalidType(m.Type) {
 		return nil, cherryError.MessageWrongType
@@ -190,29 +190,23 @@ func Decode(data []byte) (*Message, error) {
 		return nil, cherryError.MessageInvalid
 	}
 
-	m.Error = flag&ErrorMask == ErrorMask
+	m.Error = flag&errorMask == errorMask
 
 	if routable(m.Type) {
-		if flag&RouteCompressMask == 1 {
+		if flag&routeCompressMask == 1 {
 			m.routeCompressed = true
-
 			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
-
 			route, found := GetRoute(code)
 			if !found {
 				return nil, cherryError.MessageRouteNotFound
 			}
-
 			m.Route = route
 			offset += 2
 
 		} else {
 			m.routeCompressed = false
-
 			rl := data[offset]
-
 			offset++
-
 			m.Route = string(data[offset:(offset + int(rl))])
 			offset += int(rl)
 		}
@@ -223,5 +217,14 @@ func Decode(data []byte) (*Message, error) {
 	}
 
 	m.Data = data[offset:]
+
+	var err error
+	if flag&gzipMask == gzipMask {
+		m.Data, err = cherryCompress.InflateData(m.Data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	return m, nil
 }

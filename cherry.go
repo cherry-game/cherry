@@ -9,7 +9,6 @@ import (
 	cherryCluster "github.com/cherry-game/cherry/net/cluster"
 	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryCommand "github.com/cherry-game/cherry/net/command"
-	cherryConnector "github.com/cherry-game/cherry/net/connector"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryPacket "github.com/cherry-game/cherry/net/packet"
@@ -27,12 +26,11 @@ var (
 )
 
 var (
-	_commands           = make(map[cherryPacket.Type]cherryCommand.ICommand)
-	_handshakeData      = make(map[string]interface{})
-	_heartbeat          = 60 * time.Second
-	_connector          cherryFacade.IConnector
-	_connectorComponent *cherryConnector.Component
-	_clusterComponent   *cherryCluster.Component
+	_commands         = make(map[cherryPacket.Type]cherryCommand.ICommand)
+	_handshakeData    = make(map[string]interface{})
+	_heartbeat        = 60 * time.Second
+	_connectors       []cherryFacade.IConnector
+	_clusterComponent *cherryCluster.Component
 )
 
 var (
@@ -62,15 +60,15 @@ func Run(isFrontend bool, nodeMode NodeMode) {
 	_thisApp.isFrontend = isFrontend
 	_thisApp.nodeMode = nodeMode
 
-	initHandlerComponent()
-	initClusterComponent()
-	initRegisterComponent()
-	initConnectorComponent()
+	initHandler()
+	initCluster()
+	initConnector()
+	initComponent()
 
 	_thisApp.Startup()
 }
 
-func initHandlerComponent() {
+func initHandler() {
 	// register handler component
 	_handlerComponent = cherryHandler.NewComponent(_handlerOpts...)
 
@@ -87,11 +85,11 @@ func initHandlerComponent() {
 	_thisApp.Register(_handlerComponent)
 }
 
-func initRegisterComponent() {
+func initComponent() {
 	_thisApp.Register(_components...)
 }
 
-func initClusterComponent() {
+func initCluster() {
 	if _thisApp.NodeMode() == Cluster {
 		// register cluster component
 		_clusterComponent = cherryCluster.NewComponent()
@@ -99,26 +97,43 @@ func initClusterComponent() {
 	}
 }
 
-func initConnectorComponent() {
+func initConnector() {
 	if _thisApp.isFrontend == false {
 		return
 	}
 
-	if _connector == nil {
-		panic("call the cherry.RegisterConnector() method add IConnector.")
-	}
-
-	if len(_handshakeData) < 1 {
-		_handshakeData["heartbeat"] = _heartbeat.Seconds()
+	if len(_connectors) < 1 {
+		panic("please call the cherry.RegisterConnector() method add IConnector.")
 	}
 
 	initCommand()
+	initOnSession()
 
-	_connectorComponent = cherryConnector.NewComponent(_connector)
+	for _, connector := range _connectors {
+		// default setting
+		if connector.IsSetListener() == false {
+			connector.OnConnectListener(func(conn cherryFacade.INetConn) {
+				// create agent
+				agent := cherryAgent.NewAgent(_thisApp, conn, &cherryAgent.Options{
+					Heartbeat: _heartbeat,
+					Commands:  _commands,
+				})
 
+				// create new session
+				newSession := cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
+				// run agent
+				agent.SetSession(newSession)
+				agent.Run()
+			})
+		}
+
+		RegisterComponent(connector)
+	}
+}
+
+func initOnSession() {
 	cherrySession.AddOnCreateListener(func(session *cherrySession.Session) (next bool) {
-		session.Debugf("session create. [nodeId = %s, sid = %s, address = %s]",
-			_thisApp.NodeId(),
+		session.Debugf("session create. [sid = %s, address = %s]",
 			session.SID(),
 			session.RemoteAddress(),
 		)
@@ -126,56 +141,46 @@ func initConnectorComponent() {
 	})
 
 	cherrySession.AddOnCloseListener(func(session *cherrySession.Session) (next bool) {
-		session.Debugf("session closed. [nodeId = %s, sid = %s, address = %s]",
-			_thisApp.NodeId(),
+		session.Debugf("session closed. [sid = %s, address = %s]",
 			session.SID(),
 			session.RemoteAddress(),
 		)
 
 		return true
 	})
-
-	agentOptions := &cherryAgent.Options{
-		Heartbeat: _heartbeat,
-		Commands:  _commands,
-	}
-
-	// new client connect
-	_connectorComponent.OnConnect(func(conn cherryFacade.INetConn) {
-		// create agent
-		agent := cherryAgent.NewAgent(_thisApp, conn, agentOptions)
-		// create new session
-		newSession := cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
-		// run agent
-		agent.SetSession(newSession)
-		agent.Run()
-	})
-
-	_thisApp.Register(_connectorComponent)
 }
 
 func initCommand() {
-	if len(_commands) > 0 {
-		return
+	if _, found := _commands[cherryPacket.Handshake]; found == false {
+		if len(_handshakeData) < 1 {
+			_handshakeData["heartbeat"] = _heartbeat.Seconds()
+			_handshakeData["dict"] = cherryMessage.GetDictionary()
+			_handshakeData["serializer"] = _thisApp.ISerializer.Name()
+		}
+
+		handshakeCommand := cherryCommand.NewHandshake(_thisApp, _handshakeData)
+		RegisterCommand(handshakeCommand)
 	}
 
-	// default values
-	handshakeCommand := cherryCommand.NewHandshake(_thisApp, _handshakeData)
-	RegisterCommand(handshakeCommand)
+	if _, found := _commands[cherryPacket.HandshakeAck]; found == false {
+		handshakeAckCommand := cherryCommand.NewHandshakeACK()
+		RegisterCommand(handshakeAckCommand)
+	}
 
-	handshakeAckCommand := cherryCommand.NewHandshakeACK()
-	RegisterCommand(handshakeAckCommand)
+	if _, found := _commands[cherryPacket.Heartbeat]; found == false {
+		heartbeatCommand := cherryCommand.NewHeartbeat(_thisApp)
+		RegisterCommand(heartbeatCommand)
+	}
 
-	heartbeatCommand := cherryCommand.NewHeartbeat(_thisApp)
-	RegisterCommand(heartbeatCommand)
-
-	// TODO connector forward message
-	handDataCommand := cherryCommand.NewData(
-		_thisApp,
-		_handlerComponent.ProcessLocal,
-		_clusterComponent.ForwardLocal,
-	)
-	RegisterCommand(handDataCommand)
+	if _, found := _commands[cherryPacket.Data]; found == false {
+		// connector forward message
+		handDataCommand := cherryCommand.NewData(
+			_thisApp,
+			_handlerComponent.ProcessLocal,
+			_clusterComponent.ForwardLocal,
+		)
+		RegisterCommand(handDataCommand)
+	}
 }
 
 func SetSerializer(serializer cherryFacade.ISerializer) {
@@ -224,7 +229,7 @@ func RegisterComponent(component ...cherryFacade.IComponent) {
 }
 
 func RegisterConnector(connector cherryFacade.IConnector) {
-	_connector = connector
+	_connectors = append(_connectors, connector)
 }
 
 func RegisterCommand(command cherryCommand.ICommand) {
@@ -243,8 +248,8 @@ func GetRPCClient() cherryFacade.RPCClient {
 	return _clusterComponent.Client()
 }
 
-func GetConnector() *cherryConnector.Component {
-	return _connectorComponent
+func GetConnectors() []cherryFacade.IConnector {
+	return _connectors
 }
 
 func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {

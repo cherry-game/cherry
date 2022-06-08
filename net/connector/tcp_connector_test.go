@@ -3,31 +3,21 @@ package cherryConnector
 import (
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
+	"sync"
 	"testing"
 )
 
 func TestNewTCPConnector(t *testing.T) {
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+
 	connector := NewTCP(":9071")
 
-	connector.OnConnect(func(conn facade.INetConn) {
+	connector.OnConnectListener(func(conn facade.INetConn) {
 		cherryLogger.Infof("new net.INetConn = %s", conn.RemoteAddr())
-
-		//session := cherrySession.NewSession(cherrySession.NextSID(), "", conn, nil)
-		//
-		//session.OnMessage(func(bytes []byte) (err error) {
-		//    cherryLogger.Infof("session [id=%d, bytes=%s]", session.SID(), bytes)
-		//
-		//    session.Send(bytes)
-		//
-		//    if len(bytes) == 1 && bytes[0] == 3 {
-		//        session.Close()
-		//    }
-		//
-		//    return nil
-		//})
-		//
-		//session.run()
 	})
 
 	connector.OnStart()
+
+	wg.Wait()
 }

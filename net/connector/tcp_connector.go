@@ -2,7 +2,7 @@ package cherryConnector
 
 import (
 	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/facade"
+	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/packet"
 	"io"
@@ -12,12 +12,9 @@ import (
 
 type (
 	TCPConnector struct {
-		address           string
-		listener          net.Listener
-		running           bool
-		certFile          string
-		keyFile           string
-		onConnectListener []cherryFacade.OnConnectListener
+		facade.Component
+		connector
+		running bool
 	}
 
 	TcpConn struct {
@@ -32,7 +29,7 @@ func NewTCP(address string) *TCPConnector {
 	}
 
 	return &TCPConnector{
-		address: address,
+		connector: newConnector(address, "", ""),
 	}
 }
 
@@ -48,10 +45,17 @@ func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	}
 
 	return &TCPConnector{
-		address:  address,
-		certFile: certFile,
-		keyFile:  keyFile,
+		connector: newConnector(address, certFile, keyFile),
 	}
+}
+
+func (t *TCPConnector) Name() string {
+	return "tcp_connector"
+}
+
+func (t *TCPConnector) OnAfterInit() {
+	t.executeListener()
+	go t.OnStart()
 }
 
 func (t *TCPConnector) OnStart() {
@@ -66,12 +70,19 @@ func (t *TCPConnector) OnStart() {
 	}
 
 	cherryLogger.Infof("tcp connector listening at address %s", t.address)
+
 	if t.certFile != "" || t.keyFile != "" {
-		cherryLogger.Infof("certFile = %s", t.certFile)
-		cherryLogger.Infof("keyFile = %s", t.keyFile)
+		cherryLogger.Infof("certFile = %s, keyFile = %s", t.certFile, t.keyFile)
 	}
 
 	t.running = true
+
+	defer func() {
+		if err := t.listener.Close(); err != nil {
+			cherryLogger.Errorf("failed to stop: %s", err.Error())
+		}
+	}()
+
 	for t.running {
 		conn, err := t.listener.Accept()
 		if err != nil {
@@ -79,28 +90,12 @@ func (t *TCPConnector) OnStart() {
 			continue
 		}
 
-		// open goroutine for new connection
-		go t.processNewConn(&TcpConn{Conn: conn})
+		t.inChan(&TcpConn{Conn: conn})
 	}
 }
 
-func (t *TCPConnector) processNewConn(conn cherryFacade.INetConn) {
-	for _, listener := range t.onConnectListener {
-		listener(conn)
-	}
-}
-
-// OnStop stops the connector
 func (t *TCPConnector) OnStop() {
 	t.running = false
-	err := t.listener.Close()
-	if err != nil {
-		cherryLogger.Errorf("failed to stop: %s", err.Error())
-	}
-}
-
-func (t *TCPConnector) OnConnect(listener ...cherryFacade.OnConnectListener) {
-	t.onConnectListener = append(t.onConnectListener, listener...)
 }
 
 func (t *TcpConn) GetNextMessage() (b []byte, err error) {
@@ -108,6 +103,7 @@ func (t *TcpConn) GetNextMessage() (b []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	// if the header has no data, we can consider it as a closed connection
 	if len(header) == 0 {
 		return nil, cherryError.PacketConnectClosed
@@ -122,6 +118,7 @@ func (t *TcpConn) GetNextMessage() (b []byte, err error) {
 	if err != nil {
 		return nil, err
 	}
+
 	if len(msgData) < msgSize {
 		return nil, cherryError.PacketMsgSmallerThanExpected
 	}

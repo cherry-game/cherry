@@ -15,8 +15,7 @@ func main() {
 
 	httpComp := cherryGin.New("web", "127.0.0.1:80")
 	httpComp.Use(cherryGin.RecoveryWithZap(true))
-
-	httpComp.StaticFS("/", "./web/")
+	httpComp.Static("/", "./web/")
 	cherry.RegisterComponent(httpComp)
 
 	cherry.RegisterConnector(cherryConnector.NewWS(app.Address()))
