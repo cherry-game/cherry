@@ -2,6 +2,7 @@ package cherryGin
 
 import (
 	cherryCode "github.com/cherry-game/cherry/code"
+	cherrySlice "github.com/cherry-game/cherry/extend/slice"
 	"github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
@@ -49,6 +50,20 @@ func (g *Context) GetParams(checkPost ...bool) map[string]string {
 		}
 	}
 	return maps
+}
+
+func (g *Context) IsPost() bool {
+	if g.Context.Request.Method == http.MethodPost {
+		return true
+	}
+	return false
+}
+
+func (g *Context) IsGet() bool {
+	if g.Context.Request.Method == http.MethodGet {
+		return true
+	}
+	return false
 }
 
 func (g *Context) GetBool(name string, defaultValue bool, checkPost ...bool) bool {
@@ -147,6 +162,45 @@ func (g *Context) PostString(name string, defaultValue string) string {
 	return defaultValue
 }
 
+func (g *Context) PostFormIntArray(name string) []int {
+	array := g.PostFormArray(name)
+	if len(array) < 1 {
+		return []int{}
+	}
+
+	return cherrySlice.StringToInt(array)
+}
+
+func (g *Context) PostFormInt32Array(name string) []int32 {
+	array := g.PostFormArray(name)
+	if len(array) < 1 {
+		return []int32{}
+	}
+
+	return cherrySlice.StringToInt32(array)
+}
+
+func (g *Context) PostFormInt64Array(name string) []int64 {
+	array := g.PostFormArray(name)
+	if len(array) < 1 {
+		return []int64{}
+	}
+
+	return cherrySlice.StringToInt64(array)
+}
+
+func (g *Context) HTML200(name string, obj ...interface{}) {
+	if len(obj) > 0 {
+		g.HTML(http.StatusOK, name, obj[0])
+	} else {
+		g.HTML(http.StatusOK, name, nil)
+	}
+}
+
+func (g *Context) JSON200(obj interface{}) {
+	g.JSON(http.StatusOK, obj)
+}
+
 func (g *Context) RenderJSON(value interface{}) {
 	g.Context.JSON(http.StatusOK, value)
 }
@@ -159,6 +213,14 @@ func (g *Context) RenderHTML(html string) {
 func (g *Context) RenderJsonString(json string) {
 	g.Header(contentType, jsonContentType)
 	g.String(http.StatusOK, json)
+}
+
+func (g *Context) RenderData(code int32, message string) {
+	result := cherryCode.DataResult{
+		Code:    code,
+		Message: message,
+	}
+	g.Context.JSON(http.StatusOK, &result)
 }
 
 func (g *Context) RenderDataResult(code int32, data ...interface{}) {
