@@ -2,7 +2,10 @@
 package cherrySlice
 
 import (
+	cherryString "github.com/cherry-game/cherry/extend/string"
+	cherryUtils "github.com/cherry-game/cherry/extend/utils"
 	"math/rand"
+	"reflect"
 	"time"
 )
 
@@ -73,7 +76,7 @@ func Reduce(slice []interface{}, a func(interface{}) interface{}) (destSlice []i
 	return
 }
 
-// SliceRand returns random one from slice.
+// Rand returns random one from slice.
 func Rand(a []interface{}) (b interface{}) {
 	randNum := rand.Intn(len(a))
 	b = a[randNum]
@@ -169,4 +172,66 @@ func Shuffle(slice []interface{}) []interface{} {
 		slice[a], slice[b] = slice[b], slice[a]
 	}
 	return slice
+}
+
+func StringToInt(strSlice []string) []int {
+	var intSlice []int
+
+	for _, s := range strSlice {
+		if cherryUtils.IsNumeric(s) {
+			val, ok := cherryString.ToInt(s)
+			if ok {
+				intSlice = append(intSlice, val)
+			}
+		}
+	}
+
+	return intSlice
+}
+
+func StringToInt32(strSlice []string) []int32 {
+	var intSlice []int32
+
+	for _, s := range strSlice {
+		if cherryUtils.IsNumeric(s) {
+			val, ok := cherryString.ToInt32(s)
+			if ok {
+				intSlice = append(intSlice, val)
+			}
+		}
+	}
+
+	return intSlice
+}
+
+func StringToInt64(strSlice []string) []int64 {
+	var intSlice []int64
+
+	for _, s := range strSlice {
+		if cherryUtils.IsNumeric(s) {
+			val, ok := cherryString.ToInt64(s)
+			if ok {
+				intSlice = append(intSlice, val)
+			}
+		}
+	}
+
+	return intSlice
+}
+
+// IsSlice checks whether given value is array/slice.
+// Note that it uses reflect internally implementing this feature.
+func IsSlice(value interface{}) bool {
+	rv := reflect.ValueOf(value)
+	kind := rv.Kind()
+	if kind == reflect.Ptr {
+		rv = rv.Elem()
+		kind = rv.Kind()
+	}
+	switch kind {
+	case reflect.Array, reflect.Slice:
+		return true
+	default:
+		return false
+	}
 }
