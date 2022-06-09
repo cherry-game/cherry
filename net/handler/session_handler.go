@@ -22,7 +22,7 @@ func (p *SessionHandler) OnInit() {
 func (p *SessionHandler) kick(request *cp.KickRequest) {
 	session, found := cherrySession.GetByUID(request.Uid)
 	if found == false {
-		cherryLogger.Warnf("[kick] uid not found. [request = %v]", request)
+		cherryLogger.Warnf("[kick] uid = %d not found.", request.Uid)
 		return
 	}
 	session.Kick(request.Reason, true)
@@ -31,7 +31,7 @@ func (p *SessionHandler) kick(request *cp.KickRequest) {
 func (p *SessionHandler) push(request *cp.PushRequest) {
 	session, found := cherrySession.GetByUID(request.Uid)
 	if found == false {
-		cherryLogger.Warnf("[push] uid not found. [request = %v]", request)
+		cherryLogger.Warnf("[push route = %s] uid = %d not found.", request.Route, request.Uid)
 		return
 	}
 
