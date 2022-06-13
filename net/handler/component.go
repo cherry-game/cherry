@@ -227,9 +227,10 @@ func (c *Component) ProcessRemote(group *HandlerGroup, executor *ExecutorRemote)
 	group.inQueue(index, executor)
 
 	if c.printRouteLog {
-		cherryLogger.Debugf("[remote handler] [route = %s], [group-index = %d]",
-			executor.String(),
+		cherryLogger.Debugf("[remote handler] [group-index = %d, route = %s, len = %d]",
 			index,
+			executor.RemotePacket.Route,
+			len(executor.RemotePacket.Data),
 		)
 	}
 }
