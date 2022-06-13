@@ -9,7 +9,11 @@ import (
 
 func MD5(value string) string {
 	data := []byte(value)
-	has := md5.Sum(data)
+	return MD5WithBytes(data)
+}
+
+func MD5WithBytes(bytes []byte) string {
+	has := md5.Sum(bytes)
 	return fmt.Sprintf("%x", has)
 }
 
