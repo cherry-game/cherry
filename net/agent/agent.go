@@ -61,10 +61,6 @@ func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *O
 		chWrite:      make(chan []byte, WriteBacklog),
 	}
 
-	if agent.Heartbeat.Seconds() < 1 {
-		agent.Heartbeat = 60 * time.Second
-	}
-
 	return agent
 }
 

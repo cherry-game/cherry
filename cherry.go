@@ -191,8 +191,11 @@ func SetPacketCodec(codec cherryFacade.IPacketCodec) {
 	_thisApp.SetPacketCodec(codec)
 }
 
-func SetHeartbeat(time time.Duration) {
-	_heartbeat = time
+func SetHeartbeat(t time.Duration) {
+	if t.Seconds() < 1 {
+		t = 60 * time.Second
+	}
+	_heartbeat = t
 }
 
 func SetHandshake(key string, value interface{}) {
