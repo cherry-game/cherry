@@ -1,6 +1,10 @@
 package cherryHandler
 
-import facade "github.com/cherry-game/cherry/facade"
+import (
+	facade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
+	"runtime/debug"
+)
 
 type (
 	ExecutorEvent struct {
@@ -9,12 +13,19 @@ type (
 	}
 )
 
-func (e *ExecutorEvent) Invoke() {
-	for _, fn := range e.EventSlice {
-		fn(e.Event)
+func (p *ExecutorEvent) Invoke() {
+	defer func() {
+		if rev := recover(); rev != nil {
+			cherryLogger.Warnf("recover in Event. %s", string(debug.Stack()))
+			cherryLogger.Warnf("event = [%+v]", p.Event)
+		}
+	}()
+
+	for _, fn := range p.EventSlice {
+		fn(p.Event)
 	}
 }
 
-func (e *ExecutorEvent) String() string {
-	return e.Event.Name()
+func (p *ExecutorEvent) String() string {
+	return p.Event.Name()
 }

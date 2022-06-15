@@ -6,7 +6,6 @@ import (
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"math/rand"
-	"runtime/debug"
 )
 
 type (
@@ -107,23 +106,12 @@ func (h *HandlerGroup) run(app facade.IApplication) {
 				select {
 				case executor := <-queue.dataChan:
 					{
-						h.invokeExecutor(executor)
+						executor.Invoke()
 					}
 				}
 			}
 		}(queue)
 	}
-}
-
-func (h *HandlerGroup) invokeExecutor(executor IExecutor) {
-	defer func() {
-		if r := recover(); r != nil {
-			cherryLogger.Warnf("recover in executor. %s", string(debug.Stack()))
-			cherryLogger.Warnf("executor fail [%s]", executor.String())
-		}
-	}()
-
-	executor.Invoke()
 }
 
 func (h *HandlerGroup) printInfo(handler facade.IHandler) {

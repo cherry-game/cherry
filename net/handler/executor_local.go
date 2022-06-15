@@ -8,6 +8,7 @@ import (
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
 	"reflect"
+	"runtime/debug"
 )
 
 type (
@@ -22,82 +23,89 @@ type (
 	}
 )
 
-func (m *ExecutorLocal) Invoke() {
-	for _, filter := range m.BeforeFilters {
-		if filter(m.Ctx, m.Session, m.Msg) == false {
+func (p *ExecutorLocal) Invoke() {
+	defer func() {
+		if rev := recover(); rev != nil {
+			cherryLogger.Warnf("recover in Local. %s", string(debug.Stack()))
+			cherryLogger.Warnf("msg = [%+v]", p.Msg)
+		}
+	}()
+
+	for _, filter := range p.BeforeFilters {
+		if filter(p.Ctx, p.Session, p.Msg) == false {
 			return
 		}
 	}
 
-	argsLen := len(m.HandlerFn.InArgs)
+	argsLen := len(p.HandlerFn.InArgs)
 	if argsLen < 2 || argsLen > 3 {
-		cherryLogger.Warnf("[Route = %v] method in args error.", m.Msg.Route)
+		cherryLogger.Warnf("[Route = %v] method in args error.", p.Msg.Route)
 		cherryLogger.Warnf("func(session,request) or func(ctx,session,request)")
 		return
 	}
 
 	var params []reflect.Value
 
-	if m.HandlerFn.IsRaw {
+	if p.HandlerFn.IsRaw {
 		if argsLen == 2 {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(m.Session)
-			params[1] = reflect.ValueOf(m.Msg)
+			params[0] = reflect.ValueOf(p.Session)
+			params[1] = reflect.ValueOf(p.Msg)
 		} else {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(m.Ctx)
-			params[1] = reflect.ValueOf(m.Session)
-			params[2] = reflect.ValueOf(m.Msg)
+			params[0] = reflect.ValueOf(p.Ctx)
+			params[1] = reflect.ValueOf(p.Session)
+			params[2] = reflect.ValueOf(p.Msg)
 		}
 	} else {
-		val, err := m.unmarshalData(argsLen - 1)
+		val, err := p.unmarshalData(argsLen - 1)
 		if err != nil {
-			cherryLogger.Warnf("err = %v, msg = %v", err, m.Msg)
+			cherryLogger.Warnf("err = %v, msg = %v", err, p.Msg)
 			return
 		}
 
 		if argsLen == 2 {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(m.Session)
+			params[0] = reflect.ValueOf(p.Session)
 			params[1] = reflect.ValueOf(val)
 		} else {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(m.Ctx)
-			params[1] = reflect.ValueOf(m.Session)
+			params[0] = reflect.ValueOf(p.Ctx)
+			params[1] = reflect.ValueOf(p.Session)
 			params[2] = reflect.ValueOf(val)
 		}
 	}
 
-	ret := m.HandlerFn.Value.Call(params)
+	ret := p.HandlerFn.Value.Call(params)
 
-	if m.Msg.Type == cherryMessage.Request && len(ret) == 2 {
+	if p.Msg.Type == cherryMessage.Request && len(ret) == 2 {
 		if ret[0].IsNil() == false {
-			m.Session.ResponseMID(m.Msg.ID, ret[0].Interface())
+			p.Session.ResponseMID(p.Msg.ID, ret[0].Interface())
 		} else if e := ret[1].Interface(); e != nil {
 			if code, ok := e.(int32); ok {
 
 				statusCode := cherryCode.GetCodeResult(code)
-				m.Session.ResponseMID(m.Msg.ID, statusCode, true)
+				p.Session.ResponseMID(p.Msg.ID, statusCode, true)
 			} else {
-				m.Session.Warn(e)
+				p.Session.Warn(e)
 			}
 		}
 	}
 
-	for _, filter := range m.AfterFilters {
-		if !filter(m.Ctx, m.Session, m.Msg) {
+	for _, filter := range p.AfterFilters {
+		if !filter(p.Ctx, p.Session, p.Msg) {
 			break
 		}
 	}
 }
 
-func (m *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
-	in2 := m.HandlerFn.InArgs[index]
+func (p *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
+	in2 := p.HandlerFn.InArgs[index]
 
 	var val interface{}
 	val = reflect.New(in2.Elem()).Interface()
 
-	err := m.Unmarshal(m.Msg.Data, val)
+	err := p.Unmarshal(p.Msg.Data, val)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +113,6 @@ func (m *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
 	return val, err
 }
 
-func (m *ExecutorLocal) String() string {
-	return m.Msg.Route
+func (p *ExecutorLocal) String() string {
+	return p.Msg.Route
 }
