@@ -83,10 +83,7 @@ func (w *WSConnector) OnStart() {
 		}
 	}
 
-	err = http.Serve(w.listener, w)
-	if err != nil {
-		cherryLogger.Error(err)
-	}
+	http.Serve(w.listener, w)
 }
 
 func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
