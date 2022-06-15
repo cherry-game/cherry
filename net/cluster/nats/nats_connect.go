@@ -90,7 +90,11 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 	}))
 
 	options = append(options, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		cherryLogger.Warnf("%s on connection for subscription on %q", err.Error(), sub.Subject)
+		cherryLogger.Warnf("isConnect = %v. %s on connection for subscription on %q",
+			nc.IsConnected(),
+			err.Error(),
+			sub.Subject,
+		)
 	}))
 
 	if p.User != "" {

@@ -129,8 +129,8 @@ func (n *NatsRPCServer) processRemote() {
 
 	for remote := range n.remoteChan {
 		packet := &cherryProto.RemotePacket{}
-		err := n.Unmarshal(remote.Data, packet)
-		if err != nil {
+
+		if err := n.Unmarshal(remote.Data, packet); err != nil {
 			cherryLogger.Warnf("unmarshal fail. [packet = %s] [error = %s]", packet, err)
 			n.replyError(remote, cherryCode.RPCUnmarshalError)
 			continue

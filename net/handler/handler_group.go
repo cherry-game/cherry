@@ -5,6 +5,7 @@ import (
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
+	"math/rand"
 	"runtime/debug"
 )
 
@@ -156,7 +157,7 @@ func DefaultQueueHash(executor IExecutor, queueNum int) int {
 	case *ExecutorEvent:
 		i = int(e.Event.UniqueId() % int64(queueNum))
 	case *ExecutorRemote:
-		i = crypto.CRC32(e.String()) % queueNum
+		i = rand.Intn(queueNum)
 	}
 	return i
 }

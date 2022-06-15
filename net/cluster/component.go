@@ -5,6 +5,7 @@ import (
 	cherryCode "github.com/cherry-game/cherry/code"
 	cherryConst "github.com/cherry-game/cherry/const"
 	facade "github.com/cherry-game/cherry/facade"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
@@ -49,10 +50,11 @@ func (c *Component) Init() {
 }
 
 func (c *Component) OnStop() {
+	cherryLogger.Infof("cluster component stopping.")
 	cherryDiscovery.OnStop()
 	c.client.OnStop()
 	c.server.OnStop()
-	cherryNats.Conn().Close()
+	cherryLogger.Infof("cluster component on stop.")
 }
 
 // ForwardLocal forward message to backend node

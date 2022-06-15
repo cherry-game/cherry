@@ -211,9 +211,9 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	group.inQueue(index, executor)
 
 	if c.printRouteLog {
-		session.Debugf("[local handler] [route = %s], [group-index = %d]",
-			msg.RouteInfo(),
+		session.Debugf("[local handler] [group-index = %d, route = %s]",
 			index,
+			msg.RouteInfo(),
 		)
 	}
 }
