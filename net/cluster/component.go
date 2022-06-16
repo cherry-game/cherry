@@ -12,16 +12,24 @@ import (
 	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryRouter "github.com/cherry-game/cherry/net/router"
 	cherrySession "github.com/cherry-game/cherry/net/session"
+	"sync"
 )
 
 type Component struct {
 	facade.Component
-	client facade.RPCClient
-	server facade.RPCServer
+	client          facade.RPCClient
+	server          facade.RPCServer
+	localPacketPool *sync.Pool
 }
 
 func NewComponent() *Component {
-	return &Component{}
+	return &Component{
+		localPacketPool: &sync.Pool{
+			New: func() interface{} {
+				return new(cherryProto.LocalPacket)
+			},
+		},
+	}
 }
 
 func (c *Component) Name() string {
@@ -62,7 +70,6 @@ func (c *Component) ForwardLocal(session *cherrySession.Session, msg *cherryMess
 	if session.IsBind() == false {
 		statusCode := cherryCode.GetCodeResult(cherryCode.SessionUIDNotBind)
 		session.Kick(statusCode, false)
-
 		session.Warnf("session not bind,message forwarding is not allowed. [route = %s]", msg.Route)
 		return
 	}
@@ -74,7 +81,17 @@ func (c *Component) ForwardLocal(session *cherrySession.Session, msg *cherryMess
 		return
 	}
 
-	pbSession := &cherryProto.Session{
+	localPacket := c.localPacketPool.Get().(*cherryProto.LocalPacket)
+	localPacket.Reset()
+
+	defer c.localPacketPool.Put(localPacket)
+
+	localPacket.MsgType = int32(msg.Type)
+	localPacket.MsgId = uint32(msg.ID)
+	localPacket.Route = msg.Route
+	localPacket.IsError = false
+	localPacket.Data = msg.Data
+	localPacket.Session = &cherryProto.Session{
 		Sid:        session.SID(),
 		Uid:        session.UID(),
 		FrontendId: session.FrontendId(),
@@ -83,16 +100,7 @@ func (c *Component) ForwardLocal(session *cherrySession.Session, msg *cherryMess
 	}
 
 	for k, v := range session.Data() {
-		pbSession.Data[k] = v
-	}
-
-	localPacket := &cherryProto.LocalPacket{
-		Session: pbSession,
-		MsgType: int32(msg.Type),
-		MsgId:   uint32(msg.ID),
-		Route:   msg.Route,
-		IsError: false,
-		Data:    msg.Data,
+		localPacket.Session.Data[k] = v
 	}
 
 	err = c.client.CallLocal(member.GetNodeId(), localPacket)

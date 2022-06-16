@@ -6,6 +6,7 @@ import (
 	facade "github.com/cherry-game/cherry/facade"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"math/rand"
+	"runtime/debug"
 )
 
 type (
@@ -26,7 +27,7 @@ type (
 )
 
 func NewGroupWithHandler(handlers ...facade.IHandler) *HandlerGroup {
-	g := NewGroup(1, 128)
+	g := NewGroup(1, 512)
 	g.AddHandlers(handlers...)
 	return g
 }
@@ -37,7 +38,7 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 	}
 
 	if queueCap < 1 || queueCap > 32767 {
-		queueCap = 128
+		queueCap = 512
 	}
 
 	g := &HandlerGroup{
@@ -98,19 +99,25 @@ func (h *HandlerGroup) run(app facade.IApplication) {
 		h.printInfo(handler)
 	}
 
-	for i := 0; i < h.queueNum; i++ {
-		queue := h.queueMaps[i]
-		// new goroutine for queue
-		go func(queue *Queue) {
-			for {
-				select {
-				case executor := <-queue.dataChan:
-					{
-						executor.Invoke()
-					}
-				}
+	for _, queue := range h.queueMaps {
+		go queue.run()
+	}
+}
+
+func (q *Queue) run() {
+	defer func() {
+		if rev := recover(); rev != nil {
+			cherryLogger.Warnf("recover in handle group. %s", string(debug.Stack()))
+		}
+	}()
+
+	for {
+		select {
+		case executor := <-q.dataChan:
+			{
+				executor.Invoke()
 			}
-		}(queue)
+		}
 	}
 }
 

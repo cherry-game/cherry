@@ -215,8 +215,8 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	select {
 	case <-a.dieChan:
 		cherryLogger.Info("invoke shutdown().")
-	case <-sg:
-		cherryLogger.Infof("receive shutdown signal = %v.", sg)
+	case s := <-sg:
+		cherryLogger.Infof("receive shutdown signal = %v.", s)
 	}
 
 	// stop status

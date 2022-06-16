@@ -53,6 +53,7 @@ func (n *NatsRPCServer) loadHandler() {
 
 func (n *NatsRPCServer) processLocal() {
 	nodeSubject := GetLocalNodeSubject(n.NodeType(), n.NodeId())
+
 	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.localChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [error = %s]", err)
