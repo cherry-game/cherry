@@ -1,6 +1,8 @@
 package cherryHandler
 
 type IExecutor interface {
-	Invoke()
-	String() string
+	Index() int         // execute goroutine index
+	SetIndex(index int) // set goroutine index
+	Invoke()            // invoke method
+	String() string     // string
 }

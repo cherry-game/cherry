@@ -75,9 +75,13 @@ func (h *HandlerGroup) SetQueueHash(fn QueueHash) {
 	h.queueHash = fn
 }
 
-func (h *HandlerGroup) inQueue(index int, executor IExecutor) {
+func (h *HandlerGroup) InQueue(executor IExecutor) {
+	index := h.queueHash(executor, h.queueNum)
+	executor.SetIndex(index)
+
 	if index > h.queueNum {
-		index = 0
+		cherryLogger.Errorf("group index error. [groupIndex = %d, queueNum = %d]", executor.Index(), h.queueNum)
+		return
 	}
 
 	q := h.queueMaps[index]

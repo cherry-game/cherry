@@ -2,10 +2,10 @@ package cherryHandler
 
 import (
 	"context"
-	cherryCode "github.com/cherry-game/cherry/code"
 	facade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/message"
+	cherryProto "github.com/cherry-game/cherry/net/proto"
 	"github.com/cherry-game/cherry/net/session"
 	"reflect"
 	"runtime/debug"
@@ -14,14 +14,24 @@ import (
 type (
 	ExecutorLocal struct {
 		facade.IApplication
+		groupIndex    int
 		Session       *cherrySession.Session
 		Msg           *cherryMessage.Message
 		HandlerFn     *facade.HandlerFn
 		Ctx           context.Context
 		BeforeFilters []FilterFn
 		AfterFilters  []FilterFn
+		PrintLog      bool
 	}
 )
+
+func (p *ExecutorLocal) Index() int {
+	return p.groupIndex
+}
+
+func (p *ExecutorLocal) SetIndex(index int) {
+	p.groupIndex = index
+}
 
 func (p *ExecutorLocal) Invoke() {
 	defer func() {
@@ -47,20 +57,23 @@ func (p *ExecutorLocal) Invoke() {
 	var params []reflect.Value
 
 	if p.HandlerFn.IsRaw {
-		if argsLen == 2 {
-			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(p.Session)
-			params[1] = reflect.ValueOf(p.Msg)
-		} else {
-			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(p.Ctx)
-			params[1] = reflect.ValueOf(p.Session)
-			params[2] = reflect.ValueOf(p.Msg)
+		params = make([]reflect.Value, argsLen)
+		params[0] = reflect.ValueOf(p.Ctx)
+		params[1] = reflect.ValueOf(p.Session)
+		params[2] = reflect.ValueOf(p.Msg)
+
+		if p.PrintLog {
+			p.Session.Debugf("[local-raw] [groupIndex = %d, route = %s, mid = %d, req = %+v]",
+				p.groupIndex,
+				p.Msg.Route,
+				p.Msg.ID,
+				p.Msg,
+			)
 		}
 	} else {
 		val, err := p.unmarshalData(argsLen - 1)
 		if err != nil {
-			cherryLogger.Warnf("err = %v, msg = %v", err, p.Msg)
+			p.Session.Errorf("err = %v, msg = %v", err, p.Msg)
 			return
 		}
 
@@ -74,20 +87,38 @@ func (p *ExecutorLocal) Invoke() {
 			params[1] = reflect.ValueOf(p.Session)
 			params[2] = reflect.ValueOf(val)
 		}
+
+		if p.PrintLog {
+			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v]",
+				p.groupIndex,
+				p.Msg.Route,
+				p.Msg.ID,
+				val,
+			)
+		}
 	}
 
 	ret := p.HandlerFn.Value.Call(params)
+	if p.Msg.Type == cherryMessage.Request {
+		retLen := len(ret)
 
-	if p.Msg.Type == cherryMessage.Request && len(ret) == 2 {
-		if ret[0].IsNil() == false {
-			p.Session.ResponseMID(p.Msg.ID, ret[0].Interface())
-		} else if e := ret[1].Interface(); e != nil {
-			if code, ok := e.(int32); ok {
+		if retLen == 2 {
+			if ret[0].IsNil() {
+				if face := ret[1].Interface(); face != nil {
+					if code, ok := face.(int32); ok {
+						rsp := &cherryProto.Response{
+							Code: code,
+						}
 
-				statusCode := cherryCode.GetCodeResult(code)
-				p.Session.ResponseMID(p.Msg.ID, statusCode, true)
+						p.Session.ResponseMID(p.Msg.ID, rsp, true)
+					} else {
+						p.Session.Warn(face)
+					}
+				} else {
+					p.Session.Warnf("ret value type error. [type = %+v]", ret)
+				}
 			} else {
-				p.Session.Warn(e)
+				p.Session.ResponseMID(p.Msg.ID, ret[0].Interface())
 			}
 		}
 	}

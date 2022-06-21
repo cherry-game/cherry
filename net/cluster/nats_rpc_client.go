@@ -7,9 +7,7 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryProfile "github.com/cherry-game/cherry/profile"
 	"time"
 )
 
@@ -53,25 +51,13 @@ func (n *NatsRPCClient) CallLocal(nodeId string, packet *cherryProto.LocalPacket
 	}
 
 	subject := GetLocalNodeSubject(nodeType, nodeId)
-
-	if cherryProfile.Debug() {
-		msgType := cherryMessage.Type(packet.MsgType)
-		cherryLogger.Debugf("[CallLocal] [uid = %d] [subject = %s] [msgType = %s] [msgId = %d] [isError = %v]",
-			packet.Session.Uid,
-			subject,
-			msgType.String(),
-			packet.MsgId,
-			packet.IsError,
-		)
-	}
-
 	return n.Publish(subject, packet)
 }
 
 func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{}, timeout time.Duration, rsp *cherryProto.Response) {
 	nodeType, err := cherryDiscovery.GetType(nodeId)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemote] get nodeType fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
+		cherryLogger.Warnf("[CallRemote] get nodeType fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 			nodeId,
 			route,
 			val,
@@ -86,7 +72,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 	if val != nil {
 		data, err = n.Marshal(val)
 		if err != nil {
-			cherryLogger.Warnf("[CallRemote] marshal fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
+			cherryLogger.Warnf("[CallRemote] marshal fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 				nodeId,
 				route,
 				val,
@@ -105,7 +91,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 
 	msg, err := n.Marshal(packet)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemote] marshal fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
+		cherryLogger.Warnf("[CallRemote] marshal fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 			nodeId,
 			route,
 			val,
@@ -121,14 +107,9 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 	}
 
 	subject := GetRemoteNodeSubject(nodeType, nodeId)
-
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("[CallRemote] [route = %s]", packet.Route)
-	}
-
 	rspData, err := cherryNats.Conn().Request(subject, msg, timeout)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemote] nats request fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
+		cherryLogger.Warnf("[CallRemote] nats request fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 			nodeId,
 			route,
 			val,
@@ -141,7 +122,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 
 	err = n.Unmarshal(rspData.Data, rsp)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemote] unmarshal fail. [nodeId = %s, route = %s, val = %v] [error = %v]",
+		cherryLogger.Warnf("[CallRemote] unmarshal fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 			nodeId,
 			route,
 			val,
@@ -156,7 +137,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interface{}) {
 	nodeType, err := cherryDiscovery.GetType(nodeId)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemoteAsync] get nodeType error. [nodeId = %s] [error = %s]", nodeId, err)
+		cherryLogger.Warnf("[CallRemoteAsync] get nodeType error. [nodeId = %s, err = %s]", nodeId, err)
 		return
 	}
 
@@ -164,7 +145,7 @@ func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interfa
 	if val != nil {
 		data, err = n.Marshal(val)
 		if err != nil {
-			cherryLogger.Warnf("[CallRemoteAsync] marshal fail. [nodeId = %s, route = %d, val = %v] [error = %s].",
+			cherryLogger.Warnf("[CallRemoteAsync] marshal fail. [nodeId = %s, route = %d, val = %v, err = %s]",
 				nodeId,
 				route,
 				val,
@@ -180,14 +161,9 @@ func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interfa
 	}
 
 	subject := GetRemoteNodeSubject(nodeType, nodeId)
-
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("[CallRemoteAsync] [subject = %s] [route = %s]", subject, route)
-	}
-
 	err = n.Publish(subject, packet)
 	if err != nil {
-		cherryLogger.Warnf("[CallRemoteAsync] nats publish error. [subject = %s] [error = %s]", subject, err)
+		cherryLogger.Warnf("[CallRemoteAsync] nats publish error. [subject = %s, err = %s]", subject, err)
 		return
 	}
 }
@@ -195,7 +171,7 @@ func (n *NatsRPCClient) CallRemoteAsync(nodeId string, route string, val interfa
 func (n *NatsRPCClient) SendKick(nodeId string, uid cherryFacade.UID, reason interface{}) {
 	bytes, err := n.Marshal(reason)
 	if err != nil {
-		cherryLogger.Warnf("[SendKick] marshal fail. [uid = %d] [reason = %v] [error = %s].", uid, reason, err)
+		cherryLogger.Warnf("[SendKick] marshal fail. [uid = %d, reason = %v, err = %s]", uid, reason, err)
 	}
 
 	kickRequest := &cherryProto.KickRequest{
@@ -209,7 +185,9 @@ func (n *NatsRPCClient) SendKick(nodeId string, uid cherryFacade.UID, reason int
 func (n *NatsRPCClient) SendPush(nodeId string, route string, uid cherryFacade.UID, val interface{}) {
 	data, err := n.Marshal(val)
 	if err != nil {
-		cherryLogger.Warnf("[SendPush] marshal error. [route = %s, uid = %d, val = %v] [err = %v]", route, uid, val, err)
+		cherryLogger.Warnf("[SendPush] marshal error. [route = %s, uid = %d, val = %v, err = %s]",
+			route, uid, val, err,
+		)
 		return
 	}
 

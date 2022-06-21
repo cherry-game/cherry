@@ -48,7 +48,7 @@ type (
 )
 
 func (p *pendingMessage) String() string {
-	return fmt.Sprintf("typ = %d, route = %s, mid =%d, payload=%v", p.typ, p.route, p.mid, p.payload)
+	return fmt.Sprintf("typ = %d, route = %s, mid = %d, payload = %v", p.typ, p.route, p.mid, p.payload)
 }
 
 func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *Options) *Agent {
@@ -74,17 +74,21 @@ func (a *Agent) SetLastAt() {
 
 func (a *Agent) Push(route string, val interface{}) {
 	a.Send(cherryMessage.Push, route, 0, val, false)
+
+	if cherryProfile.Debug() {
+		a.session.Debugf("[Push] ok. [route = %s, val = %+v]", route, val)
+	}
 }
 
 func (a *Agent) Kick(reason interface{}) {
 	bytes, err := a.Marshal(reason)
 	if err != nil {
-		a.session.Warnf("[Kick] marshal fail. [reason = %v] [error = %s].", reason, err)
+		a.session.Warnf("[Kick] marshal fail. [reason = %+v, err = %s].", reason, err)
 	}
 
 	pkg, err := a.PacketEncode(cherryPacket.Kick, bytes)
 	if err != nil {
-		a.session.Warnf("[kick] packet encode error.[reason = %v] [error = %s].", reason, err)
+		a.session.Warnf("[Kick] packet encode error.[reason = %+v, err = %s].", reason, err)
 		return
 	}
 
@@ -94,21 +98,25 @@ func (a *Agent) Kick(reason interface{}) {
 	}
 
 	if cherryProfile.Debug() {
-		a.session.Debugf("[Kick] [reason = %v]", reason)
+		a.session.Debugf("[Kick] ok. [reason = %+v]", reason)
 	}
 }
 
 func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
-	err := false
+	isErr := false
 	if len(isError) > 0 {
-		err = isError[0]
+		isErr = isError[0]
 	}
 
-	a.Send(cherryMessage.Response, "", mid, v, err)
+	a.Send(cherryMessage.Response, "", mid, v, isErr)
+
+	if cherryProfile.Debug() {
+		a.session.Debugf("[Response] ok. [mid = %d, isError = %v, val = %+v]", mid, isErr, v)
+	}
 }
 
 func (a *Agent) RPC(route string, val interface{}, _ *cherryProto.Response) {
-	cherryLogger.Errorf("cluster no implement. [route = %s] [val = %v]", route, val)
+	cherryLogger.Errorf("[RPC] cluster no implement. [route = %s, val = %+v]", route, val)
 }
 
 func (a *Agent) SendRaw(bytes []byte) {
@@ -143,16 +151,35 @@ func (a *Agent) Close() {
 
 func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) {
 	if a.session.State() == cherrySession.Closed {
-		a.session.Warnf("[send] session status == Closed")
+		a.session.Warnf("[Send] session is closed. [typ = %v, rout = %s, mid = %d, val = %+v, isErr = %v",
+			typ,
+			route,
+			mid,
+			v,
+			isError,
+		)
 		return
 	}
 
 	if len(a.chSend) >= WriteBacklog {
-		a.session.Warnf("[send] session send buffer exceed")
+		a.session.Warnf("[Send] send buffer exceed. [typ = %v, rout = %s, mid = %d, val = %+v, isErr = %v",
+			typ,
+			route,
+			mid,
+			v,
+			isError,
+		)
 		return
 	}
 
-	pending := pendingMessage{typ: typ, mid: mid, route: route, payload: v, err: isError}
+	pending := pendingMessage{
+		typ:     typ,
+		mid:     mid,
+		route:   route,
+		payload: v,
+		err:     isError,
+	}
+
 	a.chSend <- pending
 }
 
@@ -196,7 +223,9 @@ func (a *Agent) read() {
 func (a *Agent) write() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		a.session.Debugf("close session. [sid = %s]", a.session.SID())
+		if cherryProfile.Debug() {
+			a.session.Debugf("close session. [sid = %s]", a.session.SID())
+		}
 
 		ticker.Stop()
 		a.Close()
@@ -214,7 +243,9 @@ func (a *Agent) write() {
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				a.session.Debug("check heartbeat timeout.")
+				if cherryProfile.Debug() {
+					a.session.Debug("check heartbeat timeout.")
+				}
 				return
 			}
 		case bytes := <-a.chWrite:
@@ -223,11 +254,10 @@ func (a *Agent) write() {
 				cherryLogger.Warn(err)
 				return
 			}
-
 		case data := <-a.chSend:
 			payload, err := a.Marshal(data.payload)
 			if err != nil {
-				a.session.Debugf("message serializer error. [data = %s]", data.String())
+				a.session.Warnf("payload marshal error. [data = %s]", data.String())
 				return
 			}
 
@@ -261,12 +291,17 @@ func (a *Agent) write() {
 func (a *Agent) processPacket(packet cherryFacade.IPacket) {
 	result := a.session.OnDataListener()
 	if result == false {
+		if cherryProfile.Debug() {
+			a.session.Warnf("[ProcessPacket] on data listener return fail. [packet = %+v]", packet)
+		}
 		return
 	}
 
 	cmd, found := a.Commands[packet.Type()]
 	if found == false {
-		a.session.Debugf("[packet = %s] type not found.", packet)
+		if cherryProfile.Debug() {
+			a.session.Debugf("[ProcessPacket] type not found. [packet = %+v]", packet)
+		}
 		return
 	}
 

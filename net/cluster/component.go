@@ -68,8 +68,10 @@ func (c *Component) OnStop() {
 // ForwardLocal forward message to backend node
 func (c *Component) ForwardLocal(session *cherrySession.Session, msg *cherryMessage.Message) {
 	if session.IsBind() == false {
-		statusCode := cherryCode.GetCodeResult(cherryCode.SessionUIDNotBind)
-		session.Kick(statusCode, false)
+		rsp := &cherryProto.Response{
+			Code: cherryCode.SessionUIDNotBind,
+		}
+		session.Kick(rsp, false)
 		session.Warnf("session not bind,message forwarding is not allowed. [route = %s]", msg.Route)
 		return
 	}

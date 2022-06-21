@@ -4,17 +4,6 @@ option go_package = "github.com/cherry-game/cherry/net/proto/proto;cherryProto";
 
 package cherryProto;
 
-
-// string type
-message String {
-  string value = 1;
-}
-
-// int64 type
-message Int64 {
-  int64 value = 1;
-}
-
 // 成员结构
 message Member {
   string              nodeId   = 1; // 节点id
@@ -64,12 +53,6 @@ message PushRequest {
 message KickRequest {
   int64 uid    = 1; // 踢下线的uid
   bytes reason = 2; // 原因
-}
-
-// 状态码
-message CodeResult {
-  int32  code    = 1; //状态码
-  string message = 2; //消息内容
 }
 
 // 响应结构

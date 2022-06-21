@@ -115,9 +115,7 @@ func (c *Component) PostEvent(event facade.IEvent) {
 					Event:      event,
 					EventSlice: eventSlice,
 				}
-
-				index := group.queueHash(executor, group.queueNum)
-				group.inQueue(index, executor)
+				group.InQueue(executor)
 			}
 		}
 	}
@@ -160,25 +158,25 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	}
 
 	if session == nil {
-		cherryLogger.Debug("session is nil")
+		cherryLogger.Debug("[local] session is nil")
 		return
 	}
 
 	if msg == nil {
-		session.Warn("message is nil")
+		session.Warn("[local] message is nil")
 		return
 	}
 
 	if msg.RouteInfo() == nil {
 		err := msg.ParseRoute()
 		if err != nil {
-			session.Warnf("route decode error. [route = %s, error = %s]", msg.Route, err)
+			session.Warnf("[local] route decode error. [route = %s, error = %s]", msg.Route, err)
 			return
 		}
 	}
 
 	if msg.RouteInfo().NodeType() != c.App().NodeType() {
-		session.Warnf("msg node type error. [route = %s]", msg.Route)
+		session.Warnf("[local] msg node type error. [route = %s]", msg.Route)
 		return
 	}
 
@@ -187,13 +185,13 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 
 	rt, group, handler, found := c.GetHandler(msg.Route)
 	if found == false {
-		cherryLogger.Warnf("route not found handler. [route = %s]", msg.Route)
+		cherryLogger.Warnf("[local] route not found handler. [route = %s]", msg.Route)
 		return
 	}
 
 	fn, found := handler.LocalHandler(rt.Method())
 	if found == false {
-		cherryLogger.Debugf("[Route = %v] could not find [method = %s] for route.", msg.Route, rt.Method())
+		cherryLogger.Debugf("[local] not find route. [Route = %v, method = %s]", msg.Route, rt.Method())
 		return
 	}
 
@@ -205,33 +203,14 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 		Ctx:           ctx,
 		BeforeFilters: c.beforeFilters,
 		AfterFilters:  c.afterFilters,
+		PrintLog:      c.printRouteLog,
 	}
-
-	index := group.queueHash(executor, group.queueNum)
-	group.inQueue(index, executor)
-
-	if c.printRouteLog {
-		session.Debugf("[local handler] [group-index = %d, route = %s]",
-			index,
-			msg.RouteInfo(),
-		)
-	}
+	group.InQueue(executor)
 }
 
 func (c *Component) ProcessRemote(group *HandlerGroup, executor *ExecutorRemote) {
 	if !c.App().Running() {
 		return
-	}
-
-	index := group.queueHash(executor, group.queueNum)
-	group.inQueue(index, executor)
-
-	if c.printRouteLog {
-		cherryLogger.Debugf("[remote handler] [group-index = %d, route = %s, len = %d]",
-			index,
-			executor.RemotePacket.Route,
-			len(executor.RemotePacket.Data),
-		)
 	}
 }
 
@@ -245,6 +224,10 @@ func (c *Component) AddAfterFilter(afterFilters ...FilterFn) {
 	if len(afterFilters) > 0 {
 		c.afterFilters = append(c.afterFilters, afterFilters...)
 	}
+}
+
+func (c *Component) PrintLog() bool {
+	return c.printRouteLog
 }
 
 func WithBeforeFilter(beforeFilters ...FilterFn) Option {

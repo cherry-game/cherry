@@ -6,11 +6,11 @@ import (
 	cherryConst "github.com/cherry-game/cherry/const"
 	cherryError "github.com/cherry-game/cherry/error"
 	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
 	cherryRouter "github.com/cherry-game/cherry/net/router"
 	cherrySession "github.com/cherry-game/cherry/net/session"
+	cherryProfile "github.com/cherry-game/cherry/profile"
 )
 
 type AgentBackend struct {
@@ -34,27 +34,52 @@ func (a *AgentBackend) SetSession(session *cherrySession.Session) {
 
 func (a *AgentBackend) Push(route string, val interface{}) {
 	a.rpcClient.SendPush(a.session.FrontendId(), route, a.session.UID(), val)
+
+	if cherryProfile.Debug() {
+		a.session.Debugf("[Push] ok. [frontend = %s, route = %s, val = %+v]",
+			a.session.FrontendId(),
+			route,
+			val,
+		)
+	}
 }
 
 func (a *AgentBackend) Kick(reason interface{}) {
 	a.rpcClient.SendKick(a.session.FrontendId(), a.session.UID(), reason)
+
+	if cherryProfile.Debug() {
+		a.session.Debugf("[Kick] ok. [frontend = %s, reason = %+v]",
+			a.session.FrontendId(),
+			reason,
+		)
+	}
 }
 
 func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
+	isErr := false
+	if len(isError) > 0 {
+		isErr = isError[0]
+	}
+
 	if mid < 1 {
-		a.session.Warnf("[Response] mid error. [mid = %v]", mid)
+		a.session.Errorf("[Response] mid error. [frontend = %s, mid = %d, isErr = %v, val = %+v]",
+			a.session.FrontendId(),
+			mid,
+			isErr,
+			val,
+		)
 		return
 	}
 
 	data, err := a.Marshal(val)
 	if err != nil {
-		a.session.Warnf("[Response] marshal data error. [val = %v]", val)
+		a.session.Errorf("[Response] marshal error. [frontend = %s, mid = %d, isErr = %v, val = %+v]",
+			a.session.FrontendId(),
+			mid,
+			isErr,
+			val,
+		)
 		return
-	}
-
-	errFlag := false
-	if len(isError) > 0 {
-		errFlag = isError[0]
 	}
 
 	localPacket := &cherryProto.LocalPacket{
@@ -64,24 +89,42 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 		},
 		MsgType: int32(cherryMessage.Response),
 		MsgId:   uint32(mid),
-		IsError: errFlag,
+		IsError: isErr,
 		Data:    data,
 	}
 
 	err = a.rpcClient.CallLocal(a.session.FrontendId(), localPacket)
 	if err != nil {
-		a.session.Warnf("[Response] return error.. [val = %v] [err = %v]", val, err)
+		a.session.Errorf("[Response] call error. [frontend = %s, mid = %d, isErr = %v, val = %+v]",
+			a.session.FrontendId(),
+			mid,
+			isErr,
+			val,
+		)
+	}
+
+	if cherryProfile.Debug() {
+		a.session.Debugf("[Response] ok. [frontend = %s, mid = %d, err = %v, val = %+v]",
+			a.session.FrontendId(),
+			mid,
+			isErr,
+			val,
+		)
 	}
 }
 
 func (a *AgentBackend) SendRaw(_ []byte) {
-	a.session.Warnf("[SendRaw] %v", cherryError.ClusterNoImplement)
+	a.session.Errorf("[SendRaw] %v", cherryError.ClusterNoImplement)
 }
 
 func (a *AgentBackend) RPC(route string, val interface{}, rsp *cherryProto.Response) {
 	decode, err := cherryMessage.DecodeRoute(route)
 	if err != nil {
-		cherryLogger.Warnf("[RPC] decode route fail. [route = %s] [error = %v]", route, err)
+		a.session.Warnf("[RPC] decode route fail. [route = %s, err = %v, val = %+v]",
+			route,
+			err,
+			val,
+		)
 		rsp.Code = cherryCode.RPCRouteDecodeError
 		return
 	}
@@ -89,12 +132,25 @@ func (a *AgentBackend) RPC(route string, val interface{}, rsp *cherryProto.Respo
 	ctx := context.WithValue(context.Background(), cherryConst.SessionKey, a.session)
 	member, err := cherryRouter.Route(ctx, decode.NodeType(), nil)
 	if err != nil {
-		cherryLogger.Warnf("get node router is fail. [error = %s]", err)
+		a.session.Warnf("[RPC] get router fail. [route = %s, err = %v, val = %+v]",
+			route,
+			err,
+			val,
+		)
 		rsp.Code = cherryCode.RPCRouteHashError
 		return
 	}
 
 	a.rpcClient.CallRemote(member.GetNodeId(), route, val, 0, rsp)
+
+	if cherryProfile.Debug() {
+		a.session.Warnf("[RPC] ok. [node = %s, route = %s, err = %v, val = %+v]",
+			member.GetNodeId(),
+			route,
+			err,
+			val,
+		)
+	}
 }
 
 func (a *AgentBackend) Close() {

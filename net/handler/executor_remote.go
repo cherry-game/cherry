@@ -14,45 +14,76 @@ import (
 type (
 	ExecutorRemote struct {
 		facade.IApplication
+		groupIndex   int
 		HandlerFn    *facade.HandlerFn
 		RemotePacket *cherryProto.RemotePacket
 		NatsMsg      *nats.Msg
+		PrintLog     bool
 	}
 )
+
+func (p *ExecutorRemote) Index() int {
+	return p.groupIndex
+}
+
+func (p *ExecutorRemote) SetIndex(index int) {
+	p.groupIndex = index
+}
 
 func (p *ExecutorRemote) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
-			cherryLogger.Warnf("recover in Remote. %s", string(debug.Stack()))
+			cherryLogger.Warnf("[remote] recover in Remote. %s", string(debug.Stack()))
 			cherryLogger.Warnf("msg = [%+v]", p.RemotePacket)
 		}
 	}()
 
 	argsLen := len(p.HandlerFn.InArgs)
 	if argsLen < 0 || argsLen > 1 {
-		cherryLogger.Warnf("[Route = %v] method in args error.", p.RemotePacket.Route)
+		cherryLogger.Warnf("[remote] method in args error. [route = %v]", p.RemotePacket.Route)
 		cherryLogger.Warnf("func() or func(request)")
 		return
 	}
 
-	var ret []reflect.Value
 	var params []reflect.Value
+	var ret []reflect.Value
 
 	switch argsLen {
 	case 0:
-		ret = p.HandlerFn.Value.Call(params)
-		break
-	case 1:
-		val, err := p.unmarshalData()
-		if err != nil {
-			cherryLogger.Warnf("[Route = %s] unmarshal data error.error = %s", p.RemotePacket.Route, err)
-			return
+		{
+			ret = p.HandlerFn.Value.Call(params)
+			if p.PrintLog {
+				cherryLogger.Debugf("[remote] [route = %s, params = null, ret = %+v",
+					p.RemotePacket.Route,
+					ret,
+				)
+			}
+			break
 		}
-		params = make([]reflect.Value, 1)
-		params[0] = reflect.ValueOf(val)
+	case 1:
+		{
+			val, err := p.unmarshalData()
+			if err != nil {
+				cherryLogger.Warnf("[remote] unmarshal data error. [route = %s, error = %s]",
+					p.RemotePacket.Route,
+					err,
+				)
+				return
+			}
+			params = make([]reflect.Value, 1)
+			params[0] = reflect.ValueOf(val)
 
-		ret = p.HandlerFn.Value.Call(params)
-		break
+			ret = p.HandlerFn.Value.Call(params)
+
+			if p.PrintLog {
+				cherryLogger.Debugf("[remote] [route = %s, params = %+v, ret = %+v",
+					p.RemotePacket.Route,
+					val,
+					ret,
+				)
+			}
+			break
+		}
 	}
 
 	if p.NatsMsg.Reply == "" {
@@ -84,7 +115,6 @@ func (p *ExecutorRemote) Invoke() {
 		}
 
 		if ret[0].IsNil() == false {
-
 			data, err := p.Marshal(ret[0].Interface())
 			if err != nil {
 				rsp.Code = cherryCode.RPCRemoteExecuteError
@@ -104,7 +134,7 @@ func (p *ExecutorRemote) Invoke() {
 
 func (p *ExecutorRemote) unmarshalData() (interface{}, error) {
 	if len(p.HandlerFn.InArgs) != 1 {
-		return nil, cherryError.Error("remote handler params len is error.")
+		return nil, cherryError.Error("[remote] handler params len is error.")
 	}
 
 	in2 := p.HandlerFn.InArgs[0]

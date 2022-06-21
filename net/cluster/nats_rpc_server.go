@@ -56,7 +56,7 @@ func (n *NatsRPCServer) processLocal() {
 
 	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.localChan)
 	if err != nil {
-		cherryLogger.Errorf("chan subscribe fail. [error = %s]", err)
+		cherryLogger.Errorf("chan subscribe fail. [err = %s]", err)
 		return
 	}
 
@@ -66,7 +66,7 @@ func (n *NatsRPCServer) processLocal() {
 			packet := &cherryProto.LocalPacket{}
 			err := n.Unmarshal(local.Data, packet)
 			if err != nil {
-				cherryLogger.Warnf("unmarshal fail. [packet = %s] [error = %s]", packet, err)
+				cherryLogger.Warnf("unmarshal fail. [packet = %s, err = %s]", packet, err)
 				continue
 			}
 
@@ -88,7 +88,7 @@ func (n *NatsRPCServer) processLocal() {
 			packet := &cherryProto.LocalPacket{}
 			err := n.Unmarshal(local.Data, packet)
 			if err != nil {
-				cherryLogger.Warnf("unmarshal fail. [packet = %s] [error = %s]", packet, err)
+				cherryLogger.Warnf("unmarshal fail. [packet = %s, error = %s]", packet, err)
 				continue
 			}
 
@@ -124,7 +124,7 @@ func (n *NatsRPCServer) processRemote() {
 	nodeSubject := GetRemoteNodeSubject(n.NodeType(), n.NodeId())
 	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.remoteChan)
 	if err != nil {
-		cherryLogger.Errorf("chan subscribe fail. [error = %s]", err)
+		cherryLogger.Errorf("chan subscribe fail. [err = %s]", err)
 		return
 	}
 
@@ -132,7 +132,7 @@ func (n *NatsRPCServer) processRemote() {
 		packet := &cherryProto.RemotePacket{}
 
 		if err := n.Unmarshal(remote.Data, packet); err != nil {
-			cherryLogger.Warnf("unmarshal fail. [packet = %s] [error = %s]", packet, err)
+			cherryLogger.Warnf("unmarshal fail. [packet = %s, err = %s]", packet, err)
 			n.replyError(remote, cherryCode.RPCUnmarshalError)
 			continue
 		}
@@ -156,7 +156,7 @@ func (n *NatsRPCServer) processRemote() {
 
 		fn, found := handler.RemoteHandler(rt.Method())
 		if found == false {
-			cherryLogger.Debugf("could not find [method = %s] for [Route = %v].", rt.Method(), packet.Route)
+			cherryLogger.Debugf("could not find route method. [Route = %v, method = %s].", packet.Route, rt.Method())
 			n.replyError(remote, cherryCode.RPCHandlerError)
 			continue
 		}
@@ -166,9 +166,9 @@ func (n *NatsRPCServer) processRemote() {
 			HandlerFn:    fn,
 			RemotePacket: packet,
 			NatsMsg:      remote,
+			PrintLog:     n.handlerComponent.PrintLog(),
 		}
-
-		n.handlerComponent.ProcessRemote(group, executor)
+		group.InQueue(executor)
 	}
 }
 

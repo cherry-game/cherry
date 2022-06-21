@@ -8,10 +8,19 @@ import (
 
 type (
 	ExecutorEvent struct {
+		groupIndex int
 		Event      facade.IEvent
 		EventSlice []facade.EventFunc
 	}
 )
+
+func (p *ExecutorEvent) Index() int {
+	return p.groupIndex
+}
+
+func (p *ExecutorEvent) SetIndex(index int) {
+	p.groupIndex = index
+}
 
 func (p *ExecutorEvent) Invoke() {
 	defer func() {

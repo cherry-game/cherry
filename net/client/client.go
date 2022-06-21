@@ -165,14 +165,13 @@ func (p *Client) Request(route string, val interface{}) (*cherryMessage.Message,
 	case <-ch:
 		{
 			if rsp.Error {
-				errRsp := &cherryProto.CodeResult{}
+				errRsp := &cherryProto.Response{}
 				if e := p.serializer.Unmarshal(rsp.Data, errRsp); e != nil {
 					return nil, e
 				}
 
-				return nil, cherryError.Errorf("[route = %s, val = %+v] statusCode = %s", route, val, errRsp.String())
+				return nil, cherryError.Errorf("[route = %s, statusCode = %d, val = %+v]", route, errRsp.Code, val)
 			} else {
-				//ok
 				return rsp, nil
 			}
 		}

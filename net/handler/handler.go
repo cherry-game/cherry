@@ -2,7 +2,6 @@ package cherryHandler
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/code"
 	"github.com/cherry-game/cherry/const"
 	"github.com/cherry-game/cherry/extend/reflect"
 	facade "github.com/cherry-game/cherry/facade"
@@ -131,8 +130,8 @@ func getInvokeFunc(name string, fn interface{}) (*facade.HandlerFn, error) {
 		return invokeFunc, err
 	}
 
-	if len(invokeFunc.InArgs) == 2 {
-		if invokeFunc.InArgs[1] == reflect.TypeOf(&cherryMessage.Message{}) {
+	if len(invokeFunc.InArgs) == 3 {
+		if invokeFunc.InArgs[2] == reflect.TypeOf(&cherryMessage.Message{}) {
 			invokeFunc.IsRaw = true
 		}
 	}
@@ -175,15 +174,6 @@ func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {
 func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
 	if h.handlerComponent != nil {
 		h.handlerComponent.AddAfterFilter(afterFilters...)
-	}
-}
-
-func (h *Handler) ResponseCode(ctx context.Context, session *cherrySession.Session, code int32) {
-	codeResult := cherryCode.GetCodeResult(code)
-	if cherryCode.IsOK(code) {
-		session.Response(ctx, codeResult)
-	} else {
-		session.Response(ctx, codeResult, true)
 	}
 }
 

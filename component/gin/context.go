@@ -1,7 +1,6 @@
 package cherryGin
 
 import (
-	cherryCode "github.com/cherry-game/cherry/code"
 	cherrySlice "github.com/cherry-game/cherry/extend/slice"
 	"github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
@@ -213,21 +212,4 @@ func (g *Context) RenderHTML(html string) {
 func (g *Context) RenderJsonString(json string) {
 	g.Header(contentType, jsonContentType)
 	g.String(http.StatusOK, json)
-}
-
-func (g *Context) RenderData(code int32, message string) {
-	result := cherryCode.DataResult{
-		Code:    code,
-		Message: message,
-	}
-	g.Context.JSON(http.StatusOK, &result)
-}
-
-func (g *Context) RenderDataResult(code int32, data ...interface{}) {
-	result := cherryCode.NewDataResult(code)
-	if len(data) > 0 {
-		result.Data = data[0]
-	}
-
-	g.Context.JSON(http.StatusOK, &result)
 }

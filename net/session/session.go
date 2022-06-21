@@ -7,7 +7,6 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	cherryContext "github.com/cherry-game/cherry/net/context"
 	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryProfile "github.com/cherry-game/cherry/profile"
 	"sync/atomic"
 )
 
@@ -107,14 +106,6 @@ func (s *Session) Push(route string, v interface{}) {
 // request message ID
 func (s *Session) ResponseMID(mid uint, v interface{}, isError ...bool) {
 	s.entity.Response(mid, v, isError...)
-
-	if cherryProfile.Debug() {
-		if len(isError) > 0 {
-			s.Debugf("[ResponseMID] [mid = %d, isError = %v, data = %v]", mid, isError[0], v)
-		} else {
-			s.Debugf("[Response] [mid = %d, data = %v]", mid, v)
-		}
-	}
 }
 
 func (s *Session) Response(ctx context.Context, v interface{}, isError ...bool) {
