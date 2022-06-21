@@ -7,7 +7,6 @@ import (
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	cherryAgent "github.com/cherry-game/cherry/net/agent"
 	cherryCluster "github.com/cherry-game/cherry/net/cluster"
-	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cherryCommand "github.com/cherry-game/cherry/net/command"
 	cherryHandler "github.com/cherry-game/cherry/net/handler"
 	cherryMessage "github.com/cherry-game/cherry/net/message"
@@ -319,14 +318,6 @@ func RPCAsync(nodeId string, route string, arg proto.Message) {
 
 func RPCAsyncByRoute(route string, arg proto.Message) {
 	RPCAsync("", route, arg)
-}
-
-func RPCAsyncByNodeType(nodeType string, route string, arg proto.Message, filterNodeId ...string) {
-	members := cherryDiscovery.ListByType(nodeType, filterNodeId...)
-
-	for _, member := range members {
-		RPCAsync(member.GetNodeId(), route, arg)
-	}
 }
 
 func PostEvent(event cherryFacade.IEvent) {

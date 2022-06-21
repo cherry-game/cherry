@@ -109,20 +109,24 @@ func (h *HandlerGroup) run(app facade.IApplication) {
 }
 
 func (q *Queue) run() {
+	for {
+		select {
+		case executor := <-q.dataChan:
+			{
+				q.executorInvoke(executor)
+			}
+		}
+	}
+}
+
+func (q *Queue) executorInvoke(executor IExecutor) {
 	defer func() {
 		if rev := recover(); rev != nil {
 			cherryLogger.Warnf("recover in handle group. %s", string(debug.Stack()))
 		}
 	}()
 
-	for {
-		select {
-		case executor := <-q.dataChan:
-			{
-				executor.Invoke()
-			}
-		}
-	}
+	executor.Invoke()
 }
 
 func (h *HandlerGroup) printInfo(handler facade.IHandler) {

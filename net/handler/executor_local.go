@@ -55,6 +55,7 @@ func (p *ExecutorLocal) Invoke() {
 	}
 
 	var params []reflect.Value
+	var ret []reflect.Value
 
 	if p.HandlerFn.IsRaw {
 		params = make([]reflect.Value, argsLen)
@@ -62,12 +63,14 @@ func (p *ExecutorLocal) Invoke() {
 		params[1] = reflect.ValueOf(p.Session)
 		params[2] = reflect.ValueOf(p.Msg)
 
+		ret = p.HandlerFn.Value.Call(params)
 		if p.PrintLog {
-			p.Session.Debugf("[local-raw] [groupIndex = %d, route = %s, mid = %d, req = %+v]",
+			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.Msg.Route,
 				p.Msg.ID,
-				p.Msg,
+				p.Msg.Data,
+				printRet(ret),
 			)
 		}
 	} else {
@@ -88,17 +91,18 @@ func (p *ExecutorLocal) Invoke() {
 			params[2] = reflect.ValueOf(val)
 		}
 
+		ret = p.HandlerFn.Value.Call(params)
 		if p.PrintLog {
-			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v]",
+			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.Msg.Route,
 				p.Msg.ID,
 				val,
+				printRet(ret),
 			)
 		}
 	}
 
-	ret := p.HandlerFn.Value.Call(params)
 	if p.Msg.Type == cherryMessage.Request {
 		retLen := len(ret)
 

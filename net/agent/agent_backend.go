@@ -144,7 +144,7 @@ func (a *AgentBackend) RPC(route string, val interface{}, rsp *cherryProto.Respo
 	a.rpcClient.CallRemote(member.GetNodeId(), route, val, 0, rsp)
 
 	if cherryProfile.Debug() {
-		a.session.Warnf("[RPC] ok. [node = %s, route = %s, err = %v, val = %+v]",
+		a.session.Debugf("[RPC] ok. [node = %s, route = %s, err = %v, val = %+v]",
 			member.GetNodeId(),
 			route,
 			err,

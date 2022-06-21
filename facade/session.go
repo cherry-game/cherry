@@ -14,7 +14,7 @@ type (
 		Push(route string, val interface{})                           // 推送消息对客户端
 		Kick(reason interface{})                                      // 踢下线
 		Response(mid uint, val interface{}, isError ...bool)          // 回复消息到客户端
-		RPC(route string, val interface{}, rsp *cherryProto.Response) // 调用rpc
+		RPC(route string, val interface{}, rsp *cherryProto.Response) // 调用rpc TODO 待修改
 		SendRaw(bytes []byte)                                         // write raw data to client
 		RemoteAddr() string                                           // 连接者的地址信息
 		Close()                                                       // 关闭接口

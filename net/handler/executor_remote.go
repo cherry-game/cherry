@@ -1,6 +1,7 @@
 package cherryHandler
 
 import (
+	"fmt"
 	cherryCode "github.com/cherry-game/cherry/code"
 	cherryError "github.com/cherry-game/cherry/error"
 	facade "github.com/cherry-game/cherry/facade"
@@ -53,9 +54,9 @@ func (p *ExecutorRemote) Invoke() {
 		{
 			ret = p.HandlerFn.Value.Call(params)
 			if p.PrintLog {
-				cherryLogger.Debugf("[remote] [route = %s, params = null, ret = %+v",
+				cherryLogger.Debugf("[remote] [route = %s, req = null, rsp = %+v",
 					p.RemotePacket.Route,
-					ret,
+					printRet(ret),
 				)
 			}
 			break
@@ -74,12 +75,11 @@ func (p *ExecutorRemote) Invoke() {
 			params[0] = reflect.ValueOf(val)
 
 			ret = p.HandlerFn.Value.Call(params)
-
 			if p.PrintLog {
-				cherryLogger.Debugf("[remote] [route = %s, params = %+v, ret = %+v",
+				cherryLogger.Debugf("[remote] [route = %s, req = %v, rsp = %+v]",
 					p.RemotePacket.Route,
-					val,
-					ret,
+					params[0],
+					printRet(ret),
 				)
 			}
 			break
@@ -151,4 +151,19 @@ func (p *ExecutorRemote) unmarshalData() (interface{}, error) {
 
 func (p *ExecutorRemote) String() string {
 	return p.RemotePacket.Route
+}
+
+func printRet(t []reflect.Value) interface{} {
+	switch len(t) {
+	case 1:
+		{
+			return fmt.Sprintf("%+v", t[0].Interface())
+		}
+	case 2:
+		{
+			return fmt.Sprintf("%+v, %+v", t[0].Interface(), t[0].Interface())
+		}
+	}
+
+	return nil
 }

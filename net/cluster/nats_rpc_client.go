@@ -120,8 +120,7 @@ func (n *NatsRPCClient) CallRemote(nodeId string, route string, val interface{},
 		return
 	}
 
-	err = n.Unmarshal(rspData.Data, rsp)
-	if err != nil {
+	if err = n.Unmarshal(rspData.Data, rsp); err != nil {
 		cherryLogger.Warnf("[CallRemote] unmarshal fail. [nodeId = %s, route = %s, val = %v, err = %v]",
 			nodeId,
 			route,

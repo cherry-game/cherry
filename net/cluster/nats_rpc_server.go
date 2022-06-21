@@ -53,7 +53,6 @@ func (n *NatsRPCServer) loadHandler() {
 
 func (n *NatsRPCServer) processLocal() {
 	nodeSubject := GetLocalNodeSubject(n.NodeType(), n.NodeId())
-
 	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.localChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [err = %s]", err)
@@ -61,62 +60,70 @@ func (n *NatsRPCServer) processLocal() {
 	}
 
 	if n.IsFrontend() {
-		// to client
-		for local := range n.localChan {
-			packet := &cherryProto.LocalPacket{}
-			err := n.Unmarshal(local.Data, packet)
-			if err != nil {
-				cherryLogger.Warnf("unmarshal fail. [packet = %s, err = %s]", packet, err)
-				continue
-			}
-
-			if cherryMessage.Type(packet.MsgType) != cherryMessage.Response {
-				cherryLogger.Warnf("message type not Request. [packet = %s]", packet)
-				continue
-			}
-
-			session, found := cherrySession.GetByUID(packet.Session.Uid)
-			if found == false {
-				cherryLogger.Warnf("uid not found. [packet = %v]", packet)
-				continue
-			}
-
-			session.ResponseMID(uint(packet.MsgId), packet.Data, packet.IsError)
-		}
+		n.frontendLocal()
 	} else {
-		for local := range n.localChan {
-			packet := &cherryProto.LocalPacket{}
-			err := n.Unmarshal(local.Data, packet)
-			if err != nil {
-				cherryLogger.Warnf("unmarshal fail. [packet = %s, error = %s]", packet, err)
-				continue
-			}
+		n.backendLocal()
+	}
+}
 
-			if packet.Data == nil {
-				packet.Data = []byte{}
-			}
-
-			// new fake session for backend node
-			agent := cherryAgent.NewAgentBackend(n.IApplication, n.rpcClient, packet.Session.Ip)
-			session := cherrySession.FakeSession(packet.Session, &agent)
-			agent.SetSession(session)
-
-			// build message
-			message := &cherryMessage.Message{
-				Type:  cherryMessage.Type(packet.MsgType),
-				ID:    uint(packet.MsgId),
-				Route: packet.Route,
-				Data:  packet.Data,
-				Error: packet.IsError,
-			}
-
-			if n.handlerComponent == nil {
-				cherryLogger.Warnf("handler component not found. [packet = %v]", packet)
-				return
-			}
-
-			n.handlerComponent.ProcessLocal(session, message)
+func (n *NatsRPCServer) frontendLocal() {
+	// to client
+	for local := range n.localChan {
+		packet := &cherryProto.LocalPacket{}
+		err := n.Unmarshal(local.Data, packet)
+		if err != nil {
+			cherryLogger.Warnf("unmarshal fail. [packet = %s, err = %s]", packet, err)
+			continue
 		}
+
+		if cherryMessage.Type(packet.MsgType) != cherryMessage.Response {
+			cherryLogger.Warnf("message type not Request. [packet = %s]", packet)
+			continue
+		}
+
+		session, found := cherrySession.GetByUID(packet.Session.Uid)
+		if found == false {
+			cherryLogger.Warnf("uid not found. [packet = %v]", packet)
+			continue
+		}
+
+		session.ResponseMID(uint(packet.MsgId), packet.Data, packet.IsError)
+	}
+}
+
+func (n *NatsRPCServer) backendLocal() {
+	for local := range n.localChan {
+		packet := &cherryProto.LocalPacket{}
+		err := n.Unmarshal(local.Data, packet)
+		if err != nil {
+			cherryLogger.Warnf("unmarshal fail. [packet = %s, error = %s]", packet, err)
+			continue
+		}
+
+		if packet.Data == nil {
+			packet.Data = []byte{}
+		}
+
+		// new fake session for backend node
+		agent := cherryAgent.NewAgentBackend(n.IApplication, n.rpcClient, packet.Session.Ip)
+		session := cherrySession.FakeSession(packet.Session, &agent)
+		agent.SetSession(session)
+
+		// build message
+		message := &cherryMessage.Message{
+			Type:  cherryMessage.Type(packet.MsgType),
+			ID:    uint(packet.MsgId),
+			Route: packet.Route,
+			Data:  packet.Data,
+			Error: packet.IsError,
+		}
+
+		if n.handlerComponent == nil {
+			cherryLogger.Warnf("handler component not found. [packet = %v]", packet)
+			return
+		}
+
+		n.handlerComponent.ProcessLocal(session, message)
 	}
 }
 
