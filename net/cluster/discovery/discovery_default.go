@@ -25,7 +25,6 @@ func (n *DiscoveryDefault) Name() string {
 }
 
 func (n *DiscoveryDefault) Init(_ facade.IApplication) {
-
 	// load node info from profile file
 	nodeProfile := cherryProfile.Get("node")
 	if nodeProfile.LastError() != nil {

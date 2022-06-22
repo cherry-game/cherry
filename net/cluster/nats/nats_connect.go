@@ -25,6 +25,16 @@ type (
 	}
 )
 
+func New(config jsoniter.Any, opts ...OptionFunc) *NatsConnect {
+	nats := &NatsConnect{}
+	nats.loadConfig(config)
+
+	for _, opt := range opts {
+		opt(&nats.Options)
+	}
+	return nats
+}
+
 func (p *NatsConnect) Connect() {
 	for {
 		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
@@ -38,15 +48,6 @@ func (p *NatsConnect) Connect() {
 		cherryLogger.Infof("nats is connected! [address = %s]", p.Address)
 		break
 	}
-}
-
-func NewNats(opts ...OptionFunc) *NatsConnect {
-	natsConn := &NatsConnect{}
-	for _, opt := range opts {
-		opt(&natsConn.Options)
-	}
-
-	return natsConn
 }
 
 func (p *NatsConnect) loadConfig(config jsoniter.Any) {

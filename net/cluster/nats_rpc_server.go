@@ -53,7 +53,7 @@ func (n *NatsRPCServer) loadHandler() {
 
 func (n *NatsRPCServer) processLocal() {
 	nodeSubject := GetLocalNodeSubject(n.NodeType(), n.NodeId())
-	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.localChan)
+	_, err := cherryNats.ChanSubscribe(nodeSubject, n.localChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [err = %s]", err)
 		return
@@ -129,7 +129,7 @@ func (n *NatsRPCServer) backendLocal() {
 
 func (n *NatsRPCServer) processRemote() {
 	nodeSubject := GetRemoteNodeSubject(n.NodeType(), n.NodeId())
-	_, err := cherryNats.Conn().ChanSubscribe(nodeSubject, n.remoteChan)
+	_, err := cherryNats.ChanSubscribe(nodeSubject, n.remoteChan)
 	if err != nil {
 		cherryLogger.Errorf("chan subscribe fail. [err = %s]", err)
 		return

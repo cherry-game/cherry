@@ -146,7 +146,7 @@ func (m *DiscoveryNATS) serverInit() {
 		}
 
 		// publish addMember new node
-		err = cherryNats.Conn().Publish(m.addSubject, msg.Data)
+		err = cherryNats.Publish(m.addSubject, msg.Data)
 		if err != nil {
 			cherryLogger.Warnf("publish fail. err = %s", err)
 			return
@@ -188,14 +188,14 @@ func (m *DiscoveryNATS) clientInit() {
 
 	for {
 		// register current node to master
-		rsp, err := cherryNats.Conn().Request(m.registerSubject, bytesData, cherryNats.Conn().RequestTimeout)
+		rsp, err := cherryNats.Request(m.registerSubject, bytesData, cherryNats.App().RequestTimeout)
 		if err != nil {
 			cherryLogger.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
 				m.masterMember.GetNodeId(),
-				cherryNats.Conn().Address,
+				cherryNats.App().Address,
 				err,
 			)
-			time.Sleep(cherryNats.Conn().RequestTimeout)
+			time.Sleep(cherryNats.App().RequestTimeout)
 			continue
 		}
 
@@ -208,7 +208,7 @@ func (m *DiscoveryNATS) clientInit() {
 		err = m.Unmarshal(rsp.Data, &memberList)
 		if err != nil {
 			cherryLogger.Warnf("err = %s", err)
-			time.Sleep(cherryNats.Conn().RequestTimeout)
+			time.Sleep(cherryNats.App().RequestTimeout)
 			continue
 		}
 
@@ -232,7 +232,7 @@ func (m *DiscoveryNATS) OnStop() {
 			return
 		}
 
-		err = cherryNats.Conn().Publish(m.unregisterSubject, bytesData)
+		err = cherryNats.Publish(m.unregisterSubject, bytesData)
 		if err != nil {
 			cherryLogger.Warnf("publish fail. err = %s", err)
 			return
@@ -244,11 +244,11 @@ func (m *DiscoveryNATS) OnStop() {
 		)
 	}
 
-	cherryNats.Conn().Close()
+	cherryNats.Close()
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
-	_, err := cherryNats.Conn().Subscribe(subject, cb)
+	_, err := cherryNats.Subscribe(subject, cb)
 	if err != nil {
 		cherryLogger.Warnf("subscribe fail. err = %s", err)
 		return
