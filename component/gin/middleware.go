@@ -2,8 +2,8 @@
 package cherryGin
 
 import (
-	cherrySync "github.com/cherry-game/cherry/extend/sync"
-	"github.com/cherry-game/cherry/logger"
+	csync "github.com/cherry-game/cherry/extend/sync"
+	clog "github.com/cherry-game/cherry/logger"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -42,10 +42,10 @@ func GinZap(timeFormat string, utc bool) GinHandlerFunc {
 		if len(c.Errors) > 0 {
 			// Append error field if this is an erroneous request.
 			for _, e := range c.Errors.Errors() {
-				cherryLogger.Error(e)
+				clog.Error(e)
 			}
 		} else {
-			cherryLogger.Debugw(c.FullPath(),
+			clog.Debugw(c.FullPath(),
 				"status", c.Writer.Status(),
 				"method", c.Request.Method,
 				"path", path,
@@ -82,7 +82,7 @@ func RecoveryWithZap(stack bool) GinHandlerFunc {
 
 				httpRequest, _ := httputil.DumpRequest(c.Request, false)
 				if brokenPipe {
-					cherryLogger.Warnw(c.Request.URL.Path,
+					clog.Warnw(c.Request.URL.Path,
 						"error", err,
 						"request", string(httpRequest),
 					)
@@ -94,14 +94,14 @@ func RecoveryWithZap(stack bool) GinHandlerFunc {
 				}
 
 				if stack {
-					cherryLogger.Warnw("[Recovery from panic]",
+					clog.Warnw("[Recovery from panic]",
 						"time", time.Now(),
 						"error", err,
 						"request", string(httpRequest),
 						"stack", string(debug.Stack()),
 					)
 				} else {
-					cherryLogger.Warnw("[Recovery from panic]",
+					clog.Warnw("[Recovery from panic]",
 						"time", time.Now(),
 						"error", err,
 						"request", string(httpRequest),
@@ -138,18 +138,18 @@ func Cors(domain ...string) GinHandlerFunc {
 
 // MaxConnect limit max connect
 func MaxConnect(n int) GinHandlerFunc {
-	latch := cherrySync.NewLimit(n)
+	latch := csync.NewLimit(n)
 
 	return func(c *Context) {
 		if latch.TryBorrow() {
 			defer func() {
 				if err := latch.Return(); err != nil {
-					cherryLogger.Warn(err)
+					clog.Warn(err)
 				}
 			}()
 			c.Next()
 		} else {
-			cherryLogger.Warnf("limit = %d, service unavailable. url = %s", n, c.Request.RequestURI)
+			clog.Warnf("limit = %d, service unavailable. url = %s", n, c.Request.RequestURI)
 			c.AbortWithStatus(http.StatusServiceUnavailable)
 		}
 	}

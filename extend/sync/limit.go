@@ -1,11 +1,11 @@
 // Package cherrySync cherrySync file from https://github.com/beego/beego/blob/develop/core/utils/safemap.go
 package cherrySync
 
-import "github.com/cherry-game/cherry/error"
+import cerr "github.com/cherry-game/cherry/error"
 
 var (
 	// errReturn indicates that the more than borrowed elements were returned.
-	errReturn   = cherryError.Error("discarding limited token, resource pool is full, someone returned multiple times")
+	errReturn   = cerr.Error("discarding limited token, resource pool is full, someone returned multiple times")
 	placeholder placeholderType
 )
 

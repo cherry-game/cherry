@@ -3,7 +3,7 @@ package cherryMap
 
 import (
 	"encoding/json"
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	cutils "github.com/cherry-game/cherry/extend/utils"
 	"sync"
 	"unsafe"
 )
@@ -85,7 +85,7 @@ func (m *StringAnyMap) MapCopy() map[string]interface{} {
 func (m *StringAnyMap) FilterEmpty() {
 	m.mu.Lock()
 	for k, v := range m.data {
-		if cherryUtils.IsEmpty(v) {
+		if cutils.IsEmpty(v) {
 			delete(m.data, k)
 		}
 	}
@@ -97,7 +97,7 @@ func (m *StringAnyMap) FilterNil() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for k, v := range m.data {
-		if cherryUtils.IsNil(v) {
+		if cutils.IsNil(v) {
 			delete(m.data, k)
 		}
 	}

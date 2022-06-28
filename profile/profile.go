@@ -2,22 +2,22 @@ package cherryProfile
 
 import (
 	"fmt"
-	cherryConst "github.com/cherry-game/cherry/const"
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryFile "github.com/cherry-game/cherry/extend/file"
-	"github.com/cherry-game/cherry/extend/json"
-	"github.com/cherry-game/cherry/extend/string"
-	jsoniter "github.com/json-iterator/go"
+	cconst "github.com/cherry-game/cherry/const"
+	cerr "github.com/cherry-game/cherry/error"
+	cfile "github.com/cherry-game/cherry/extend/file"
+	cjson "github.com/cherry-game/cherry/extend/json"
+	cstring "github.com/cherry-game/cherry/extend/string"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"path"
 )
 
 var (
 	env = &struct {
-		profilePath string       // profile root dir
-		profileName string       // profile name
-		fileName    string       // profile fileName
-		json        jsoniter.Any // profile-x.json parse to json object
-		debug       bool         // debug default is true
+		profilePath string  // profile root dir
+		profileName string  // profile name
+		fileName    string  // profile fileName
+		jsonConfig  *Config // profile-x.json parse to json object
+		debug       bool    // debug default is true
 	}{}
 )
 
@@ -37,60 +37,57 @@ func Debug() bool {
 	return env.debug
 }
 
-func Init(profilePath, profileName string) (jsoniter.Any, error) {
+func Init(profilePath, profileName string) error {
 	if profilePath == "" {
-		return nil, cherryError.Error("profilePath parameter is null.")
+		return cerr.Error("profilePath parameter is null.")
 	}
 
 	if profileName == "" {
-		return nil, cherryError.Error("profileName parameter is null.")
+		return cerr.Error("profileName parameter is null.")
 	}
 
-	judgePath, ok := cherryFile.JudgePath(profilePath)
+	judgePath, ok := cfile.JudgePath(profilePath)
 	if !ok {
-		return nil, cherryError.Errorf("profilePath = %s not found.", profilePath)
+		return cerr.Errorf("profilePath = %s not found.", profilePath)
 	}
 
-	env.debug = true
+	fileName := fmt.Sprintf(cconst.ProfileNameFormat, profileName)
+	env.jsonConfig = loadFile(judgePath, fileName)
+	if env.jsonConfig.Any == nil || env.jsonConfig.LastError() != nil {
+		return cerr.Errorf("load profile file error. profilePath = %s", profilePath)
+	}
+
 	env.profilePath = judgePath
 	env.profileName = profileName
-	env.fileName = fmt.Sprintf(cherryConst.ProfileNameFormat, profileName)
-
-	env.json = loadProfileFile(env.profilePath, env.fileName)
-	if env.json == nil || env.json.LastError() != nil {
-		return nil, cherryError.Errorf("load profile file error. profilePath = %s", profilePath)
-	}
-
-	env.debug = GetBool(env.json, "debug", true)
-
-	return env.json, nil
+	env.fileName = fileName
+	env.debug = env.jsonConfig.GetBool("debug", true)
+	return nil
 }
 
-func Get(path ...interface{}) jsoniter.Any {
-	return env.json.Get(path...)
+func GetConfig(path ...interface{}) cfacade.JsonConfig {
+	return env.jsonConfig.GetConfig(path...)
 }
 
-func loadProfileFile(profilePath string, profileFullName string) jsoniter.Any {
+func loadFile(profilePath string, profileFullName string) *Config {
 	// merge include json file
 	var maps = make(map[string]interface{})
 
 	// read master json file
-	err := cherryJson.ReadMaps(path.Join(profilePath, profileFullName), maps)
+	err := cjson.ReadMaps(path.Join(profilePath, profileFullName), maps)
 	if err != nil {
 		panic(err)
 	}
 
 	// read include json file
 	if v, found := maps["include"].([]interface{}); found {
-		paths := cherryString.ToStringSlice(v)
+		paths := cstring.ToStringSlice(v)
 		for _, p := range paths {
 			includePath := path.Join(profilePath, p)
-			err := cherryJson.ReadMaps(includePath, maps)
-			if err != nil {
+			if err := cjson.ReadMaps(includePath, maps); err != nil {
 				panic(err)
 			}
 		}
 	}
 
-	return jsoniter.Wrap(maps)
+	return Wrap(maps)
 }

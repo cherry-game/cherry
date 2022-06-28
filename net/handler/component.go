@@ -2,12 +2,14 @@ package cherryHandler
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/const"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	cherryContext "github.com/cherry-game/cherry/net/context"
+	ccode "github.com/cherry-game/cherry/code"
+	cconst "github.com/cherry-game/cherry/const"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	ccontext "github.com/cherry-game/cherry/net/context"
 	"github.com/cherry-game/cherry/net/message"
 	"github.com/cherry-game/cherry/net/session"
+	"github.com/nats-io/nats.go"
 	"strings"
 )
 
@@ -15,7 +17,7 @@ type (
 	//Component handler component
 	Component struct {
 		options
-		facade.Component
+		cfacade.Component
 		groups []*HandlerGroup
 	}
 
@@ -50,7 +52,7 @@ func NewComponent(opts ...Option) *Component {
 }
 
 func (c *Component) Name() string {
-	return cherryConst.HandlerComponent
+	return cconst.HandlerComponent
 }
 
 func (c *Component) Init() {
@@ -79,14 +81,13 @@ func (c *Component) OnStop() {
 
 func (c *Component) Register(handlerGroup *HandlerGroup) {
 	if handlerGroup == nil {
-		cherryLogger.Warn("handlerGroup is nil")
+		clog.Warn("handlerGroup is nil")
 		return
 	}
 
 	for handlerName, handler := range handlerGroup.handlers {
 		// process name fn
 		name := c.nameFn(handlerName)
-
 		if name != handlerName {
 			delete(handlerGroup.handlers, handlerName)
 			handlerGroup.handlers[name] = handler
@@ -97,13 +98,13 @@ func (c *Component) Register(handlerGroup *HandlerGroup) {
 	c.groups = append(c.groups, handlerGroup)
 }
 
-func (c *Component) Register2Group(handler ...facade.IHandler) {
+func (c *Component) Register2Group(handler ...cfacade.IHandler) {
 	g := NewGroupWithHandler(handler...)
 	c.Register(g)
 }
 
 // PostEvent 发布事件
-func (c *Component) PostEvent(event facade.IEvent) {
+func (c *Component) PostEvent(event cfacade.IEvent) {
 	if event == nil {
 		return
 	}
@@ -121,29 +122,29 @@ func (c *Component) PostEvent(event facade.IEvent) {
 	}
 }
 
-func (c *Component) GetHandler(route string) (*cherryMessage.Route, *HandlerGroup, facade.IHandler, bool) {
+func (c *Component) GetHandler(route string) (*cherryMessage.Route, *HandlerGroup, cfacade.IHandler, bool) {
 	r, err := cherryMessage.DecodeRoute(route)
 	if err != nil {
-		cherryLogger.Warnf("[Route = %s] decode fail.", route)
+		clog.Warnf("[Route = %s] decode fail.", route)
 		return nil, nil, nil, false
 	}
 
 	handlerName := c.nameFn(r.HandleName())
 	if handlerName == "" {
-		cherryLogger.Warnf("[Route = %s] could not find handle name.", route)
+		clog.Warnf("[Route = %s] could not find handle name.", route)
 		return nil, nil, nil, false
 	}
 
 	group, handler := c.getGroup(handlerName)
 	if group == nil || handler == nil {
-		cherryLogger.Warnf("[Route = %s] could not find handler group.", route)
+		clog.Warnf("[Route = %s] could not find handler group.", route)
 		return nil, nil, nil, false
 	}
 
 	return r, group, handler, true
 }
 
-func (c *Component) getGroup(handlerName string) (*HandlerGroup, facade.IHandler) {
+func (c *Component) getGroup(handlerName string) (*HandlerGroup, cfacade.IHandler) {
 	for _, group := range c.groups {
 		if handler, found := group.handlers[handlerName]; found {
 			return group, handler
@@ -158,7 +159,7 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	}
 
 	if session == nil {
-		cherryLogger.Debug("[local] session is nil")
+		clog.Debug("[local] session is nil")
 		return
 	}
 
@@ -180,18 +181,18 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 		return
 	}
 
-	ctx := cherryContext.Add(context.Background(), cherryConst.MessageIdKey, msg.ID)
-	ctx = cherryContext.Add(ctx, cherryConst.RouteKey, msg.Route)
+	ctx := ccontext.Add(context.Background(), cconst.MessageIdKey, msg.ID)
+	ctx = ccontext.Add(ctx, cconst.RouteKey, msg.Route)
 
 	rt, group, handler, found := c.GetHandler(msg.Route)
 	if found == false {
-		cherryLogger.Warnf("[local] route not found handler. [route = %s]", msg.Route)
+		clog.Warnf("[local] route not found handler. [route = %s]", msg.Route)
 		return
 	}
 
 	fn, found := handler.LocalHandler(rt.Method())
 	if found == false {
-		cherryLogger.Debugf("[local] not find route. [Route = %v, method = %s]", msg.Route, rt.Method())
+		clog.Debugf("[local] not find route. [Route = %v, method = %s]", msg.Route, rt.Method())
 		return
 	}
 
@@ -208,10 +209,34 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	group.InQueue(executor)
 }
 
-func (c *Component) ProcessRemote(group *HandlerGroup, executor *ExecutorRemote) {
+func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) int32 {
 	if !c.App().Running() {
-		return
+		return ccode.AppIsStop
 	}
+
+	rt, group, handler, found := c.GetHandler(route)
+	if found == false {
+		clog.Warnf("handler not found. [route = %s]", route)
+		return ccode.RPCHandlerError
+	}
+
+	fn, found := handler.RemoteHandler(rt.Method())
+	if found == false {
+		clog.Debugf("could not find route method. [Route = %v, method = %s].", route, rt.Method())
+		return ccode.RPCHandlerError
+	}
+
+	executor := &ExecutorRemote{
+		IApplication: c.IApplication,
+		handlerFn:    fn,
+		route:        route,
+		data:         data,
+		natsMsg:      natsMsg,
+		printLog:     c.printRouteLog,
+	}
+
+	group.InQueue(executor)
+	return ccode.OK
 }
 
 func (c *Component) AddBeforeFilter(beforeFilters ...FilterFn) {

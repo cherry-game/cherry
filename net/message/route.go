@@ -2,7 +2,7 @@ package cherryMessage
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 	"strings"
 )
 
@@ -46,18 +46,18 @@ func (r *Route) String() string {
 // DecodeRoute decodes the route
 func DecodeRoute(route string) (*Route, error) {
 	if route == "" {
-		return nil, cherryError.RouteFieldCantEmpty
+		return nil, cerr.RouteFieldCantEmpty
 	}
 
 	r := strings.Split(route, ".")
 	for _, s := range r {
 		if strings.TrimSpace(s) == "" {
-			return nil, cherryError.RouteFieldCantEmpty
+			return nil, cerr.RouteFieldCantEmpty
 		}
 	}
 
 	if len(r) != 3 {
-		return nil, cherryError.RouteInvalid
+		return nil, cerr.RouteInvalid
 	}
 
 	return NewRoute(r[0], r[1], r[2]), nil

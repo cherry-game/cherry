@@ -2,9 +2,9 @@ package cherryGin
 
 import (
 	"context"
-	cherryFile "github.com/cherry-game/cherry/extend/file"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	cfile "github.com/cherry-game/cherry/extend/file"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"time"
@@ -25,7 +25,7 @@ type (
 	}
 
 	HttpServer struct {
-		cherryFacade.IApplication
+		cfacade.IApplication
 		Options
 		*gin.Engine
 		server      *http.Server
@@ -43,7 +43,7 @@ func SetMode(value string) {
 
 func NewHttpServer(address string, opts ...OptionFunc) *HttpServer {
 	if address == "" {
-		cherryLogger.Error("listener address is empty.")
+		clog.Error("listener address is empty.")
 		return nil
 	}
 
@@ -80,7 +80,7 @@ func (p *HttpServer) Use(middleware ...GinHandlerFunc) {
 	p.Engine.Use(BindHandlers(middleware)...)
 }
 
-func (p *HttpServer) SetIApplication(app cherryFacade.IApplication) {
+func (p *HttpServer) SetIApplication(app cfacade.IApplication) {
 	p.IApplication = app
 }
 
@@ -92,9 +92,9 @@ func (p *HttpServer) Register(controllers ...IController) *HttpServer {
 }
 
 func (p *HttpServer) Static(relativePath string, staticDir string) {
-	dir, ok := cherryFile.JudgePath(staticDir)
+	dir, ok := cfile.JudgePath(staticDir)
 	if !ok {
-		cherryLogger.Errorf("static dir path not found. staticDir = %s", staticDir)
+		clog.Errorf("static dir path not found. staticDir = %s", staticDir)
 		return
 	}
 
@@ -102,9 +102,9 @@ func (p *HttpServer) Static(relativePath string, staticDir string) {
 }
 
 func (p *HttpServer) StaticFile(relativePath, filepath string) {
-	dir, ok := cherryFile.JudgeFile(filepath)
+	dir, ok := cfile.JudgeFile(filepath)
 	if !ok {
-		cherryLogger.Errorf("static dir path not found. filePath = %s", filepath)
+		clog.Errorf("static dir path not found. filePath = %s", filepath)
 		return
 	}
 
@@ -113,7 +113,7 @@ func (p *HttpServer) StaticFile(relativePath, filepath string) {
 
 func (p *HttpServer) Run() {
 	if p.server.Addr == "" {
-		cherryLogger.Warn("no set listener address.")
+		clog.Warn("no set listener address.")
 		return
 	}
 
@@ -148,16 +148,16 @@ func (p *HttpServer) Run() {
 func (p *HttpServer) listener() {
 	var err error
 	if p.Options.CertFile != "" && p.Options.KeyFile != "" {
-		cherryLogger.Infof("https run. https://%s, certFile = %s, keyFile = %s",
+		clog.Infof("https run. https://%s, certFile = %s, keyFile = %s",
 			p.server.Addr, p.Options.CertFile, p.Options.KeyFile)
 		err = p.server.ListenAndServeTLS(p.Options.CertFile, p.Options.KeyFile)
 	} else {
-		cherryLogger.Infof("http run. http://%s", p.server.Addr)
+		clog.Infof("http run. http://%s", p.server.Addr)
 		err = p.server.ListenAndServe()
 	}
 
 	if err != http.ErrServerClosed {
-		cherryLogger.Infof("run error = %s", err)
+		clog.Infof("run error = %s", err)
 	}
 }
 
@@ -171,10 +171,10 @@ func (p *HttpServer) Stop() {
 	}
 
 	if err := p.server.Shutdown(ctx); err != nil {
-		cherryLogger.Info(err.Error())
+		clog.Info(err.Error())
 	}
 
-	cherryLogger.Infof("shutdown http server on %s", p.server.Addr)
+	clog.Infof("shutdown http server on %s", p.server.Addr)
 }
 
 func WithReadTimeout(t time.Duration) OptionFunc {

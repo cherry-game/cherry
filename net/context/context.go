@@ -3,7 +3,7 @@ package cherryContext
 import (
 	"context"
 	"encoding/json"
-	cherryConst "github.com/cherry-game/cherry/const"
+	cconst "github.com/cherry-game/cherry/const"
 )
 
 const (
@@ -15,7 +15,7 @@ const (
 func Add(ctx context.Context, key string, val interface{}) context.Context {
 	propagate := ToMap(ctx)
 	propagate[key] = val
-	return context.WithValue(ctx, cherryConst.PropagateCtxKey, propagate)
+	return context.WithValue(ctx, cconst.PropagateCtxKey, propagate)
 }
 
 // Get get a value from the propagate
@@ -28,7 +28,7 @@ func Get(ctx context.Context, key string) interface{} {
 }
 
 func GetRoute(ctx context.Context) string {
-	val := Get(ctx, cherryConst.RouteKey)
+	val := Get(ctx, cconst.RouteKey)
 	if val == nil {
 		return emptyString
 	}
@@ -40,7 +40,7 @@ func GetRoute(ctx context.Context) string {
 }
 
 func GetMessageId(ctx context.Context) uint {
-	val := Get(ctx, cherryConst.MessageIdKey)
+	val := Get(ctx, cconst.MessageIdKey)
 	if val == nil {
 		return zeroUint
 	}
@@ -56,7 +56,7 @@ func ToMap(ctx context.Context) map[string]interface{} {
 	if ctx == nil {
 		return map[string]interface{}{}
 	}
-	p := ctx.Value(cherryConst.PropagateCtxKey)
+	p := ctx.Value(cconst.PropagateCtxKey)
 	if p != nil {
 		return p.(map[string]interface{})
 	}
@@ -65,7 +65,7 @@ func ToMap(ctx context.Context) map[string]interface{} {
 
 // FromMap creates a new context from a map with propagated values
 func FromMap(val map[string]interface{}) context.Context {
-	return context.WithValue(context.Background(), cherryConst.PropagateCtxKey, val)
+	return context.WithValue(context.Background(), cconst.PropagateCtxKey, val)
 }
 
 // Encode returns the given propagatable context encoded in binary format

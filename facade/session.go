@@ -1,7 +1,7 @@
 package cherryFacade
 
 import (
-	cherryProto "github.com/cherry-game/cherry/net/proto"
+	"github.com/golang/protobuf/proto"
 )
 
 type (
@@ -11,12 +11,12 @@ type (
 
 	// INetwork 网络处理接口
 	INetwork interface {
-		Push(route string, val interface{})                           // 推送消息对客户端
-		Kick(reason interface{})                                      // 踢下线
-		Response(mid uint, val interface{}, isError ...bool)          // 回复消息到客户端
-		RPC(route string, val interface{}, rsp *cherryProto.Response) // 调用rpc TODO 待修改
-		SendRaw(bytes []byte)                                         // write raw data to client
-		RemoteAddr() string                                           // 连接者的地址信息
-		Close()                                                       // 关闭接口
+		SendRaw(bytes []byte)                                                        // write raw data to client
+		RPC(nodeId string, route string, req proto.Message, rsp proto.Message) int32 // 调用remote rpc
+		Response(mid uint, val interface{}, isError ...bool)                         // 回复消息到客户端
+		Push(route string, val interface{})                                          // 推送消息对客户端
+		Kick(reason interface{})                                                     // 踢下线
+		RemoteAddr() string                                                          // 连接者的地址信息
+		Close()                                                                      // 关闭接口
 	}
 )

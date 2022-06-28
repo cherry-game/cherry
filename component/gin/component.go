@@ -1,16 +1,16 @@
 package cherryGin
 
 import (
-	cherryConst "github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
+	cconst "github.com/cherry-game/cherry/const"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
 )
 
 type (
 	// Component wrapper gin
 	Component struct {
-		cherryFacade.Component
+		cfacade.Component
 		*HttpServer
 		name string
 	}
@@ -37,7 +37,7 @@ func New(name string, address string, opts ...OptionFunc) *Component {
 
 // Name unique components name
 func (g *Component) Name() string {
-	return cherryConst.HttpComponentPrefix + g.name
+	return cconst.HttpComponentPrefix + g.name
 }
 
 func (g *Component) Init() {
@@ -53,7 +53,7 @@ func (g *Component) OnBeforeStop() {
 
 func (g *Component) OnStop() {
 	g.Stop()
-	cherryLogger.Infof("[component = %s] has been shut down", g.Name())
+	clog.Infof("[component = %s] has been shut down", g.Name())
 }
 
 func (g *Component) Register(controllers ...IController) *Component {

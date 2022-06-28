@@ -3,9 +3,9 @@ package cherryCron
 import (
 	"fmt"
 	"github.com/cherry-game/cherry"
-	cherryMini "github.com/cherry-game/cherry/component/mini"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	cmini "github.com/cherry-game/cherry/component/mini"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/robfig/cron/v3"
 	"time"
 )
@@ -18,11 +18,11 @@ var _cron = cron.New(
 type CronLogger struct{}
 
 func (CronLogger) Info(msg string, keysAndValues ...interface{}) {
-	cherryLogger.Infow(msg, keysAndValues...)
+	clog.Infow(msg, keysAndValues...)
 }
 
 func (CronLogger) Error(err error, _ string, _ ...interface{}) {
-	cherryLogger.Error(err)
+	clog.Error(err)
 }
 
 func Init(opts ...cron.Option) {
@@ -36,15 +36,15 @@ func Init(opts ...cron.Option) {
 func RegisterComponent(opts ...cron.Option) {
 	Init(opts...)
 
-	mini := cherryMini.New(
-		"cron",
-		cherryMini.WithInitFunc(func(_ cherryFacade.IApplication) {
+	mini := cmini.New(
+		"cron_component",
+		cmini.WithInitFunc(func(_ cfacade.IApplication) {
 			_cron.Start()
-			cherryLogger.Info("cron component init.")
+			clog.Info("cron component init.")
 		}),
-		cherryMini.WithStop(func(_ cherryFacade.IApplication) {
+		cmini.WithStop(func(_ cfacade.IApplication) {
 			Stop()
-			cherryLogger.Infof("cron component is stopped.")
+			clog.Infof("cron component is stopped.")
 		}),
 	)
 
@@ -70,7 +70,7 @@ func AddEveryHourFunc(cmd func(), minute, second int) (cron.EntryID, error) {
 // AddDurationFunc 每间隔x秒执行一次
 func AddDurationFunc(cmd func(), duration time.Duration) (cron.EntryID, error) {
 	spec := fmt.Sprintf("@every %ds", int(duration.Seconds()))
-	cherryLogger.Info(spec)
+	clog.Info(spec)
 	return _cron.AddFunc(spec, cmd)
 }
 

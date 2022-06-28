@@ -1,17 +1,15 @@
 package cherryGin
 
 import (
-	"github.com/cherry-game/cherry/facade"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"github.com/gin-gonic/gin"
 )
 
 type GinHandlerFunc func(ctx *Context)
 
 type IController interface {
-	PreInit(app cherryFacade.IApplication, engine *gin.Engine)
-
+	PreInit(app cfacade.IApplication, engine *gin.Engine)
 	Init()
-
 	Stop()
 }
 
@@ -32,11 +30,11 @@ func BindHandler(handler func(ctx *Context)) gin.HandlerFunc {
 }
 
 type BaseController struct {
-	App    cherryFacade.IApplication
+	App    cfacade.IApplication
 	Engine *gin.Engine
 }
 
-func (b *BaseController) PreInit(app cherryFacade.IApplication, engine *gin.Engine) {
+func (b *BaseController) PreInit(app cfacade.IApplication, engine *gin.Engine) {
 	b.App = app
 	b.Engine = engine
 }

@@ -3,10 +3,10 @@ package cherryDiscovery
 import (
 	"context"
 	"fmt"
-	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	cprofile "github.com/cherry-game/cherry/profile"
 	jsoniter "github.com/json-iterator/go"
 	"go.etcd.io/etcd/api/v3/mvccpb"
 	"go.etcd.io/etcd/client/v3"
@@ -22,7 +22,7 @@ var (
 
 // DiscoveryETCD etcd方式发现服务
 type DiscoveryETCD struct {
-	facade.IApplication
+	cfacade.IApplication
 	DiscoveryDefault
 	prefix  string
 	config  clientv3.Config
@@ -35,33 +35,33 @@ func (p *DiscoveryETCD) Name() string {
 	return "etcd"
 }
 
-func (p *DiscoveryETCD) Init(app facade.IApplication) {
+func (p *DiscoveryETCD) Init(app cfacade.IApplication) {
 	p.IApplication = app
 	p.ttl = 10
 
-	clusterProfile := cherryProfile.Get("cluster").Get(p.Name())
-	if clusterProfile.LastError() != nil {
-		cherryLogger.Fatalf("etcd config not found. err = %v", clusterProfile.LastError())
+	clusterConfig := cprofile.GetConfig("cluster").GetConfig(p.Name())
+	if clusterConfig.LastError() != nil {
+		clog.Fatalf("etcd config not found. err = %v", clusterConfig.LastError())
 		return
 	}
 
-	p.loadConfig(clusterProfile)
+	p.loadConfig(clusterConfig)
 	p.init()
 	p.getLeaseId()
 	p.register()
 	p.watch()
 
-	cherryLogger.Infof("[etcd] init complete! [endpoints = %v] [leaseId = %d]", p.config.Endpoints, p.leaseID)
+	clog.Infof("[etcd] init complete! [endpoints = %v] [leaseId = %d]", p.config.Endpoints, p.leaseID)
 }
 
 func (p *DiscoveryETCD) OnStop() {
 	key := fmt.Sprintf(registerKeyFormat, p.NodeId())
 	_, err := p.cli.Delete(context.Background(), key)
-	cherryLogger.Infof("etcd stopping! err = %v", err)
+	clog.Infof("etcd stopping! err = %v", err)
 
 	err = p.cli.Close()
 	if err != nil {
-		cherryLogger.Warnf("etcd stopping error! err = %v", err)
+		clog.Warnf("etcd stopping error! err = %v", err)
 	}
 }
 
@@ -78,32 +78,24 @@ func getEndPoints(config jsoniter.Any) []string {
 	return strings.Split(config.Get("end_points").ToString(), ",")
 }
 
-func (p *DiscoveryETCD) loadConfig(config jsoniter.Any) {
+func (p *DiscoveryETCD) loadConfig(config cfacade.JsonConfig) {
 	p.config = clientv3.Config{
-		Logger: cherryLogger.DefaultLogger.Desugar(),
+		Logger: clog.DefaultLogger.Desugar(),
 	}
 
 	p.config.Endpoints = getEndPoints(config)
 	p.config.DialTimeout = getDialTimeout(config)
-	p.config.Username = config.Get("user").ToString()
-	p.config.Password = config.Get("password").ToString()
-
-	p.ttl = config.Get("ttl").ToInt64()
-	if p.ttl < 1 {
-		p.ttl = 5
-	}
-
-	p.prefix = config.Get("prefix").ToString()
-	if p.prefix == "" {
-		p.prefix = "cherry"
-	}
+	p.config.Username = config.GetString("user")
+	p.config.Password = config.GetString("password")
+	p.ttl = config.GetInt64("ttl", 5)
+	p.prefix = config.GetString("prefix", "cherry")
 }
 
 func (p *DiscoveryETCD) init() {
 	var err error
 	p.cli, err = clientv3.New(p.config)
 	if err != nil {
-		cherryLogger.Fatalf("etcd connect fail. err = %v", err)
+		clog.Fatalf("etcd connect fail. err = %v", err)
 		return
 	}
 
@@ -118,7 +110,7 @@ func (p *DiscoveryETCD) getLeaseId() {
 	//设置租约时间
 	resp, err := p.cli.Grant(context.Background(), p.ttl)
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 		return
 	}
 
@@ -127,7 +119,7 @@ func (p *DiscoveryETCD) getLeaseId() {
 	//设置续租 定期发送需求请求
 	keepaliveChan, err := p.cli.KeepAlive(context.Background(), resp.ID)
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 		return
 	}
 
@@ -149,7 +141,7 @@ func (p *DiscoveryETCD) getLeaseId() {
 }
 
 func (p *DiscoveryETCD) register() {
-	registerMember := &cherryProto.Member{
+	registerMember := &cproto.Member{
 		NodeId:   p.NodeId(),
 		NodeType: p.NodeType(),
 		Address:  p.RpcAddress(),
@@ -158,14 +150,14 @@ func (p *DiscoveryETCD) register() {
 
 	jsonString, err := jsoniter.MarshalToString(registerMember)
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 		return
 	}
 
 	key := fmt.Sprintf(registerKeyFormat, p.NodeId())
 	_, err = p.cli.Put(context.Background(), key, jsonString, clientv3.WithLease(p.leaseID))
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 		return
 	}
 }
@@ -173,7 +165,7 @@ func (p *DiscoveryETCD) register() {
 func (p *DiscoveryETCD) watch() {
 	resp, err := p.cli.Get(context.Background(), keyPrefix, clientv3.WithPrefix())
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 		return
 	}
 
@@ -201,7 +193,7 @@ func (p *DiscoveryETCD) watch() {
 }
 
 func (p *DiscoveryETCD) addMember(data []byte) {
-	member := &cherryProto.Member{}
+	member := &cproto.Member{}
 	err := jsoniter.Unmarshal(data, member)
 	if err != nil {
 		return
@@ -216,7 +208,7 @@ func (p *DiscoveryETCD) removeMember(kv *mvccpb.KeyValue) {
 	key := string(kv.Key)
 	nodeId := strings.ReplaceAll(key, keyPrefix, "")
 	if nodeId == "" {
-		cherryLogger.Warn("remove member nodeId is empty!")
+		clog.Warn("remove member nodeId is empty!")
 	}
 
 	p.RemoveMember(nodeId)

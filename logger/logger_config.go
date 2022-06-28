@@ -2,7 +2,7 @@ package cherryLogger
 
 import (
 	"fmt"
-	jsoniter "github.com/json-iterator/go"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"go.uber.org/zap/zapcore"
 	"strings"
 	"time"
@@ -43,54 +43,24 @@ func defaultConsoleConfig() *Config {
 	return config
 }
 
-func NewConfig(jsonConfig jsoniter.Any) *Config {
-	config := defaultConsoleConfig()
+func NewConfig(jsonConfig cfacade.JsonConfig) *Config {
+	config := &Config{}
 
-	if jsonConfig.LastError() == nil {
-		if jsonConfig.Get("level").LastError() == nil {
-			config.Level = jsonConfig.Get("level").ToString()
-		}
+	config.Level = jsonConfig.GetString("level", "debug")
+	config.StackLevel = jsonConfig.GetString("stack_level", "error")
+	config.EnableConsole = jsonConfig.GetBool("enable_console", true)
+	config.EnableWriteFile = jsonConfig.GetBool("enable_write_file", false)
+	config.MaxAge = jsonConfig.GetInt("max_age", 7)
+	config.TimeFormat = jsonConfig.GetString("time_format", "15:04:05.000")
+	config.PrintCaller = jsonConfig.GetBool("print_caller", true)
+	config.RotationTime = jsonConfig.GetInt("rotation_time", 86400)
 
-		if jsonConfig.Get("stack_level").LastError() == nil {
-			config.StackLevel = jsonConfig.Get("stack_level").ToString()
-		}
-
-		if jsonConfig.Get("enable_console").LastError() == nil {
-			config.EnableConsole = jsonConfig.Get("enable_console").ToBool()
-		}
-
-		if jsonConfig.Get("enable_write_file").LastError() == nil {
-			config.EnableWriteFile = jsonConfig.Get("enable_write_file").ToBool()
-		}
-
-		if jsonConfig.Get("max_age").LastError() == nil {
-			config.MaxAge = jsonConfig.Get("max_age").ToInt()
-		}
-
-		if jsonConfig.Get("time_format").LastError() == nil {
-			config.TimeFormat = jsonConfig.Get("time_format").ToString()
-		}
-
-		if jsonConfig.Get("print_caller").LastError() == nil {
-			config.PrintCaller = jsonConfig.Get("print_caller").ToBool()
-		}
-
-		if jsonConfig.Get("rotation_time").LastError() == nil {
-			config.RotationTime = jsonConfig.Get("rotation_time").ToInt()
-		}
-
-		if jsonConfig.Get("file_link_path").LastError() == nil {
-			config.FileLinkPath = jsonConfig.Get("file_link_path").ToString()
-		} else {
-			config.FileLinkPath = fmt.Sprintf("logs/%s.log", config.Level)
-		}
-
-		if jsonConfig.Get("file_path_format").LastError() == nil {
-			config.FilePathFormat = jsonConfig.Get("file_path_format").ToString()
-		} else {
-			config.FilePathFormat = fmt.Sprintf("logs/%s_%s", config.Level, "%Y%m%d%H%M.log")
-		}
-	}
+	defaultFileLinkPath := fmt.Sprintf("logs/%s.log", config.Level)
+	config.FileLinkPath = jsonConfig.GetString("file_link_path", defaultFileLinkPath)
+	defaultFilePath := fmt.Sprintf("logs/%s_%s", config.Level, "%Y%m%d%H%M.log")
+	config.FilePathFormat = jsonConfig.GetString("file_path_format", defaultFilePath)
+	config.IncludeStdout = jsonConfig.GetBool("include_stdout", false)
+	config.IncludeStderr = jsonConfig.GetBool("include_stderr", false)
 
 	return config
 }

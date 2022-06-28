@@ -10,8 +10,7 @@
       {
         "enable": true,
         "node_id": "web-1",
-        "address": "127.0.0.1:10820",
-        "rpc_address": "127.0.0.1:20820",
+        "address": ":10820",
         "__settings__": {
           "maintain_state": 2,
           "ref_logger": "game_log"
@@ -22,8 +21,7 @@
       {
         "enable": true,
         "node_id": "game-1",
-        "address": "127.0.0.1:10860",
-        "rpc_address": "127.0.0.1:20860",
+        "address": ":10860",
         "__settings__": {
           "maintain_state": 2,
           "db_id_list": [
@@ -40,7 +38,7 @@
         "enable": true,
         "db_id": "center_db_1",
         "db_name": "dev_xgame_center",
-        "host": "127.0.0.1",
+        "host": "dev.com",
         "user_name": "gameserver",
         "password": "password",
         "max_idle_connect": 4,
@@ -53,7 +51,7 @@
         "enable": true,
         "db_id": "game_db_1",
         "db_name": "game_01",
-        "host": "127.0.0.1",
+        "host": "dev.com",
         "user_name": "root",
         "password": "123456",
         "max_idle_connect": 4,

@@ -1,8 +1,8 @@
 package cherryNats
 
 import (
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	clog "github.com/cherry-game/cherry/logger"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/nats-io/nats.go"
 	"time"
 )
@@ -11,16 +11,17 @@ var (
 	natsConnect *NatsConnect
 )
 
-func Init(opts ...OptionFunc) {
-	natsConfig := cherryProfile.Get("cluster").Get("nats")
+func Init() {
+	natsConfig := cprofile.GetConfig("cluster").GetConfig("nats")
 	if natsConfig.LastError() != nil {
 		panic("cluster->nats config not found.")
 	}
 
-	natsConnect = New(natsConfig, opts...)
+	natsConnect = New()
+	natsConnect.LoadConfig(natsConfig)
 	natsConnect.Connect()
 
-	cherryLogger.Infof("nats execute Init()")
+	clog.Infof("nats execute Init()")
 }
 
 func App() *NatsConnect {
@@ -45,5 +46,5 @@ func Subscribe(subj string, cb nats.MsgHandler) (*nats.Subscription, error) {
 
 func Close() {
 	natsConnect.Close()
-	cherryLogger.Infof("nats execute Close()")
+	clog.Infof("nats execute Close()")
 }

@@ -3,7 +3,7 @@ package cherryHttp
 import (
 	"bytes"
 	"encoding/json"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	clog "github.com/cherry-game/cherry/logger"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,7 +35,7 @@ func GET(url string, values ...map[string]string) ([]byte, *http.Response, error
 	defer func(body io.ReadCloser) {
 		e := body.Close()
 		if e != nil {
-			cherryLogger.Warnf("HTTP GET [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP GET [url = %s], error = %s", url, e)
 		}
 	}(rsp.Body)
 
@@ -59,7 +59,7 @@ func POST(url string, values map[string]string) ([]byte, *http.Response, error) 
 	defer func(body io.ReadCloser) {
 		e := body.Close()
 		if e != nil {
-			cherryLogger.Warnf("HTTP POST [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP POST [url = %s], error = %s", url, e)
 		}
 	}(rsp.Body)
 
@@ -87,7 +87,7 @@ func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
 	defer func(Body io.ReadCloser) {
 		e := Body.Close()
 		if e != nil {
-			cherryLogger.Warnf("HTTP PostJSON [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP PostJSON [url = %s], error = %s", url, e)
 		}
 	}(rsp.Body)
 

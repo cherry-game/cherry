@@ -1,12 +1,12 @@
 package cherryORM
 
 import (
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	clog "github.com/cherry-game/cherry/logger"
 	"strings"
 )
 
 type ormLogger struct {
-	log *cherryLogger.CherryLogger
+	log *clog.CherryLogger
 }
 
 func (l ormLogger) Printf(s string, i ...interface{}) {

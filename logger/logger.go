@@ -2,9 +2,9 @@ package cherryLogger
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/facade"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger/rotatelogs"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"os"
@@ -16,7 +16,7 @@ var (
 	rw            sync.RWMutex             // mutex
 	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
 	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodePrefix    string                   // current node id
+	nodeId        string                   // current node id
 )
 
 func init() {
@@ -33,11 +33,9 @@ func (c *CherryLogger) Print(v ...interface{}) {
 	c.Warn(v)
 }
 
-func SetNodeLogger(node cherryFacade.INode) {
-	nodePrefix = fmt.Sprintf("[node#%s]", node.NodeId())
-
+func SetNodeLogger(node cfacade.INode) {
+	nodeId = node.NodeId()
 	refLogger := node.Settings().Get("ref_logger").ToString()
-
 	if refLogger == "" {
 		DefaultLogger.Infof("refLogger config not found, used default console logger.")
 		return
@@ -66,12 +64,12 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 		return logger
 	}
 
-	loggerProfile := cherryProfile.Get("logger")
-	if loggerProfile.LastError() != nil {
-		panic(loggerProfile.LastError())
+	loggerConfig := cprofile.GetConfig("logger")
+	if loggerConfig.LastError() != nil {
+		panic(loggerConfig.LastError())
 	}
 
-	jsonConfig := loggerProfile.Get(refLoggerName)
+	jsonConfig := loggerConfig.GetConfig(refLoggerName)
 	if jsonConfig.LastError() != nil {
 		panic(fmt.Sprintf("ref_logger = %s not found. error = %v", refLoggerName, jsonConfig.LastError()))
 	}
@@ -93,14 +91,11 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		StacktraceKey:  "stack",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeLevel:    zapcore.CapitalLevelEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
-	encoderConfig.EncodeCaller = func(caller zapcore.EntryCaller, encoder zapcore.PrimitiveArrayEncoder) {
-		if nodePrefix != "" {
-			encoder.AppendString(nodePrefix) // node prefix
-		}
-		encoder.AppendString(caller.TrimmedPath())
+	encoderConfig.EncodeLevel = func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
+		encoder.AppendString(fmt.Sprintf("%s %-5s", nodeId, level.CapitalString()))
 	}
 
 	if config.PrintCaller {

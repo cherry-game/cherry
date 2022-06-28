@@ -1,7 +1,7 @@
 package cherryMessage
 
 import (
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	clog "github.com/cherry-game/cherry/logger"
 	"strings"
 )
 
@@ -21,12 +21,12 @@ func SetDictionary(dict map[string]uint16) {
 
 		// duplication check
 		if _, ok := routes[r]; ok {
-			cherryLogger.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			clog.Errorf("duplicated route(route: %s, code: %d)", r, code)
 			return
 		}
 
 		if _, ok := codes[code]; ok {
-			cherryLogger.Errorf("duplicated route(route: %s, code: %d)", r, code)
+			clog.Errorf("duplicated route(route: %s, code: %d)", r, code)
 			return
 		}
 

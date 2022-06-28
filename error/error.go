@@ -48,11 +48,12 @@ var (
 )
 
 var (
-	DiscoveryGetMemberListIsEmpty = Error("get member list is empty.")
+	DiscoveryMemberListIsEmpty = Error("get member list is empty.")
 )
 
 // cluster
 var (
 	ClusterRPCClientIsStop = Error("rpc client is stop")
 	ClusterNoImplement     = Error("no implement")
+	NodeTypeIsNil          = Error("node type is nil.")
 )

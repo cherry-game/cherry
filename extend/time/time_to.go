@@ -1,7 +1,7 @@
 package cherryTime
 
 import (
-	cherryString "github.com/cherry-game/cherry/extend/string"
+	cstring "github.com/cherry-game/cherry/extend/string"
 	"time"
 )
 
@@ -63,7 +63,7 @@ func (c CherryTime) ToShortDateFormat() string {
 // ToShortIntDateFormat 20060102
 func (c CherryTime) ToShortIntDateFormat() int32 {
 	strDate := c.ToShortDateFormat()
-	intDate, _ := cherryString.ToInt32(strDate)
+	intDate, _ := cstring.ToInt32(strDate)
 	return intDate
 }
 

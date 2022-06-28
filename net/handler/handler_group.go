@@ -1,21 +1,21 @@
 package cherryHandler
 
 import (
-	crypto "github.com/cherry-game/cherry/extend/crypto"
-	"github.com/cherry-game/cherry/extend/reflect"
-	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	ccrypto "github.com/cherry-game/cherry/extend/crypto"
+	creflect "github.com/cherry-game/cherry/extend/reflect"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"math/rand"
 	"runtime/debug"
 )
 
 type (
 	HandlerGroup struct {
-		handlers  map[string]facade.IHandler
+		handlers  map[string]cfacade.IHandler
 		queueNum  int
 		queueCap  int
 		queueMaps map[int]*Queue
-		queueHash QueueHash
+		queueHash QueueHashFn
 	}
 
 	Queue struct {
@@ -23,10 +23,10 @@ type (
 		dataChan chan IExecutor
 	}
 
-	QueueHash func(executor IExecutor, queueNum int) int
+	QueueHashFn func(executor IExecutor, queueNum int) int
 )
 
-func NewGroupWithHandler(handlers ...facade.IHandler) *HandlerGroup {
+func NewGroupWithHandler(handlers ...cfacade.IHandler) *HandlerGroup {
 	g := NewGroup(1, 512)
 	g.AddHandlers(handlers...)
 	return g
@@ -42,7 +42,7 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 	}
 
 	g := &HandlerGroup{
-		handlers:  make(map[string]facade.IHandler),
+		handlers:  make(map[string]cfacade.IHandler),
 		queueNum:  queueNum,
 		queueCap:  queueCap,
 		queueMaps: make(map[int]*Queue),
@@ -61,17 +61,17 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 	return g
 }
 
-func (h *HandlerGroup) AddHandlers(handlers ...facade.IHandler) {
+func (h *HandlerGroup) AddHandlers(handlers ...cfacade.IHandler) {
 	for _, handler := range handlers {
 		if handler.Name() == "" {
-			handler.SetName(cherryReflect.GetStructName(handler))
+			handler.SetName(creflect.GetStructName(handler))
 		}
 
 		h.handlers[handler.Name()] = handler
 	}
 }
 
-func (h *HandlerGroup) SetQueueHash(fn QueueHash) {
+func (h *HandlerGroup) SetQueueHash(fn QueueHashFn) {
 	h.queueHash = fn
 }
 
@@ -80,15 +80,16 @@ func (h *HandlerGroup) InQueue(executor IExecutor) {
 	executor.SetIndex(index)
 
 	if index > h.queueNum {
-		cherryLogger.Errorf("group index error. [groupIndex = %d, queueNum = %d]", executor.Index(), h.queueNum)
+		clog.Errorf("group index error. [groupIndex = %d, queueNum = %d]", executor.Index(), h.queueNum)
 		return
 	}
 
-	q := h.queueMaps[index]
-	q.dataChan <- executor
+	if q, found := h.queueMaps[index]; found {
+		q.dataChan <- executor
+	}
 }
 
-func (h *HandlerGroup) run(app facade.IApplication) {
+func (h *HandlerGroup) run(app cfacade.IApplication) {
 	for _, handler := range h.handlers {
 		handler.Set(app)
 		handler.OnPreInit()
@@ -122,25 +123,25 @@ func (q *Queue) run() {
 func (q *Queue) executorInvoke(executor IExecutor) {
 	defer func() {
 		if rev := recover(); rev != nil {
-			cherryLogger.Warnf("recover in handle group. %s", string(debug.Stack()))
+			clog.Warnf("recover in handle group. %s", string(debug.Stack()))
 		}
 	}()
 
 	executor.Invoke()
 }
 
-func (h *HandlerGroup) printInfo(handler facade.IHandler) {
-	cherryLogger.Infof("[handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
+func (h *HandlerGroup) printInfo(handler cfacade.IHandler) {
+	clog.Infof("[handler = %s] queueNum = %d, queueCap = %d", handler.Name(), h.queueNum, h.queueCap)
 	for key := range handler.Events() {
-		cherryLogger.Infof("[handler = %s] event = %s", handler.Name(), key)
+		clog.Infof("[handler = %s] event = %s", handler.Name(), key)
 	}
 
 	for key := range handler.LocalHandlers() {
-		cherryLogger.Infof("[handler = %s] localHandler = %s", handler.Name(), key)
+		clog.Infof("[handler = %s] localMethod = %s", handler.Name(), key)
 	}
 
 	for key := range handler.RemoteHandlers() {
-		cherryLogger.Infof("[handler = %s] remoteHandler = %s", handler.Name(), key)
+		clog.Infof("[handler = %s] remoteHandler = %s", handler.Name(), key)
 	}
 }
 
@@ -155,7 +156,7 @@ func DefaultQueueHash(executor IExecutor, queueNum int) int {
 		if e.Session.UID() > 0 {
 			i = int(e.Session.UID() % int64(queueNum))
 		} else {
-			i = crypto.CRC32(e.Session.SID()) % queueNum
+			i = ccrypto.CRC32(e.Session.SID()) % queueNum
 		}
 	case *ExecutorEvent:
 		i = int(e.Event.UniqueId() % int64(queueNum))

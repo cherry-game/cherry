@@ -2,9 +2,8 @@ package cherryProfile
 
 import (
 	"fmt"
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	jsoniter "github.com/json-iterator/go"
+	cerr "github.com/cherry-game/cherry/error"
+	cfacade "github.com/cherry-game/cherry/facade"
 )
 
 // Node node info
@@ -13,7 +12,7 @@ type Node struct {
 	nodeType   string
 	address    string
 	rpcAddress string
-	settings   jsoniter.Any
+	settings   cfacade.JsonConfig
 	enabled    bool
 }
 
@@ -33,7 +32,7 @@ func (n *Node) RpcAddress() string {
 	return n.rpcAddress
 }
 
-func (n *Node) Settings() jsoniter.Any {
+func (n *Node) Settings() cfacade.JsonConfig {
 	return n.settings
 }
 
@@ -53,44 +52,44 @@ func (n *Node) String() string {
 	)
 }
 
-func LoadNode(nodeId string) (cherryFacade.INode, error) {
-	nodeJson := Get("node")
-	if nodeJson.LastError() != nil {
-		return nil, cherryError.Error("`nodes` property not found in profile file.")
+func LoadNode(nodeId string) (cfacade.INode, error) {
+	nodeConfig := GetConfig("node")
+	if nodeConfig.LastError() != nil {
+		return nil, cerr.Error("`nodes` property not found in profile file.")
 	}
 
-	for _, nodeType := range nodeJson.Keys() {
-		typeJson := nodeJson.Get(nodeType)
+	for _, nodeType := range nodeConfig.Keys() {
+		typeJson := nodeConfig.GetConfig(nodeType)
 		for i := 0; i < typeJson.Size(); i++ {
-			item := typeJson.Get(i)
+			item := typeJson.GetConfig(i)
 
-			if foundNodeId(nodeId, item.Get("node_id")) == false {
+			if foundNodeId(nodeId, item.GetConfig("node_id")) == false {
 				continue
 			}
 
 			node := &Node{
 				nodeId:     nodeId,
 				nodeType:   nodeType,
-				address:    item.Get("address").ToString(),
-				rpcAddress: item.Get("rpc_address").ToString(),
-				settings:   item.Get("__settings__"),
-				enabled:    item.Get("enabled").ToBool(),
+				address:    item.GetString("address"),
+				rpcAddress: item.GetString("rpc_address"),
+				settings:   item.GetConfig("__settings__"),
+				enabled:    item.GetBool("enabled"),
 			}
 
 			return node, nil
 		}
 	}
 
-	return nil, cherryError.Errorf("nodeId = %s not found.", nodeId)
+	return nil, cerr.Errorf("nodeId = %s not found.", nodeId)
 }
 
-func foundNodeId(nodeId string, nodeIdJson jsoniter.Any) bool {
+func foundNodeId(nodeId string, nodeIdJson cfacade.JsonConfig) bool {
 	if nodeIdJson.ToString() == nodeId {
 		return true
 	}
 
 	for i := 0; i < nodeIdJson.Size(); i++ {
-		if nodeIdJson.Get(i).ToString() == nodeId {
+		if nodeIdJson.GetString(i) == nodeId {
 			return true
 		}
 	}

@@ -1,24 +1,24 @@
 package cherryCron
 
 import (
-	cherryTime "github.com/cherry-game/cherry/extend/time"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	ctime "github.com/cherry-game/cherry/extend/time"
+	clog "github.com/cherry-game/cherry/logger"
 	"testing"
 	"time"
 )
 
 func TestAddEveryDayFunc(t *testing.T) {
 	AddEveryDayFunc(func() {
-		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
+		clog.Info(ctime.Now().ToDateTimeFormat())
 	}, 17, 32, 5)
 
 	AddEveryHourFunc(func() {
-		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
+		clog.Info(ctime.Now().ToDateTimeFormat())
 		panic("print panic~~~")
 	}, 5, 5)
 
 	AddDurationFunc(func() {
-		cherryLogger.Info(cherryTime.Now().ToDateTimeFormat())
+		clog.Info(ctime.Now().ToDateTimeFormat())
 	}, 1*time.Minute)
 
 	Run()

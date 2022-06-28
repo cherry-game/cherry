@@ -7,7 +7,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	cherryError "github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 	"strconv"
 	"sync"
 	"time"
@@ -120,7 +120,7 @@ func NewNode(node int64) (*Node, error) {
 	n.nodeShift = StepBits
 
 	if n.node < 0 || n.node > n.nodeMax {
-		return nil, cherryError.Errorf("Node number must be between 0 and %d", n.nodeMax)
+		return nil, cerr.Errorf("Node number must be between 0 and %d", n.nodeMax)
 	}
 
 	var curTime = time.Now()

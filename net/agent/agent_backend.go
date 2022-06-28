@@ -1,26 +1,24 @@
 package cherryAgent
 
 import (
-	"context"
-	cherryCode "github.com/cherry-game/cherry/code"
-	cherryConst "github.com/cherry-game/cherry/const"
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryRouter "github.com/cherry-game/cherry/net/router"
-	cherrySession "github.com/cherry-game/cherry/net/session"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	ccode "github.com/cherry-game/cherry/code"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cherryDiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	csession "github.com/cherry-game/cherry/net/session"
+	"github.com/golang/protobuf/proto"
 )
 
 type AgentBackend struct {
-	cherryFacade.IApplication
-	rpcClient cherryFacade.RPCClient
-	session   *cherrySession.Session
+	cfacade.IApplication
+	rpcClient cfacade.RPCClient
+	session   *csession.Session
 	ip        string
 }
 
-func NewAgentBackend(app cherryFacade.IApplication, rpcClient cherryFacade.RPCClient, ip string) AgentBackend {
+func NewAgentBackend(app cfacade.IApplication, rpcClient cfacade.RPCClient, ip string) AgentBackend {
 	return AgentBackend{
 		IApplication: app,
 		rpcClient:    rpcClient,
@@ -28,31 +26,54 @@ func NewAgentBackend(app cherryFacade.IApplication, rpcClient cherryFacade.RPCCl
 	}
 }
 
-func (a *AgentBackend) SetSession(session *cherrySession.Session) {
+func (a *AgentBackend) SetSession(session *csession.Session) {
 	a.session = session
 }
 
 func (a *AgentBackend) Push(route string, val interface{}) {
-	a.rpcClient.SendPush(a.session.FrontendId(), route, a.session.UID(), val)
-
-	if cherryProfile.Debug() {
-		a.session.Debugf("[Push] ok. [frontend = %s, route = %s, val = %+v]",
+	bytes, err := a.Marshal(val)
+	if err != nil {
+		clog.Warnf("[Push] marshal error.  [frontend = %s, route = %s, val = %+v]",
 			a.session.FrontendId(),
 			route,
 			val,
 		)
 	}
+
+	push := &cproto.Push{
+		Route: route,
+		Uid:   a.session.UID(),
+		Data:  bytes,
+	}
+
+	a.rpcClient.PublishPush(a.session.FrontendId(), push)
 }
 
 func (a *AgentBackend) Kick(reason interface{}) {
-	a.rpcClient.SendKick(a.session.FrontendId(), a.session.UID(), reason)
-
-	if cherryProfile.Debug() {
-		a.session.Debugf("[Kick] ok. [frontend = %s, reason = %+v]",
+	bytes, err := a.Marshal(reason)
+	if err != nil {
+		clog.Warnf("[Kick] marshal error.  [frontend = %s, val = %+v, err = %s]",
 			a.session.FrontendId(),
 			reason,
+			err,
 		)
 	}
+
+	kick := &cproto.Kick{
+		Uid:  a.session.UID(),
+		Data: bytes,
+	}
+
+	nodeType, err := cherryDiscovery.GetType(a.session.FrontendId())
+	if err != nil {
+		clog.Warnf("[Kick] get node type error.  [frontend = %s, val = %+v, err = %s]",
+			a.session.FrontendId(),
+			reason,
+			err,
+		)
+	}
+
+	a.rpcClient.PublishKick(nodeType, kick)
 }
 
 func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
@@ -71,7 +92,7 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 		return
 	}
 
-	data, err := a.Marshal(val)
+	bytes, err := a.Marshal(val)
 	if err != nil {
 		a.session.Errorf("[Response] marshal error. [frontend = %s, mid = %d, isErr = %v, val = %+v]",
 			a.session.FrontendId(),
@@ -82,18 +103,17 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 		return
 	}
 
-	localPacket := &cherryProto.LocalPacket{
-		Session: &cherryProto.Session{
-			Uid:        a.session.UID(),
-			FrontendId: a.session.FrontendId(),
-		},
-		MsgType: int32(cherryMessage.Response),
-		MsgId:   uint32(mid),
-		IsError: isErr,
-		Data:    data,
-	}
+	request := cproto.GetRequest()
+	defer cproto.PutRequest(request)
 
-	err = a.rpcClient.CallLocal(a.session.FrontendId(), localPacket)
+	request.Uid = a.session.UID()
+	request.FrontendId = a.session.FrontendId()
+	request.MsgType = int32(cmsg.Response)
+	request.MsgId = uint32(mid)
+	request.IsError = isErr
+	request.Data = bytes
+
+	a.rpcClient.PublishLocal(a.session.FrontendId(), request)
 	if err != nil {
 		a.session.Errorf("[Response] call error. [frontend = %s, mid = %d, isErr = %v, val = %+v]",
 			a.session.FrontendId(),
@@ -102,66 +122,74 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 			val,
 		)
 	}
+}
 
-	if cherryProfile.Debug() {
-		a.session.Debugf("[Response] ok. [frontend = %s, mid = %d, err = %v, val = %+v]",
-			a.session.FrontendId(),
-			mid,
-			isErr,
-			val,
+func (a *AgentBackend) RPC(nodeId string, route string, req proto.Message, rsp proto.Message) int32 {
+	if _, err := cmsg.DecodeRoute(route); err != nil {
+		a.session.Errorf("[RPC] decode route fail. [nodeId = %s, route = %s, req = %+v, err = %v]",
+			nodeId,
+			route,
+			req,
+			err,
 		)
+		return ccode.RPCRouteDecodeError
 	}
-}
 
-func (a *AgentBackend) SendRaw(_ []byte) {
-	a.session.Errorf("[SendRaw] %v", cherryError.ClusterNoImplement)
-}
-
-func (a *AgentBackend) RPC(route string, val interface{}, rsp *cherryProto.Response) {
-	decode, err := cherryMessage.DecodeRoute(route)
+	bytes, err := a.Marshal(req)
 	if err != nil {
-		a.session.Warnf("[RPC] decode route fail. [route = %s, err = %v, val = %+v]",
+		a.session.Errorf("[Response] marshal error. [nodeId = %s, route = %s, req = %+v, err = %v]",
+			nodeId,
 			route,
+			req,
 			err,
-			val,
 		)
-		rsp.Code = cherryCode.RPCRouteDecodeError
-		return
+		return ccode.RPCMarshalError
 	}
 
-	ctx := context.WithValue(context.Background(), cherryConst.SessionKey, a.session)
-	member, err := cherryRouter.Route(ctx, decode.NodeType(), nil)
+	request := cproto.GetRequest()
+	defer cproto.PutRequest(request)
+
+	request.Route = route
+	request.Uid = a.session.UID()
+	request.Data = bytes
+
+	rspData, err := a.rpcClient.RequestRemote(nodeId, request)
 	if err != nil {
-		a.session.Warnf("[RPC] get router fail. [route = %s, err = %v, val = %+v]",
+		a.session.Errorf("[Response] error. [nodeId = %s, route = %s, req = %+v, rsp = %+v, err = %v]",
+			nodeId,
 			route,
+			req,
+			rspData,
 			err,
-			val,
 		)
-		rsp.Code = cherryCode.RPCRouteHashError
-		return
+		return ccode.RPCRemoteExecuteError
 	}
 
-	a.rpcClient.CallRemote(member.GetNodeId(), route, val, 0, rsp)
-
-	if cherryProfile.Debug() {
-		a.session.Debugf("[RPC] ok. [node = %s, route = %s, err = %v, val = %+v]",
-			member.GetNodeId(),
-			route,
-			err,
-			val,
-		)
+	if ccode.IsFail(rspData.Code) {
+		return rspData.Code
 	}
+
+	err = a.Unmarshal(rspData.Data, rsp)
+	if err != nil {
+		return ccode.RPCUnmarshalError
+	}
+
+	return ccode.OK
 }
 
-func (a *AgentBackend) Close() {
-	if a.session.State() == cherrySession.Closed {
-		return
-	}
-
-	a.session.SetState(cherrySession.Closed)
-	a.session.OnCloseListener()
+func (a *AgentBackend) SendRaw(data []byte) {
+	a.rpcClient.Publish(a.session.FrontendId(), data)
 }
 
 func (a *AgentBackend) RemoteAddr() string {
 	return a.ip
+}
+
+func (a *AgentBackend) Close() {
+	if a.session.State() == csession.Closed {
+		return
+	}
+
+	a.session.SetState(csession.Closed)
+	a.session.OnCloseListener()
 }

@@ -6,12 +6,12 @@ type (
 
 	// INode 节点信息
 	INode interface {
-		NodeId() string         // 节点id(全局唯一)
-		NodeType() string       // 节点类型
-		Address() string        // 对外网络监听地址
-		RpcAddress() string     // rpc监听地址
-		Settings() jsoniter.Any // 节点配置参数
-		Enabled() bool          // 是否启用
+		NodeId() string       // 节点id(全局唯一)
+		NodeType() string     // 节点类型
+		Address() string      // 对外网络监听地址
+		RpcAddress() string   // rpc监听地址
+		Settings() JsonConfig // 节点配置参数
+		Enabled() bool        // 是否启用
 	}
 
 	IApplication interface {
@@ -37,14 +37,24 @@ type (
 
 	// AppContext 继承自IApplication实现默认的方法
 	AppContext struct {
-		app IApplication
+		IApplication
+	}
+
+	JsonConfig interface {
+		jsoniter.Any
+		GetConfig(path ...interface{}) JsonConfig
+		GetString(path interface{}, val ...string) string
+		GetBool(path interface{}, val ...bool) bool
+		GetInt(path interface{}, val ...int) int
+		GetInt32(path interface{}, val ...int32) int32
+		GetInt64(path interface{}, val ...int64) int64
 	}
 )
 
 func (b *AppContext) Set(app IApplication) {
-	b.app = app
+	b.IApplication = app
 }
 
 func (b *AppContext) App() IApplication {
-	return b.app
+	return b.IApplication
 }

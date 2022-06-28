@@ -1,10 +1,10 @@
 package cherrySession
 
 import (
-	"github.com/cherry-game/cherry/error"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
+	cerr "github.com/cherry-game/cherry/error"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"sync"
 	"sync/atomic"
 )
@@ -22,9 +22,9 @@ type SessionFilter func(*Session) bool
 // sessions, data send to the group will send to all session in it.
 type Group struct {
 	mu       sync.RWMutex
-	status   int32                   // channel current status
-	name     string                  // channel name
-	sessions map[facade.SID]*Session // session id map to session instance
+	status   int32                    // channel current status
+	name     string                   // channel name
+	sessions map[cfacade.SID]*Session // session id map to session instance
 }
 
 // NewGroup returns a new group instance
@@ -32,7 +32,7 @@ func NewGroup(n string) *Group {
 	return &Group{
 		status:   groupStatusWorking,
 		name:     n,
-		sessions: make(map[facade.SID]*Session),
+		sessions: make(map[cfacade.SID]*Session),
 	}
 }
 
@@ -47,7 +47,7 @@ func (c *Group) Member(uid int64) (*Session, error) {
 		}
 	}
 
-	return nil, cherryError.SessionMemberNotFound
+	return nil, cerr.SessionMemberNotFound
 }
 
 // Members returns all member's UID in current group
@@ -66,11 +66,11 @@ func (c *Group) Members() []int64 {
 // Multicast  push  the message to the filtered clients
 func (c *Group) Multicast(route string, v interface{}, filter SessionFilter) error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("multicast. [route = %s, data = %+v]", route, v)
+	if cprofile.Debug() {
+		clog.Debugf("multicast. [route = %s, data = %+v]", route, v)
 	}
 
 	c.mu.RLock()
@@ -89,11 +89,11 @@ func (c *Group) Multicast(route string, v interface{}, filter SessionFilter) err
 // Broadcast push  the message(s) to  all members
 func (c *Group) Broadcast(route string, v interface{}) error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
-	if cherryProfile.Debug() {
-		cherryLogger.Debugf("broadcast. [route = %s, data = %+v]", route, v)
+	if cprofile.Debug() {
+		clog.Debugf("broadcast. [route = %s, data = %+v]", route, v)
 	}
 
 	c.mu.RLock()
@@ -115,10 +115,10 @@ func (c *Group) Contains(uid int64) bool {
 // Add add session to group
 func (c *Group) Add(session *Session) error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
-	if cherryProfile.Debug() {
+	if cprofile.Debug() {
 		session.Debugf("add session to [group = %s, SID = %v, UID = %d]", c.name, session.SID(), session.UID())
 	}
 
@@ -128,7 +128,7 @@ func (c *Group) Add(session *Session) error {
 	id := session.sid
 	_, ok := c.sessions[session.sid]
 	if ok {
-		return cherryError.SessionDuplication
+		return cerr.SessionDuplication
 	}
 
 	c.sessions[id] = session
@@ -138,10 +138,10 @@ func (c *Group) Add(session *Session) error {
 // Leave remove specified UID related session from group
 func (c *Group) Leave(s *Session) error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
-	if cherryProfile.Debug() {
+	if cprofile.Debug() {
 		s.Debugf("remove session from [group = %s, UID = %d]", c.name, s.UID())
 	}
 
@@ -155,13 +155,13 @@ func (c *Group) Leave(s *Session) error {
 // LeaveAll clear all sessions in the group
 func (c *Group) LeaveAll() error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	c.sessions = make(map[facade.SID]*Session)
+	c.sessions = make(map[cfacade.SID]*Session)
 	return nil
 }
 
@@ -183,12 +183,12 @@ func (c *Group) isClosed() bool {
 // Close destroy group, which will release all resource in the group
 func (c *Group) Close() error {
 	if c.isClosed() {
-		return cherryError.SessionClosedGroup
+		return cerr.SessionClosedGroup
 	}
 
 	atomic.StoreInt32(&c.status, groupStatusClosed)
 
 	// release all reference
-	c.sessions = make(map[facade.SID]*Session)
+	c.sessions = make(map[cfacade.SID]*Session)
 	return nil
 }

@@ -45,7 +45,7 @@ func gameNodeRoute(ctx context.Context, _ string, _ *cherryMessage.Message) (che
 		return member, nil
 	}
 
-	return nil, cherryError.DiscoveryGetMemberListIsEmpty
+	return nil, cherryError.DiscoveryMemberListIsEmpty
 }
 
 func crossNodeRoute(ctx context.Context, _ string, _ *cherryMessage.Message) (cherryFacade.IMember, error) {
@@ -60,5 +60,5 @@ func crossNodeRoute(ctx context.Context, _ string, _ *cherryMessage.Message) (ch
 		return member, nil
 	}
 
-	return nil, cherryError.DiscoveryGetMemberListIsEmpty
+	return nil, cherryError.DiscoveryMemberListIsEmpty
 }

@@ -2,15 +2,16 @@ package cherryAgent
 
 import (
 	"fmt"
-	cherryNet "github.com/cherry-game/cherry/extend/net"
-	"github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/command"
-	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/packet"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	"github.com/cherry-game/cherry/net/session"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	ccode "github.com/cherry-game/cherry/code"
+	cnet "github.com/cherry-game/cherry/extend/net"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	ccmd "github.com/cherry-game/cherry/net/command"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cpkg "github.com/cherry-game/cherry/net/packet"
+	csession "github.com/cherry-game/cherry/net/session"
+	cprofile "github.com/cherry-game/cherry/profile"
+	"github.com/golang/protobuf/proto"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -22,28 +23,28 @@ const (
 
 type (
 	Options struct {
-		Heartbeat time.Duration                                // heartbeat(sec)
-		Commands  map[cherryPacket.Type]cherryCommand.ICommand // commands
+		Heartbeat time.Duration               // heartbeat(sec)
+		Commands  map[cpkg.Type]ccmd.ICommand // commands
 	}
 
 	Agent struct {
 		sync.RWMutex
 		*Options
-		cherryFacade.IApplication
-		session *cherrySession.Session // session
-		conn    cherryFacade.INetConn  // low-level conn fd
-		chDie   chan bool              // wait for close
-		chSend  chan pendingMessage    // push message queue
-		chWrite chan []byte            // push bytes queue
-		lastAt  int64                  // last heartbeat unix time stamp
+		cfacade.IApplication
+		session *csession.Session    // session
+		conn    cfacade.INetConn     // low-level conn fd
+		chDie   chan bool            // wait for close
+		chSend  chan *pendingMessage // push message queue
+		chWrite chan []byte          // push bytes queue
+		lastAt  int64                // last heartbeat unix time stamp
 	}
 
 	pendingMessage struct {
-		typ     cherryMessage.Type // message type
-		route   string             // message route(push)
-		mid     uint               // response message id(response)
-		payload interface{}        // payload
-		err     bool               // if its an error
+		typ     cmsg.Type   // message type
+		route   string      // message route(push)
+		mid     uint        // response message id(response)
+		payload interface{} // payload
+		err     bool        // if its an error
 	}
 )
 
@@ -51,20 +52,20 @@ func (p *pendingMessage) String() string {
 	return fmt.Sprintf("typ = %d, route = %s, mid = %d, payload = %v", p.typ, p.route, p.mid, p.payload)
 }
 
-func NewAgent(app cherryFacade.IApplication, conn cherryFacade.INetConn, opts *Options) *Agent {
+func NewAgent(app cfacade.IApplication, conn cfacade.INetConn, opts *Options) *Agent {
 	agent := &Agent{
 		IApplication: app,
 		Options:      opts,
 		conn:         conn,
 		chDie:        make(chan bool),
-		chSend:       make(chan pendingMessage, WriteBacklog),
+		chSend:       make(chan *pendingMessage, WriteBacklog),
 		chWrite:      make(chan []byte, WriteBacklog),
 	}
 
 	return agent
 }
 
-func (a *Agent) SetSession(session *cherrySession.Session) {
+func (a *Agent) SetSession(session *csession.Session) {
 	a.session = session
 }
 
@@ -72,10 +73,31 @@ func (a *Agent) SetLastAt() {
 	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
 }
 
-func (a *Agent) Push(route string, val interface{}) {
-	a.Send(cherryMessage.Push, route, 0, val, false)
+func (a *Agent) SendRaw(bytes []byte) {
+	a.chWrite <- bytes
+}
 
-	if cherryProfile.Debug() {
+func (a *Agent) RPC(nodeId string, route string, req proto.Message, _ proto.Message) int32 {
+	clog.Errorf("[RPC] cluster no implement. [nodeId = %s, route = %s, req = %+v]", nodeId, route, req)
+	return ccode.OK
+}
+
+func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
+	isErr := false
+	if len(isError) > 0 {
+		isErr = isError[0]
+	}
+
+	a.send(cmsg.Response, "", mid, v, isErr)
+	if cprofile.Debug() {
+		a.session.Debugf("[Response] ok. [mid = %d, isError = %v, val = %+v]", mid, isErr, v)
+	}
+}
+
+func (a *Agent) Push(route string, val interface{}) {
+	a.send(cmsg.Push, route, 0, val, false)
+
+	if cprofile.Debug() {
 		a.session.Debugf("[Push] ok. [route = %s, val = %+v]", route, val)
 	}
 }
@@ -86,7 +108,7 @@ func (a *Agent) Kick(reason interface{}) {
 		a.session.Warnf("[Kick] marshal fail. [reason = %+v, err = %s].", reason, err)
 	}
 
-	pkg, err := a.PacketEncode(cherryPacket.Kick, bytes)
+	pkg, err := a.PacketEncode(cpkg.Kick, bytes)
 	if err != nil {
 		a.session.Warnf("[Kick] packet encode error.[reason = %+v, err = %s].", reason, err)
 		return
@@ -94,38 +116,17 @@ func (a *Agent) Kick(reason interface{}) {
 
 	_, err = a.conn.Write(pkg)
 	if err != nil {
-		cherryLogger.Warn(err)
+		clog.Warn(err)
 	}
 
-	if cherryProfile.Debug() {
+	if cprofile.Debug() {
 		a.session.Debugf("[Kick] ok. [reason = %+v]", reason)
 	}
 }
 
-func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
-	isErr := false
-	if len(isError) > 0 {
-		isErr = isError[0]
-	}
-
-	a.Send(cherryMessage.Response, "", mid, v, isErr)
-
-	if cherryProfile.Debug() {
-		a.session.Debugf("[Response] ok. [mid = %d, isError = %v, val = %+v]", mid, isErr, v)
-	}
-}
-
-func (a *Agent) RPC(route string, val interface{}, _ *cherryProto.Response) {
-	cherryLogger.Errorf("[RPC] cluster no implement. [route = %s, val = %+v]", route, val)
-}
-
-func (a *Agent) SendRaw(bytes []byte) {
-	a.chWrite <- bytes
-}
-
 func (a *Agent) RemoteAddr() string {
 	if a.conn != nil {
-		return cherryNet.GetIPV4(a.conn.RemoteAddr())
+		return cnet.GetIPV4(a.conn.RemoteAddr())
 	}
 
 	return ""
@@ -135,11 +136,11 @@ func (a *Agent) Close() {
 	a.Lock()
 	defer a.Unlock()
 
-	if a.session.State() == cherrySession.Closed {
+	if a.session.State() == csession.Closed {
 		return
 	}
 
-	a.session.SetState(cherrySession.Closed)
+	a.session.SetState(csession.Closed)
 	a.session.OnCloseListener()
 
 	a.chDie <- true
@@ -149,8 +150,8 @@ func (a *Agent) Close() {
 	}
 }
 
-func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface{}, isError bool) {
-	if a.session.State() == cherrySession.Closed {
+func (a *Agent) send(typ cmsg.Type, route string, mid uint, v interface{}, isError bool) {
+	if a.session.State() == csession.Closed {
 		a.session.Warnf("[Send] session is closed. [typ = %v, rout = %s, mid = %d, val = %+v, isErr = %v",
 			typ,
 			route,
@@ -172,7 +173,7 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface
 		return
 	}
 
-	pending := pendingMessage{
+	pending := &pendingMessage{
 		typ:     typ,
 		mid:     mid,
 		route:   route,
@@ -185,15 +186,15 @@ func (a *Agent) Send(typ cherryMessage.Type, route string, mid uint, v interface
 
 func (a *Agent) Run() {
 	if a.session == nil {
-		cherryLogger.Error("session is nil. run fail.")
+		clog.Error("session is nil. run fail.")
 		return
 	}
 
-	go a.read()
-	go a.write()
+	go a.readChan()
+	go a.writeChan()
 }
 
-func (a *Agent) read() {
+func (a *Agent) readChan() {
 	defer func() {
 		a.Close()
 	}()
@@ -220,10 +221,10 @@ func (a *Agent) read() {
 	}
 }
 
-func (a *Agent) write() {
+func (a *Agent) writeChan() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		if cherryProfile.Debug() {
+		if cprofile.Debug() {
 			a.session.Debugf("close session. [sid = %s]", a.session.SID())
 		}
 
@@ -243,55 +244,62 @@ func (a *Agent) write() {
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				if cherryProfile.Debug() {
+				if cprofile.Debug() {
 					a.session.Debug("check heartbeat timeout.")
 				}
 				return
 			}
 		case bytes := <-a.chWrite:
-			_, err := a.conn.Write(bytes)
-			if err != nil {
-				cherryLogger.Warn(err)
-				return
-			}
-		case data := <-a.chSend:
-			payload, err := a.Marshal(data.payload)
-			if err != nil {
-				a.session.Warnf("payload marshal error. [data = %s]", data.String())
-				return
-			}
-
-			// construct message and encode
-			m := &cherryMessage.Message{
-				Type:  data.typ,
-				ID:    data.mid,
-				Route: data.route,
-				Data:  payload,
-				Error: data.err,
-			}
-
-			// encode message
-			em, err := cherryMessage.Encode(m)
-			if err != nil {
-				cherryLogger.Warn(err)
-				break
-			}
-
-			// encode packet
-			p, err := a.PacketEncode(cherryPacket.Data, em)
-			if err != nil {
-				cherryLogger.Warn(err)
-				break
-			}
-			a.chWrite <- p
+			a.write(bytes)
+		case pending := <-a.chSend:
+			a.processMessage(pending)
 		}
 	}
 }
 
-func (a *Agent) processPacket(packet cherryFacade.IPacket) {
+func (a *Agent) write(bytes []byte) {
+	_, err := a.conn.Write(bytes)
+	if err != nil {
+		clog.Warn(err)
+	}
+}
+
+func (a *Agent) processMessage(data *pendingMessage) {
+	payload, err := a.Marshal(data.payload)
+	if err != nil {
+		a.session.Warnf("payload marshal error. [data = %s]", data.String())
+		return
+	}
+
+	// construct message and encode
+	m := &cmsg.Message{
+		Type:  data.typ,
+		ID:    data.mid,
+		Route: data.route,
+		Data:  payload,
+		Error: data.err,
+	}
+
+	// encode message
+	em, err := cmsg.Encode(m)
+	if err != nil {
+		clog.Warn(err)
+		return
+	}
+
+	// encode packet
+	pkg, err := a.PacketEncode(cpkg.Data, em)
+	if err != nil {
+		clog.Warn(err)
+		return
+	}
+	a.SendRaw(pkg)
+}
+
+func (a *Agent) processPacket(packet cfacade.IPacket) {
 	result := a.session.OnDataListener()
 	if result == false {
-		if cherryProfile.Debug() {
+		if cprofile.Debug() {
 			a.session.Warnf("[ProcessPacket] on data listener return fail. [packet = %+v]", packet)
 		}
 		return
@@ -299,7 +307,7 @@ func (a *Agent) processPacket(packet cherryFacade.IPacket) {
 
 	cmd, found := a.Commands[packet.Type()]
 	if found == false {
-		if cherryProfile.Debug() {
+		if cprofile.Debug() {
 			a.session.Debugf("[ProcessPacket] type not found. [packet = %+v]", packet)
 		}
 		return

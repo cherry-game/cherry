@@ -9,7 +9,7 @@
     },
     "nats": {
       "master_node_id": "master-1",
-      "address": "nats://127.0.0.1:4222",
+      "address": "nats://dev.com:4222",
       "reconnect_delay": 1,
       "max_reconnects": 0,
       "request_timeout": 2,
@@ -22,7 +22,6 @@
       {
         "node_id": "master-1",
         "address": "",
-        "rpc_address": "127.0.0.1:10001",
         "__settings__": {
           "ref_logger": "master_log"
         },
@@ -33,7 +32,6 @@
       {
         "node_id": "gate-1",
         "address": ":10010",
-        "rpc_address": "127.0.0.1:10101",
         "__settings__": {
           "db_id_list": [
             "game_db_1"
@@ -47,7 +45,6 @@
       {
         "node_id": "1000",
         "address": "",
-        "rpc_address": "127.0.0.1:10201",
         "__settings__": {
           "db_id_list": [
             "game_db_1"
@@ -61,7 +58,6 @@
       {
         "node_id": "cross-1",
         "address": "",
-        "rpc_address": "127.0.0.1:10301",
         "__settings__": {
           "db_id_list": [
             "game_db_1"
@@ -75,7 +71,6 @@
       {
         "node_id": "web-1",
         "address": ":80",
-        "rpc_address": "127.0.0.1:10401",
         "__settings__": {
           "ref_logger": "master_log"
         },

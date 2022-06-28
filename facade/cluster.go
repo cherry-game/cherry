@@ -1,7 +1,7 @@
 package cherryFacade
 
 import (
-	cherryProto "github.com/cherry-game/cherry/net/proto"
+	cproto "github.com/cherry-game/cherry/net/proto"
 	"time"
 )
 
@@ -32,21 +32,17 @@ type (
 )
 
 type (
-	rpc interface {
-		Init(app IApplication)
+	RPCClient interface {
+		Publish(subject string, val interface{}) error                                                            //发布消息给目标节点
+		PublishPush(frontendId FrontendId, push *cproto.Push) error                                               //发布推送给前端节点
+		PublishKick(nodeType string, kick *cproto.Kick) error                                                     //发布踢人给前端节点
+		PublishLocal(nodeId string, request *cproto.Request) error                                                //发布本地消息
+		PublishRemote(nodeId string, request *cproto.Request) error                                               //发布远程消息
+		RequestRemote(nodeId string, request *cproto.Request, timeout ...time.Duration) (*cproto.Response, error) //请求远程消息
 		OnStop()
 	}
 
-	RPCClient interface {
-		rpc
-		CallLocal(nodeId string, packet *cherryProto.LocalPacket) error
-		CallRemote(nodeId string, route string, val interface{}, timeout time.Duration, rsp *cherryProto.Response)
-		CallRemoteAsync(nodeId string, route string, val interface{})
-		SendKick(nodeId string, uid UID, reason interface{})
-		SendPush(nodeId string, route string, uid UID, val interface{})
-	}
-
 	RPCServer interface {
-		rpc
+		OnStop()
 	}
 )

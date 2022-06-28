@@ -1,42 +1,41 @@
 package cherryCommand
 
 import (
-	facade "github.com/cherry-game/cherry/facade"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	cfacade "github.com/cherry-game/cherry/facade"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cpacket "github.com/cherry-game/cherry/net/packet"
+	csession "github.com/cherry-game/cherry/net/session"
 )
 
 type (
 	Data struct {
-		facade.IApplication
-		localHandler   ProcessHandler
-		forwardHandler ProcessHandler
+		cfacade.IApplication
+		localMessage   ProcessMessage
+		forwardMessage ProcessMessage
 	}
 
-	ProcessHandler func(session *cherrySession.Session, msg *cherryMessage.Message)
+	ProcessMessage func(session *csession.Session, msg *cmsg.Message)
 )
 
-func NewData(app facade.IApplication, localHandler ProcessHandler, forwardHandler ProcessHandler) *Data {
-	data := &Data{
+func NewData(app cfacade.IApplication, localMessage ProcessMessage, forwardMessage ProcessMessage) *Data {
+	return &Data{
 		IApplication:   app,
-		localHandler:   localHandler,
-		forwardHandler: forwardHandler,
+		localMessage:   localMessage,
+		forwardMessage: forwardMessage,
 	}
-	return data
 }
 
-func (h *Data) GetType() cherryPacket.Type {
-	return cherryPacket.Data
+func (h *Data) PacketType() cpacket.Type {
+	return cpacket.Data
 }
 
-func (h *Data) Do(session *cherrySession.Session, packet facade.IPacket) {
-	if session.State() != cherrySession.Working {
+func (h *Data) Do(session *csession.Session, packet cfacade.IPacket) {
+	if session.State() != csession.Working {
 		session.Warnf("state is not working. [state = %d]", session.State())
 		return
 	}
 
-	msg, err := cherryMessage.Decode(packet.Data())
+	msg, err := cmsg.Decode(packet.Data())
 	if err != nil {
 		session.Warnf("packet decode error. [data = %s, error = %s]", packet.Data(), err)
 		return
@@ -49,8 +48,8 @@ func (h *Data) Do(session *cherrySession.Session, packet facade.IPacket) {
 	}
 
 	if msg.RouteInfo().NodeType() == h.NodeType() {
-		h.localHandler(session, msg)
+		h.localMessage(session, msg)
 	} else {
-		h.forwardHandler(session, msg)
+		h.forwardMessage(session, msg)
 	}
 }

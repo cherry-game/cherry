@@ -30,5 +30,5 @@ func (t *Test1Controller) panic(c *gin.Context) {
 
 func (t *Test1Controller) renderResult(c *cherryGin.Context) {
 	str := cherrySnowflake.Next().Base58()
-	c.RenderDataResult(0, str)
+	c.RenderJSON(str)
 }

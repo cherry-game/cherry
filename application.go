@@ -2,14 +2,14 @@ package cherry
 
 import (
 	"fmt"
-	cherryConst "github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/extend/time"
-	"github.com/cherry-game/cherry/extend/utils"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
-	"github.com/cherry-game/cherry/profile"
+	cconst "github.com/cherry-game/cherry/const"
+	ctime "github.com/cherry-game/cherry/extend/time"
+	cutils "github.com/cherry-game/cherry/extend/utils"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cpacket "github.com/cherry-game/cherry/net/packet"
+	cserializer "github.com/cherry-game/cherry/net/serializer"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
 	"reflect"
@@ -26,44 +26,43 @@ type (
 	NodeMode byte
 
 	Application struct {
-		facade.INode
-		facade.ISerializer
-		facade.IPacketCodec
+		cfacade.INode
+		cfacade.ISerializer
+		cfacade.IPacketCodec
 		isFrontend   bool
 		nodeMode     NodeMode
-		startTime    cherryTime.CherryTime // application start time
-		running      int32                 // is running
-		dieChan      chan bool             // wait for end application
-		components   []facade.IComponent   // all components
-		onShutdownFn []func()              // on shutdown execute functions
+		startTime    ctime.CherryTime     // application start time
+		running      int32                // is running
+		dieChan      chan bool            // wait for end application
+		components   []cfacade.IComponent // all components
+		onShutdownFn []func()             // on shutdown execute functions
 	}
 )
 
 // NewApp create new application instance
 func NewApp(profilePath, profileName, nodeId string) *Application {
-	_, err := cherryProfile.Init(profilePath, profileName)
-	if err != nil {
+	if err := cprofile.Init(profilePath, profileName); err != nil {
 		panic(fmt.Sprintf("init profile fail. error = %s", err))
 	}
 
-	node, err := cherryProfile.LoadNode(nodeId)
+	node, err := cprofile.LoadNode(nodeId)
 	if err != nil {
 		panic(err)
 	}
 
 	// set logger
-	cherryLogger.SetNodeLogger(node)
+	clog.SetNodeLogger(node)
 
 	// print version info
-	cherryLogger.Info(cherryConst.GetLOGO())
+	clog.Info(cconst.GetLOGO())
 
 	app := &Application{
 		INode:        node,
-		ISerializer:  cherrySerializer.NewProtobuf(),
-		IPacketCodec: cherryPacket.NewPomeloCodec(),
+		ISerializer:  cserializer.NewProtobuf(),
+		IPacketCodec: cpacket.NewPomeloCodec(),
 		isFrontend:   true,
 		nodeMode:     Standalone,
-		startTime:    cherryTime.Now(),
+		startTime:    ctime.Now(),
 		running:      0,
 		dieChan:      make(chan bool),
 	}
@@ -87,20 +86,20 @@ func (a *Application) DieChan() chan bool {
 	return a.dieChan
 }
 
-func (a *Application) Register(components ...facade.IComponent) {
+func (a *Application) Register(components ...cfacade.IComponent) {
 	if a.Running() {
 		return
 	}
 
 	for _, c := range components {
 		if c == nil || c.Name() == "" {
-			cherryLogger.Errorf("[component = %T] name is nil", c)
+			clog.Errorf("[component = %T] name is nil", c)
 			return
 		}
 
 		result := a.Find(c.Name())
 		if result != nil {
-			cherryLogger.Errorf("[component name = %s] is duplicate.", c.Name())
+			clog.Errorf("[component name = %s] is duplicate.", c.Name())
 			return
 		}
 
@@ -108,7 +107,7 @@ func (a *Application) Register(components ...facade.IComponent) {
 	}
 }
 
-func (a *Application) Find(name string) facade.IComponent {
+func (a *Application) Find(name string) cfacade.IComponent {
 	if name == "" {
 		return nil
 	}
@@ -122,12 +121,12 @@ func (a *Application) Find(name string) facade.IComponent {
 }
 
 // Remove remove component by name
-func (a *Application) Remove(name string) facade.IComponent {
+func (a *Application) Remove(name string) cfacade.IComponent {
 	if name == "" {
 		return nil
 	}
 
-	var removeComponent facade.IComponent
+	var removeComponent cfacade.IComponent
 	for i := 0; i < len(a.components); i++ {
 		if a.components[i].Name() == name {
 			removeComponent = a.components[i]
@@ -138,7 +137,7 @@ func (a *Application) Remove(name string) facade.IComponent {
 	return removeComponent
 }
 
-func (a *Application) All() []facade.IComponent {
+func (a *Application) All() []cfacade.IComponent {
 	return a.components
 }
 
@@ -147,37 +146,37 @@ func (a *Application) StartTime() string {
 }
 
 // Startup load components before startup
-func (a *Application) Startup(components ...facade.IComponent) {
+func (a *Application) Startup(components ...cfacade.IComponent) {
 	defer func() {
 		if r := recover(); r != nil {
-			cherryLogger.Error(r)
+			clog.Error(r)
 		}
 	}()
 
 	if a.Running() {
-		cherryLogger.Error("application has running.")
+		clog.Error("application has running.")
 		return
 	}
 
 	defer func() {
-		cherryLogger.Flush()
+		clog.Flush()
 	}()
 
-	cherryLogger.Info("-------------------------------------------------")
-	cherryLogger.Infof("[nodeId      = %s] application is starting...", a.NodeId())
-	cherryLogger.Infof("[nodeType    = %s]", a.NodeType())
-	cherryLogger.Infof("[pid         = %d]", os.Getpid())
-	cherryLogger.Infof("[startTime   = %s]", a.StartTime())
-	cherryLogger.Infof("[profile     = %s]", cherryProfile.Name())
-	cherryLogger.Infof("[profilePath = %s]", cherryProfile.Dir())
-	cherryLogger.Infof("[profileFile = %s]", cherryProfile.FileName())
-	cherryLogger.Infof("[debug       = %v]", cherryProfile.Debug())
-	cherryLogger.Infof("[logLevel    = %s]", cherryLogger.DefaultLogger.Level)
-	cherryLogger.Infof("[stackLevel  = %s]", cherryLogger.DefaultLogger.StackLevel)
-	cherryLogger.Infof("[writeFile   = %v]", cherryLogger.DefaultLogger.EnableWriteFile)
-	cherryLogger.Infof("[codec       = %v]", reflect.TypeOf(a.IPacketCodec))
-	cherryLogger.Infof("[serializer  = %s]", a.ISerializer.Name())
-	cherryLogger.Info("-------------------------------------------------")
+	clog.Info("-------------------------------------------------")
+	clog.Infof("[nodeId      = %s] application is starting...", a.NodeId())
+	clog.Infof("[nodeType    = %s]", a.NodeType())
+	clog.Infof("[pid         = %d]", os.Getpid())
+	clog.Infof("[startTime   = %s]", a.StartTime())
+	clog.Infof("[profile     = %s]", cprofile.Name())
+	clog.Infof("[profilePath = %s]", cprofile.Dir())
+	clog.Infof("[profileFile = %s]", cprofile.FileName())
+	clog.Infof("[debug       = %v]", cprofile.Debug())
+	clog.Infof("[logLevel    = %s]", clog.DefaultLogger.Level)
+	clog.Infof("[stackLevel  = %s]", clog.DefaultLogger.StackLevel)
+	clog.Infof("[writeFile   = %v]", clog.DefaultLogger.EnableWriteFile)
+	clog.Infof("[codec       = %v]", reflect.TypeOf(a.IPacketCodec))
+	clog.Infof("[serializer  = %s]", a.ISerializer.Name())
+	clog.Info("-------------------------------------------------")
 
 	// add components
 	a.Register(components...)
@@ -185,26 +184,26 @@ func (a *Application) Startup(components ...facade.IComponent) {
 	// component list
 	for _, c := range a.components {
 		c.Set(a)
-		cherryLogger.Infof("[component = %s] is added.", c.Name())
+		clog.Infof("[component = %s] is added.", c.Name())
 	}
-	cherryLogger.Info("-------------------------------------------------")
+	clog.Info("-------------------------------------------------")
 
 	// execute Init()
 	for _, c := range a.components {
-		cherryLogger.Infof("[component = %s] -> OnInit().", c.Name())
+		clog.Infof("[component = %s] -> OnInit().", c.Name())
 		c.Init()
 	}
-	cherryLogger.Info("-------------------------------------------------")
+	clog.Info("-------------------------------------------------")
 
 	//execute OnAfterInit()
 	for _, c := range a.components {
-		cherryLogger.Infof("[component = %s] -> OnAfterInit().", c.Name())
+		clog.Infof("[component = %s] -> OnAfterInit().", c.Name())
 		c.OnAfterInit()
 	}
-	cherryLogger.Info("-------------------------------------------------")
-	spendTime := a.startTime.DiffInMillisecond(cherryTime.Now())
-	cherryLogger.Infof("[spend time = %dms] application is running.", spendTime)
-	cherryLogger.Info("-------------------------------------------------")
+	clog.Info("-------------------------------------------------")
+	spendTime := a.startTime.DiffInMillisecond(ctime.Now())
+	clog.Infof("[spend time = %dms] application is running.", spendTime)
+	clog.Info("-------------------------------------------------")
 
 	// set application is running
 	atomic.AddInt32(&a.running, 1)
@@ -214,17 +213,17 @@ func (a *Application) Startup(components ...facade.IComponent) {
 
 	select {
 	case <-a.dieChan:
-		cherryLogger.Info("invoke shutdown().")
+		clog.Info("invoke shutdown().")
 	case s := <-sg:
-		cherryLogger.Infof("receive shutdown signal = %v.", s)
+		clog.Infof("receive shutdown signal = %v.", s)
 	}
 
 	// stop status
 	atomic.StoreInt32(&a.running, 0)
 
-	cherryLogger.Info("------- application will shutdown -------")
+	clog.Info("------- application will shutdown -------")
 
-	cherryUtils.Try(func() {
+	cutils.Try(func() {
 		if a.onShutdownFn != nil {
 			for _, f := range a.onShutdownFn {
 				f()
@@ -232,29 +231,29 @@ func (a *Application) Startup(components ...facade.IComponent) {
 		}
 
 	}, func(errString string) {
-		cherryLogger.Warnf("[onShutdownFn] error = %s", errString)
+		clog.Warnf("[onShutdownFn] error = %s", errString)
 	})
 
 	//all components in reverse order
 	for i := len(a.components) - 1; i >= 0; i-- {
-		cherryUtils.Try(func() {
-			cherryLogger.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
+		cutils.Try(func() {
+			clog.Infof("[component = %s] -> OnBeforeStop().", a.components[i].Name())
 			a.components[i].OnBeforeStop()
 		}, func(errString string) {
-			cherryLogger.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
+			clog.Warnf("[component = %s] -> OnBeforeStop(). error = %s", a.components[i].Name(), errString)
 		})
 	}
 
 	for i := len(a.components) - 1; i >= 0; i-- {
-		cherryUtils.Try(func() {
-			cherryLogger.Infof("[component = %s] -> OnStop().", a.components[i].Name())
+		cutils.Try(func() {
+			clog.Infof("[component = %s] -> OnStop().", a.components[i].Name())
 			a.components[i].OnStop()
 		}, func(errString string) {
-			cherryLogger.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
+			clog.Warnf("[component = %s] -> OnStop(). error = %s", a.components[i].Name(), errString)
 		})
 	}
 
-	cherryLogger.Info("------- application has been shutdown... -------")
+	clog.Info("------- application has been shutdown... -------")
 }
 
 func (a *Application) OnShutdown(fn ...func()) {
@@ -265,14 +264,14 @@ func (a *Application) Shutdown() {
 	a.dieChan <- true
 }
 
-func (a *Application) SetSerializer(serializer facade.ISerializer) {
+func (a *Application) SetSerializer(serializer cfacade.ISerializer) {
 	if a.Running() {
 		return
 	}
 	a.ISerializer = serializer
 }
 
-func (a *Application) SetPacketCodec(codec facade.IPacketCodec) {
+func (a *Application) SetPacketCodec(codec cfacade.IPacketCodec) {
 	if a.Running() {
 		return
 	}

@@ -1,7 +1,7 @@
 package cherrySession
 
 import (
-	cherryString "github.com/cherry-game/cherry/extend/string"
+	cstring "github.com/cherry-game/cherry/extend/string"
 	"sync"
 )
 
@@ -71,7 +71,7 @@ func (s *settings) GetInt(key string) int {
 		return 0
 	}
 
-	value, ok := cherryString.ToInt(v)
+	value, ok := cstring.ToInt(v)
 	if !ok {
 		return 0
 	}
@@ -88,7 +88,7 @@ func (s *settings) GetInt32(key string) int32 {
 		return 0
 	}
 
-	value, ok := cherryString.ToInt32(v)
+	value, ok := cstring.ToInt32(v)
 	if !ok {
 		return 0
 	}
@@ -105,7 +105,7 @@ func (s *settings) GetInt64(key string) int64 {
 		return 0
 	}
 
-	value, ok := cherryString.ToInt64(v)
+	value, ok := cstring.ToInt64(v)
 	if !ok {
 		return 0
 	}

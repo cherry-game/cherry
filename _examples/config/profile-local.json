@@ -9,7 +9,7 @@
     },
     "nats": {
       "master_node_id": "master-1",
-      "address": "nats://127.0.0.1:4222",
+      "address": "nats://dev.com:4222",
       "reconnect_delay": 1,
       "max_reconnects": 0,
       "request_timeout": 2,
@@ -21,8 +21,7 @@
     "web": [
       {
         "node_id": "web-1",
-        "address": "127.0.0.1:10820",
-        "rpc_address": "127.0.0.1:30820",
+        "address": ":10820",
         "__settings__": {
           "maintain_state": 2,
           "ref_logger": "game_log"
@@ -34,7 +33,6 @@
       {
         "node_id": "game-1",
         "address": ":34590",
-        "rpc_address": "127.0.0.1:20860",
         "__settings__": {
           "maintain_state": 2,
           "db_id_list": [
@@ -49,7 +47,6 @@
       {
         "node_id": "master-1",
         "address": ":30000",
-        "rpc_address": "127.0.0.1:30001",
         "__settings__": {
           "ref_logger": "game_log"
         },
@@ -84,7 +81,7 @@
     "redis": {
       "prefix_key": "data_config",
       "subscribe_key": "data_config_change",
-      "address": "127.0.0.1:6379",
+      "address": "dev.com:6379",
       "password": "",
       "db": 7
     }
@@ -102,7 +99,7 @@
         "enable": true,
         "db_id": "center_db_1",
         "db_name": "dev_xgame_center",
-        "host": "192.168.1.20",
+        "host": "dev.com",
         "user_name": "gameserver",
         "password": "password",
         "max_idle_connect": 4,
@@ -115,7 +112,7 @@
         "enable": true,
         "db_id": "game_db_1",
         "db_name": "game_db_1",
-        "host": "192.168.1.20",
+        "host": "dev.com",
         "user_name": "gameserver",
         "password": "password",
         "max_idle_connect": 4,

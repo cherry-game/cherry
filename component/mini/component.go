@@ -1,12 +1,12 @@
 package cherryMini
 
 import (
-	cc "github.com/cherry-game/cherry/const"
-	cf "github.com/cherry-game/cherry/facade"
+	cconst "github.com/cherry-game/cherry/const"
+	cfacade "github.com/cherry-game/cherry/facade"
 )
 
 type (
-	callFunc   func(cf.IApplication)
+	callFunc   func(cfacade.IApplication)
 	OptionFunc func(options *options)
 
 	options struct {
@@ -18,7 +18,7 @@ type (
 
 	// Component mini wrapper component
 	Component struct {
-		cf.Component
+		cfacade.Component
 		name string
 		options
 	}
@@ -38,7 +38,7 @@ func New(name string, opts ...OptionFunc) *Component {
 }
 
 func (p *Component) Name() string {
-	return cc.MiniComponentPrefix + p.name
+	return cconst.MiniComponentPrefix + p.name
 }
 
 func (p *Component) Init() {
@@ -65,25 +65,25 @@ func (p *Component) OnStop() {
 	}
 }
 
-func WithInitFunc(fn func(cf.IApplication)) OptionFunc {
+func WithInitFunc(fn func(cfacade.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.initFunc = fn
 	}
 }
 
-func WithAfterInit(fn func(cf.IApplication)) OptionFunc {
+func WithAfterInit(fn func(cfacade.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.afterInitFunc = fn
 	}
 }
 
-func WithBeforeStop(fn func(cf.IApplication)) OptionFunc {
+func WithBeforeStop(fn func(cfacade.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.beforeStopFunc = fn
 	}
 }
 
-func WithStop(fn func(cf.IApplication)) OptionFunc {
+func WithStop(fn func(cfacade.IApplication)) OptionFunc {
 	return func(options *options) {
 		options.stopFunc = fn
 	}

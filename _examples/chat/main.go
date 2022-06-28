@@ -19,7 +19,6 @@ func main() {
 	cherry.RegisterComponent(httpComp)
 
 	cherry.RegisterConnector(cherryConnector.NewWS(app.Address()))
-	//cherry.RegisterConnector(cherryConnector.NewTCP(app.Address())
 
 	handlerComponent()
 
@@ -31,12 +30,9 @@ func handlerComponent() {
 		cherryHandler.WithPrintRouteLog(true),
 	)
 
-	group1 := cherryHandler.NewGroup(10, 256)
+	group1 := cherryHandler.NewGroup(1, 256)
 	group1.AddHandlers(&userHandler{})
+	group1.AddHandlers(&roomHandler{})
 
 	cherry.RegisterHandlerGroup(group1)
-
-	group2 := cherryHandler.NewGroup(10, 256)
-	group2.AddHandlers(&roomHandler{})
-	cherry.RegisterHandlerGroup(group2)
 }

@@ -2,7 +2,7 @@ package cherryPacket
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 const (
@@ -70,18 +70,18 @@ func (p *Packet) String() string {
 // ParseHeader parses a packet header and returns its dataLen and packetType or an error
 func ParseHeader(header []byte) (int, Type, error) {
 	if len(header) != HeadLength {
-		return 0, None, cherryError.PacketInvalidHeader
+		return 0, None, cerr.PacketInvalidHeader
 	}
 
 	typ := header[0]
 	if InvalidType(typ) {
-		return 0, None, cherryError.PacketWrongType
+		return 0, None, cerr.PacketWrongType
 	}
 
 	size := BytesToInt(header[1:])
 
 	if size > MaxPacketSize {
-		return 0, None, cherryError.PacketSizeExceed
+		return 0, None, cerr.PacketSizeExceed
 	}
 
 	return size, typ, nil

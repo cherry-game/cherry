@@ -2,8 +2,8 @@ package cherryConnector
 
 import (
 	"crypto/tls"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"net"
 	"net/http"
 )
@@ -13,11 +13,11 @@ type connector struct {
 	listener          net.Listener
 	certFile          string
 	keyFile           string
-	onConnectListener []cherryFacade.OnConnectListener
-	connChan          chan cherryFacade.INetConn
+	onConnectListener []cfacade.OnConnectListener
+	connChan          chan cfacade.INetConn
 }
 
-func (w *connector) OnConnectListener(listener ...cherryFacade.OnConnectListener) {
+func (w *connector) OnConnectListener(listener ...cfacade.OnConnectListener) {
 	w.onConnectListener = append(w.onConnectListener, listener...)
 }
 
@@ -25,11 +25,11 @@ func (w *connector) IsSetListener() bool {
 	return len(w.onConnectListener) > 0
 }
 
-func (w *connector) GetConnChan() chan cherryFacade.INetConn {
+func (w *connector) GetConnChan() chan cfacade.INetConn {
 	return w.connChan
 }
 
-func (w *connector) inChan(conn cherryFacade.INetConn) {
+func (w *connector) inChan(conn cfacade.INetConn) {
 	w.connChan <- conn
 }
 
@@ -49,8 +49,8 @@ func newConnector(address, certFile, keyFile string) connector {
 		listener:          nil,
 		certFile:          certFile,
 		keyFile:           keyFile,
-		onConnectListener: make([]cherryFacade.OnConnectListener, 0),
-		connChan:          make(chan cherryFacade.INetConn),
+		onConnectListener: make([]cfacade.OnConnectListener, 0),
+		connChan:          make(chan cfacade.INetConn),
 	}
 }
 
@@ -62,7 +62,7 @@ func GetNetListener(address, certFile, keyFile string) (net.Listener, error) {
 
 	crt, err := tls.LoadX509KeyPair(certFile, keyFile)
 	if err != nil {
-		cherryLogger.Fatalf("failed to listen: %s", err.Error())
+		clog.Fatalf("failed to listen: %s", err.Error())
 	}
 	tlsCfg := &tls.Config{Certificates: []tls.Certificate{crt}}
 

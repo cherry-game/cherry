@@ -1,30 +1,30 @@
 package cherrySession
 
 import (
-	"github.com/cherry-game/cherry/error"
-	cherryUUID "github.com/cherry-game/cherry/extend/uuid"
-	facade "github.com/cherry-game/cherry/facade"
+	cerr "github.com/cherry-game/cherry/error"
+	cuuid "github.com/cherry-game/cherry/extend/uuid"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"sync"
 )
 
 var (
 	lock             = &sync.RWMutex{}
-	sidMap           = make(map[facade.SID]*Session) // sid -> Session
-	uidMap           = make(map[facade.UID]*Session) // uid -> Session
-	onCreateListener = make([]SessionListener, 0)    // on create execute listener function
-	onCloseListener  = make([]SessionListener, 0)    // on close execute listener function
-	onDataListener   = make([]SessionListener, 0)    // on receive data execute listener function
+	sidMap           = make(map[cfacade.SID]*Session) // sid -> Session
+	uidMap           = make(map[cfacade.UID]*Session) // uid -> Session
+	onCreateListener = make([]SessionListener, 0)     // on create execute listener function
+	onCloseListener  = make([]SessionListener, 0)     // on close execute listener function
+	onDataListener   = make([]SessionListener, 0)     // on receive data execute listener function
 )
 
 type (
 	SessionListener func(session *Session) (next bool)
 )
 
-func NextSID() facade.SID {
-	return cherryUUID.New()
+func NextSID() cfacade.SID {
+	return cuuid.New()
 }
 
-func Create(sid facade.SID, frontendId facade.FrontendId, network facade.INetwork) *Session {
+func Create(sid cfacade.SID, frontendId cfacade.FrontendId, network cfacade.INetwork) *Session {
 	session := NewSession(sid, frontendId, network)
 
 	lock.Lock()
@@ -40,13 +40,13 @@ func Create(sid facade.SID, frontendId facade.FrontendId, network facade.INetwor
 	return session
 }
 
-func Bind(sid facade.SID, uid facade.UID) error {
+func Bind(sid cfacade.SID, uid cfacade.UID) error {
 	if sid == "" {
-		return cherryError.Errorf("[sid = %d] less than 1.", sid)
+		return cerr.Errorf("[sid = %d] less than 1.", sid)
 	}
 
 	if uid < 1 {
-		return cherryError.Errorf("[uid = %d] less than 1.", uid)
+		return cerr.Errorf("[uid = %d] less than 1.", uid)
 	}
 
 	lock.Lock()
@@ -54,11 +54,11 @@ func Bind(sid facade.SID, uid facade.UID) error {
 
 	session, found := sidMap[sid]
 	if found == false {
-		return cherryError.Errorf("[sid = %s] does not exist.", sid)
+		return cerr.Errorf("[sid = %s] does not exist.", sid)
 	}
 
 	if session.UID() > 0 && session.UID() == uid {
-		return cherryError.Errorf("[uid = %d] has already bound.", session.UID())
+		return cerr.Errorf("[uid = %d] has already bound.", session.UID())
 	}
 
 	// set uid
@@ -69,7 +69,7 @@ func Bind(sid facade.SID, uid facade.UID) error {
 	return nil
 }
 
-func Unbind(sid facade.SID) {
+func Unbind(sid cfacade.SID) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -84,36 +84,36 @@ func Unbind(sid facade.SID) {
 	session.uid = 0
 }
 
-func GetBySID(sid facade.SID) (*Session, bool) {
+func GetBySID(sid cfacade.SID) (*Session, bool) {
 	lock.RLock()
 	defer lock.RUnlock()
 	session, found := sidMap[sid]
 	return session, found
 }
 
-func GetByUID(uid facade.UID) (*Session, bool) {
+func GetByUID(uid cfacade.UID) (*Session, bool) {
 	lock.RLock()
 	defer lock.RUnlock()
 	session, found := uidMap[uid]
 	return session, found
 }
 
-func Kick(uid facade.UID) error {
+func Kick(uid cfacade.UID) error {
 	if session, found := uidMap[uid]; found {
 		session.Close()
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, [uid = %d]", uid)
+	return cerr.Errorf("session does not exist, [uid = %d]", uid)
 }
 
-func KickBySID(sid facade.SID) error {
+func KickBySID(sid cfacade.SID) error {
 	if session, found := sidMap[sid]; found {
 		session.Close()
 		return nil
 	}
 
-	return cherryError.Errorf("session does not exist, [sid = %d]", sid)
+	return cerr.Errorf("session does not exist, [sid = %d]", sid)
 }
 
 func ForEachSIDSession(fn func(s *Session)) {

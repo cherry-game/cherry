@@ -2,10 +2,10 @@ package cherryORM
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
+	cconst "github.com/cherry-game/cherry/const"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cprofile "github.com/cherry-game/cherry/profile"
 	goSqlDriver "github.com/go-sql-driver/mysql"
 	"github.com/json-iterator/go"
 	"gorm.io/driver/mysql"
@@ -20,8 +20,7 @@ const (
 
 type (
 	Component struct {
-		cherryFacade.Component
-
+		cfacade.Component
 		// key:groupId,value:{key:id,value:*gorm.Db}
 		ormMap map[string]map[string]*gorm.DB
 	}
@@ -50,7 +49,7 @@ func NewComponent() *Component {
 }
 
 func (s *Component) Name() string {
-	return cherryConst.ORMComponent
+	return cconst.ORMComponent
 }
 
 func parseMysqlConfig(groupId string, item jsoniter.Any) *mySqlConfig {
@@ -72,45 +71,45 @@ func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
 	dbIdList := s.App().Settings().Get("db_id_list")
 	if dbIdList.LastError() != nil || dbIdList.Size() < 1 {
-		cherryLogger.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.App().NodeId())
+		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.App().NodeId())
 		return
 	}
 
-	dbProfile := cherryProfile.Get("db")
-	if dbProfile.LastError() != nil {
+	dbConfig := cprofile.GetConfig("db")
+	if dbConfig.LastError() != nil {
 		panic("`db` property not exists in profile file.")
 	}
 
-	for _, groupId := range dbProfile.Keys() {
+	for _, groupId := range dbConfig.Keys() {
 		s.ormMap[groupId] = make(map[string]*gorm.DB)
 
-		dbGroup := dbProfile.Get(groupId)
+		dbGroup := dbConfig.Get(groupId)
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.Get(i)
-			dbConfig := parseMysqlConfig(groupId, item)
+			mysqlConfig := parseMysqlConfig(groupId, item)
 
-			for i := 0; i < dbIdList.Size(); i++ {
-				dbId := dbIdList.Get(i).ToString()
-				if dbConfig.Id != dbId {
+			for j := 0; j < dbIdList.Size(); i++ {
+				dbId := dbIdList.Get(j).ToString()
+				if mysqlConfig.Id != dbId {
 					continue
 				}
 
-				if dbConfig.Enable == false {
-					panic(fmt.Sprintf("[dbName = %s] is disabled!", dbConfig.DbName))
+				if mysqlConfig.Enable == false {
+					panic(fmt.Sprintf("[dbName = %s] is disabled!", mysqlConfig.DbName))
 				}
 
-				db, err := s.createORM(dbConfig)
+				db, err := s.createORM(mysqlConfig)
 				if err != nil {
-					panic(fmt.Sprintf("[dbName = %s] create orm fail. error = %s", dbConfig.DbName, err))
+					panic(fmt.Sprintf("[dbName = %s] create orm fail. error = %s", mysqlConfig.DbName, err))
 				}
 
-				s.ormMap[groupId][dbConfig.Id] = db
-				cherryLogger.Infof("[dbGroup =%s, dbName = %s] is connected.", dbConfig.GroupId, dbConfig.Id)
+				s.ormMap[groupId][mysqlConfig.Id] = db
+				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", mysqlConfig.GroupId, mysqlConfig.Id)
 			}
 		}
 	}
 
-	goSqlDriver.SetLogger(cherryLogger.DefaultLogger)
+	goSqlDriver.SetLogger(clog.DefaultLogger)
 }
 
 func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
@@ -133,7 +132,7 @@ func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 
 func getLogger() logger.Interface {
 	return logger.New(
-		ormLogger{log: cherryLogger.DefaultLogger},
+		ormLogger{log: clog.DefaultLogger},
 		logger.Config{
 			SlowThreshold: time.Second,
 			LogLevel:      logger.Silent,
@@ -156,7 +155,7 @@ func (s *Component) GetDb(id string) *gorm.DB {
 func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*gorm.DB, bool) {
 	dbGroup, found := s.GetDbMap(groupId)
 	if found == false {
-		cherryLogger.Warnf("groupId = %s not found.", groupId)
+		clog.Warnf("groupId = %s not found.", groupId)
 		return nil, false
 	}
 

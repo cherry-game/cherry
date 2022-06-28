@@ -1,14 +1,14 @@
 package cherryDiscovery
 
 import (
-	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cprofile "github.com/cherry-game/cherry/profile"
 )
 
 var (
-	discoveryMap  = make(map[string]facade.IDiscovery)
-	thisDiscovery facade.IDiscovery
+	discoveryMap  = make(map[string]cfacade.IDiscovery)
+	thisDiscovery cfacade.IDiscovery
 )
 
 func init() {
@@ -17,58 +17,58 @@ func init() {
 	RegisterDiscovery(&DiscoveryETCD{})
 }
 
-func RegisterDiscovery(discovery facade.IDiscovery) {
+func RegisterDiscovery(discovery cfacade.IDiscovery) {
 	if discovery == nil {
-		cherryLogger.Fatal("discovery object is nil")
+		clog.Fatal("discovery object is nil")
 		return
 	}
 
 	if discovery.Name() == "" {
-		cherryLogger.Fatalf("discovery name is empty. %T", discovery)
+		clog.Fatalf("discovery name is empty. %T", discovery)
 		return
 	}
 
 	discoveryMap[discovery.Name()] = discovery
 }
 
-func Init(app facade.IApplication) {
+func Init(app cfacade.IApplication) {
 	if app.Running() {
-		cherryLogger.Error("node is running, execute init() fail!")
+		clog.Error("node is running, execute init() fail!")
 		return
 	}
 
-	discoveryProfile := cherryProfile.Get("cluster").Get("discovery")
-	if discoveryProfile.LastError() != nil {
-		cherryLogger.Error("`cluster` property not found in profile file.")
+	discoveryConfig := cprofile.GetConfig("cluster").GetConfig("discovery")
+	if discoveryConfig.LastError() != nil {
+		clog.Error("`cluster` property not found in profile file.")
 		return
 	}
 
-	mode := discoveryProfile.Get("mode").ToString()
+	mode := discoveryConfig.GetString("mode")
 	if mode == "" {
-		cherryLogger.Error("`discovery->mode` property not found in profile file.")
+		clog.Error("`discovery->mode` property not found in profile file.")
 		return
 	}
 
 	discovery, found := discoveryMap[mode]
 	if discovery == nil || found == false {
-		cherryLogger.Errorf("mode = %s property not found in discovery config.", mode)
+		clog.Errorf("mode = %s property not found in discovery config.", mode)
 		return
 	}
 	thisDiscovery = discovery
 	thisDiscovery.Init(app)
 
-	cherryLogger.Infof("discovery init complete! [mode = %s]", mode)
+	clog.Infof("discovery init complete! [mode = %s]", mode)
 }
 
-func Discovery() facade.IDiscovery {
+func Discovery() cfacade.IDiscovery {
 	return thisDiscovery
 }
 
-func List() []facade.IMember {
+func List() []cfacade.IMember {
 	return thisDiscovery.List()
 }
 
-func ListByType(nodeType string, filterNodeId ...string) []facade.IMember {
+func ListByType(nodeType string, filterNodeId ...string) []cfacade.IMember {
 	return thisDiscovery.ListByType(nodeType, filterNodeId...)
 }
 
@@ -76,11 +76,11 @@ func GetType(nodeId string) (nodeType string, err error) {
 	return thisDiscovery.GetType(nodeId)
 }
 
-func GetMember(nodeId string) (member facade.IMember, found bool) {
+func GetMember(nodeId string) (member cfacade.IMember, found bool) {
 	return thisDiscovery.GetMember(nodeId)
 }
 
-func AddMember(member facade.IMember) {
+func AddMember(member cfacade.IMember) {
 	thisDiscovery.AddMember(member)
 }
 
@@ -88,11 +88,11 @@ func RemoveMember(nodeId string) {
 	thisDiscovery.RemoveMember(nodeId)
 }
 
-func OnAddMember(listener facade.MemberListener) {
+func OnAddMember(listener cfacade.MemberListener) {
 	thisDiscovery.OnAddMember(listener)
 }
 
-func OnRemoveMember(listener facade.MemberListener) {
+func OnRemoveMember(listener cfacade.MemberListener) {
 	thisDiscovery.OnRemoveMember(listener)
 }
 

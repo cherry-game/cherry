@@ -3,9 +3,9 @@ package cherryDataConfig
 import (
 	"context"
 	"fmt"
-	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/profile"
+	cerr "github.com/cherry-game/cherry/error"
+	clog "github.com/cherry-game/cherry/logger"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/go-redis/redis/v8"
 )
 
@@ -34,24 +34,24 @@ func (r *SourceRedis) Init(_ IDataConfig) {
 	r.close = make(chan struct{})
 
 	//read data_config->file node
-	redisConfigProfile := cherryProfile.Get("data_config").Get(r.Name())
-	if redisConfigProfile.LastError() != nil {
-		cherryLogger.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cherryProfile.FileName())
+	redisConfig := cprofile.GetConfig("data_config").GetConfig(r.Name())
+	if redisConfig.LastError() != nil {
+		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cprofile.FileName())
 		return
 	}
 
-	r.prefixKey = redisConfigProfile.Get("prefix_key").ToString()
-	r.subscribeKey = redisConfigProfile.Get("subscribe_key").ToString()
-	r.address = redisConfigProfile.Get("address").ToString()
-	r.password = redisConfigProfile.Get("password").ToString()
-	r.db = redisConfigProfile.Get("db").ToInt()
+	r.prefixKey = redisConfig.GetString("prefix_key")
+	r.subscribeKey = redisConfig.GetString("subscribe_key")
+	r.address = redisConfig.GetString("address")
+	r.password = redisConfig.GetString("password")
+	r.db = redisConfig.GetInt("db")
 
 	r.rdb = redis.NewClient(&redis.Options{
 		Addr:     r.address,
 		Password: r.password,
 		DB:       r.db,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			cherryLogger.Infof("data config for redis connected")
+			clog.Infof("data config for redis connected")
 			return nil
 		},
 	})
@@ -69,7 +69,7 @@ func (r *SourceRedis) newSubscribe() {
 	defer func(sub *redis.PubSub) {
 		err := sub.Close()
 		if err != nil {
-			cherryLogger.Warn(err)
+			clog.Warn(err)
 		}
 	}(sub)
 
@@ -82,11 +82,11 @@ func (r *SourceRedis) newSubscribe() {
 				continue
 			}
 
-			cherryLogger.Infof("[name = %s] trigger file change.", ch.Payload)
+			clog.Infof("[name = %s] trigger file change.", ch.Payload)
 
 			data, err := r.ReadBytes(ch.Payload)
 			if err != nil {
-				cherryLogger.Warnf("[name = %s] read data error = %s", ch.Payload, err)
+				clog.Warnf("[name = %s] read data error = %s", ch.Payload, err)
 				continue
 			}
 
@@ -99,7 +99,7 @@ func (r *SourceRedis) newSubscribe() {
 
 func (r *SourceRedis) ReadBytes(configName string) (data []byte, error error) {
 	if configName == "" {
-		return nil, cherryError.Error("configName is empty.")
+		return nil, cerr.Error("configName is empty.")
 	}
 
 	key := fmt.Sprintf("%s:%s", r.prefixKey, configName)
@@ -112,13 +112,13 @@ func (r *SourceRedis) OnChange(fn ConfigChangeFn) {
 }
 
 func (r *SourceRedis) Stop() {
-	cherryLogger.Infof("close redis client [address = %s]", r.address)
+	clog.Infof("close redis client [address = %s]", r.address)
 	r.close <- struct{}{}
 
 	if r.rdb != nil {
 		err := r.rdb.Close()
 		if err != nil {
-			cherryLogger.Error(err)
+			clog.Error(err)
 		}
 	}
 }

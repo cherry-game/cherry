@@ -2,47 +2,45 @@ package cherry
 
 import (
 	"context"
-	cherryCode "github.com/cherry-game/cherry/code"
-	cherryFacade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryAgent "github.com/cherry-game/cherry/net/agent"
-	cherryCluster "github.com/cherry-game/cherry/net/cluster"
-	cherryCommand "github.com/cherry-game/cherry/net/command"
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryRouter "github.com/cherry-game/cherry/net/router"
-	cherrySession "github.com/cherry-game/cherry/net/session"
-	"github.com/golang/protobuf/proto"
-	"reflect"
+	cconst "github.com/cherry-game/cherry/const"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cagent "github.com/cherry-game/cherry/net/agent"
+	ccluster "github.com/cherry-game/cherry/net/cluster"
+	ccommand "github.com/cherry-game/cherry/net/command"
+	chandler "github.com/cherry-game/cherry/net/handler"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cpacket "github.com/cherry-game/cherry/net/packet"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	crouter "github.com/cherry-game/cherry/net/router"
+	csession "github.com/cherry-game/cherry/net/session"
 	"time"
 )
 
 var (
 	_thisApp    *Application
-	_components []cherryFacade.IComponent
+	_components []cfacade.IComponent
 )
 
 var (
-	_commands         = make(map[cherryPacket.Type]cherryCommand.ICommand)
+	_commands         = make(map[cpacket.Type]ccommand.ICommand)
 	_handshakeData    = make(map[string]interface{})
 	_heartbeat        = 60 * time.Second
-	_connectors       []cherryFacade.IConnector
-	_clusterComponent *cherryCluster.Component
+	_connectors       []cfacade.IConnector
+	_clusterComponent *ccluster.Component
 )
 
 var (
-	_handlerOpts      []cherryHandler.Option
-	_handlerGroups    []*cherryHandler.HandlerGroup
-	_handlerComponent *cherryHandler.Component
+	_handlerOpts      []chandler.Option
+	_handlerGroups    []*chandler.HandlerGroup
+	_handlerComponent *chandler.Component
 )
 
 func App() *Application {
 	return _thisApp
 }
 
-func Configure(profilePath, profileName, nodeId string) cherryFacade.IApplication {
+func Configure(profilePath, profileName, nodeId string) cfacade.IApplication {
 	_thisApp = NewApp(profilePath, profileName, nodeId)
 	return _thisApp
 }
@@ -69,12 +67,7 @@ func Run(isFrontend bool, nodeMode NodeMode) {
 
 func initHandler() {
 	// register handler component
-	_handlerComponent = cherryHandler.NewComponent(_handlerOpts...)
-
-	if _thisApp.isFrontend {
-		// add session handler for frontend node
-		_handlerComponent.Register2Group(&cherryHandler.SessionHandler{})
-	}
+	_handlerComponent = chandler.NewComponent(_handlerOpts...)
 
 	for _, group := range _handlerGroups {
 		_handlerComponent.Register(group)
@@ -91,7 +84,7 @@ func initComponent() {
 func initCluster() {
 	if _thisApp.NodeMode() == Cluster {
 		// register cluster component
-		_clusterComponent = cherryCluster.NewComponent()
+		_clusterComponent = ccluster.NewComponent()
 		_thisApp.Register(_clusterComponent)
 	}
 }
@@ -111,15 +104,15 @@ func initConnector() {
 	for _, connector := range _connectors {
 		// default setting
 		if connector.IsSetListener() == false {
-			connector.OnConnectListener(func(conn cherryFacade.INetConn) {
+			connector.OnConnectListener(func(conn cfacade.INetConn) {
 				// create agent
-				agent := cherryAgent.NewAgent(_thisApp, conn, &cherryAgent.Options{
+				agent := cagent.NewAgent(_thisApp, conn, &cagent.Options{
 					Heartbeat: _heartbeat,
 					Commands:  _commands,
 				})
 
 				// create new session
-				newSession := cherrySession.Create(cherrySession.NextSID(), _thisApp.NodeId(), agent)
+				newSession := csession.Create(csession.NextSID(), _thisApp.NodeId(), agent)
 				// run agent
 				agent.SetSession(newSession)
 				agent.Run()
@@ -131,7 +124,7 @@ func initConnector() {
 }
 
 func initOnSession() {
-	cherrySession.AddOnCreateListener(func(session *cherrySession.Session) (next bool) {
+	csession.AddOnCreateListener(func(session *csession.Session) (next bool) {
 		session.Debugf("session create. [sid = %s, address = %s]",
 			session.SID(),
 			session.RemoteAddress(),
@@ -139,7 +132,7 @@ func initOnSession() {
 		return true
 	})
 
-	cherrySession.AddOnCloseListener(func(session *cherrySession.Session) (next bool) {
+	csession.AddOnCloseListener(func(session *csession.Session) (next bool) {
 		session.Debugf("session closed. [sid = %s, address = %s]",
 			session.SID(),
 			session.RemoteAddress(),
@@ -150,43 +143,73 @@ func initOnSession() {
 }
 
 func initCommand() {
-	if _, found := _commands[cherryPacket.Handshake]; found == false {
+	if _, found := _commands[cpacket.Handshake]; found == false {
 		if len(_handshakeData) < 1 {
 			_handshakeData["heartbeat"] = _heartbeat.Seconds()
-			_handshakeData["dict"] = cherryMessage.GetDictionary()
+			_handshakeData["dict"] = cmsg.GetDictionary()
 			_handshakeData["serializer"] = _thisApp.ISerializer.Name()
 		}
 
-		handshakeCommand := cherryCommand.NewHandshake(_thisApp, _handshakeData)
+		handshakeCommand := ccommand.NewHandshake(_thisApp, _handshakeData)
 		RegisterCommand(handshakeCommand)
 	}
 
-	if _, found := _commands[cherryPacket.HandshakeAck]; found == false {
-		handshakeAckCommand := cherryCommand.NewHandshakeACK()
+	if _, found := _commands[cpacket.HandshakeAck]; found == false {
+		handshakeAckCommand := ccommand.NewHandshakeACK()
 		RegisterCommand(handshakeAckCommand)
 	}
 
-	if _, found := _commands[cherryPacket.Heartbeat]; found == false {
-		heartbeatCommand := cherryCommand.NewHeartbeat(_thisApp)
+	if _, found := _commands[cpacket.Heartbeat]; found == false {
+		heartbeatCommand := ccommand.NewHeartbeat(_thisApp)
 		RegisterCommand(heartbeatCommand)
 	}
 
-	if _, found := _commands[cherryPacket.Data]; found == false {
+	if _, found := _commands[cpacket.Data]; found == false {
 		// connector forward message
-		handDataCommand := cherryCommand.NewData(
+		handDataCommand := ccommand.NewData(
 			_thisApp,
 			_handlerComponent.ProcessLocal,
-			_clusterComponent.ForwardLocal,
+			forwardLocal,
 		)
 		RegisterCommand(handDataCommand)
 	}
 }
 
-func SetSerializer(serializer cherryFacade.ISerializer) {
+// ForwardLocal forward message to backend node
+func forwardLocal(session *csession.Session, msg *cmsg.Message) {
+	if session.IsBind() == false {
+		session.Warnf("session not bind,message forwarding is not allowed. [session = %v, msg = %s]",
+			session,
+			msg,
+		)
+		return
+	}
+
+	ctx := context.WithValue(context.Background(), cconst.SessionKey, session)
+
+	member, err := crouter.Route(ctx, msg.RouteInfo().NodeType(), msg)
+	if member == nil || err != nil {
+		session.Warnf("get router node is fail. [session = %v, msg = %s, error = %s]",
+			session,
+			msg,
+			err,
+		)
+		return
+	}
+
+	request := buildRequest(session, msg)
+	defer cproto.PutRequest(request)
+
+	if err = _clusterComponent.PublishLocal(member.GetNodeId(), request); err != nil {
+		session.Warnf("publish local fail. [error = %s]", err)
+	}
+}
+
+func SetSerializer(serializer cfacade.ISerializer) {
 	_thisApp.SetSerializer(serializer)
 }
 
-func SetPacketCodec(codec cherryFacade.IPacketCodec) {
+func SetPacketCodec(codec cfacade.IPacketCodec) {
 	_thisApp.SetPacketCodec(codec)
 }
 
@@ -202,128 +225,71 @@ func SetHandshake(key string, value interface{}) {
 }
 
 func SetDictionary(dict map[string]uint16) {
-	cherryMessage.SetDictionary(dict)
+	cmsg.SetDictionary(dict)
 }
 
-func SetMessageCompression(compression bool) {
-	cherryMessage.SetDataCompression(compression)
+func SetDataCompression(compression bool) {
+	cmsg.SetDataCompression(compression)
 }
 
 func SetOnShutdown(fn ...func()) {
 	_thisApp.OnShutdown(fn...)
 }
 
-func SetHandlerOptions(opts ...cherryHandler.Option) {
+func SetHandlerOptions(opts ...chandler.Option) {
 	_handlerOpts = append(_handlerOpts, opts...)
 }
 
-func RegisterHandler(handler ...cherryFacade.IHandler) {
-	handlerGroup := cherryHandler.NewGroupWithHandler(handler...)
+func RegisterHandler(handler ...cfacade.IHandler) {
+	handlerGroup := chandler.NewGroupWithHandler(handler...)
 	_handlerGroups = append(_handlerGroups, handlerGroup)
 }
 
-func RegisterHandlerGroup(group ...*cherryHandler.HandlerGroup) {
+func RegisterHandlerGroup(group ...*chandler.HandlerGroup) {
 	_handlerGroups = append(_handlerGroups, group...)
 }
 
-func RegisterComponent(component ...cherryFacade.IComponent) {
+func RegisterComponent(component ...cfacade.IComponent) {
 	_components = append(_components, component...)
 }
 
-func RegisterConnector(connector cherryFacade.IConnector) {
+func RegisterConnector(connector cfacade.IConnector) {
 	_connectors = append(_connectors, connector)
 }
 
-func RegisterCommand(command cherryCommand.ICommand) {
-	_commands[command.GetType()] = command
+func RegisterCommand(command ccommand.ICommand) {
+	_commands[command.PacketType()] = command
 }
 
-func AddNodeRouter(nodeType string, routingFunc cherryRouter.RoutingFunc) {
-	cherryRouter.AddRoute(nodeType, routingFunc)
+func AddNodeRouter(nodeType string, routingFunc crouter.RoutingFunc) {
+	crouter.AddRoute(nodeType, routingFunc)
 }
 
-func GetCluster() *cherryCluster.Component {
-	return _clusterComponent
-}
-
-func GetRPCClient() cherryFacade.RPCClient {
-	return _clusterComponent.Client()
-}
-
-func GetConnectors() []cherryFacade.IConnector {
+func GetConnectors() []cfacade.IConnector {
 	return _connectors
 }
 
-func RPC(nodeId string, route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {
-	if reply != nil && reflect.TypeOf(reply).Kind() != reflect.Ptr {
-		return cherryCode.RPCReplyParamsError
-	}
-
-	var requestTimeout time.Duration
-	if len(timeout) > 0 {
-		requestTimeout = timeout[0]
-	}
-
-	rsp := &cherryProto.Response{}
-	_clusterComponent.Client().CallRemote(nodeId, route, arg, requestTimeout, rsp)
-	if cherryCode.IsFail(rsp.Code) {
-		return rsp.Code
-	}
-
-	if reply != nil {
-		err := proto.Unmarshal(rsp.GetData(), reply)
-		if err != nil {
-			return cherryCode.RPCUnmarshalError
-		}
-	}
-
-	return cherryCode.OK
-}
-
-func RPCByRoute(route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {
-	rt, err := cherryMessage.DecodeRoute(route)
-	if err != nil {
-		cherryLogger.Warnf("[RPCByRoute] decode route fail.. [error = %s]", err)
-		return cherryCode.RPCRouteDecodeError
-	}
-
-	member, err := cherryRouter.Route(context.Background(), rt.NodeType(), nil)
-	if err != nil {
-		cherryLogger.Warnf("[RPCByRoute]get node router is fail. [route = %s] [error = %s]", route, err)
-		return cherryCode.RPCRouteHashError
-	}
-
-	return RPC(member.GetNodeId(), route, arg, reply, timeout...)
-}
-
-func RPCAsync(nodeId string, route string, arg proto.Message) {
-	if nodeId == "" {
-		decode, err := cherryMessage.DecodeRoute(route)
-		if err != nil {
-			cherryLogger.Warnf("[RPCAsync] decode route fail. [route = %s]", route)
-			return
-		}
-
-		member, err := cherryRouter.Route(context.Background(), decode.NodeType(), nil)
-		if err != nil {
-			cherryLogger.Warnf("[RPCAsync] get node router is fail. [route = %s] [error = %s]", route, err)
-			return
-		}
-
-		nodeId = member.GetNodeId()
-	}
-
-	_clusterComponent.Client().CallRemoteAsync(nodeId, route, arg)
-}
-
-func RPCAsyncByRoute(route string, arg proto.Message) {
-	RPCAsync("", route, arg)
-}
-
-func PostEvent(event cherryFacade.IEvent) {
+func PostEvent(event cfacade.IEvent) {
 	if _handlerComponent == nil {
-		cherryLogger.Warnf("post event fail. handler component is nil.")
+		clog.Warnf("post event fail. handler component is nil.")
 		return
 	}
+
 	_handlerComponent.PostEvent(event)
+}
+
+func buildRequest(session *csession.Session, msg *cmsg.Message) *cproto.Request {
+	request := cproto.GetRequest()
+	request.Sid = session.SID()
+	request.Uid = session.UID()
+	request.FrontendId = session.FrontendId()
+	request.Ip = session.RemoteAddress()
+	request.Setting = session.Data()
+	request.MsgType = int32(msg.Type)
+	request.MsgId = uint32(msg.ID)
+	request.Route = msg.Route
+	request.IsError = false
+	request.Data = msg.Data
+
+	return request
 }

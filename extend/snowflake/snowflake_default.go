@@ -1,6 +1,6 @@
 package cherrySnowflake
 
-import cherryLogger "github.com/cherry-game/cherry/logger"
+import clog "github.com/cherry-game/cherry/logger"
 
 var (
 	defaultNode *Node
@@ -8,15 +8,15 @@ var (
 
 func SetDefaultNode(nodeId int64) {
 	if defaultNode != nil {
-		cherryLogger.Warn("default snowflake node is created.")
+		clog.Warn("default snowflake node is created.")
 		return
 	}
 
 	var err error
 	defaultNode, err = NewNode(nodeId)
 	if err != nil {
-		cherryLogger.Warn(err)
-		cherryLogger.Warnf("create default snowflake node fail. nodeId=%d", nodeId)
+		clog.Warn(err)
+		clog.Warnf("create default snowflake node fail. nodeId=%d", nodeId)
 	}
 }
 

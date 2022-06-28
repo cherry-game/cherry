@@ -1,16 +1,16 @@
 package cherryHandler
 
 import (
-	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"runtime/debug"
 )
 
 type (
 	ExecutorEvent struct {
 		groupIndex int
-		Event      facade.IEvent
-		EventSlice []facade.EventFunc
+		Event      cfacade.IEvent
+		EventSlice []cfacade.EventFunc
 	}
 )
 
@@ -25,8 +25,8 @@ func (p *ExecutorEvent) SetIndex(index int) {
 func (p *ExecutorEvent) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
-			cherryLogger.Warnf("recover in Event. %s", string(debug.Stack()))
-			cherryLogger.Warnf("event = [%+v]", p.Event)
+			clog.Warnf("recover in Event. %s", string(debug.Stack()))
+			clog.Warnf("event = [%+v]", p.Event)
 		}
 	}()
 

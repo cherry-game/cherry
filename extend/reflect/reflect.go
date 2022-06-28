@@ -2,9 +2,9 @@ package cherryReflect
 
 import (
 	"fmt"
-	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/extend/string"
-	"github.com/cherry-game/cherry/facade"
+	cerr "github.com/cherry-game/cherry/error"
+	cstring "github.com/cherry-game/cherry/extend/string"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"reflect"
 	"runtime"
 )
@@ -31,24 +31,24 @@ func GetFuncName(fn interface{}) string {
 	}
 
 	fullName := runtime.FuncForPC(reflect.ValueOf(fn).Pointer()).Name()
-	return cherryString.CutLastString(fullName, ".", "-")
+	return cstring.CutLastString(fullName, ".", "-")
 }
 
 //GetInvokeFunc reflect function convert to HandlerFn
-func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error) {
+func GetInvokeFunc(name string, fn interface{}) (*cfacade.HandlerFn, error) {
 	if name == "" {
-		return nil, cherryError.Error("func name is nil")
+		return nil, cerr.Error("func name is nil")
 	}
 
 	if fn == nil {
-		return nil, cherryError.Errorf("func is nil. name = %s", name)
+		return nil, cerr.Errorf("func is nil. name = %s", name)
 	}
 
 	typ := reflect.TypeOf(fn)
 	val := reflect.ValueOf(fn)
 
 	if typ.Kind() != reflect.Func {
-		return nil, cherryError.Errorf("name = %s is not func type.", name)
+		return nil, cerr.Errorf("name = %s is not func type.", name)
 	}
 
 	var inArgs []reflect.Type
@@ -63,7 +63,7 @@ func GetInvokeFunc(name string, fn interface{}) (*cherryFacade.HandlerFn, error)
 		outArgs = append(outArgs, t)
 	}
 
-	invoke := &cherryFacade.HandlerFn{
+	invoke := &cfacade.HandlerFn{
 		Type:    typ,
 		Value:   val,
 		InArgs:  inArgs,

@@ -2,23 +2,23 @@ package cherryHandler
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/const"
-	"github.com/cherry-game/cherry/extend/reflect"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	cconst "github.com/cherry-game/cherry/const"
+	creflect "github.com/cherry-game/cherry/extend/reflect"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	csession "github.com/cherry-game/cherry/net/session"
 	"reflect"
 )
 
 type (
 	Handler struct {
-		facade.AppContext
-		name             string                        // unique name
-		eventSlice       map[string][]facade.EventFunc // event func
-		localHandlers    map[string]*facade.HandlerFn  // local invoke Handler functions
-		remoteHandlers   map[string]*facade.HandlerFn  // remote invoke Handler functions
-		handlerComponent *Component                    // handler component
+		cfacade.AppContext
+		name                 string                         // unique name
+		eventFuncMap         map[string][]cfacade.EventFunc // event func
+		localHandlerFuncMap  map[string]*cfacade.HandlerFn  // local invoke Handler functions
+		remoteHandlerFuncMap map[string]*cfacade.HandlerFn  // remote invoke Handler functions
+		handlerComponent     *Component                     // handler component
 	}
 )
 
@@ -31,12 +31,12 @@ func (h *Handler) SetName(name string) {
 }
 
 func (h *Handler) OnPreInit() {
-	h.eventSlice = make(map[string][]facade.EventFunc)
-	h.localHandlers = make(map[string]*facade.HandlerFn)
-	h.remoteHandlers = make(map[string]*facade.HandlerFn)
+	h.eventFuncMap = make(map[string][]cfacade.EventFunc)
+	h.localHandlerFuncMap = make(map[string]*cfacade.HandlerFn)
+	h.remoteHandlerFuncMap = make(map[string]*cfacade.HandlerFn)
 
 	var found = false
-	h.handlerComponent, found = h.App().Find(cherryConst.HandlerComponent).(*Component)
+	h.handlerComponent, found = h.App().Find(cconst.HandlerComponent).(*Component)
 	if found == false {
 		panic("handler component not found.")
 	}
@@ -51,30 +51,30 @@ func (h *Handler) OnAfterInit() {
 func (h *Handler) OnStop() {
 }
 
-func (h *Handler) Events() map[string][]facade.EventFunc {
-	return h.eventSlice
+func (h *Handler) Events() map[string][]cfacade.EventFunc {
+	return h.eventFuncMap
 }
 
-func (h *Handler) Event(name string) ([]facade.EventFunc, bool) {
-	events, found := h.eventSlice[name]
+func (h *Handler) Event(name string) ([]cfacade.EventFunc, bool) {
+	events, found := h.eventFuncMap[name]
 	return events, found
 }
 
-func (h *Handler) LocalHandlers() map[string]*facade.HandlerFn {
-	return h.localHandlers
+func (h *Handler) LocalHandlers() map[string]*cfacade.HandlerFn {
+	return h.localHandlerFuncMap
 }
 
-func (h *Handler) LocalHandler(funcName string) (*facade.HandlerFn, bool) {
-	invoke, found := h.localHandlers[funcName]
+func (h *Handler) LocalHandler(funcName string) (*cfacade.HandlerFn, bool) {
+	invoke, found := h.localHandlerFuncMap[funcName]
 	return invoke, found
 }
 
-func (h *Handler) RemoteHandlers() map[string]*facade.HandlerFn {
-	return h.remoteHandlers
+func (h *Handler) RemoteHandlers() map[string]*cfacade.HandlerFn {
+	return h.remoteHandlerFuncMap
 }
 
-func (h *Handler) RemoteHandler(funcName string) (*facade.HandlerFn, bool) {
-	invoke, found := h.remoteHandlers[funcName]
+func (h *Handler) RemoteHandler(funcName string) (*cfacade.HandlerFn, bool) {
+	invoke, found := h.remoteHandlerFuncMap[funcName]
 	return invoke, found
 }
 
@@ -84,9 +84,9 @@ func (h *Handler) Component() *Component {
 
 func (h *Handler) AddLocals(localFns ...interface{}) {
 	for _, fn := range localFns {
-		funcName := cherryReflect.GetFuncName(fn)
+		funcName := creflect.GetFuncName(fn)
 		if funcName == "" {
-			cherryLogger.Warnf("get function name fail. fn=%v", fn)
+			clog.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
 		h.AddLocal(funcName, fn)
@@ -96,18 +96,18 @@ func (h *Handler) AddLocals(localFns ...interface{}) {
 func (h *Handler) AddLocal(name string, fn interface{}) {
 	f, err := getInvokeFunc(name, fn)
 	if err != nil {
-		cherryLogger.Warn(err)
+		clog.Warn(err)
 		return
 	}
 
-	h.localHandlers[name] = f
+	h.localHandlerFuncMap[name] = f
 }
 
 func (h *Handler) AddRemotes(remoteFns ...interface{}) {
 	for _, fn := range remoteFns {
-		funcName := cherryReflect.GetFuncName(fn)
+		funcName := creflect.GetFuncName(fn)
 		if funcName == "" {
-			cherryLogger.Warnf("get function name fail. fn=%v", fn)
+			clog.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
 		h.AddRemote(funcName, fn)
@@ -117,21 +117,21 @@ func (h *Handler) AddRemotes(remoteFns ...interface{}) {
 func (h *Handler) AddRemote(name string, fn interface{}) {
 	invokeFunc, err := getInvokeFunc(name, fn)
 	if err != nil {
-		cherryLogger.Warn(err)
+		clog.Warn(err)
 		return
 	}
 
-	h.remoteHandlers[name] = invokeFunc
+	h.remoteHandlerFuncMap[name] = invokeFunc
 }
 
-func getInvokeFunc(name string, fn interface{}) (*facade.HandlerFn, error) {
-	invokeFunc, err := cherryReflect.GetInvokeFunc(name, fn)
+func getInvokeFunc(name string, fn interface{}) (*cfacade.HandlerFn, error) {
+	invokeFunc, err := creflect.GetInvokeFunc(name, fn)
 	if err != nil {
 		return invokeFunc, err
 	}
 
 	if len(invokeFunc.InArgs) == 3 {
-		if invokeFunc.InArgs[2] == reflect.TypeOf(&cherryMessage.Message{}) {
+		if invokeFunc.InArgs[2] == reflect.TypeOf(&cmsg.Message{}) {
 			invokeFunc.IsRaw = true
 		}
 	}
@@ -139,26 +139,26 @@ func getInvokeFunc(name string, fn interface{}) (*facade.HandlerFn, error) {
 	return invokeFunc, err
 }
 
-func (h *Handler) AddEvent(eventName string, fn facade.EventFunc) {
+func (h *Handler) AddEvent(eventName string, fn cfacade.EventFunc) {
 	if eventName == "" {
-		cherryLogger.Warn("eventName is nil")
+		clog.Warn("eventName is nil")
 		return
 	}
 
 	if fn == nil {
-		cherryLogger.Warn("event function is nil")
+		clog.Warn("event function is nil")
 		return
 	}
 
-	events := h.eventSlice[eventName]
+	events := h.eventFuncMap[eventName]
 	events = append(events, fn)
 
-	h.eventSlice[eventName] = events
+	h.eventFuncMap[eventName] = events
 }
 
-func (h *Handler) PostEvent(e facade.IEvent) {
+func (h *Handler) PostEvent(e cfacade.IEvent) {
 	if h.handlerComponent == nil {
-		cherryLogger.Errorf("handlerComponent is nil. [event = %s]", e)
+		clog.Errorf("handlerComponent is nil. [event = %s]", e)
 		return
 	}
 
@@ -177,6 +177,6 @@ func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
 	}
 }
 
-func (h *Handler) Response(ctx context.Context, session *cherrySession.Session, data interface{}) {
+func (h *Handler) Response(ctx context.Context, session *csession.Session, data interface{}) {
 	session.Response(ctx, data)
 }

@@ -2,11 +2,11 @@ package cherryDiscovery
 
 import (
 	"fmt"
-	facade "github.com/cherry-game/cherry/facade"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryNats "github.com/cherry-game/cherry/net/cluster/nats"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	cherryProfile "github.com/cherry-game/cherry/profile"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cnats "github.com/cherry-game/cherry/net/cluster/nats"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/nats-io/nats.go"
 	"time"
 )
@@ -20,8 +20,8 @@ import (
 // 所有节点subscribe(cherry.discovery.unregister)，退出时注销节点
 type DiscoveryNATS struct {
 	DiscoveryDefault
-	facade.IApplication
-	masterMember      facade.IMember
+	cfacade.IApplication
+	masterMember      cfacade.IMember
 	registerSubject   string
 	unregisterSubject string
 	addSubject        string
@@ -31,28 +31,28 @@ func (m *DiscoveryNATS) Name() string {
 	return "nats"
 }
 
-func (m *DiscoveryNATS) Init(app facade.IApplication) {
+func (m *DiscoveryNATS) Init(app cfacade.IApplication) {
 	m.IApplication = app
 
 	//get nats config
-	clusterProfile := cherryProfile.Get("cluster").Get(m.Name())
-	if clusterProfile.LastError() != nil {
-		cherryLogger.Fatalf("nats config parameter not found. err = %v", clusterProfile.LastError())
+	clusterConfig := cprofile.GetConfig("cluster").GetConfig(m.Name())
+	if clusterConfig.LastError() != nil {
+		clog.Fatalf("nats config parameter not found. err = %v", clusterConfig.LastError())
 	}
 
 	// get master node id
-	masterId := clusterProfile.Get("master_node_id").ToString()
+	masterId := clusterConfig.GetString("master_node_id")
 	if masterId == "" {
-		cherryLogger.Fatal("master node id not in config.")
+		clog.Fatal("master node id not in config.")
 	}
 
 	// load master node config
-	masterNode, err := cherryProfile.LoadNode(masterId)
+	masterNode, err := cprofile.LoadNode(masterId)
 	if err != nil {
-		cherryLogger.Fatal(err)
+		clog.Fatal(err)
 	}
 
-	m.masterMember = &cherryProto.Member{
+	m.masterMember = &cproto.Member{
 		NodeId:   masterNode.NodeId(),
 		NodeType: masterNode.NodeType(),
 		Address:  masterNode.RpcAddress(),
@@ -77,10 +77,10 @@ func (m *DiscoveryNATS) init() {
 	m.addSubject = fmt.Sprintf("cherry.discovery.%s.addMember", masterNodeId)
 
 	m.subscribe(m.unregisterSubject, func(msg *nats.Msg) {
-		unregisterMember := &cherryProto.Member{}
+		unregisterMember := &cproto.Member{}
 		err := m.Unmarshal(msg.Data, unregisterMember)
 		if err != nil {
-			cherryLogger.Warnf("err = %s", err)
+			clog.Warnf("err = %s", err)
 			return
 		}
 
@@ -95,7 +95,7 @@ func (m *DiscoveryNATS) init() {
 	m.serverInit()
 	m.clientInit()
 
-	cherryLogger.Infof("[discovery = %s] is running.", m.Name())
+	clog.Infof("[discovery = %s] is running.", m.Name())
 }
 
 func (m *DiscoveryNATS) serverInit() {
@@ -108,10 +108,10 @@ func (m *DiscoveryNATS) serverInit() {
 
 	// subscribe register message
 	m.subscribe(m.registerSubject, func(msg *nats.Msg) {
-		newMember := &cherryProto.Member{}
+		newMember := &cproto.Member{}
 		err := m.Unmarshal(msg.Data, newMember)
 		if err != nil {
-			cherryLogger.Warnf("err = %s", err)
+			clog.Warnf("err = %s", err)
 			return
 		}
 
@@ -119,7 +119,7 @@ func (m *DiscoveryNATS) serverInit() {
 		m.AddMember(newMember)
 
 		// response member list
-		rspMemberList := &cherryProto.MemberList{}
+		rspMemberList := &cproto.MemberList{}
 		for _, member := range m.memberList {
 			if member.GetNodeId() == newMember.GetNodeId() {
 				continue
@@ -134,21 +134,21 @@ func (m *DiscoveryNATS) serverInit() {
 
 		rspData, err := m.Marshal(rspMemberList)
 		if err != nil {
-			cherryLogger.Warnf("marshal fail. err = %s", err)
+			clog.Warnf("marshal fail. err = %s", err)
 			return
 		}
 
 		// response member list
 		err = msg.Respond(rspData)
 		if err != nil {
-			cherryLogger.Warnf("respond fail. err = %s", err)
+			clog.Warnf("respond fail. err = %s", err)
 			return
 		}
 
 		// publish addMember new node
-		err = cherryNats.Publish(m.addSubject, msg.Data)
+		err = cnats.Publish(m.addSubject, msg.Data)
 		if err != nil {
-			cherryLogger.Warnf("publish fail. err = %s", err)
+			clog.Warnf("publish fail. err = %s", err)
 			return
 		}
 	})
@@ -159,7 +159,7 @@ func (m *DiscoveryNATS) clientInit() {
 		return
 	}
 
-	registerMember := &cherryProto.Member{
+	registerMember := &cproto.Member{
 		NodeId:   m.NodeId(),
 		NodeType: m.NodeType(),
 		Address:  m.RpcAddress(),
@@ -168,16 +168,16 @@ func (m *DiscoveryNATS) clientInit() {
 
 	bytesData, err := m.Marshal(registerMember)
 	if err != nil {
-		cherryLogger.Warnf("err = %s", err)
+		clog.Warnf("err = %s", err)
 		return
 	}
 
 	// receive registered node
 	m.subscribe(m.addSubject, func(msg *nats.Msg) {
-		addMember := &cherryProto.Member{}
+		addMember := &cproto.Member{}
 		err := m.Unmarshal(msg.Data, addMember)
 		if err != nil {
-			cherryLogger.Warnf("err = %s", err)
+			clog.Warnf("err = %s", err)
 			return
 		}
 
@@ -188,27 +188,27 @@ func (m *DiscoveryNATS) clientInit() {
 
 	for {
 		// register current node to master
-		rsp, err := cherryNats.Request(m.registerSubject, bytesData, cherryNats.App().RequestTimeout)
+		rsp, err := cnats.Request(m.registerSubject, bytesData, cnats.App().RequestTimeout)
 		if err != nil {
-			cherryLogger.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
+			clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
 				m.masterMember.GetNodeId(),
-				cherryNats.App().Address,
+				cnats.App().Address,
 				err,
 			)
-			time.Sleep(cherryNats.App().RequestTimeout)
+			time.Sleep(cnats.App().RequestTimeout)
 			continue
 		}
 
-		cherryLogger.Infof("register node to [master = %s]. [member = %s]",
+		clog.Infof("register node to [master = %s]. [member = %s]",
 			m.masterMember.GetNodeId(),
 			registerMember,
 		)
 
-		memberList := cherryProto.MemberList{}
+		memberList := cproto.MemberList{}
 		err = m.Unmarshal(rsp.Data, &memberList)
 		if err != nil {
-			cherryLogger.Warnf("err = %s", err)
-			time.Sleep(cherryNats.App().RequestTimeout)
+			clog.Warnf("err = %s", err)
+			time.Sleep(cnats.App().RequestTimeout)
 			continue
 		}
 
@@ -222,35 +222,35 @@ func (m *DiscoveryNATS) clientInit() {
 
 func (m *DiscoveryNATS) OnStop() {
 	if m.isClient() {
-		thisMember := &cherryProto.Member{
+		thisMember := &cproto.Member{
 			NodeId: m.NodeId(),
 		}
 
 		bytesData, err := m.Marshal(thisMember)
 		if err != nil {
-			cherryLogger.Warnf("marshal fail. err = %s", err)
+			clog.Warnf("marshal fail. err = %s", err)
 			return
 		}
 
-		err = cherryNats.Publish(m.unregisterSubject, bytesData)
+		err = cnats.Publish(m.unregisterSubject, bytesData)
 		if err != nil {
-			cherryLogger.Warnf("publish fail. err = %s", err)
+			clog.Warnf("publish fail. err = %s", err)
 			return
 		}
 
-		cherryLogger.Debugf("[nodeId = %s] unregister node to [[master = %s]",
+		clog.Debugf("[nodeId = %s] unregister node to [[master = %s]",
 			m.NodeId(),
 			m.masterMember.GetNodeId(),
 		)
 	}
 
-	cherryNats.Close()
+	cnats.Close()
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
-	_, err := cherryNats.Subscribe(subject, cb)
+	_, err := cnats.Subscribe(subject, cb)
 	if err != nil {
-		cherryLogger.Warnf("subscribe fail. err = %s", err)
+		clog.Warnf("subscribe fail. err = %s", err)
 		return
 	}
 }

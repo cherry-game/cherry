@@ -1,13 +1,13 @@
 package cherryCommand
 
 import (
-	facade "github.com/cherry-game/cherry/facade"
-	cherryPacket "github.com/cherry-game/cherry/net/packet"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	cfacade "github.com/cherry-game/cherry/facade"
+	cpacket "github.com/cherry-game/cherry/net/packet"
+	csession "github.com/cherry-game/cherry/net/session"
 )
 
 // ICommand request data command for client
 type ICommand interface {
-	GetType() cherryPacket.Type
-	Do(session *cherrySession.Session, packet facade.IPacket)
+	PacketType() cpacket.Type
+	Do(session *csession.Session, packet cfacade.IPacket)
 }

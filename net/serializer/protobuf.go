@@ -1,7 +1,7 @@
 package cherrySerializer
 
 import (
-	cherryError "github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 	"github.com/golang/protobuf/proto"
 )
 
@@ -21,7 +21,7 @@ func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
 
 	pb, ok := v.(proto.Message)
 	if !ok {
-		return nil, cherryError.ProtobufWrongValueType
+		return nil, cerr.ProtobufWrongValueType
 	}
 	return proto.Marshal(pb)
 }
@@ -31,7 +31,7 @@ func (p *Protobuf) Marshal(v interface{}) ([]byte, error) {
 func (p *Protobuf) Unmarshal(data []byte, v interface{}) error {
 	pb, ok := v.(proto.Message)
 	if !ok {
-		return cherryError.ProtobufWrongValueType
+		return cerr.ProtobufWrongValueType
 	}
 	return proto.Unmarshal(data, pb)
 }

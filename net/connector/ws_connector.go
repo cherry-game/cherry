@@ -1,10 +1,10 @@
 package cherryConnector
 
 import (
-	"github.com/cherry-game/cherry/error"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/packet"
+	cerr "github.com/cherry-game/cherry/error"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cpacket "github.com/cherry-game/cherry/net/packet"
 	"github.com/gorilla/websocket"
 	"io"
 	"net"
@@ -13,14 +13,14 @@ import (
 )
 
 type WSConnector struct {
-	facade.Component
+	cfacade.Component
 	connector
 	up *websocket.Upgrader
 }
 
 func NewWS(address string) *WSConnector {
 	if address == "" {
-		cherryLogger.Warn("create websocket fail. address is null.")
+		clog.Warn("create websocket fail. address is null.")
 		return nil
 	}
 
@@ -32,12 +32,12 @@ func NewWS(address string) *WSConnector {
 
 func NewWSLTS(address, certFile, keyFile string) *WSConnector {
 	if address == "" {
-		cherryLogger.Warn("create websocket fail. address is null.")
+		clog.Warn("create websocket fail. address is null.")
 		return nil
 	}
 
 	if certFile == "" || keyFile == "" {
-		cherryLogger.Warn("create websocket fail. certFile or keyFile is null.")
+		clog.Warn("create websocket fail. certFile or keyFile is null.")
 		return nil
 	}
 
@@ -65,14 +65,14 @@ func (w *WSConnector) OnStart() {
 	var err error
 	w.listener, err = GetNetListener(w.address, w.certFile, w.keyFile)
 	if err != nil {
-		cherryLogger.Fatalf("failed to listen: %s", err.Error())
+		clog.Fatalf("failed to listen: %s", err.Error())
 	}
 
 	if w.certFile == "" || w.keyFile == "" {
-		cherryLogger.Infof("websocket connector listening at address ws://%s", w.address)
+		clog.Infof("websocket connector listening at address ws://%s", w.address)
 	} else {
-		cherryLogger.Infof("websocket connector listening at address wss://%s", w.address)
-		cherryLogger.Infof("certFile = %s, keyFile = %s", w.certFile, w.keyFile)
+		clog.Infof("websocket connector listening at address wss://%s", w.address)
+		clog.Infof("certFile = %s, keyFile = %s", w.certFile, w.keyFile)
 	}
 
 	if w.up == nil {
@@ -93,7 +93,7 @@ func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
 func (w *WSConnector) OnStop() {
 	err := w.listener.Close()
 	if err != nil {
-		cherryLogger.Errorf("failed to stop: %s", err.Error())
+		clog.Errorf("failed to stop: %s", err.Error())
 	}
 }
 
@@ -101,13 +101,13 @@ func (w *WSConnector) OnStop() {
 func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	wsConn, err := w.up.Upgrade(rw, r, nil)
 	if err != nil {
-		cherryLogger.Infof("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
+		clog.Infof("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 		return
 	}
 
 	conn, err := NewWSConn(wsConn)
 	if err != nil {
-		cherryLogger.Errorf("Failed to create new ws connection: %s", err.Error())
+		clog.Errorf("Failed to create new ws connection: %s", err.Error())
 		return
 	}
 
@@ -135,21 +135,21 @@ func (c *WSConn) GetNextMessage() (b []byte, err error) {
 		return nil, err
 	}
 
-	if len(msgBytes) < cherryPacket.HeadLength {
-		return nil, cherryError.PacketInvalidHeader
+	if len(msgBytes) < cpacket.HeadLength {
+		return nil, cerr.PacketInvalidHeader
 	}
 
-	header := msgBytes[:cherryPacket.HeadLength]
+	header := msgBytes[:cpacket.HeadLength]
 
-	msgSize, _, err := cherryPacket.ParseHeader(header)
+	msgSize, _, err := cpacket.ParseHeader(header)
 	if err != nil {
 		return nil, err
 	}
 
-	dataLen := len(msgBytes[cherryPacket.HeadLength:])
+	dataLen := len(msgBytes[cpacket.HeadLength:])
 
 	if dataLen < msgSize || dataLen > msgSize {
-		return nil, cherryError.PacketMsgSmallerThanExpected
+		return nil, cerr.PacketMsgSmallerThanExpected
 	}
 
 	return msgBytes, err

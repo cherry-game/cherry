@@ -2,8 +2,8 @@ package cherryPacket
 
 import (
 	"bytes"
-	"github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/facade"
+	cerr "github.com/cherry-game/cherry/error"
+	cfacade "github.com/cherry-game/cherry/facade"
 )
 
 type PomeloCodec struct {
@@ -13,12 +13,12 @@ func NewPomeloCodec() *PomeloCodec {
 	return &PomeloCodec{}
 }
 
-func (p *PomeloCodec) PacketDecode(data []byte) ([]cherryFacade.IPacket, error) {
+func (p *PomeloCodec) PacketDecode(data []byte) ([]cfacade.IPacket, error) {
 	buf := bytes.NewBuffer(nil)
 	buf.Write(data)
 
 	var (
-		packets []cherryFacade.IPacket
+		packets []cfacade.IPacket
 		err     error
 	)
 
@@ -59,7 +59,7 @@ func (p *PomeloCodec) forward(buf *bytes.Buffer) (int, Type, error) {
 
 	typ := header[0]
 	if InvalidType(typ) {
-		return 0, None, cherryError.PacketSizeExceed
+		return 0, None, cerr.PacketSizeExceed
 	}
 
 	// get 2,3,4 byte
@@ -67,7 +67,7 @@ func (p *PomeloCodec) forward(buf *bytes.Buffer) (int, Type, error) {
 
 	// packet length limitation
 	if size > MaxPacketSize {
-		return 0, None, cherryError.PacketSizeExceed
+		return 0, None, cerr.PacketSizeExceed
 	}
 
 	return size, typ, nil
@@ -81,11 +81,11 @@ func (p *PomeloCodec) forward(buf *bytes.Buffer) (int, Type, error) {
 // 1 byte packet type, 3 bytes packet data length(big end), and data segment
 func (p *PomeloCodec) PacketEncode(typ byte, data []byte) ([]byte, error) {
 	if typ < Handshake || typ > Kick {
-		return nil, cherryError.PacketWrongType
+		return nil, cerr.PacketWrongType
 	}
 
 	if len(data) > MaxPacketSize {
-		return nil, cherryError.PacketSizeExceed
+		return nil, cerr.PacketSizeExceed
 	}
 
 	pkg := &Packet{

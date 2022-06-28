@@ -2,28 +2,35 @@ package cherryHandler
 
 import (
 	"context"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/message"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
-	"github.com/cherry-game/cherry/net/session"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	csession "github.com/cherry-game/cherry/net/session"
 	"reflect"
 	"runtime/debug"
 )
 
 type (
 	ExecutorLocal struct {
-		facade.IApplication
+		cfacade.IApplication
 		groupIndex    int
-		Session       *cherrySession.Session
-		Msg           *cherryMessage.Message
-		HandlerFn     *facade.HandlerFn
+		Session       *csession.Session
+		Msg           *cmsg.Message
+		HandlerFn     *cfacade.HandlerFn
 		Ctx           context.Context
 		BeforeFilters []FilterFn
 		AfterFilters  []FilterFn
 		PrintLog      bool
 	}
 )
+
+func NewExecutorLocal(session *csession.Session, msg *cmsg.Message) ExecutorLocal {
+	return ExecutorLocal{
+		Session: session,
+		Msg:     msg,
+	}
+}
 
 func (p *ExecutorLocal) Index() int {
 	return p.groupIndex
@@ -36,8 +43,8 @@ func (p *ExecutorLocal) SetIndex(index int) {
 func (p *ExecutorLocal) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
-			cherryLogger.Warnf("recover in Local. %s", string(debug.Stack()))
-			cherryLogger.Warnf("msg = [%+v]", p.Msg)
+			clog.Warnf("recover in Local. %s", string(debug.Stack()))
+			clog.Warnf("msg = [%+v]", p.Msg)
 		}
 	}()
 
@@ -49,8 +56,8 @@ func (p *ExecutorLocal) Invoke() {
 
 	argsLen := len(p.HandlerFn.InArgs)
 	if argsLen < 2 || argsLen > 3 {
-		cherryLogger.Warnf("[Route = %v] method in args error.", p.Msg.Route)
-		cherryLogger.Warnf("func(session,request) or func(ctx,session,request)")
+		clog.Warnf("[Route = %v] method in args error.", p.Msg.Route)
+		clog.Warnf("func(session,request) or func(ctx,session,request)")
 		return
 	}
 
@@ -103,14 +110,14 @@ func (p *ExecutorLocal) Invoke() {
 		}
 	}
 
-	if p.Msg.Type == cherryMessage.Request {
+	if p.Msg.Type == cmsg.Request {
 		retLen := len(ret)
 
 		if retLen == 2 {
 			if ret[0].IsNil() {
 				if face := ret[1].Interface(); face != nil {
 					if code, ok := face.(int32); ok {
-						rsp := &cherryProto.Response{
+						rsp := &cproto.Response{
 							Code: code,
 						}
 

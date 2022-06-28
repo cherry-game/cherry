@@ -1,7 +1,7 @@
 package cherryDataConfig
 
 import (
-	cherryError "github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/file"
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
@@ -25,15 +25,15 @@ func (f *SourceFile) Name() string {
 
 func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
-	fileConfigProfile := cherryProfile.Get("data_config").Get(f.Name())
-	if fileConfigProfile.LastError() != nil {
+	dataConfig := cherryProfile.GetConfig("data_config").GetConfig(f.Name())
+	if dataConfig.LastError() != nil {
 		cherryLogger.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cherryProfile.FileName())
 		return
 	}
 
-	f.extName = cherryProfile.GetString(fileConfigProfile, "ext_name", ".json")
-	f.reloadTime = cherryProfile.GetInt64(fileConfigProfile, "reload_time", 3000)
-	filePath := cherryProfile.GetString(fileConfigProfile, "file_path", "data/")
+	f.extName = dataConfig.GetString("ext_name", ".json")
+	f.reloadTime = dataConfig.GetInt64("reload_time", 3000)
+	filePath := dataConfig.GetString("file_path", "data/")
 
 	var err error
 	f.monitorPath, err = cherryFile.JoinPath(cherryProfile.Dir(), filePath)
@@ -48,25 +48,25 @@ func (f *SourceFile) Init(_ IDataConfig) {
 
 func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 	if configName == "" {
-		return nil, cherryError.Error("configName is empty.")
+		return nil, cerr.Error("configName is empty.")
 	}
 
 	fullPath, err := cherryFile.JoinPath(f.monitorPath, configName+f.extName)
 	if err != nil {
-		return nil, cherryError.Errorf("file not found. err = %v", err)
+		return nil, cerr.Errorf("file not found. err = %v", err)
 	}
 
 	if cherryFile.IsDir(fullPath) {
-		return nil, cherryError.Errorf("path is dir. fullPath = %s", fullPath)
+		return nil, cerr.Errorf("path is dir. fullPath = %s", fullPath)
 	}
 
 	data, err = ioutil.ReadFile(fullPath)
 	if err != nil {
-		return nil, cherryError.Errorf("read file err. err = %v, path = %s", err, fullPath)
+		return nil, cerr.Errorf("read file err. err = %v, path = %s", err, fullPath)
 	}
 
 	if len(data) < 1 {
-		return nil, cherryError.Errorf("configName = %s data is err.", configName)
+		return nil, cerr.Errorf("configName = %s data is err.", configName)
 	}
 
 	return data, nil
@@ -81,8 +81,7 @@ func (f *SourceFile) newWatcher() {
 	f.watcher.SetMaxEvents(1)
 	f.watcher.FilterOps(watcher.Write)
 
-	err := f.watcher.Add(f.monitorPath)
-	if err != nil {
+	if err := f.watcher.Add(f.monitorPath); err != nil {
 		cherryLogger.Warn("new watcher error. path=%s, err=%v", f.monitorPath, err)
 		return
 	}

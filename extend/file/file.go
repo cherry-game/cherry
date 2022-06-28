@@ -1,7 +1,7 @@
 package cherryFile
 
 import (
-	cherrySlice "github.com/cherry-game/cherry/extend/slice"
+	cslice "github.com/cherry-game/cherry/extend/slice"
 	"os"
 	"path"
 	"path/filepath"
@@ -121,7 +121,7 @@ func GetStackDir() []string {
 			continue
 		}
 
-		if _, ok := cherrySlice.StringIn(thisDir, dir); ok {
+		if _, ok := cslice.StringIn(thisDir, dir); ok {
 			continue
 		}
 

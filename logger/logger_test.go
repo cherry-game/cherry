@@ -1,7 +1,7 @@
 package cherryLogger
 
 import (
-	cherryTime "github.com/cherry-game/cherry/extend/time"
+	ctime "github.com/cherry-game/cherry/extend/time"
 	"testing"
 )
 
@@ -15,6 +15,6 @@ func BenchmarkWrite(b *testing.B) {
 	log1 := NewConfigLogger(config)
 
 	for i := 0; i < b.N; i++ {
-		log1.Debug(cherryTime.Now().ToDateTimeFormat())
+		log1.Debug(ctime.Now().ToDateTimeFormat())
 	}
 }

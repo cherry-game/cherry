@@ -5,16 +5,28 @@ import (
 )
 
 const (
-	nodeLocalSubjectFormat  = "cherry.node.local.%s.%s"
-	nodeRemoteSubjectFormat = "cherry.node.remote.%s.%s"
+	nodeLocalSubjectFormat  = "cherry.node.local.%s.%s"  // nodeType.nodeId
+	nodeRemoteSubjectFormat = "cherry.node.remote.%s.%s" // nodeType.nodeId
+	nodePushSubjectFormat   = "cherry.node.push.%s.%s"   // nodeType.nodeId
+	nodeKickSubjectFormat   = "cherry.node.kick.%s"      // nodeType
 )
 
-// GetLocalNodeSubject local packet nats chan
-func GetLocalNodeSubject(nodeType string, nodeId string) string {
+// getLocalSubject local message nats chan
+func getLocalSubject(nodeType string, nodeId string) string {
 	return fmt.Sprintf(nodeLocalSubjectFormat, nodeType, nodeId)
 }
 
-// GetRemoteNodeSubject remote packet nats chan
-func GetRemoteNodeSubject(nodeType string, nodeId string) string {
+// getRemoteSubject remote message nats chan
+func getRemoteSubject(nodeType string, nodeId string) string {
 	return fmt.Sprintf(nodeRemoteSubjectFormat, nodeType, nodeId)
+}
+
+// getPushSubject push message nats chan
+func getPushSubject(nodeType string, nodeId string) string {
+	return fmt.Sprintf(nodePushSubjectFormat, nodeType, nodeId)
+}
+
+// getKickSubject kick message nats chan
+func getKickSubject(nodeType string) string {
+	return fmt.Sprintf(nodeKickSubjectFormat, nodeType)
 }

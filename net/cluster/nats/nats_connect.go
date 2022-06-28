@@ -1,8 +1,8 @@
 package cherryNats
 
 import (
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	jsoniter "github.com/json-iterator/go"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/nats-io/nats.go"
 	"time"
 )
@@ -25,10 +25,8 @@ type (
 	}
 )
 
-func New(config jsoniter.Any, opts ...OptionFunc) *NatsConnect {
+func New(opts ...OptionFunc) *NatsConnect {
 	nats := &NatsConnect{}
-	nats.loadConfig(config)
-
 	for _, opt := range opts {
 		opt(&nats.Options)
 	}
@@ -39,29 +37,29 @@ func (p *NatsConnect) Connect() {
 	for {
 		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
 		if err != nil {
-			cherryLogger.Warnf("nats connect fail! retrying in 3 seconds. address = %s, err = %s", p.Address, err)
+			clog.Warnf("nats connect fail! retrying in 3 seconds. address = %s, err = %s", p.Address, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 
 		p.Conn = conn
-		cherryLogger.Infof("nats is connected! [address = %s]", p.Address)
+		clog.Infof("nats is connected! [address = %s]", p.Address)
 		break
 	}
 }
 
-func (p *NatsConnect) loadConfig(config jsoniter.Any) {
+func (p *NatsConnect) LoadConfig(config cfacade.JsonConfig) {
 	address := config.Get("address").ToString()
 	if address == "" {
 		panic("address is empty!")
 	}
 
 	p.Address = address
-	p.ReconnectDelay = config.Get("reconnect_delay").ToInt()
-	p.MaxReconnects = config.Get("max_reconnects").ToInt()
-	p.RequestTimeout = time.Duration(config.Get("request_timeout").ToInt()) * time.Second
-	p.User = config.Get("user").ToString()
-	p.Password = config.Get("password").ToString()
+	p.ReconnectDelay = config.GetInt("reconnect_delay")
+	p.MaxReconnects = config.GetInt("max_reconnects")
+	p.RequestTimeout = time.Duration(config.GetInt("request_timeout")) * time.Second
+	p.User = config.GetString("user")
+	p.Password = config.GetString("password")
 }
 
 func (p *NatsConnect) GetNatsOption() []nats.Option {
@@ -75,23 +73,23 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 
 	options = append(options, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
-			cherryLogger.Warnf("disconnect error. [error = %v]", err)
+			clog.Warnf("disconnect error. [error = %v]", err)
 		}
 	}))
 
 	options = append(options, nats.ReconnectHandler(func(nc *nats.Conn) {
-		cherryLogger.Warnf("reconnected [%s]", nc.ConnectedUrl())
+		clog.Warnf("reconnected [%s]", nc.ConnectedUrl())
 	}))
 
 	options = append(options, nats.ClosedHandler(func(nc *nats.Conn) {
-		cherryLogger.Infof("exiting... %s", p.Address)
+		clog.Infof("exiting... %s", p.Address)
 		if nc.LastError() != nil {
-			cherryLogger.Infof("error = %v", nc.LastError())
+			clog.Infof("error = %v", nc.LastError())
 		}
 	}))
 
 	options = append(options, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		cherryLogger.Warnf("isConnect = %v. %s on connection for subscription on %q",
+		clog.Warnf("isConnect = %v. %s on connection for subscription on %q",
 			nc.IsConnected(),
 			err.Error(),
 			sub.Subject,

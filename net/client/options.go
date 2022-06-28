@@ -1,18 +1,18 @@
 package cherryClient
 
 import (
-	cherryFacade "github.com/cherry-game/cherry/facade"
+	cfacade "github.com/cherry-game/cherry/facade"
 	"time"
 )
 
 type (
 	options struct {
-		serializer     cherryFacade.ISerializer  // protocol serializer
-		codec          cherryFacade.IPacketCodec // packet codec
-		heartBeat      int                       // second
-		requestTimeout time.Duration             // Send request timeout
-		handshake      string                    // hand shake content
-		isErrorBreak   bool                      // an error occurs,is it break
+		serializer     cfacade.ISerializer  // protocol serializer
+		codec          cfacade.IPacketCodec // packet codec
+		heartBeat      int                  // second
+		requestTimeout time.Duration        // Send request timeout
+		handshake      string               // hand shake content
+		isErrorBreak   bool                 // an error occurs,is it break
 	}
 
 	Option func(options *options)
@@ -31,21 +31,21 @@ type (
 	}
 )
 
-func (p *options) Serializer() cherryFacade.ISerializer {
+func (p *options) Serializer() cfacade.ISerializer {
 	return p.serializer
 }
 
-func (p *options) Codec() cherryFacade.IPacketCodec {
+func (p *options) Codec() cfacade.IPacketCodec {
 	return p.codec
 }
 
-func WithSerializer(serializer cherryFacade.ISerializer) Option {
+func WithSerializer(serializer cfacade.ISerializer) Option {
 	return func(options *options) {
 		options.serializer = serializer
 	}
 }
 
-func WithPacketCodec(codec cherryFacade.IPacketCodec) Option {
+func WithPacketCodec(codec cfacade.IPacketCodec) Option {
 	return func(options *options) {
 		options.codec = codec
 	}

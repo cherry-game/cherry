@@ -2,8 +2,8 @@
 package cherrySlice
 
 import (
-	cherryString "github.com/cherry-game/cherry/extend/string"
-	cherryUtils "github.com/cherry-game/cherry/extend/utils"
+	cstring "github.com/cherry-game/cherry/extend/string"
+	cutils "github.com/cherry-game/cherry/extend/utils"
 	"math/rand"
 	"reflect"
 	"time"
@@ -178,8 +178,8 @@ func StringToInt(strSlice []string) []int {
 	var intSlice []int
 
 	for _, s := range strSlice {
-		if cherryUtils.IsNumeric(s) {
-			val, ok := cherryString.ToInt(s)
+		if cutils.IsNumeric(s) {
+			val, ok := cstring.ToInt(s)
 			if ok {
 				intSlice = append(intSlice, val)
 			}
@@ -193,8 +193,8 @@ func StringToInt32(strSlice []string) []int32 {
 	var intSlice []int32
 
 	for _, s := range strSlice {
-		if cherryUtils.IsNumeric(s) {
-			val, ok := cherryString.ToInt32(s)
+		if cutils.IsNumeric(s) {
+			val, ok := cstring.ToInt32(s)
 			if ok {
 				intSlice = append(intSlice, val)
 			}
@@ -208,8 +208,8 @@ func StringToInt64(strSlice []string) []int64 {
 	var intSlice []int64
 
 	for _, s := range strSlice {
-		if cherryUtils.IsNumeric(s) {
-			val, ok := cherryString.ToInt64(s)
+		if cutils.IsNumeric(s) {
+			val, ok := cstring.ToInt64(s)
 			if ok {
 				intSlice = append(intSlice, val)
 			}

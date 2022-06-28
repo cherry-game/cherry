@@ -3,10 +3,11 @@ package cherrySession
 import (
 	"context"
 	"fmt"
-	facade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	cherryContext "github.com/cherry-game/cherry/net/context"
-	cherryProto "github.com/cherry-game/cherry/net/proto"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	ccontext "github.com/cherry-game/cherry/net/context"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	"github.com/golang/protobuf/proto"
 	"sync/atomic"
 )
 
@@ -20,31 +21,31 @@ const (
 type (
 	Session struct {
 		settings
-		state      int32             // current session state
-		entity     facade.INetwork   // network
-		sid        facade.SID        // session id
-		uid        facade.UID        // user unique id
-		frontendId facade.FrontendId // frontend node id
+		state      int32              // current session state
+		entity     cfacade.INetwork   // network
+		sid        cfacade.SID        // session id
+		uid        cfacade.UID        // user unique id
+		frontendId cfacade.FrontendId // frontend node id
 	}
 )
 
-func FakeSession(pbSession *cherryProto.Session, network facade.INetwork) *Session {
+func FakeSession(request *cproto.Request, network cfacade.INetwork) *Session {
 	session := &Session{
 		settings: settings{
 			data: make(map[string]string),
 		},
 		state:      Working,
 		entity:     network,
-		sid:        pbSession.Sid,
-		uid:        pbSession.Uid,
-		frontendId: pbSession.FrontendId,
+		sid:        request.Sid,
+		uid:        request.Uid,
+		frontendId: request.FrontendId,
 	}
-	session.ImportAll(pbSession.Data)
+	session.ImportAll(request.Setting)
 
 	return session
 }
 
-func NewSession(sid facade.SID, frontendId facade.FrontendId, network facade.INetwork) *Session {
+func NewSession(sid cfacade.SID, frontendId cfacade.FrontendId, network cfacade.INetwork) *Session {
 	session := &Session{
 		settings: settings{
 			data: make(map[string]string),
@@ -67,15 +68,15 @@ func (s *Session) SetState(state int32) {
 	atomic.StoreInt32(&s.state, state)
 }
 
-func (s *Session) SID() facade.SID {
+func (s *Session) SID() cfacade.SID {
 	return s.sid
 }
 
-func (s *Session) UID() facade.UID {
+func (s *Session) UID() cfacade.UID {
 	return s.uid
 }
 
-func (s *Session) FrontendId() facade.FrontendId {
+func (s *Session) FrontendId() cfacade.FrontendId {
 	return s.frontendId
 }
 
@@ -93,8 +94,8 @@ func (s *Session) SendRaw(bytes []byte) {
 }
 
 // RPC sends message to remote server
-func (s *Session) RPC(route string, v interface{}, rsp *cherryProto.Response) {
-	s.entity.RPC(route, v, rsp)
+func (s *Session) RPC(nodeId string, route string, req proto.Message, rsp proto.Message) int32 {
+	return s.entity.RPC(nodeId, route, req, rsp)
 }
 
 // Push message to client
@@ -109,7 +110,7 @@ func (s *Session) ResponseMID(mid uint, v interface{}, isError ...bool) {
 }
 
 func (s *Session) Response(ctx context.Context, v interface{}, isError ...bool) {
-	mid := cherryContext.GetMessageId(ctx)
+	mid := ccontext.GetMessageId(ctx)
 	s.ResponseMID(mid, v, isError...)
 }
 
@@ -165,33 +166,33 @@ func (s *Session) logPrefix() string {
 }
 
 func (s *Session) Debug(args ...interface{}) {
-	cherryLogger.DefaultLogger.Debug(s.logPrefix(), fmt.Sprint(args...))
+	clog.DefaultLogger.Debug(s.logPrefix(), fmt.Sprint(args...))
 }
 
 func (s *Session) Debugf(template string, args ...interface{}) {
-	cherryLogger.DefaultLogger.Debug(s.logPrefix(), fmt.Sprintf(template, args...))
+	clog.DefaultLogger.Debug(s.logPrefix(), fmt.Sprintf(template, args...))
 }
 
 func (s *Session) Info(args ...interface{}) {
-	cherryLogger.DefaultLogger.Info(s.logPrefix(), fmt.Sprint(args...))
+	clog.DefaultLogger.Info(s.logPrefix(), fmt.Sprint(args...))
 }
 
 func (s *Session) Infof(template string, args ...interface{}) {
-	cherryLogger.DefaultLogger.Info(s.logPrefix(), fmt.Sprintf(template, args...))
+	clog.DefaultLogger.Info(s.logPrefix(), fmt.Sprintf(template, args...))
 }
 
 func (s *Session) Warn(args ...interface{}) {
-	cherryLogger.DefaultLogger.Warn(s.logPrefix(), fmt.Sprint(args...))
+	clog.DefaultLogger.Warn(s.logPrefix(), fmt.Sprint(args...))
 }
 
 func (s *Session) Warnf(template string, args ...interface{}) {
-	cherryLogger.DefaultLogger.Warn(s.logPrefix(), fmt.Sprintf(template, args...))
+	clog.DefaultLogger.Warn(s.logPrefix(), fmt.Sprintf(template, args...))
 }
 
 func (s *Session) Error(args ...interface{}) {
-	cherryLogger.DefaultLogger.Error(s.logPrefix(), fmt.Sprint(args...))
+	clog.DefaultLogger.Error(s.logPrefix(), fmt.Sprint(args...))
 }
 
 func (s *Session) Errorf(template string, args ...interface{}) {
-	cherryLogger.DefaultLogger.Error(s.logPrefix(), fmt.Sprintf(template, args...))
+	clog.DefaultLogger.Error(s.logPrefix(), fmt.Sprintf(template, args...))
 }

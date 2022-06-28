@@ -1,8 +1,8 @@
 package cherryGin
 
 import (
-	cherrySlice "github.com/cherry-game/cherry/extend/slice"
-	"github.com/cherry-game/cherry/extend/string"
+	cslice "github.com/cherry-game/cherry/extend/slice"
+	cstring "github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
 	"io/ioutil"
 	"net/http"
@@ -71,7 +71,7 @@ func (g *Context) GetBool(name string, defaultValue bool, checkPost ...bool) boo
 		return defaultValue
 	}
 
-	intValue, ok := cherryString.ToInt(value)
+	intValue, ok := cstring.ToInt(value)
 	if ok {
 		return intValue > 0
 	}
@@ -85,7 +85,7 @@ func (g *Context) GetInt(name string, defaultValue int, checkPost ...bool) int {
 		return defaultValue
 	}
 
-	intValue, ok := cherryString.ToInt(value)
+	intValue, ok := cstring.ToInt(value)
 	if ok {
 		return intValue
 	}
@@ -99,7 +99,7 @@ func (g *Context) GetInt32(name string, defaultValue int32, checkPost ...bool) i
 		return defaultValue
 	}
 
-	intValue, ok := cherryString.ToInt32(value)
+	intValue, ok := cstring.ToInt32(value)
 	if ok {
 		return intValue
 	}
@@ -113,7 +113,7 @@ func (g *Context) GetInt64(name string, defaultValue int64, checkPost ...bool) i
 		return defaultValue
 	}
 
-	intValue, ok := cherryString.ToInt64(value)
+	intValue, ok := cstring.ToInt64(value)
 	if ok {
 		return intValue
 	}
@@ -138,7 +138,7 @@ func (g *Context) GetString(name, defaultValue string, checkPost ...bool) string
 
 func (g *Context) PostInt(name string, defaultValue int) int {
 	if value, ok := g.GetPostForm(name); ok {
-		if v, k := cherryString.ToInt(value); k {
+		if v, k := cstring.ToInt(value); k {
 			return v
 		}
 	}
@@ -147,7 +147,7 @@ func (g *Context) PostInt(name string, defaultValue int) int {
 
 func (g *Context) PostInt64(name string, defaultValue int64) int64 {
 	if value, ok := g.GetPostForm(name); ok {
-		if v, k := cherryString.ToInt64(value); k {
+		if v, k := cstring.ToInt64(value); k {
 			return v
 		}
 	}
@@ -167,7 +167,7 @@ func (g *Context) PostFormIntArray(name string) []int {
 		return []int{}
 	}
 
-	return cherrySlice.StringToInt(array)
+	return cslice.StringToInt(array)
 }
 
 func (g *Context) PostFormInt32Array(name string) []int32 {
@@ -176,7 +176,7 @@ func (g *Context) PostFormInt32Array(name string) []int32 {
 		return []int32{}
 	}
 
-	return cherrySlice.StringToInt32(array)
+	return cslice.StringToInt32(array)
 }
 
 func (g *Context) PostFormInt64Array(name string) []int64 {
@@ -185,7 +185,7 @@ func (g *Context) PostFormInt64Array(name string) []int64 {
 		return []int64{}
 	}
 
-	return cherrySlice.StringToInt64(array)
+	return cslice.StringToInt64(array)
 }
 
 func (g *Context) HTML200(name string, obj ...interface{}) {

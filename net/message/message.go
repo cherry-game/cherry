@@ -3,8 +3,8 @@ package cherryMessage
 import (
 	"encoding/binary"
 	"fmt"
-	cherryError "github.com/cherry-game/cherry/error"
-	cherryCompress "github.com/cherry-game/cherry/extend/compress"
+	cerr "github.com/cherry-game/cherry/error"
+	ccompress "github.com/cherry-game/cherry/extend/compress"
 )
 
 // Message represents a unmarshaled message or a message which to be marshaled
@@ -95,7 +95,7 @@ func (t *Message) RouteInfo() *Route {
 // See ref: https://github.com/NetEase/pomelo/wiki/%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F
 func Encode(m *Message) ([]byte, error) {
 	if invalidType(m.Type) {
-		return nil, cherryError.MessageWrongType
+		return nil, cerr.MessageWrongType
 	}
 
 	buf := make([]byte, 0)
@@ -139,7 +139,7 @@ func Encode(m *Message) ([]byte, error) {
 	}
 
 	if dataCompression {
-		d, err := cherryCompress.DeflateData(m.Data)
+		d, err := ccompress.DeflateData(m.Data)
 		if err != nil {
 			return nil, err
 		}
@@ -158,7 +158,7 @@ func Encode(m *Message) ([]byte, error) {
 // See ref: https://github.com/lonnng/nano/blob/master/docs/communication_protocol.md
 func Decode(data []byte) (*Message, error) {
 	if len(data) < msgHeadLength {
-		return nil, cherryError.MessageInvalid
+		return nil, cerr.MessageInvalid
 	}
 
 	m := New()
@@ -167,7 +167,7 @@ func Decode(data []byte) (*Message, error) {
 	m.Type = Type((flag >> 1) & typeMask)
 
 	if invalidType(m.Type) {
-		return nil, cherryError.MessageWrongType
+		return nil, cerr.MessageWrongType
 	}
 
 	if m.Type == Request || m.Type == Response {
@@ -187,7 +187,7 @@ func Decode(data []byte) (*Message, error) {
 	}
 
 	if offset > len(data) {
-		return nil, cherryError.MessageInvalid
+		return nil, cerr.MessageInvalid
 	}
 
 	m.Error = flag&errorMask == errorMask
@@ -198,7 +198,7 @@ func Decode(data []byte) (*Message, error) {
 			code := binary.BigEndian.Uint16(data[offset:(offset + 2)])
 			route, found := GetRoute(code)
 			if !found {
-				return nil, cherryError.MessageRouteNotFound
+				return nil, cerr.MessageRouteNotFound
 			}
 			m.Route = route
 			offset += 2
@@ -213,14 +213,14 @@ func Decode(data []byte) (*Message, error) {
 	}
 
 	if offset > len(data) {
-		return nil, cherryError.MessageInvalid
+		return nil, cerr.MessageInvalid
 	}
 
 	m.Data = data[offset:]
 
 	var err error
 	if flag&gzipMask == gzipMask {
-		m.Data, err = cherryCompress.InflateData(m.Data)
+		m.Data, err = ccompress.InflateData(m.Data)
 		if err != nil {
 			return nil, err
 		}

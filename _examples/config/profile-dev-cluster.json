@@ -8,7 +8,7 @@
     },
     "nats": {
       "master_node_id": "master-1",
-      "address": "nats://127.0.0.1:4222",
+      "address": "nats://dev.com:4222",
       "reconnect_delay": 1,
       "max_reconnects": 0,
       "request_timeout": 2,
@@ -16,8 +16,8 @@
       "password": ""
     },
     "etcd": {
-      "end_points": "127.0.0.1:2379",
-      "end_points": "127.0.0.1:2379,127.0.0.2:2379",
+      "end_points": "dev.com:2379",
+      "@end_points": "dev.com:2379,dev1.com:2379",
       "prefix" : "cherry",
       "ttl": 5,
       "dial_timeout": 3,
