@@ -26,7 +26,10 @@ func (c *Component) Init() {
 	cnats.Init()
 
 	c.RPCClient = NewRPCClient(c)
-	c.RPCServer = NewNatsRPCServer(c, c.RPCClient)
+
+	server := NewNatsRPCServer(c, c.RPCClient, 2048)
+	server.Init()
+	c.RPCServer = server
 
 	// init discovery
 	cdiscovery.Init(c.App())

@@ -27,14 +27,18 @@ func RequestRemote(nodeId string, route string, arg proto.Message, reply proto.M
 		requestTimeout = timeout[0]
 	}
 
-	bytes, err := _thisApp.Marshal(arg)
-	if err != nil {
-		clog.Warnf("[RequestRemote] marshal error. [nodeId = %s, route = %s, err = %+v]",
-			nodeId,
-			route,
-			err,
-		)
-		return ccode.RPCMarshalError
+	var bytes []byte
+	var err error
+	if arg != nil {
+		bytes, err = _thisApp.Marshal(arg)
+		if err != nil {
+			clog.Warnf("[RequestRemote] marshal error. [nodeId = %s, route = %s, err = %+v]",
+				nodeId,
+				route,
+				err,
+			)
+			return ccode.RPCMarshalError
+		}
 	}
 
 	request := cproto.GetRequest()
@@ -44,8 +48,8 @@ func RequestRemote(nodeId string, route string, arg proto.Message, reply proto.M
 	request.Data = bytes
 
 	rsp, err := _clusterComponent.RequestRemote(nodeId, request, requestTimeout)
-	if err != nil || ccode.IsFail(rsp.Code) {
-		clog.Warnf("[RequestRemote] marshal error. [nodeId = %s, route = %s, err = %+v]",
+	if err != nil {
+		clog.Warnf("[RequestRemote] response error. [nodeId = %s, route = %s, err = %+v]",
 			nodeId,
 			route,
 			err,
@@ -53,11 +57,17 @@ func RequestRemote(nodeId string, route string, arg proto.Message, reply proto.M
 		return rsp.Code
 	}
 
-	if err = proto.Unmarshal(rsp.Data, reply); err != nil {
-		return ccode.RPCUnmarshalError
+	if ccode.IsFail(rsp.Code) {
+		return rsp.Code
 	}
 
-	return ccode.OK
+	if reply != nil {
+		if err = proto.Unmarshal(rsp.Data, reply); err != nil {
+			return ccode.RPCUnmarshalError
+		}
+	}
+
+	return rsp.Code
 }
 
 func RequestRemoteByRoute(route string, arg proto.Message, reply proto.Message, timeout ...time.Duration) int32 {
@@ -67,7 +77,7 @@ func RequestRemoteByRoute(route string, arg proto.Message, reply proto.Message, 
 		return ccode.RPCRouteDecodeError
 	}
 
-	member, err := crouter.Route(context.Background(), rt.NodeType(), nil)
+	member, err := crouter.Route(context.Background(), rt, nil)
 	if err != nil {
 		clog.Warnf("[RPCByRoute]get node router is fail. [route = %s] [error = %s]", route, err)
 		return ccode.RPCRouteHashError
@@ -78,7 +88,7 @@ func RequestRemoteByRoute(route string, arg proto.Message, reply proto.Message, 
 
 func PublishRemote(nodeId string, route string, arg proto.Message) {
 	if nodeId == "" {
-		decode, err := cmsg.DecodeRoute(route)
+		rt, err := cmsg.DecodeRoute(route)
 		if err != nil {
 			clog.Warnf("[PublishRemote] decode route fail. [nodeId = %s, route = %s, val = %+v]",
 				nodeId,
@@ -88,7 +98,7 @@ func PublishRemote(nodeId string, route string, arg proto.Message) {
 			return
 		}
 
-		member, err := crouter.Route(context.Background(), decode.NodeType(), nil)
+		member, err := crouter.Route(context.Background(), rt, nil)
 		if err != nil {
 			clog.Warnf("[PublishRemote] get node router fail. [nodeId = %s, route = %s, err = %+v]",
 				nodeId,
@@ -110,14 +120,18 @@ func PublishRemote(nodeId string, route string, arg proto.Message) {
 		return
 	}
 
-	bytes, err := _thisApp.Marshal(arg)
-	if err != nil {
-		clog.Warnf("[PublishRemote] marshal error. [nodeId = %s, route = %s, err = %+v]",
-			nodeId,
-			route,
-			err,
-		)
-		return
+	var bytes []byte
+	var err error
+	if arg != nil {
+		bytes, err = _thisApp.Marshal(arg)
+		if err != nil {
+			clog.Warnf("[PublishRemote] marshal error. [nodeId = %s, route = %s, err = %+v]",
+				nodeId,
+				route,
+				err,
+			)
+			return
+		}
 	}
 
 	request := cproto.GetRequest()
@@ -131,4 +145,34 @@ func PublishRemote(nodeId string, route string, arg proto.Message) {
 
 func PublishRemoteByRoute(route string, arg proto.Message) {
 	PublishRemote("", route, arg)
+}
+
+func Kick(nodeType string, uid cfacade.UID, val interface{}, close bool) error {
+	bytes, err := _thisApp.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	kick := &cproto.Kick{
+		Uid:   uid,
+		Data:  bytes,
+		Close: close,
+	}
+
+	return _clusterComponent.PublishKick(nodeType, kick)
+}
+
+func Push(frontendId string, route string, uid cfacade.UID, val interface{}) error {
+	bytes, err := _thisApp.Marshal(val)
+	if err != nil {
+		return err
+	}
+
+	push := &cproto.Push{
+		Route: route,
+		Uid:   uid,
+		Data:  bytes,
+	}
+
+	return _clusterComponent.PublishPush(frontendId, push)
 }

@@ -2,14 +2,14 @@ package main
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/net/handler"
-	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/session"
+	chandler "github.com/cherry-game/cherry/net/handler"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	csession "github.com/cherry-game/cherry/net/session"
 )
 
 type (
 	userHandler struct {
-		cherryHandler.Handler
+		chandler.Handler
 	}
 )
 
@@ -20,9 +20,9 @@ func (h *userHandler) Name() string {
 func (h *userHandler) OnInit() {
 	h.AddLocal("login", h.login)
 
-	cherrySession.AddOnCloseListener(disconnect)
+	csession.AddOnCloseListener(disconnect)
 
-	h.AddBeforeFilter(func(ctx context.Context, session *cherrySession.Session, message *cherryMessage.Message) bool {
+	h.AddBeforeFilter(func(ctx context.Context, session *csession.Session, message *cmsg.Message) bool {
 		//if session.IsBind() == false && message.Route != "game.userHandler.login" {
 		//	//登录后，才能发送后续消息
 		//	session.Kick(fmt.Sprintf("kick %s : not login", session.String()), true)
@@ -33,7 +33,7 @@ func (h *userHandler) OnInit() {
 	})
 }
 
-func (h *userHandler) login(ctx context.Context, session *cherrySession.Session, req *loginRequest) {
+func (h *userHandler) login(ctx context.Context, session *csession.Session, req *loginRequest) {
 	session.Debugf("nickname = %s", req.Nickname)
 	if err := newUser(session, req.Nickname); err != nil {
 		return

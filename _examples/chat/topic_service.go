@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	cherryLogger "github.com/cherry-game/cherry/logger"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/session"
 	"strings"
 	"sync/atomic"
@@ -71,7 +71,7 @@ func stats(s *cherrySession.Session, uid int64) {
 	// It's OK to use map without lock because of this service running in main thread
 	user, found := users[uid]
 	if !found {
-		cherryLogger.Errorf("user not found: %v", uid)
+		clog.Errorf("user not found: %v", uid)
 		return
 	}
 

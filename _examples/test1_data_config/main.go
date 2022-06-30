@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/data_config"
-	cherryMini "github.com/cherry-game/cherry/component/mini"
-	cf "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger"
-	"github.com/cherry-game/cherry/net/handler"
+	cmini "github.com/cherry-game/cherry/component/mini"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	chandler "github.com/cherry-game/cherry/net/handler"
 	"time"
 )
 
@@ -17,7 +17,7 @@ func main() {
 func app() {
 	testApp := cherry.NewApp("../config/", "local", "game-1")
 
-	handlers := cherryHandler.NewComponent()
+	handlers := chandler.NewComponent()
 
 	dataConfig := cherryDataConfig.NewComponent()
 	dataConfig.Register(&DropList, &DropOne)
@@ -28,26 +28,26 @@ func app() {
 		testApp.Shutdown()
 	}(testApp)
 
-	mockComponent := cherryMini.New(
+	mockComponent := cmini.New(
 		"mock",
-		cherryMini.WithAfterInit(func(app cf.IApplication) {
+		cmini.WithAfterInit(func(app cfacade.IApplication) {
 			go getDropConfig(app)
 		}),
 	)
 
-	mock1Component1 := cherryMini.New(
+	mock1Component1 := cmini.New(
 		"mock1",
-		cherryMini.WithInitFunc(func(_ cf.IApplication) {
-			cherryLogger.Info("call init func")
+		cmini.WithInitFunc(func(_ cfacade.IApplication) {
+			clog.Info("call init func")
 		}),
-		cherryMini.WithAfterInit(func(_ cf.IApplication) {
-			cherryLogger.Info("call after init func")
+		cmini.WithAfterInit(func(_ cfacade.IApplication) {
+			clog.Info("call after init func")
 		}),
-		cherryMini.WithBeforeStop(func(_ cf.IApplication) {
-			cherryLogger.Info("call before stop func")
+		cmini.WithBeforeStop(func(_ cfacade.IApplication) {
+			clog.Info("call before stop func")
 		}),
-		cherryMini.WithStop(func(_ cf.IApplication) {
-			cherryLogger.Info("call stop func")
+		cmini.WithStop(func(_ cfacade.IApplication) {
+			clog.Info("call stop func")
 		}),
 	)
 
@@ -59,18 +59,18 @@ func app() {
 	)
 }
 
-func getDropConfig(_ cf.IApplication) {
+func getDropConfig(_ cfacade.IApplication) {
 
 	time.Sleep(5 * time.Second)
 
 	for {
-		cherryLogger.Infof("DropOneConfig %p, %v", &DropOne, DropOne)
+		clog.Infof("DropOneConfig %p, %v", &DropOne, DropOne)
 
 		x1 := DropList.Get(1011)
-		cherryLogger.Infof("DropConfig %p, %v", x1, x1)
+		clog.Infof("DropConfig %p, %v", x1, x1)
 
 		itemTypeList := DropList.GetItemTypeList(3)
-		cherryLogger.Infof("DropConfig %p, %v", itemTypeList, itemTypeList)
+		clog.Infof("DropConfig %p, %v", itemTypeList, itemTypeList)
 
 		time.Sleep(500 * time.Millisecond)
 	}

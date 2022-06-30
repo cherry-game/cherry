@@ -182,7 +182,6 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 	}
 
 	ctx := ccontext.Add(context.Background(), cconst.MessageIdKey, msg.ID)
-	ctx = ccontext.Add(ctx, cconst.RouteKey, msg.Route)
 
 	rt, group, handler, found := c.GetHandler(msg.Route)
 	if found == false {
@@ -224,6 +223,10 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 	if found == false {
 		clog.Debugf("could not find route method. [Route = %v, method = %s].", route, rt.Method())
 		return ccode.RPCHandlerError
+	}
+
+	if data == nil {
+		data = []byte{}
 	}
 
 	executor := &ExecutorRemote{

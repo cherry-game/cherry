@@ -48,3 +48,15 @@ func Close() {
 	natsConnect.Close()
 	clog.Infof("nats execute Close()")
 }
+
+func ChanExecute(subject string, msgChan chan *nats.Msg, process func(msg *nats.Msg)) {
+	_, chanErr := ChanSubscribe(subject, msgChan)
+	if chanErr != nil {
+		clog.Error("subscribe fail. [subject = %s, err = %s]", subject, chanErr)
+		return
+	}
+
+	for msg := range msgChan {
+		process(msg)
+	}
+}

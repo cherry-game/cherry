@@ -108,7 +108,7 @@ func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
 	n.Lock()
 
 	if _, found := n.GetMember(member.GetNodeId()); found {
-		clog.Warnf("duplicate nodeId. [nodeType = %s], [nodeId = %s], [fromAddress = %s]",
+		clog.Warnf("duplicate nodeId. [nodeType = %s], [nodeId = %s], [address = %s]",
 			member.GetNodeType(),
 			member.GetNodeId(),
 			member.GetAddress(),

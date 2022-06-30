@@ -3,22 +3,22 @@ package main
 import (
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/component/gin"
-	cherryConnector "github.com/cherry-game/cherry/net/connector"
-	"github.com/cherry-game/cherry/net/handler"
-	"github.com/cherry-game/cherry/net/serializer"
+	cconnector "github.com/cherry-game/cherry/net/connector"
+	chandler "github.com/cherry-game/cherry/net/handler"
+	cserializer "github.com/cherry-game/cherry/net/serializer"
 )
 
 func main() {
 	app := cherry.Configure("../config/", "chat", "game-1")
 
-	cherry.SetSerializer(cherrySerializer.NewJSON())
+	cherry.SetSerializer(cserializer.NewJSON())
 
 	httpComp := cherryGin.New("web", "127.0.0.1:80")
 	httpComp.Use(cherryGin.RecoveryWithZap(true))
 	httpComp.Static("/", "./web/")
 	cherry.RegisterComponent(httpComp)
 
-	cherry.RegisterConnector(cherryConnector.NewWS(app.Address()))
+	cherry.RegisterConnector(cconnector.NewWS(app.Address()))
 
 	handlerComponent()
 
@@ -27,10 +27,10 @@ func main() {
 
 func handlerComponent() {
 	cherry.SetHandlerOptions(
-		cherryHandler.WithPrintRouteLog(true),
+		chandler.WithPrintRouteLog(true),
 	)
 
-	group1 := cherryHandler.NewGroup(1, 256)
+	group1 := chandler.NewGroup(1, 256)
 	group1.AddHandlers(&userHandler{})
 	group1.AddHandlers(&roomHandler{})
 

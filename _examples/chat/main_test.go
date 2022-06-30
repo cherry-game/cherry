@@ -2,29 +2,29 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryTime "github.com/cherry-game/cherry/extend/time"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	cherryConnector "github.com/cherry-game/cherry/net/connector"
-	cherryHandler "github.com/cherry-game/cherry/net/handler"
-	cherryMessage "github.com/cherry-game/cherry/net/message"
-	cherrySerializer "github.com/cherry-game/cherry/net/serializer"
-	cherrySession "github.com/cherry-game/cherry/net/session"
+	ctime "github.com/cherry-game/cherry/extend/time"
+	clog "github.com/cherry-game/cherry/logger"
+	cconnector "github.com/cherry-game/cherry/net/connector"
+	chandler "github.com/cherry-game/cherry/net/handler"
+	cmsg "github.com/cherry-game/cherry/net/message"
+	cserializer "github.com/cherry-game/cherry/net/serializer"
+	csession "github.com/cherry-game/cherry/net/session"
 	"testing"
 	"time"
 )
 
 func TestPostMessage(t *testing.T) {
 	app := cherry.NewApp("../config/", "local", "game-1")
-	app.SetSerializer(cherrySerializer.NewJSON())
+	app.SetSerializer(cserializer.NewJSON())
 
 	handlerComponent := createHandler()
 
 	go func() {
 		time.Sleep(5 * time.Second)
 
-		session := &cherrySession.Session{}
+		session := &csession.Session{}
 
-		msg := &cherryMessage.Message{
+		msg := &cmsg.Message{
 			Route: "game.userHandler.testLogin",
 			Data: []byte{
 				123, 34, 110, 105, 99, 107, 110, 97, 109, 101,
@@ -46,7 +46,7 @@ func TestPostMessage(t *testing.T) {
 			i++
 
 			if i%100000 == 1 {
-				cherryLogger.Infof("count num = %d, time = %d", i, cherryTime.Now().ToMillisecond())
+				clog.Infof("count num = %d, time = %d", i, ctime.Now().ToMillisecond())
 			}
 		}
 
@@ -54,18 +54,18 @@ func TestPostMessage(t *testing.T) {
 
 	app.Startup(
 		handlerComponent,
-		cherryConnector.NewWS("127.0.0.1:34590"),
+		cconnector.NewWS("127.0.0.1:34590"),
 	)
 }
 
-func createHandler() *cherryHandler.Component {
-	component := cherryHandler.NewComponent()
+func createHandler() *chandler.Component {
+	component := chandler.NewComponent()
 
-	group1 := cherryHandler.NewGroup(1, 256)
+	group1 := chandler.NewGroup(1, 256)
 	group1.AddHandlers(&userHandler{})
 	component.Register(group1)
 
-	group2 := cherryHandler.NewGroup(1, 256)
+	group2 := chandler.NewGroup(1, 256)
 	group2.AddHandlers(&roomHandler{})
 	component.Register(group2)
 

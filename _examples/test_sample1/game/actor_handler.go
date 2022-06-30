@@ -1,16 +1,16 @@
 package main
 
 import (
+	"context"
 	"github.com/cherry-game/cherry/_examples/test_sample1/internal/protocols"
-	cherryTime "github.com/cherry-game/cherry/extend/time"
-	cherryLogger "github.com/cherry-game/cherry/logger"
-	ch "github.com/cherry-game/cherry/net/handler"
-	cm "github.com/cherry-game/cherry/net/message"
-	cs "github.com/cherry-game/cherry/net/session"
+	ctime "github.com/cherry-game/cherry/extend/time"
+	clog "github.com/cherry-game/cherry/logger"
+	chandler "github.com/cherry-game/cherry/net/handler"
+	csession "github.com/cherry-game/cherry/net/session"
 )
 
 type ActorHandler struct {
-	ch.Handler
+	chandler.Handler
 }
 
 func (h *ActorHandler) Name() string {
@@ -23,14 +23,14 @@ func (h *ActorHandler) OnInit() {
 }
 
 // selectActor 查询角色
-func (h *ActorHandler) selectActor(session *cs.Session, msg *cm.Message, req *protocols.ActorSelectRequest) error {
+func (h *ActorHandler) selectActor(ctx context.Context, session *csession.Session, req *protocols.ActorSelectRequest) error {
 	session.Info("call selectActor()")
 
-	now := cherryTime.Now().ToMillisecond()
-	cherryLogger.Debugf("now = %d,  clientTime = %d, result = %d", now, req.Time, now-int64(req.Time))
+	now := ctime.Now().ToMillisecond()
+	clog.Debugf("now = %d,  clientTime = %d, result = %d", now, req.Time, now-int64(req.Time))
 
 	rsp := &protocols.ActorSelectResponse{ActorName: "hello"}
-	session.ResponseMID(msg.ID, rsp)
+	session.Response(ctx, rsp)
 
 	session.Push("onBalance", &protocols.LoginResponse{Uid: 444})
 	//session.Kick(&protocols.LoginResponse{Uid: 444}, true)
@@ -38,6 +38,7 @@ func (h *ActorHandler) selectActor(session *cs.Session, msg *cm.Message, req *pr
 	return nil
 }
 
-func (h *ActorHandler) creatActor(session *cs.Session, msg *cm.Message, req *protocols.ActorCreateRequest) error {
+func (h *ActorHandler) creatActor(ctx context.Context, session *csession.Session, req *protocols.ActorCreateRequest) error {
+	session.Info("call creatActor()")
 	return nil
 }

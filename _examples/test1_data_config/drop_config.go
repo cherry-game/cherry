@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/ahmetb/go-linq/v3"
-	"github.com/cherry-game/cherry/error"
+	cerr "github.com/cherry-game/cherry/error"
 	"github.com/cherry-game/cherry/extend/mapstructure"
 )
 
@@ -33,7 +33,7 @@ func (d *DropConfigs) Init() {
 func (d *DropConfigs) OnLoad(maps interface{}, reload bool) (int, error) {
 	list, ok := maps.([]interface{})
 	if ok == false {
-		return 0, cherryError.Error("maps convert to []interface{} error.")
+		return 0, cerr.Error("maps convert to []interface{} error.")
 	}
 
 	if reload {

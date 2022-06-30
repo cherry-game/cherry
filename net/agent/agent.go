@@ -78,7 +78,7 @@ func (a *Agent) SendRaw(bytes []byte) {
 }
 
 func (a *Agent) RPC(nodeId string, route string, req proto.Message, _ proto.Message) int32 {
-	clog.Errorf("[RPC] cluster no implement. [nodeId = %s, route = %s, req = %+v]", nodeId, route, req)
+	clog.Errorf("[RPC] cluster no implement. [nodeId = %s, route = %s, req = {%+v}]", nodeId, route, req)
 	return ccode.OK
 }
 
@@ -105,12 +105,12 @@ func (a *Agent) Push(route string, val interface{}) {
 func (a *Agent) Kick(reason interface{}) {
 	bytes, err := a.Marshal(reason)
 	if err != nil {
-		a.session.Warnf("[Kick] marshal fail. [reason = %+v, err = %s].", reason, err)
+		a.session.Warnf("[Kick] marshal fail. [reason = {%+v}, err = %s].", reason, err)
 	}
 
 	pkg, err := a.PacketEncode(cpkg.Kick, bytes)
 	if err != nil {
-		a.session.Warnf("[Kick] packet encode error.[reason = %+v, err = %s].", reason, err)
+		a.session.Warnf("[Kick] packet encode error.[reason = {%+v}, err = %s].", reason, err)
 		return
 	}
 
@@ -120,7 +120,7 @@ func (a *Agent) Kick(reason interface{}) {
 	}
 
 	if cprofile.Debug() {
-		a.session.Debugf("[Kick] ok. [reason = %+v]", reason)
+		a.session.Debugf("[Kick] ok. [reason = {%+v}]", reason)
 	}
 }
 
@@ -152,7 +152,7 @@ func (a *Agent) Close() {
 
 func (a *Agent) send(typ cmsg.Type, route string, mid uint, v interface{}, isError bool) {
 	if a.session.State() == csession.Closed {
-		a.session.Warnf("[Send] session is closed. [typ = %v, rout = %s, mid = %d, val = %+v, isErr = %v",
+		a.session.Warnf("[Send] session is closed. [typ = %v, route = %s, mid = %d, val = %+v, isErr = %v",
 			typ,
 			route,
 			mid,
@@ -163,7 +163,7 @@ func (a *Agent) send(typ cmsg.Type, route string, mid uint, v interface{}, isErr
 	}
 
 	if len(a.chSend) >= WriteBacklog {
-		a.session.Warnf("[Send] send buffer exceed. [typ = %v, rout = %s, mid = %d, val = %+v, isErr = %v",
+		a.session.Warnf("[Send] send buffer exceed. [typ = %v, route = %s, mid = %d, val = %+v, isErr = %v",
 			typ,
 			route,
 			mid,

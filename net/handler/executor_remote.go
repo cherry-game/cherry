@@ -85,7 +85,7 @@ func (p *ExecutorRemote) Invoke() {
 
 			ret = p.handlerFn.Value.Call(params)
 			if p.printLog {
-				clog.Debugf("[remote] [route = %s, req = %v, rsp = %+v]",
+				clog.Debugf("[remote] call result. [route = %s, req = %v, rsp = %+v]",
 					p.route,
 					params[0],
 					printRet(ret),
@@ -166,13 +166,13 @@ func printRet(t []reflect.Value) interface{} {
 	switch len(t) {
 	case 1:
 		{
-			return fmt.Sprintf("%+v", t[0].Interface())
+			return fmt.Sprintf("%v", t[0].Interface())
 		}
 	case 2:
 		{
-			return fmt.Sprintf("%+v, %+v", t[0].Interface(), t[0].Interface())
+			return fmt.Sprintf("%v, %v", t[0].Interface(), t[0].Interface())
 		}
 	}
 
-	return nil
+	return fmt.Sprint("0")
 }

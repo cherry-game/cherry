@@ -71,7 +71,7 @@ func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
 	dbIdList := s.App().Settings().Get("db_id_list")
 	if dbIdList.LastError() != nil || dbIdList.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.App().NodeId())
+		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.NodeId())
 		return
 	}
 
@@ -84,11 +84,12 @@ func (s *Component) Init() {
 		s.ormMap[groupId] = make(map[string]*gorm.DB)
 
 		dbGroup := dbConfig.Get(groupId)
+
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.Get(i)
 			mysqlConfig := parseMysqlConfig(groupId, item)
 
-			for j := 0; j < dbIdList.Size(); i++ {
+			for j := 0; j < dbIdList.Size(); j++ {
 				dbId := dbIdList.Get(j).ToString()
 				if mysqlConfig.Id != dbId {
 					continue

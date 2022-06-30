@@ -2,7 +2,6 @@ package cherry
 
 import (
 	"context"
-	cconst "github.com/cherry-game/cherry/const"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cagent "github.com/cherry-game/cherry/net/agent"
@@ -177,19 +176,9 @@ func initCommand() {
 
 // ForwardLocal forward message to backend node
 func forwardLocal(session *csession.Session, msg *cmsg.Message) {
-	if session.IsBind() == false {
-		session.Warnf("session not bind,message forwarding is not allowed. [session = %v, msg = %s]",
-			session,
-			msg,
-		)
-		return
-	}
-
-	ctx := context.WithValue(context.Background(), cconst.SessionKey, session)
-
-	member, err := crouter.Route(ctx, msg.RouteInfo().NodeType(), msg)
+	member, err := crouter.Route(context.Background(), msg.RouteInfo(), session)
 	if member == nil || err != nil {
-		session.Warnf("get router node is fail. [session = %v, msg = %s, error = %s]",
+		session.Warnf("get router node fail. [session = %v, msg = %s, error = %s]",
 			session,
 			msg,
 			err,

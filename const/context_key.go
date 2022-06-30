@@ -9,10 +9,5 @@ type propagateKey struct{}
 var PropagateCtxKey = propagateKey{}
 
 const (
-	SessionKey = "session_key"
-)
-
-const (
-	RouteKey     = "route_key"
 	MessageIdKey = "message_id_key"
 )

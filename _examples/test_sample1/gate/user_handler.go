@@ -42,7 +42,7 @@ func (h *UserHandler) OnInit() {
 	cherrySnowflake.SetDefaultNode(0)
 }
 
-func (h *UserHandler) login(session *cs.Session, msg *cm.Message, req *protocols.LoginRequest) error {
+func (h *UserHandler) login(ctx context.Context, session *cs.Session, req *protocols.LoginRequest) error {
 	// set server id
 	session.Set(constant.GameServerId, req.ServerId)
 
@@ -52,7 +52,7 @@ func (h *UserHandler) login(session *cs.Session, msg *cm.Message, req *protocols
 	cs.Bind(session.SID(), uid)
 
 	rsp := &protocols.LoginResponse{Uid: uid}
-	session.ResponseMID(msg.ID, rsp)
+	session.Response(ctx, rsp)
 
 	return nil
 }

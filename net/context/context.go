@@ -7,8 +7,7 @@ import (
 )
 
 const (
-	emptyString      = ""
-	zeroUint    uint = 0
+	zeroUint uint = 0
 )
 
 // Add adds a key and value that will be propagated through RPC calls
@@ -25,18 +24,6 @@ func Get(ctx context.Context, key string) interface{} {
 		return val
 	}
 	return nil
-}
-
-func GetRoute(ctx context.Context) string {
-	val := Get(ctx, cconst.RouteKey)
-	if val == nil {
-		return emptyString
-	}
-
-	if str, ok := val.(string); ok {
-		return str
-	}
-	return emptyString
 }
 
 func GetMessageId(ctx context.Context) uint {

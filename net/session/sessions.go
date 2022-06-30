@@ -2,7 +2,7 @@ package cherrySession
 
 import (
 	cerr "github.com/cherry-game/cherry/error"
-	cuuid "github.com/cherry-game/cherry/extend/uuid"
+	cnuid "github.com/cherry-game/cherry/extend/nuid"
 	cfacade "github.com/cherry-game/cherry/facade"
 	"sync"
 )
@@ -21,7 +21,7 @@ type (
 )
 
 func NextSID() cfacade.SID {
-	return cuuid.New()
+	return cnuid.Next()
 }
 
 func Create(sid cfacade.SID, frontendId cfacade.FrontendId, network cfacade.INetwork) *Session {

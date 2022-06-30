@@ -42,7 +42,7 @@ func (n *NatsRPCClient) Publish(subject string, val interface{}) error {
 func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.Push) error {
 	nodeType, err := cdiscovery.GetType(frontendId)
 	if err != nil {
-		clog.Warnf("[PublishPush] get nodeType fail. [frontendId = %s, push = %+v, err = %v]",
+		clog.Warnf("[PublishPush] get nodeType fail. [frontendId = %s, push = {%+v}, err = %v]",
 			frontendId,
 			push,
 			err,
@@ -54,7 +54,7 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	err = n.Publish(subject, push)
 
 	if cprofile.Debug() {
-		clog.Debugf("[PublishPush] [frontendId = %s, push = %+v, err= %v]",
+		clog.Debugf("[PublishPush] [frontendId = %s, push = {%+v}, err= %v]",
 			frontendId,
 			push,
 			err,
@@ -66,7 +66,7 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 
 func (n *NatsRPCClient) PublishKick(nodeType string, kick *cproto.Kick) error {
 	if nodeType == "" {
-		clog.Warnf("[PublishKick] nodeType is nil. [nodeType = %s, kick = %+v]",
+		clog.Warnf("[PublishKick] nodeType is nil. [nodeType = %s, kick = {%+v}]",
 			nodeType,
 			kick,
 		)
@@ -77,7 +77,7 @@ func (n *NatsRPCClient) PublishKick(nodeType string, kick *cproto.Kick) error {
 	err := n.Publish(subject, kick)
 
 	if cprofile.Debug() {
-		clog.Debugf("[PublishKick] [nodeType = %s, kick = %+v, err = %v]",
+		clog.Debugf("[PublishKick] [nodeType = %s, kick = {%+v}, err = %v]",
 			nodeType,
 			kick,
 			err,
@@ -90,7 +90,7 @@ func (n *NatsRPCClient) PublishKick(nodeType string, kick *cproto.Kick) error {
 func (n *NatsRPCClient) PublishLocal(nodeId string, request *cproto.Request) error {
 	nodeType, err := cdiscovery.GetType(nodeId)
 	if err != nil {
-		clog.Warnf("[PublishLocal] get nodeType fail. [nodeId = %s, req = %+v, err = %v]",
+		clog.Warnf("[PublishLocal] get nodeType fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -102,7 +102,7 @@ func (n *NatsRPCClient) PublishLocal(nodeId string, request *cproto.Request) err
 	err = n.Publish(subject, request)
 
 	if cprofile.Debug() {
-		clog.Debugf("[PublishLocal] [nodeId = %s, request = %+v, err = %v]",
+		clog.Debugf("[PublishLocal] [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -115,7 +115,7 @@ func (n *NatsRPCClient) PublishLocal(nodeId string, request *cproto.Request) err
 func (n *NatsRPCClient) PublishRemote(nodeId string, request *cproto.Request) error {
 	nodeType, err := cdiscovery.GetType(nodeId)
 	if err != nil {
-		clog.Warnf("[PublishRemote] get nodeType fail. [nodeId = %s, req = %+v, err = %v]",
+		clog.Warnf("[PublishRemote] get nodeType fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -127,7 +127,7 @@ func (n *NatsRPCClient) PublishRemote(nodeId string, request *cproto.Request) er
 	err = n.Publish(subject, request)
 
 	if cprofile.Debug() {
-		clog.Debugf("[PublishRemote] [nodeId = %s, request = %+v, err = %v]",
+		clog.Debugf("[PublishRemote] [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -142,7 +142,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 
 	nodeType, err := cdiscovery.GetType(nodeId)
 	if err != nil {
-		clog.Warnf("[RequestRemote] get nodeType fail. [nodeId = %s, req = %+v, err = %v]",
+		clog.Warnf("[RequestRemote] get nodeType fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -154,7 +154,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 
 	msg, err := n.Marshal(request)
 	if err != nil {
-		clog.Warnf("[RequestRemote] marshal fail. [nodeId = %s, req = %+v, err = %v]",
+		clog.Warnf("[RequestRemote] marshal fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -165,14 +165,14 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 	}
 
 	tt := cnats.App().RequestTimeout
-	if len(timeout) > 0 {
+	if len(timeout) > 0 && timeout[0] > 0 {
 		tt = timeout[0]
 	}
 
 	subject := getRemoteSubject(nodeType, nodeId)
 	rspData, err := cnats.Request(subject, msg, tt)
 	if err != nil {
-		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = %+v, err = %v]",
+		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
 			err,
@@ -183,7 +183,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 	}
 
 	if err = n.Unmarshal(rspData.Data, rsp); err != nil {
-		clog.Warnf("[RequestRemote] unmarshal fail. [nodeId = %s, req = %+v, rsp = %v, err = %v]",
+		clog.Warnf("[RequestRemote] unmarshal fail. [nodeId = %s, req = {%+v}, rsp = %v, err = %v]",
 			nodeId,
 			request,
 			rsp,
@@ -195,8 +195,4 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 	}
 
 	return rsp, nil
-}
-
-func (n *NatsRPCClient) BroadcastSessionBind(uid string) error {
-	return nil
 }

@@ -95,7 +95,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	encoderConfig.EncodeLevel = func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(fmt.Sprintf("%s %-5s", nodeId, level.CapitalString()))
+		encoder.AppendString(fmt.Sprintf("%s  %-5s", nodeId, level.CapitalString()))
 	}
 
 	if config.PrintCaller {
