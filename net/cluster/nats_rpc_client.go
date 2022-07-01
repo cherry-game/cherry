@@ -64,21 +64,22 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	return err
 }
 
-func (n *NatsRPCClient) PublishKick(nodeType string, kick *cproto.Kick) error {
-	if nodeType == "" {
-		clog.Warnf("[PublishKick] nodeType is nil. [nodeType = %s, kick = {%+v}]",
-			nodeType,
+func (n *NatsRPCClient) PublishKick(nodeId string, kick *cproto.Kick) error {
+	nodeType, err := cdiscovery.GetType(nodeId)
+	if err != nil {
+		clog.Warnf("[PublishKick] get nodeType fail. [nodeId = %s, kick = {%+v}]",
+			nodeId,
 			kick,
 		)
-		return cerr.NodeTypeIsNil
+		return err
 	}
 
-	subject := getKickSubject(nodeType)
-	err := n.Publish(subject, kick)
+	subject := getKickSubject(nodeType, nodeId)
+	err = n.Publish(subject, kick)
 
 	if cprofile.Debug() {
-		clog.Debugf("[PublishKick] [nodeType = %s, kick = {%+v}, err = %v]",
-			nodeType,
+		clog.Debugf("[PublishKick] [nodeId = %s, kick = {%+v}, err = %v]",
+			nodeId,
 			kick,
 			err,
 		)
@@ -172,9 +173,10 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 	subject := getRemoteSubject(nodeType, nodeId)
 	rspData, err := cnats.Request(subject, msg, tt)
 	if err != nil {
-		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = {%+v}, err = %v]",
+		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = {%+v}, timeout = %d, err = %v]",
 			nodeId,
 			request,
+			tt.Seconds(),
 			err,
 		)
 

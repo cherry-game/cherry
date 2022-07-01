@@ -191,7 +191,7 @@ func (n *NatsRPCServer) subscribePush() {
 // subscribeKick subscribe message write to client
 func (n *NatsRPCServer) subscribeKick() {
 	var (
-		nodeSubject = getKickSubject(n.NodeType())
+		nodeSubject = getKickSubject(n.NodeType(), n.NodeId())
 		kickChan    = make(chan *nats.Msg, n.msgBufferSize)
 		process     = func(msg *nats.Msg) {
 			kick := &cproto.Kick{}

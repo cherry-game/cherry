@@ -33,6 +33,10 @@ func (c *CherryLogger) Print(v ...interface{}) {
 	c.Warn(v)
 }
 
+func (c *CherryLogger) Enable(level zapcore.Level) bool {
+	return c.SugaredLogger.Desugar().Core().Enabled(level)
+}
+
 func SetNodeLogger(node cfacade.INode) {
 	nodeId = node.NodeId()
 	refLogger := node.Settings().Get("ref_logger").ToString()
@@ -95,7 +99,11 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	encoderConfig.EncodeLevel = func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(fmt.Sprintf("%s  %-5s", nodeId, level.CapitalString()))
+		if nodeId != "" {
+			encoder.AppendString(fmt.Sprintf("%s  %-5s", nodeId, level.CapitalString()))
+		} else {
+			encoder.AppendString(level.CapitalString())
+		}
 	}
 
 	if config.PrintCaller {

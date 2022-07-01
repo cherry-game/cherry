@@ -29,5 +29,5 @@ func (h *Heartbeat) Do(session *csession.Session, _ cfacade.IPacket) {
 	}
 
 	session.SendRaw(bytes)
-	session.Debug("request heartbeat.")
+	session.Debug("response heartbeat.")
 }

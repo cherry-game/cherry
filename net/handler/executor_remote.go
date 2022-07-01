@@ -174,5 +174,5 @@ func printRet(t []reflect.Value) interface{} {
 		}
 	}
 
-	return fmt.Sprint("0")
+	return fmt.Sprint("")
 }

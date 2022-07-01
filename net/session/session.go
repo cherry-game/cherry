@@ -8,6 +8,7 @@ import (
 	ccontext "github.com/cherry-game/cherry/net/context"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap/zapcore"
 	"sync/atomic"
 )
 
@@ -195,4 +196,8 @@ func (s *Session) Error(args ...interface{}) {
 
 func (s *Session) Errorf(template string, args ...interface{}) {
 	clog.DefaultLogger.Error(s.logPrefix(), fmt.Sprintf(template, args...))
+}
+
+func (s *Session) LogEnable(level zapcore.Level) bool {
+	return clog.DefaultLogger.Enable(level)
 }

@@ -8,7 +8,7 @@ const (
 	nodeLocalSubjectFormat  = "cherry.node.local.%s.%s"  // nodeType.nodeId
 	nodeRemoteSubjectFormat = "cherry.node.remote.%s.%s" // nodeType.nodeId
 	nodePushSubjectFormat   = "cherry.node.push.%s.%s"   // nodeType.nodeId
-	nodeKickSubjectFormat   = "cherry.node.kick.%s"      // nodeType
+	nodeKickSubjectFormat   = "cherry.node.kick.%s.%s"   // nodeType.nodeId
 )
 
 // getLocalSubject local message nats chan
@@ -27,6 +27,6 @@ func getPushSubject(nodeType string, nodeId string) string {
 }
 
 // getKickSubject kick message nats chan
-func getKickSubject(nodeType string) string {
-	return fmt.Sprintf(nodeKickSubjectFormat, nodeType)
+func getKickSubject(nodeType string, nodeId string) string {
+	return fmt.Sprintf(nodeKickSubjectFormat, nodeType, nodeId)
 }

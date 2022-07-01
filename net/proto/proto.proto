@@ -47,7 +47,7 @@ message Push {
 
 // 踢人
 message Kick {
-  int64 uid   = 1; // uid
-  bytes data  = 2; // 自定义数据
-  bool  close = 3; // 是否主动关闭连接
+  int64  uid        = 1; // uid
+  bytes  data       = 2; // 自定义数据
+  bool   close      = 4; // 是否主动关闭连接
 }

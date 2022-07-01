@@ -147,7 +147,7 @@ func PublishRemoteByRoute(route string, arg proto.Message) {
 	PublishRemote("", route, arg)
 }
 
-func Kick(nodeType string, uid cfacade.UID, val interface{}, close bool) error {
+func Kick(nodeId string, uid cfacade.UID, val interface{}, close bool) error {
 	bytes, err := _thisApp.Marshal(val)
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func Kick(nodeType string, uid cfacade.UID, val interface{}, close bool) error {
 		Close: close,
 	}
 
-	return _clusterComponent.PublishKick(nodeType, kick)
+	return _clusterComponent.PublishKick(nodeId, kick)
 }
 
 func Push(frontendId string, route string, uid cfacade.UID, val interface{}) error {
