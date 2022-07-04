@@ -176,7 +176,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = {%+v}, timeout = %d, err = %v]",
 			nodeId,
 			request,
-			tt.Seconds(),
+			int(tt.Seconds()),
 			err,
 		)
 

@@ -7,7 +7,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
 	goSqlDriver "github.com/go-sql-driver/mysql"
-	"github.com/json-iterator/go"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -34,7 +33,7 @@ type (
 		UserName       string
 		Password       string
 		MaxIdleConnect int
-		MaXOpenConnect int
+		MaxOpenConnect int
 		LogMode        bool
 	}
 
@@ -52,18 +51,18 @@ func (s *Component) Name() string {
 	return cconst.ORMComponent
 }
 
-func parseMysqlConfig(groupId string, item jsoniter.Any) *mySqlConfig {
+func parseMysqlConfig(groupId string, item cfacade.JsonConfig) *mySqlConfig {
 	return &mySqlConfig{
 		GroupId:        groupId,
-		Id:             item.Get("db_id").ToString(),
-		DbName:         item.Get("db_name").ToString(),
-		Host:           item.Get("host").ToString(),
-		UserName:       item.Get("user_name").ToString(),
-		Password:       item.Get("password").ToString(),
-		MaxIdleConnect: item.Get("max_idle_connect").ToInt(),
-		MaXOpenConnect: item.Get("max_open_connect").ToInt(),
-		LogMode:        item.Get("log_mode").ToBool(),
-		Enable:         item.Get("enable").ToBool(),
+		Id:             item.GetString("db_id"),
+		DbName:         item.GetString("db_name"),
+		Host:           item.GetString("host"),
+		UserName:       item.GetString("user_name"),
+		Password:       item.GetString("password"),
+		MaxIdleConnect: item.GetInt("max_idle_connect", 4),
+		MaxOpenConnect: item.GetInt("max_open_connect", 8),
+		LogMode:        item.GetBool("log_mode", true),
+		Enable:         item.GetBool("enable", true),
 	}
 }
 
@@ -83,10 +82,9 @@ func (s *Component) Init() {
 	for _, groupId := range dbConfig.Keys() {
 		s.ormMap[groupId] = make(map[string]*gorm.DB)
 
-		dbGroup := dbConfig.Get(groupId)
-
+		dbGroup := dbConfig.GetConfig(groupId)
 		for i := 0; i < dbGroup.Size(); i++ {
-			item := dbGroup.Get(i)
+			item := dbGroup.GetConfig(i)
 			mysqlConfig := parseMysqlConfig(groupId, item)
 
 			for j := 0; j < dbIdList.Size(); j++ {
@@ -123,6 +121,15 @@ func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+
+	sqlDB.SetMaxIdleConns(cfg.MaxIdleConnect)
+	sqlDB.SetMaxOpenConns(cfg.MaxOpenConnect)
+	sqlDB.SetConnMaxLifetime(time.Minute)
 
 	if cfg.LogMode {
 		return db.Debug(), nil

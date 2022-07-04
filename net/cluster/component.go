@@ -27,7 +27,7 @@ func (c *Component) Init() {
 
 	c.RPCClient = NewRPCClient(c)
 
-	server := NewNatsRPCServer(c, c.RPCClient, 2048)
+	server := NewNatsRPCServer(c, c.RPCClient, 32767)
 	server.Init()
 	c.RPCServer = server
 

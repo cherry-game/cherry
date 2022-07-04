@@ -111,7 +111,7 @@ func (m *DiscoveryNATS) serverInit() {
 		newMember := &cproto.Member{}
 		err := m.Unmarshal(msg.Data, newMember)
 		if err != nil {
-			clog.Warnf("err = %s", err)
+			clog.Warnf("data = %+v, err = %s", msg.Data, err)
 			return
 		}
 
