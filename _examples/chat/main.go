@@ -26,10 +26,6 @@ func main() {
 }
 
 func handlerComponent() {
-	cherry.SetHandlerOptions(
-		chandler.WithPrintRouteLog(true),
-	)
-
 	group1 := chandler.NewGroup(1, 256)
 	group1.AddHandlers(&userHandler{})
 	group1.AddHandlers(&roomHandler{})

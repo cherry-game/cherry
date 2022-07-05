@@ -9,7 +9,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cconnector "github.com/cherry-game/cherry/net/connector"
-	chandler "github.com/cherry-game/cherry/net/handler"
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 	csession "github.com/cherry-game/cherry/net/session"
@@ -25,7 +24,6 @@ func main() {
 	//cherry.RegisterComponent(&MockClientComponent{})
 
 	cherry.RegisterHandler(&UserHandler{})
-	cherry.SetHandlerOptions(chandler.WithPrintRouteLog(true))
 
 	cherry.RegisterConnector(cconnector.NewWS(gateApp.Address()))
 
