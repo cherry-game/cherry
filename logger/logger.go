@@ -282,7 +282,7 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 }
 
 func LogLevel(level zapcore.Level) bool {
-	if cherryLogLevel >= level {
+	if level >= cherryLogLevel {
 		return true
 	}
 	return false
