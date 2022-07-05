@@ -6,6 +6,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cpacket "github.com/cherry-game/cherry/net/packet"
 	csession "github.com/cherry-game/cherry/net/session"
+	"go.uber.org/zap/zapcore"
 	"time"
 )
 
@@ -47,9 +48,11 @@ func (h *Handshake) Do(session *csession.Session, _ cfacade.IPacket) {
 	session.SetState(csession.WaitAck)
 	session.SendRaw(bytes)
 
-	session.Debugf("request handshake. [sid = %s, address = %s, data = %v]",
-		session.SID(),
-		session.RemoteAddress(),
-		data,
-	)
+	if clog.LogLevel(zapcore.DebugLevel) {
+		session.Debugf("request handshake. [sid = %s, address = %s, data = %v]",
+			session.SID(),
+			session.RemoteAddress(),
+			data,
+		)
+	}
 }
