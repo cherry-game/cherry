@@ -86,6 +86,6 @@ func GetLevel(level string) zapcore.Level {
 	case "fatal":
 		return zapcore.FatalLevel
 	default:
-		return zapcore.FatalLevel
+		return zapcore.DebugLevel
 	}
 }

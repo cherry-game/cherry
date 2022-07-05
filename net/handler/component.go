@@ -25,7 +25,6 @@ type (
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
-		printRouteLog bool
 	}
 
 	Option func(options *options)
@@ -40,7 +39,6 @@ func NewComponent(opts ...Option) *Component {
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn:        strings.ToLower,
-			printRouteLog: false,
 		},
 	}
 
@@ -197,13 +195,12 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 
 	executor := &ExecutorLocal{
 		IApplication:  c.App(),
-		Session:       session,
-		Msg:           msg,
-		HandlerFn:     fn,
-		Ctx:           ctx,
-		BeforeFilters: c.beforeFilters,
-		AfterFilters:  c.afterFilters,
-		PrintLog:      c.printRouteLog,
+		session:       session,
+		msg:           msg,
+		handlerFn:     fn,
+		ctx:           ctx,
+		beforeFilters: c.beforeFilters,
+		afterFilters:  c.afterFilters,
 	}
 	group.InQueue(executor)
 }
@@ -235,7 +232,6 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 		route:        route,
 		data:         data,
 		natsMsg:      natsMsg,
-		printLog:     c.printRouteLog,
 	}
 
 	group.InQueue(executor)
@@ -252,10 +248,6 @@ func (c *Component) AddAfterFilter(afterFilters ...FilterFn) {
 	if len(afterFilters) > 0 {
 		c.afterFilters = append(c.afterFilters, afterFilters...)
 	}
-}
-
-func (c *Component) PrintLog() bool {
-	return c.printRouteLog
 }
 
 func WithBeforeFilter(beforeFilters ...FilterFn) Option {
@@ -279,11 +271,5 @@ func WithNameFunc(fn func(string) string) Option {
 		if fn != nil {
 			options.nameFn = fn
 		}
-	}
-}
-
-func WithPrintRouteLog(enable bool) Option {
-	return func(options *options) {
-		options.printRouteLog = enable
 	}
 }

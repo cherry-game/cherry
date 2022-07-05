@@ -10,8 +10,8 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cpkg "github.com/cherry-game/cherry/net/packet"
 	csession "github.com/cherry-game/cherry/net/session"
-	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/golang/protobuf/proto"
+	"go.uber.org/zap/zapcore"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -89,7 +89,7 @@ func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
 	}
 
 	a.send(cmsg.Response, "", mid, v, isErr)
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		a.session.Debugf("[Response] ok. [mid = %d, isError = %v, val = %+v]", mid, isErr, v)
 	}
 }
@@ -97,7 +97,7 @@ func (a *Agent) Response(mid uint, v interface{}, isError ...bool) {
 func (a *Agent) Push(route string, val interface{}) {
 	a.send(cmsg.Push, route, 0, val, false)
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		a.session.Debugf("[Push] ok. [route = %s, val = %+v]", route, val)
 	}
 }
@@ -119,7 +119,7 @@ func (a *Agent) Kick(reason interface{}) {
 		clog.Warn(err)
 	}
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		a.session.Debugf("[Kick] ok. [reason = {%+v}]", reason)
 	}
 }
@@ -224,7 +224,7 @@ func (a *Agent) readChan() {
 func (a *Agent) writeChan() {
 	ticker := time.NewTicker(a.Heartbeat)
 	defer func() {
-		if cprofile.Debug() {
+		if clog.LogLevel(zapcore.DebugLevel) {
 			a.session.Debugf("close session. [sid = %s]", a.session.SID())
 		}
 
@@ -244,7 +244,7 @@ func (a *Agent) writeChan() {
 		case <-ticker.C:
 			deadline := time.Now().Add(-a.Heartbeat).Unix()
 			if a.lastAt < deadline {
-				if cprofile.Debug() {
+				if clog.LogLevel(zapcore.DebugLevel) {
 					a.session.Debug("check heartbeat timeout.")
 				}
 				return
@@ -299,7 +299,7 @@ func (a *Agent) processMessage(data *pendingMessage) {
 func (a *Agent) processPacket(packet cfacade.IPacket) {
 	result := a.session.OnDataListener()
 	if result == false {
-		if cprofile.Debug() {
+		if clog.LogLevel(zapcore.WarnLevel) {
 			a.session.Warnf("[ProcessPacket] on data listener return fail. [packet = %+v]", packet)
 		}
 		return
@@ -307,7 +307,7 @@ func (a *Agent) processPacket(packet cfacade.IPacket) {
 
 	cmd, found := a.Commands[packet.Type()]
 	if found == false {
-		if cprofile.Debug() {
+		if clog.LogLevel(zapcore.DebugLevel) {
 			a.session.Debugf("[ProcessPacket] type not found. [packet = %+v]", packet)
 		}
 		return

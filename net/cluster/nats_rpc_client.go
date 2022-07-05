@@ -8,7 +8,7 @@ import (
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cnats "github.com/cherry-game/cherry/net/cluster/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	cprofile "github.com/cherry-game/cherry/profile"
+	"go.uber.org/zap/zapcore"
 	"time"
 )
 
@@ -53,7 +53,7 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	subject := getPushSubject(nodeType, frontendId)
 	err = n.Publish(subject, push)
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishPush] [frontendId = %s, push = {%+v}, err= %v]",
 			frontendId,
 			push,
@@ -77,7 +77,7 @@ func (n *NatsRPCClient) PublishKick(nodeId string, kick *cproto.Kick) error {
 	subject := getKickSubject(nodeType, nodeId)
 	err = n.Publish(subject, kick)
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishKick] [nodeId = %s, kick = {%+v}, err = %v]",
 			nodeId,
 			kick,
@@ -102,7 +102,7 @@ func (n *NatsRPCClient) PublishLocal(nodeId string, request *cproto.Request) err
 	subject := getLocalSubject(nodeType, nodeId)
 	err = n.Publish(subject, request)
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishLocal] [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,
@@ -127,7 +127,7 @@ func (n *NatsRPCClient) PublishRemote(nodeId string, request *cproto.Request) er
 	subject := getRemoteSubject(nodeType, nodeId)
 	err = n.Publish(subject, request)
 
-	if cprofile.Debug() {
+	if clog.LogLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishRemote] [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
 			request,

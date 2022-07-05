@@ -5,6 +5,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cpacket "github.com/cherry-game/cherry/net/packet"
 	csession "github.com/cherry-game/cherry/net/session"
+	"go.uber.org/zap/zapcore"
 )
 
 type Heartbeat struct {
@@ -29,5 +30,7 @@ func (h *Heartbeat) Do(session *csession.Session, _ cfacade.IPacket) {
 	}
 
 	session.SendRaw(bytes)
-	session.Debug("response heartbeat.")
+	if clog.LogLevel(zapcore.DebugLevel) {
+		session.Debug("response heartbeat.")
+	}
 }

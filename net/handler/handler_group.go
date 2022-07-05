@@ -153,10 +153,10 @@ func DefaultQueueHash(executor IExecutor, queueNum int) int {
 	var i = 0
 	switch e := executor.(type) {
 	case *ExecutorLocal:
-		if e.Session.UID() > 0 {
-			i = int(e.Session.UID() % int64(queueNum))
+		if e.session.UID() > 0 {
+			i = int(e.session.UID() % int64(queueNum))
 		} else {
-			i = ccrypto.CRC32(e.Session.SID()) % queueNum
+			i = ccrypto.CRC32(e.session.SID()) % queueNum
 		}
 	case *ExecutorEvent:
 		i = int(e.Event.UniqueId() % int64(queueNum))

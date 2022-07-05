@@ -7,6 +7,7 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	csession "github.com/cherry-game/cherry/net/session"
+	"go.uber.org/zap/zapcore"
 	"reflect"
 	"runtime/debug"
 )
@@ -15,22 +16,14 @@ type (
 	ExecutorLocal struct {
 		cfacade.IApplication
 		groupIndex    int
-		Session       *csession.Session
-		Msg           *cmsg.Message
-		HandlerFn     *cfacade.HandlerFn
-		Ctx           context.Context
-		BeforeFilters []FilterFn
-		AfterFilters  []FilterFn
-		PrintLog      bool
+		session       *csession.Session
+		msg           *cmsg.Message
+		handlerFn     *cfacade.HandlerFn
+		ctx           context.Context
+		beforeFilters []FilterFn
+		afterFilters  []FilterFn
 	}
 )
-
-func NewExecutorLocal(session *csession.Session, msg *cmsg.Message) ExecutorLocal {
-	return ExecutorLocal{
-		Session: session,
-		Msg:     msg,
-	}
-}
 
 func (p *ExecutorLocal) Index() int {
 	return p.groupIndex
@@ -44,19 +37,19 @@ func (p *ExecutorLocal) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
 			clog.Warnf("recover in Local. %s", string(debug.Stack()))
-			clog.Warnf("msg = [%+v]", p.Msg)
+			clog.Warnf("msg = [%+v]", p.msg)
 		}
 	}()
 
-	for _, filter := range p.BeforeFilters {
-		if filter(p.Ctx, p.Session, p.Msg) == false {
+	for _, filter := range p.beforeFilters {
+		if filter(p.ctx, p.session, p.msg) == false {
 			return
 		}
 	}
 
-	argsLen := len(p.HandlerFn.InArgs)
+	argsLen := len(p.handlerFn.InArgs)
 	if argsLen < 2 || argsLen > 3 {
-		clog.Warnf("[Route = %v] method in args error.", p.Msg.Route)
+		clog.Warnf("[Route = %v] method in args error.", p.msg.Route)
 		clog.Warnf("func(session,request) or func(ctx,session,request)")
 		return
 	}
@@ -64,53 +57,53 @@ func (p *ExecutorLocal) Invoke() {
 	var params []reflect.Value
 	var ret []reflect.Value
 
-	if p.HandlerFn.IsRaw {
+	if p.handlerFn.IsRaw {
 		params = make([]reflect.Value, argsLen)
-		params[0] = reflect.ValueOf(p.Ctx)
-		params[1] = reflect.ValueOf(p.Session)
-		params[2] = reflect.ValueOf(p.Msg)
+		params[0] = reflect.ValueOf(p.ctx)
+		params[1] = reflect.ValueOf(p.session)
+		params[2] = reflect.ValueOf(p.msg)
 
-		ret = p.HandlerFn.Value.Call(params)
-		if p.PrintLog {
-			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
+		ret = p.handlerFn.Value.Call(params)
+		if clog.LogLevel(zapcore.DebugLevel) {
+			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
-				p.Msg.Route,
-				p.Msg.ID,
-				p.Msg.Data,
+				p.msg.Route,
+				p.msg.ID,
+				p.msg.Data,
 				printRet(ret),
 			)
 		}
 	} else {
 		val, err := p.unmarshalData(argsLen - 1)
 		if err != nil {
-			p.Session.Errorf("err = %v, msg = %v", err, p.Msg)
+			p.session.Errorf("err = %v, msg = %v", err, p.msg)
 			return
 		}
 
 		if argsLen == 2 {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(p.Session)
+			params[0] = reflect.ValueOf(p.session)
 			params[1] = reflect.ValueOf(val)
 		} else {
 			params = make([]reflect.Value, argsLen)
-			params[0] = reflect.ValueOf(p.Ctx)
-			params[1] = reflect.ValueOf(p.Session)
+			params[0] = reflect.ValueOf(p.ctx)
+			params[1] = reflect.ValueOf(p.session)
 			params[2] = reflect.ValueOf(val)
 		}
 
-		ret = p.HandlerFn.Value.Call(params)
-		if p.PrintLog {
-			p.Session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
+		ret = p.handlerFn.Value.Call(params)
+		if clog.LogLevel(zapcore.DebugLevel) {
+			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
-				p.Msg.Route,
-				p.Msg.ID,
+				p.msg.Route,
+				p.msg.ID,
 				val,
 				printRet(ret),
 			)
 		}
 	}
 
-	if p.Msg.Type == cmsg.Request {
+	if p.msg.Type == cmsg.Request {
 		retLen := len(ret)
 
 		if retLen == 2 {
@@ -121,33 +114,33 @@ func (p *ExecutorLocal) Invoke() {
 							Code: code,
 						}
 
-						p.Session.ResponseMID(p.Msg.ID, rsp, true)
+						p.session.ResponseMID(p.msg.ID, rsp, true)
 					} else {
-						p.Session.Warn(face)
+						p.session.Warn(face)
 					}
 				} else {
-					p.Session.Warnf("ret value type error. [type = %+v]", ret)
+					p.session.Warnf("ret value type error. [type = %+v]", ret)
 				}
 			} else {
-				p.Session.ResponseMID(p.Msg.ID, ret[0].Interface())
+				p.session.ResponseMID(p.msg.ID, ret[0].Interface())
 			}
 		}
 	}
 
-	for _, filter := range p.AfterFilters {
-		if !filter(p.Ctx, p.Session, p.Msg) {
+	for _, filter := range p.afterFilters {
+		if !filter(p.ctx, p.session, p.msg) {
 			break
 		}
 	}
 }
 
 func (p *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
-	in2 := p.HandlerFn.InArgs[index]
+	in2 := p.handlerFn.InArgs[index]
 
 	var val interface{}
 	val = reflect.New(in2.Elem()).Interface()
 
-	err := p.Unmarshal(p.Msg.Data, val)
+	err := p.Unmarshal(p.msg.Data, val)
 	if err != nil {
 		return nil, err
 	}
@@ -156,5 +149,5 @@ func (p *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
 }
 
 func (p *ExecutorLocal) String() string {
-	return p.Msg.Route
+	return p.msg.Route
 }

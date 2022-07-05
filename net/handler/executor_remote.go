@@ -8,6 +8,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap/zapcore"
 	"reflect"
 	"runtime/debug"
 )
@@ -20,7 +21,6 @@ type (
 		route      string
 		data       []byte
 		natsMsg    *nats.Msg
-		printLog   bool
 	}
 )
 
@@ -62,7 +62,7 @@ func (p *ExecutorRemote) Invoke() {
 	case 0:
 		{
 			ret = p.handlerFn.Value.Call(params)
-			if p.printLog {
+			if clog.LogLevel(zapcore.DebugLevel) {
 				clog.Debugf("[remote] [route = %s, req = null, rsp = %+v",
 					p.route,
 					printRet(ret),
@@ -84,7 +84,7 @@ func (p *ExecutorRemote) Invoke() {
 			params[0] = reflect.ValueOf(val)
 
 			ret = p.handlerFn.Value.Call(params)
-			if p.printLog {
+			if clog.LogLevel(zapcore.DebugLevel) {
 				clog.Debugf("[remote] call result. [route = %s, req = %v, rsp = %+v]",
 					p.route,
 					params[0],

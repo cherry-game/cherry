@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	rw            sync.RWMutex             // mutex
-	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
-	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodeId        string                   // current node id
+	rw             sync.RWMutex             // mutex
+	DefaultLogger  *CherryLogger            // 默认日志对象(控制台输出)
+	loggers        map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
+	nodeId         string                   // current node id
+	cherryLogLevel zapcore.Level            // cherry log level
 )
 
 func init() {
@@ -33,10 +34,6 @@ func (c *CherryLogger) Print(v ...interface{}) {
 	c.Warn(v)
 }
 
-func (c *CherryLogger) Enable(level zapcore.Level) bool {
-	return c.SugaredLogger.Desugar().Core().Enabled(level)
-}
-
 func SetNodeLogger(node cfacade.INode) {
 	nodeId = node.NodeId()
 	refLogger := node.Settings().Get("ref_logger").ToString()
@@ -46,6 +43,7 @@ func SetNodeLogger(node cfacade.INode) {
 	}
 
 	DefaultLogger = NewLogger(refLogger, zap.AddCallerSkip(1))
+	cherryLogLevel = GetLevel(cprofile.LogLevel())
 }
 
 func Flush() {
@@ -163,6 +161,10 @@ func NewSugaredLogger(core zapcore.Core, opts ...zap.Option) *zap.SugaredLogger 
 	return zapLogger.Sugar()
 }
 
+func Enable(level zapcore.Level) bool {
+	return DefaultLogger.Desugar().Core().Enabled(level)
+}
+
 func Debug(args ...interface{}) {
 	DefaultLogger.Debug(args...)
 }
@@ -277,4 +279,11 @@ func Panicw(msg string, keysAndValues ...interface{}) {
 // variadic key-value pairs are treated as they are in With.
 func Fatalw(msg string, keysAndValues ...interface{}) {
 	DefaultLogger.Fatalw(msg, keysAndValues...)
+}
+
+func LogLevel(level zapcore.Level) bool {
+	if cherryLogLevel >= level {
+		return true
+	}
+	return false
 }

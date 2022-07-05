@@ -199,5 +199,5 @@ func (s *Session) Errorf(template string, args ...interface{}) {
 }
 
 func (s *Session) LogEnable(level zapcore.Level) bool {
-	return clog.DefaultLogger.Enable(level)
+	return clog.Enable(level)
 }

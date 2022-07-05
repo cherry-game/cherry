@@ -1,5 +1,6 @@
 {
   "debug": true,
+  "log_level": "debug",
   "include": [
     "common/logger.json",
     "profile-dev-cluster.json",
