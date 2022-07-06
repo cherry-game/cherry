@@ -187,7 +187,7 @@ func forwardLocal(session *csession.Session, msg *cmsg.Message) {
 	}
 
 	request := buildRequest(session, msg)
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	if err = _clusterComponent.PublishLocal(member.GetNodeId(), request); err != nil {
 		session.Warnf("publish local fail. [error = %s]", err)

@@ -104,7 +104,7 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 	}
 
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	request.Uid = a.session.UID()
 	request.FrontendId = a.session.FrontendId()
@@ -147,7 +147,7 @@ func (a *AgentBackend) RPC(nodeId string, route string, req proto.Message, rsp p
 	}
 
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	request.Route = route
 	request.Uid = a.session.UID()

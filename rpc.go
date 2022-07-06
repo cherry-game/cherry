@@ -42,7 +42,7 @@ func RequestRemote(nodeId string, route string, arg proto.Message, reply proto.M
 	}
 
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	request.Route = route
 	request.Data = bytes
@@ -135,7 +135,7 @@ func PublishRemote(nodeId string, route string, arg proto.Message) {
 	}
 
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	request.Route = route
 	request.Data = bytes

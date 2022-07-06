@@ -18,6 +18,6 @@ func GetRequest() *Request {
 	return req
 }
 
-func PutRequest(req *Request) {
-	requestPool.Put(req)
+func (x *Request) Recycle() {
+	requestPool.Put(x)
 }

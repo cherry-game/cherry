@@ -68,16 +68,16 @@ func (n *NatsRPCServer) subscribeRemote() {
 			clog.Errorf("remote chan dropped messages. [dropped = %d, err = %v]", dropped, err)
 		}
 
-		packet := cproto.GetRequest()
-		defer cproto.PutRequest(packet)
+		request := cproto.GetRequest()
+		defer request.Recycle()
 
-		if err := n.Unmarshal(msg.Data, packet); err != nil {
-			clog.Warnf("unmarshal fail. [packet = %s, err = %s]", packet, err)
+		if err := n.Unmarshal(msg.Data, request); err != nil {
+			clog.Warnf("unmarshal fail. [packet = %s, err = %s]", request, err)
 			n.replyError(msg, ccode.RPCUnmarshalError)
 			return
 		}
 
-		statusCode := n.handlerComponent.ProcessRemote(packet.Route, packet.Data, msg)
+		statusCode := n.handlerComponent.ProcessRemote(request.Route, request.Data, msg)
 		if ccode.IsFail(statusCode) {
 			n.replyError(msg, statusCode)
 		}
@@ -113,7 +113,7 @@ func (n *NatsRPCServer) subscribeLocal() {
 
 func (n *NatsRPCServer) frontendLocalProcess(msg *nats.Msg) {
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	err := n.Unmarshal(msg.Data, request)
 	if err != nil {
@@ -135,7 +135,7 @@ func (n *NatsRPCServer) frontendLocalProcess(msg *nats.Msg) {
 
 func (n *NatsRPCServer) backendLocalProcess(msg *nats.Msg) {
 	request := cproto.GetRequest()
-	defer cproto.PutRequest(request)
+	defer request.Recycle()
 
 	err := n.Unmarshal(msg.Data, request)
 	if err != nil {
