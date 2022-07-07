@@ -14,10 +14,10 @@ var (
 
 func GetRequest() *Request {
 	req := requestPool.Get().(*Request)
-	req.Reset()
 	return req
 }
 
 func (x *Request) Recycle() {
+	x.Reset()
 	requestPool.Put(x)
 }
