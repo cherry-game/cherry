@@ -5,19 +5,14 @@ import (
 	"time"
 )
 
-// ToTimestamp 输出秒级时间戳
-func (c CherryTime) ToTimestamp() int64 {
-	return c.ToTimestampWithSecond()
-}
-
-// ToTimestampWithSecond 输出秒级时间戳
-func (c CherryTime) ToTimestampWithSecond() int64 {
+// ToSecond 输出秒级时间戳
+func (c CherryTime) ToSecond() int64 {
 	return c.Unix()
 }
 
 // ToMillisecond 输出毫秒级时间戳
 func (c CherryTime) ToMillisecond() int64 {
-	return c.ToTimestampWithMillisecond()
+	return c.Time.UnixNano() / int64(time.Millisecond)
 }
 
 func (c CherryTime) ToMillisecondString() string {
@@ -25,18 +20,13 @@ func (c CherryTime) ToMillisecondString() string {
 	return cstring.ToString(t)
 }
 
-// ToTimestampWithMillisecond 输出毫秒级时间戳
-func (c CherryTime) ToTimestampWithMillisecond() int64 {
-	return c.Time.UnixNano() / int64(time.Millisecond)
-}
-
-// ToTimestampWithMicrosecond 输出微秒级时间戳
-func (c CherryTime) ToTimestampWithMicrosecond() int64 {
+// ToMicrosecond 输出微秒级时间戳
+func (c CherryTime) ToMicrosecond() int64 {
 	return c.UnixNano() / int64(time.Microsecond)
 }
 
-// ToTimestampWithNanosecond 输出纳秒级时间戳
-func (c CherryTime) ToTimestampWithNanosecond() int64 {
+// ToNanosecond 输出纳秒级时间戳
+func (c CherryTime) ToNanosecond() int64 {
 	return c.UnixNano()
 }
 

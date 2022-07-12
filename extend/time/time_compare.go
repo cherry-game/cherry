@@ -4,17 +4,17 @@ import "time"
 
 // IsNow 是否是当前时间
 func (c CherryTime) IsNow() bool {
-	return c.ToTimestamp() == Now().ToTimestamp()
+	return c.ToSecond() == Now().ToSecond()
 }
 
 // IsFuture 是否是未来时间
 func (c CherryTime) IsFuture() bool {
-	return c.ToTimestamp() > Now().ToTimestamp()
+	return c.ToSecond() > Now().ToSecond()
 }
 
 // IsPast 是否是过去时间
 func (c CherryTime) IsPast() bool {
-	return c.ToTimestamp() < Now().ToTimestamp()
+	return c.ToSecond() < Now().ToSecond()
 }
 
 // IsLeapYear 是否是闰年
