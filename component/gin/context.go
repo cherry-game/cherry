@@ -113,12 +113,8 @@ func (g *Context) GetInt64(name string, defaultValue int64, checkPost ...bool) i
 		return defaultValue
 	}
 
-	intValue, ok := cstring.ToInt64(value)
-	if ok {
-		return intValue
-	}
-
-	return defaultValue
+	intValue, _ := cstring.ToInt64(value, defaultValue)
+	return intValue
 }
 
 func (g *Context) GetString(name, defaultValue string, checkPost ...bool) string {

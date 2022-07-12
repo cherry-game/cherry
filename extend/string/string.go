@@ -1,6 +1,7 @@
 package cherryString
 
 import (
+	"encoding/json"
 	"strconv"
 	str "strings"
 )
@@ -33,40 +34,67 @@ func IsNotBlank(value string) bool {
 	return value != ""
 }
 
-func ToInt(value string) (int, bool) {
+func ToInt(value string, def ...int) (int, bool) {
 	val, err := strconv.Atoi(value)
 	if err != nil {
+		if len(def) > 0 {
+			return def[0], false
+		}
 		return 0, false
 	}
 	return val, true
 }
 
-func ToInt32(value string) (int32, bool) {
+func ToInt32(value string, def ...int32) (int32, bool) {
 	val, err := strconv.ParseInt(value, 10, 32)
 	if err != nil {
+		if len(def) > 0 {
+			return def[0], false
+		}
 		return 0, false
 	}
 	return int32(val), true
 }
 
-func ToInt64(value string) (int64, bool) {
+func ToInt64(value string, def ...int64) (int64, bool) {
 	val, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
+		if len(def) > 0 {
+			return def[0], false
+		}
 		return 0, false
 	}
 	return val, true
 }
 
-func IntToString(value int) string {
-	return strconv.Itoa(value)
-}
+func ToString(value interface{}) string {
+	ret := ""
 
-func Int32ToString(value int32) string {
-	return strconv.FormatInt(int64(value), 10)
-}
+	if value == nil {
+		return ret
+	}
 
-func Int64ToString(value int64) string {
-	return strconv.FormatInt(value, 10)
+	switch value.(type) {
+	case string:
+		ret = value.(string)
+	case int:
+		ret = strconv.Itoa(value.(int))
+	case int32:
+		ret = strconv.Itoa(int(value.(int32)))
+	case int64:
+		ret = strconv.FormatInt(value.(int64), 10)
+	case uint:
+		ret = strconv.Itoa(int(value.(uint)))
+	case uint32:
+		ret = strconv.Itoa(int(value.(uint32)))
+	case uint64:
+		ret = strconv.Itoa(int(value.(uint64)))
+	default:
+		v, _ := json.Marshal(value)
+		ret = string(v)
+	}
+
+	return ret
 }
 
 func ToStringSlice(val []interface{}) []string {
@@ -78,37 +106,4 @@ func ToStringSlice(val []interface{}) []string {
 		}
 	}
 	return result
-}
-
-func StringToInt(val string, def ...int) int {
-	i, err := strconv.Atoi(val)
-	if err != nil {
-		if len(def) > 0 {
-			return def[0]
-		}
-		return 0
-	}
-	return i
-}
-
-func StringToInt32(val string, def ...int32) int32 {
-	i, err := strconv.ParseInt(val, 10, 32)
-	if err != nil {
-		if len(def) > 0 {
-			return def[0]
-		}
-		return 0
-	}
-	return int32(i)
-}
-
-func StringToInt64(val string, def ...int64) int64 {
-	i, err := strconv.ParseInt(val, 10, 64)
-	if err != nil {
-		if len(def) > 0 {
-			return def[0]
-		}
-		return 0
-	}
-	return i
 }
