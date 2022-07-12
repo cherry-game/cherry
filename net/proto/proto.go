@@ -1,7 +1,6 @@
 package cherryProto
 
 import (
-	cherryString "github.com/cherry-game/cherry/extend/string"
 	cherryTime "github.com/cherry-game/cherry/extend/time"
 	"sync"
 )
@@ -19,15 +18,13 @@ var (
 )
 
 func GetRequest() *Request {
-	req := requestPool.Get().(*Request)
-	if req.Setting == nil {
-		req.Setting = make(map[string]string)
+	request := requestPool.Get().(*Request)
+	if request.Setting == nil {
+		request.Setting = make(map[string]string)
 	}
+	request.Setting[StartTimeKey] = cherryTime.Now().ToMillisecondString()
 
-	tt := cherryTime.Now().ToTimestampWithMillisecond()
-	req.Setting[StartTimeKey] = cherryString.ToString(tt)
-
-	return req
+	return request
 }
 
 func (x *Request) Recycle() {

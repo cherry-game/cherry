@@ -20,6 +20,11 @@ func (c CherryTime) ToMillisecond() int64 {
 	return c.ToTimestampWithMillisecond()
 }
 
+func (c CherryTime) ToMillisecondString() string {
+	t := c.ToMillisecond()
+	return cstring.ToString(t)
+}
+
 // ToTimestampWithMillisecond 输出毫秒级时间戳
 func (c CherryTime) ToTimestampWithMillisecond() int64 {
 	return c.Time.UnixNano() / int64(time.Millisecond)
