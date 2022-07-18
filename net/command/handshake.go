@@ -48,7 +48,7 @@ func (h *Handshake) Do(session *csession.Session, _ cfacade.IPacket) {
 	session.SetState(csession.WaitAck)
 	session.SendRaw(bytes)
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		session.Debugf("request handshake. [sid = %s, address = %s, data = %v]",
 			session.SID(),
 			session.RemoteAddress(),

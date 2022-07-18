@@ -62,7 +62,7 @@ func (p *ExecutorRemote) Invoke() {
 	case 0:
 		{
 			ret = p.handlerFn.Value.Call(params)
-			if clog.LogLevel(zapcore.DebugLevel) {
+			if clog.PrintLevel(zapcore.DebugLevel) {
 				clog.Debugf("[remote] [route = %s, req = null, rsp = %+v",
 					p.route,
 					printRet(ret),
@@ -84,7 +84,7 @@ func (p *ExecutorRemote) Invoke() {
 			params[0] = reflect.ValueOf(val)
 
 			ret = p.handlerFn.Value.Call(params)
-			if clog.LogLevel(zapcore.DebugLevel) {
+			if clog.PrintLevel(zapcore.DebugLevel) {
 				clog.Debugf("[remote] call result. [route = %s, req = %v, rsp = %+v]",
 					p.route,
 					params[0],

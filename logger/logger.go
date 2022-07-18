@@ -13,11 +13,11 @@ import (
 )
 
 var (
-	rw             sync.RWMutex             // mutex
-	DefaultLogger  *CherryLogger            // 默认日志对象(控制台输出)
-	loggers        map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodeId         string                   // current node id
-	cherryLogLevel zapcore.Level            // cherry log level
+	rw            sync.RWMutex             // mutex
+	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
+	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
+	nodeId        string                   // current node id
+	printLevel    zapcore.Level            // cherry log print level
 )
 
 func init() {
@@ -43,7 +43,7 @@ func SetNodeLogger(node cfacade.INode) {
 	}
 
 	DefaultLogger = NewLogger(refLogger, zap.AddCallerSkip(1))
-	cherryLogLevel = GetLevel(cprofile.LogLevel())
+	printLevel = GetLevel(cprofile.PrintLevel())
 }
 
 func Flush() {
@@ -281,8 +281,8 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 	DefaultLogger.Fatalw(msg, keysAndValues...)
 }
 
-func LogLevel(level zapcore.Level) bool {
-	if level >= cherryLogLevel {
+func PrintLevel(level zapcore.Level) bool {
+	if level >= printLevel {
 		return true
 	}
 	return false

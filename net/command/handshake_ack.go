@@ -22,7 +22,7 @@ func (h *HandshakeACK) PacketType() cpacket.Type {
 func (h *HandshakeACK) Do(session *csession.Session, _ cfacade.IPacket) {
 	session.SetState(csession.Working)
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		session.Debugf("request handshakeACK. [sid = %s, address = %s]",
 			session.SID(),
 			session.RemoteAddress(),

@@ -31,7 +31,7 @@ func (h *Heartbeat) Do(session *csession.Session, _ cfacade.IPacket) {
 
 	session.SendRaw(bytes)
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		session.Debug("response heartbeat.")
 	}
 }

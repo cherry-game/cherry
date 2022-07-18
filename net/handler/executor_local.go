@@ -64,7 +64,7 @@ func (p *ExecutorLocal) Invoke() {
 		params[2] = reflect.ValueOf(p.msg)
 
 		ret = p.handlerFn.Value.Call(params)
-		if clog.LogLevel(zapcore.DebugLevel) {
+		if clog.PrintLevel(zapcore.DebugLevel) {
 			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.msg.Route,
@@ -92,7 +92,7 @@ func (p *ExecutorLocal) Invoke() {
 		}
 
 		ret = p.handlerFn.Value.Call(params)
-		if clog.LogLevel(zapcore.DebugLevel) {
+		if clog.PrintLevel(zapcore.DebugLevel) {
 			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.msg.Route,

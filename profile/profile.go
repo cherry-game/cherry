@@ -18,7 +18,7 @@ var (
 		fileName    string  // profile fileName
 		jsonConfig  *Config // profile-x.json parse to json object
 		debug       bool    // debug default is true
-		logLevel    string  // cherry log level
+		printLevel  string  // cherry log print level
 	}{}
 )
 
@@ -38,8 +38,8 @@ func Debug() bool {
 	return env.debug
 }
 
-func LogLevel() string {
-	return env.logLevel
+func PrintLevel() string {
+	return env.printLevel
 }
 
 func Init(profilePath, profileName string) error {
@@ -66,7 +66,7 @@ func Init(profilePath, profileName string) error {
 	env.profileName = profileName
 	env.fileName = fileName
 	env.debug = env.jsonConfig.GetBool("debug", true)
-	env.logLevel = env.jsonConfig.GetString("log_level", "debug")
+	env.printLevel = env.jsonConfig.GetString("print_level", "debug")
 	return nil
 }
 

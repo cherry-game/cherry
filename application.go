@@ -170,7 +170,7 @@ func (a *Application) Startup(components ...cfacade.IComponent) {
 	clog.Infof("[profile		= %s]", cprofile.Name())
 	clog.Infof("[profilePath 	= %s]", cprofile.Dir())
 	clog.Infof("[profileFile 	= %s]", cprofile.FileName())
-	clog.Infof("[cherryLogLevel	= %s]", cprofile.LogLevel())
+	clog.Infof("[printLevel		= %s]", cprofile.PrintLevel())
 	clog.Infof("[isDebug		= %v]", cprofile.Debug())
 	clog.Infof("[logLevel		= %s]", clog.DefaultLogger.Level)
 	clog.Infof("[stackLevel		= %s]", clog.DefaultLogger.StackLevel)

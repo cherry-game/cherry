@@ -69,7 +69,7 @@ func (c *Group) Multicast(route string, v interface{}, filter SessionFilter) err
 		return cerr.SessionClosedGroup
 	}
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("multicast. [route = %s, data = %+v]", route, v)
 	}
 
@@ -92,7 +92,7 @@ func (c *Group) Broadcast(route string, v interface{}) error {
 		return cerr.SessionClosedGroup
 	}
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("broadcast. [route = %s, data = %+v]", route, v)
 	}
 
@@ -118,7 +118,7 @@ func (c *Group) Add(session *Session) error {
 		return cerr.SessionClosedGroup
 	}
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		session.Debugf("add session to [group = %s, SID = %v, UID = %d]", c.name, session.SID(), session.UID())
 	}
 
@@ -141,7 +141,7 @@ func (c *Group) Leave(s *Session) error {
 		return cerr.SessionClosedGroup
 	}
 
-	if clog.LogLevel(zapcore.DebugLevel) {
+	if clog.PrintLevel(zapcore.DebugLevel) {
 		s.Debugf("remove session from [group = %s, UID = %d]", c.name, s.UID())
 	}
 
