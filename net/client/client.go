@@ -52,11 +52,12 @@ func New(opts ...Option) *Client {
 			requestTimeout: 3 * time.Second,
 			isErrorBreak:   true,
 		},
-		responseMaps: sync.Map{},
-		pushMsgMaps:  sync.Map{},
-		nextID:       0,
-		closeChan:    make(chan struct{}),
-		actionChan:   make(chan ActionFn, 128),
+		responseMaps:  sync.Map{},
+		pushMsgMaps:   sync.Map{},
+		nextID:        0,
+		closeChan:     make(chan struct{}),
+		actionChan:    make(chan ActionFn, 128),
+		handshakeData: &HandshakeData{},
 	}
 
 	for _, opt := range opts {
