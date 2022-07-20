@@ -25,14 +25,15 @@ type (
 	// Client struct
 	Client struct {
 		options
-		TagName      string           // 客户标识
-		conn         cfacade.INetConn // 连接对象
-		connected    bool             // 是否连接
-		responseMaps sync.Map         // 响应消息队列 key:ID, value:Message
-		pushMsgMaps  sync.Map         // push消息回调列表 key:route, value: OnMessageFn
-		nextID       uint32           // 消息自增id
-		closeChan    chan struct{}    // 关闭chan
-		actionChan   chan ActionFn    // 动作执行队列
+		TagName       string           // 客户标识
+		conn          cfacade.INetConn // 连接对象
+		connected     bool             // 是否连接
+		responseMaps  sync.Map         // 响应消息队列 key:ID, value:Message
+		pushMsgMaps   sync.Map         // push消息回调列表 key:route, value: OnMessageFn
+		nextID        uint32           // 消息自增id
+		closeChan     chan struct{}    // 关闭chan
+		actionChan    chan ActionFn    // 动作执行队列
+		handshakeData *HandshakeData   // handshake data
 	}
 
 	ActionFn    func() error
@@ -203,6 +204,10 @@ func (p *Client) IsConnected() bool {
 	return p.connected
 }
 
+func (p *Client) HandshakeData() *HandshakeData {
+	return p.handshakeData
+}
+
 func (p *Client) handleHandshake() error {
 	// send handshake message
 	if err := p.SendRaw(cpacket.Handshake, []byte(p.handshake)); err != nil {
@@ -219,7 +224,6 @@ func (p *Client) handleHandshake() error {
 		return cerr.Errorf("[%s] got handshake packet error.", p.TagName)
 	}
 
-	handshakeData := &HandshakeData{}
 	if ccompress.IsCompressed(handshakePacket.Data()) {
 		data, err := ccompress.InflateData(handshakePacket.Data())
 		if err != nil {
@@ -228,19 +232,17 @@ func (p *Client) handleHandshake() error {
 		handshakePacket.SetData(data)
 	}
 
-	err = jsoniter.Unmarshal(handshakePacket.Data(), handshakeData)
+	err = jsoniter.Unmarshal(handshakePacket.Data(), p.handshakeData)
 	if err != nil {
 		return err
 	}
 
-	clog.Debugf("[%s] [Handshake] response data: %+v", p.TagName, handshakeData)
-
-	if handshakeData.Sys.Dict != nil {
-		cmsg.SetDictionary(handshakeData.Sys.Dict)
+	if p.handshakeData.Sys.Dict != nil {
+		cmsg.SetDictionary(p.handshakeData.Sys.Dict)
 	}
 
-	if handshakeData.Sys.Heartbeat > 1 {
-		p.heartBeat = handshakeData.Sys.Heartbeat
+	if p.handshakeData.Sys.Heartbeat > 1 {
+		p.heartBeat = p.handshakeData.Sys.Heartbeat
 	}
 
 	err = p.SendRaw(cpacket.HandshakeAck, []byte{})
