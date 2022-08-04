@@ -1,6 +1,9 @@
 package cherryProfile
 
 import (
+	"encoding/json"
+	cherryError "github.com/cherry-game/cherry/error"
+	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -24,22 +27,22 @@ func (p *Config) GetConfig(path ...interface{}) cfacade.JsonConfig {
 	}
 }
 
-func (p *Config) GetString(path interface{}, val ...string) string {
+func (p *Config) GetString(path interface{}, defaultVal ...string) string {
 	result := p.Get(path)
 	if result.LastError() != nil {
-		if len(val) > 0 {
-			return val[0]
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
 		}
 		return ""
 	}
 	return result.ToString()
 }
 
-func (p *Config) GetBool(path interface{}, val ...bool) bool {
+func (p *Config) GetBool(path interface{}, defaultVal ...bool) bool {
 	result := p.Get(path)
 	if result.LastError() != nil {
-		if len(val) > 0 {
-			return val[0]
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
 		}
 
 		return false
@@ -48,11 +51,11 @@ func (p *Config) GetBool(path interface{}, val ...bool) bool {
 	return result.ToBool()
 }
 
-func (p *Config) GetInt(path interface{}, val ...int) int {
+func (p *Config) GetInt(path interface{}, defaultVal ...int) int {
 	result := p.Get(path)
 	if result.LastError() != nil {
-		if len(val) > 0 {
-			return val[0]
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
 		}
 		return 0
 	}
@@ -60,11 +63,11 @@ func (p *Config) GetInt(path interface{}, val ...int) int {
 	return result.ToInt()
 }
 
-func (p *Config) GetInt32(path interface{}, val ...int32) int32 {
+func (p *Config) GetInt32(path interface{}, defaultVal ...int32) int32 {
 	result := p.Get(path)
 	if result.LastError() != nil {
-		if len(val) > 0 {
-			return val[0]
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
 		}
 		return 0
 	}
@@ -72,14 +75,37 @@ func (p *Config) GetInt32(path interface{}, val ...int32) int32 {
 	return result.ToInt32()
 }
 
-func (p *Config) GetInt64(path interface{}, val ...int64) int64 {
+func (p *Config) GetInt64(path interface{}, defaultVal ...int64) int64 {
 	result := p.Get(path)
 	if result.LastError() != nil {
-		if len(val) > 0 {
-			return val[0]
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
 		}
 		return 0
 	}
 
 	return result.ToInt64()
+}
+
+func (p *Config) GetJsonObject(path interface{}, ptrVal interface{}) error {
+	str := p.GetString(path, "")
+	if str == "" {
+		return cherryError.Error("get path value is nil.")
+	}
+
+	if cutils.IsPtr(ptrVal) == false {
+		return cherryError.Error("ptrValue type error.")
+	}
+
+	bytes := []byte(str)
+	if json.Valid(bytes) == false {
+		return cherryError.Error("value convert to bytes is error.")
+	}
+
+	err := json.Unmarshal(bytes, ptrVal)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

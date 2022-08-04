@@ -43,11 +43,12 @@ type (
 	JsonConfig interface {
 		jsoniter.Any
 		GetConfig(path ...interface{}) JsonConfig
-		GetString(path interface{}, val ...string) string
-		GetBool(path interface{}, val ...bool) bool
-		GetInt(path interface{}, val ...int) int
-		GetInt32(path interface{}, val ...int32) int32
-		GetInt64(path interface{}, val ...int64) int64
+		GetString(path interface{}, defaultVal ...string) string
+		GetBool(path interface{}, defaultVal ...bool) bool
+		GetInt(path interface{}, defaultVal ...int) int
+		GetInt32(path interface{}, defaultVal ...int32) int32
+		GetInt64(path interface{}, defaultVal ...int64) int64
+		GetJsonObject(path interface{}, ptrVal interface{}) error
 	}
 )
 
