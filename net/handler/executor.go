@@ -1,8 +1,13 @@
 package cherryHandler
 
-type IExecutor interface {
-	Index() int         // execute goroutine index
-	SetIndex(index int) // set goroutine index
-	Invoke()            // invoke method
-	String() string     // string
+type Executor struct {
+	groupIndex int
+}
+
+func (p *Executor) SetIndex(index int) {
+	p.groupIndex = index
+}
+
+func (p *Executor) Index() int {
+	return p.groupIndex
 }

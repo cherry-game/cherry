@@ -8,18 +8,14 @@ import (
 
 type (
 	ExecutorEvent struct {
-		groupIndex int
-		Event      cfacade.IEvent
-		EventSlice []cfacade.EventFunc
+		Executor
+		event      cfacade.IEvent
+		eventSlice []cfacade.EventFn
 	}
 )
 
-func (p *ExecutorEvent) Index() int {
-	return p.groupIndex
-}
-
-func (p *ExecutorEvent) SetIndex(index int) {
-	p.groupIndex = index
+func (p *ExecutorEvent) Event() cfacade.IEvent {
+	return p.event
 }
 
 func (p *ExecutorEvent) Invoke() {
@@ -30,11 +26,11 @@ func (p *ExecutorEvent) Invoke() {
 		}
 	}()
 
-	for _, fn := range p.EventSlice {
-		fn(p.Event)
+	for _, fn := range p.eventSlice {
+		fn(p.event)
 	}
 }
 
-func (p *ExecutorEvent) String() string {
-	return p.Event.Name()
+func (p *ExecutorEvent) QueueHash(queueNum int) int {
+	return int(p.event.UniqueId() % int64(queueNum))
 }

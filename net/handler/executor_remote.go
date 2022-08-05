@@ -6,96 +6,107 @@ import (
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	cmessage "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
+	"math/rand"
 	"reflect"
 	"runtime/debug"
 )
 
 type (
 	ExecutorRemote struct {
+		Executor
 		cfacade.IApplication
-		groupIndex int
-		handlerFn  *cfacade.HandlerFn
-		route      string
-		data       []byte
-		natsMsg    *nats.Msg
+		handlerFn *cfacade.MethodInfo
+		rt        *cmessage.Route
+		data      []byte
+		natsMsg   *nats.Msg
 	}
 )
 
-func NewExecutorRemote(route string, data []byte, natsMsg *nats.Msg) ExecutorRemote {
-	return ExecutorRemote{
-		route:   route,
-		data:    data,
-		natsMsg: natsMsg,
+func (p *ExecutorRemote) Route() *cmessage.Route {
+	return p.rt
+}
+
+func (p *ExecutorRemote) Data() []byte {
+	return p.data
+}
+
+func (p *ExecutorRemote) invoke0() []reflect.Value {
+	var params []reflect.Value
+	ret := p.handlerFn.Value.Call(params)
+	if clog.PrintLevel(zapcore.DebugLevel) {
+		clog.Debugf("[remote0] [route = %s, req = null, rsp = %+v",
+			p.rt.String(),
+			printRet(ret),
+		)
 	}
+	return ret
 }
 
-func (p *ExecutorRemote) Index() int {
-	return p.groupIndex
-}
+func (p *ExecutorRemote) invoke1() []reflect.Value {
+	val, err := p.UnmarshalData()
+	if err != nil {
+		clog.Warnf("[remote1] unmarshal data error. [route = %s, error = %s]",
+			p.rt.String(),
+			err,
+		)
+		return nil
+	}
 
-func (p *ExecutorRemote) SetIndex(index int) {
-	p.groupIndex = index
+	var params []reflect.Value
+	params = make([]reflect.Value, 1)
+	params[0] = reflect.ValueOf(val)
+
+	ret := p.handlerFn.Value.Call(params)
+	if clog.PrintLevel(zapcore.DebugLevel) {
+		clog.Debugf("[remote1] call result. [route = %s, req = %v, rsp = %+v]",
+			p.rt.String(),
+			params[0],
+			printRet(ret),
+		)
+	}
+
+	return ret
 }
 
 func (p *ExecutorRemote) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
 			clog.Warnf("[remote] recover in Remote. %s", string(debug.Stack()))
-			clog.Warnf("[route = %s,data = %v]", p.route, p.data)
+			clog.Warnf("[route = %s,data = %v]", p.rt.String(), p.data)
 		}
 	}()
 
 	argsLen := len(p.handlerFn.InArgs)
 	if argsLen < 0 || argsLen > 1 {
-		clog.Warnf("[remote] method in args error. [route = %s]", p.route)
+		clog.Warnf("[remote] method in args error. [route = %s]", p.rt.String())
 		clog.Warnf("func() or func(request)")
+
+		p.natsResponse(&cproto.Response{
+			Code: ccode.RPCRemoteExecuteError,
+		})
 		return
 	}
 
-	var params []reflect.Value
 	var ret []reflect.Value
 
-	switch argsLen {
-	case 0:
-		{
-			ret = p.handlerFn.Value.Call(params)
-			if clog.PrintLevel(zapcore.DebugLevel) {
-				clog.Debugf("[remote] [route = %s, req = null, rsp = %+v",
-					p.route,
-					printRet(ret),
-				)
-			}
-			break
-		}
-	case 1:
-		{
-			val, err := p.unmarshalData()
-			if err != nil {
-				clog.Warnf("[remote] unmarshal data error. [route = %s, error = %s]",
-					p.route,
-					err,
-				)
-				return
-			}
-			params = make([]reflect.Value, 1)
-			params[0] = reflect.ValueOf(val)
-
-			ret = p.handlerFn.Value.Call(params)
-			if clog.PrintLevel(zapcore.DebugLevel) {
-				clog.Debugf("[remote] call result. [route = %s, req = %v, rsp = %+v]",
-					p.route,
-					params[0],
-					printRet(ret),
-				)
-			}
-			break
-		}
+	if argsLen == 0 {
+		ret = p.invoke0()
+	} else if argsLen == 1 {
+		ret = p.invoke1()
 	}
 
-	if p.natsMsg.Reply == "" {
+	p.response(ret)
+}
+
+func (p *ExecutorRemote) response(ret []reflect.Value) {
+	if ret == nil {
+		p.natsResponse(&cproto.Response{
+			Code: ccode.RPCRemoteExecuteError,
+		})
 		return
 	}
 
@@ -109,13 +120,6 @@ func (p *ExecutorRemote) Invoke() {
 				rsp.Code = code
 			}
 		}
-
-		rspData, _ := p.Marshal(rsp)
-		err := p.natsMsg.Respond(rspData)
-		if err != nil {
-			clog.Warn(err)
-		}
-
 	} else if len(ret) == 2 {
 		if val := ret[1].Interface(); val != nil {
 			if code, ok := val.(int32); ok {
@@ -132,16 +136,25 @@ func (p *ExecutorRemote) Invoke() {
 				rsp.Data = data
 			}
 		}
+	}
 
-		rspData, _ := p.Marshal(rsp)
-		err := p.natsMsg.Respond(rspData)
-		if err != nil {
-			clog.Warn(err)
-		}
+	p.natsResponse(rsp)
+}
+
+func (p *ExecutorRemote) natsResponse(rsp *cproto.Response) {
+	// ignore reply
+	if p.natsMsg.Reply == "" {
+		return
+	}
+
+	rspData, _ := p.Marshal(rsp)
+	err := p.natsMsg.Respond(rspData)
+	if err != nil {
+		clog.Warn(err)
 	}
 }
 
-func (p *ExecutorRemote) unmarshalData() (interface{}, error) {
+func (p *ExecutorRemote) UnmarshalData() (interface{}, error) {
 	if len(p.handlerFn.InArgs) != 1 {
 		return nil, cerr.Error("[remote] handler params len is error.")
 	}
@@ -158,10 +171,6 @@ func (p *ExecutorRemote) unmarshalData() (interface{}, error) {
 	return val, err
 }
 
-func (p *ExecutorRemote) String() string {
-	return p.route
-}
-
 func printRet(t []reflect.Value) interface{} {
 	switch len(t) {
 	case 1:
@@ -174,5 +183,9 @@ func printRet(t []reflect.Value) interface{} {
 		}
 	}
 
-	return fmt.Sprint("")
+	return ""
+}
+
+func (p *ExecutorRemote) QueueHash(queueNum int) int {
+	return rand.Intn(queueNum)
 }

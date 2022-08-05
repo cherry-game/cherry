@@ -2,6 +2,7 @@ package cherryHandler
 
 import (
 	"context"
+	ccrypto "github.com/cherry-game/cherry/extend/crypto"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cmsg "github.com/cherry-game/cherry/net/message"
@@ -14,23 +15,27 @@ import (
 
 type (
 	ExecutorLocal struct {
+		Executor
 		cfacade.IApplication
-		groupIndex    int
 		session       *csession.Session
 		msg           *cmsg.Message
-		handlerFn     *cfacade.HandlerFn
+		handlerFn     *cfacade.MethodInfo
 		ctx           context.Context
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 	}
 )
 
-func (p *ExecutorLocal) Index() int {
-	return p.groupIndex
+func (p *ExecutorLocal) Session() *csession.Session {
+	return p.session
 }
 
-func (p *ExecutorLocal) SetIndex(index int) {
-	p.groupIndex = index
+func (p *ExecutorLocal) Message() *cmsg.Message {
+	return p.msg
+}
+
+func (p *ExecutorLocal) Context() context.Context {
+	return p.ctx
 }
 
 func (p *ExecutorLocal) Invoke() {
@@ -148,6 +153,10 @@ func (p *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
 	return val, err
 }
 
-func (p *ExecutorLocal) String() string {
-	return p.msg.Route
+func (p *ExecutorLocal) QueueHash(queueNum int) int {
+	if p.session.UID() > 0 {
+		return int(p.session.UID() % int64(queueNum))
+	}
+
+	return ccrypto.CRC32(p.session.SID()) % queueNum
 }

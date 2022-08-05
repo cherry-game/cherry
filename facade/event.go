@@ -6,5 +6,11 @@ type IEvent interface {
 	UniqueId() int64 // 事件唯一id
 }
 
-// EventFunc 事件注册函数
-type EventFunc func(e IEvent)
+// EventFn 事件注册函数
+type EventFn func(e IEvent)
+
+// EventInfo 事件注册信息
+type EventInfo struct {
+	QueueHash QueueHashFn
+	List      []EventFn
+}

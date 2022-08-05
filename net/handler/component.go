@@ -7,8 +7,8 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	ccontext "github.com/cherry-game/cherry/net/context"
-	"github.com/cherry-game/cherry/net/message"
-	"github.com/cherry-game/cherry/net/session"
+	cmessage "github.com/cherry-game/cherry/net/message"
+	csession "github.com/cherry-game/cherry/net/session"
 	"github.com/nats-io/nats.go"
 	"strings"
 )
@@ -29,7 +29,7 @@ type (
 
 	Option func(options *options)
 
-	FilterFn func(ctx context.Context, session *cherrySession.Session, message *cherryMessage.Message) bool
+	FilterFn func(ctx context.Context, session *csession.Session, message *cmessage.Message) bool
 )
 
 func NewComponent(opts ...Option) *Component {
@@ -109,19 +109,19 @@ func (c *Component) PostEvent(event cfacade.IEvent) {
 
 	for _, group := range c.groups {
 		for _, handler := range group.handlers {
-			if eventSlice, found := handler.Event(event.Name()); found {
+			if eventInfo, found := handler.Event(event.Name()); found {
 				executor := &ExecutorEvent{
-					Event:      event,
-					EventSlice: eventSlice,
+					event:      event,
+					eventSlice: eventInfo.List,
 				}
-				group.InQueue(executor)
+				group.InQueue(eventInfo.QueueHash, executor)
 			}
 		}
 	}
 }
 
-func (c *Component) GetHandler(route string) (*cherryMessage.Route, *HandlerGroup, cfacade.IHandler, bool) {
-	r, err := cherryMessage.DecodeRoute(route)
+func (c *Component) GetHandler(route string) (*cmessage.Route, *HandlerGroup, cfacade.IHandler, bool) {
+	r, err := cmessage.DecodeRoute(route)
 	if err != nil {
 		clog.Warnf("[Route = %s] decode fail.", route)
 		return nil, nil, nil, false
@@ -151,7 +151,7 @@ func (c *Component) getGroup(handlerName string) (*HandlerGroup, cfacade.IHandle
 	return nil, nil
 }
 
-func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMessage.Message) {
+func (c *Component) ProcessLocal(session *csession.Session, msg *cmessage.Message) {
 	if !c.App().Running() {
 		return
 	}
@@ -202,7 +202,7 @@ func (c *Component) ProcessLocal(session *cherrySession.Session, msg *cherryMess
 		beforeFilters: c.beforeFilters,
 		afterFilters:  c.afterFilters,
 	}
-	group.InQueue(executor)
+	group.InQueue(fn.QueueHash, executor)
 }
 
 func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) int32 {
@@ -227,14 +227,14 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 	}
 
 	executor := &ExecutorRemote{
-		IApplication: c.IApplication,
+		IApplication: c.App(),
 		handlerFn:    fn,
-		route:        route,
+		rt:           rt,
 		data:         data,
 		natsMsg:      natsMsg,
 	}
 
-	group.InQueue(executor)
+	group.InQueue(fn.QueueHash, executor)
 	return ccode.OK
 }
 

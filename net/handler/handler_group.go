@@ -1,11 +1,9 @@
 package cherryHandler
 
 import (
-	ccrypto "github.com/cherry-game/cherry/extend/crypto"
 	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	"math/rand"
 	"runtime/debug"
 )
 
@@ -15,15 +13,13 @@ type (
 		queueNum  int
 		queueCap  int
 		queueMaps map[int]*Queue
-		queueHash QueueHashFn
+		queueHash cfacade.QueueHashFn
 	}
 
 	Queue struct {
 		index    int
-		dataChan chan IExecutor
+		dataChan chan cfacade.IExecutor
 	}
-
-	QueueHashFn func(executor IExecutor, queueNum int) int
 )
 
 func NewGroupWithHandler(handlers ...cfacade.IHandler) *HandlerGroup {
@@ -46,14 +42,13 @@ func NewGroup(queueNum, queueCap int) *HandlerGroup {
 		queueNum:  queueNum,
 		queueCap:  queueCap,
 		queueMaps: make(map[int]*Queue),
-		queueHash: DefaultQueueHash, // default queue hash
 	}
 
 	// init queue chan
 	for i := 0; i < queueNum; i++ {
 		q := &Queue{
 			index:    i,
-			dataChan: make(chan IExecutor, queueCap),
+			dataChan: make(chan cfacade.IExecutor, queueCap),
 		}
 		g.queueMaps[i] = q
 	}
@@ -71,18 +66,33 @@ func (h *HandlerGroup) AddHandlers(handlers ...cfacade.IHandler) {
 	}
 }
 
-func (h *HandlerGroup) SetQueueHash(fn QueueHashFn) {
+func (h *HandlerGroup) SetQueueHash(fn cfacade.QueueHashFn) {
 	h.queueHash = fn
 }
 
-func (h *HandlerGroup) InQueue(executor IExecutor) {
-	index := h.queueHash(executor, h.queueNum)
-	executor.SetIndex(index)
+func (h *HandlerGroup) InQueue(hashFn cfacade.QueueHashFn, executor cfacade.IExecutor) {
+	index := 0
+
+	if h.queueNum > 1 {
+		if hashFn != nil {
+			index = hashFn(executor, h.queueNum)
+		} else if h.queueHash != nil {
+			index = h.queueHash(executor, h.queueNum)
+		} else {
+			index = executor.QueueHash(h.queueNum)
+		}
+	}
 
 	if index > h.queueNum {
-		clog.Errorf("group index error. [groupIndex = %d, queueNum = %d]", executor.Index(), h.queueNum)
+		clog.Errorf("group index error. [groupIndex = %d, queueNum = %d, executor = %v]",
+			index,
+			h.queueNum,
+			executor,
+		)
 		return
 	}
+
+	executor.SetIndex(index)
 
 	if q, found := h.queueMaps[index]; found {
 		q.dataChan <- executor
@@ -120,7 +130,7 @@ func (q *Queue) run() {
 	}
 }
 
-func (q *Queue) executorInvoke(executor IExecutor) {
+func (q *Queue) executorInvoke(executor cfacade.IExecutor) {
 	defer func() {
 		if rev := recover(); rev != nil {
 			clog.Warnf("recover in handle group. %s", string(debug.Stack()))
@@ -143,25 +153,4 @@ func (h *HandlerGroup) printInfo(handler cfacade.IHandler) {
 	for key := range handler.RemoteHandlers() {
 		clog.Infof("[handler = %s] remoteHandler = %s", handler.Name(), key)
 	}
-}
-
-func DefaultQueueHash(executor IExecutor, queueNum int) int {
-	if queueNum <= 1 {
-		return 0
-	}
-
-	var i = 0
-	switch e := executor.(type) {
-	case *ExecutorLocal:
-		if e.session.UID() > 0 {
-			i = int(e.session.UID() % int64(queueNum))
-		} else {
-			i = ccrypto.CRC32(e.session.SID()) % queueNum
-		}
-	case *ExecutorEvent:
-		i = int(e.Event.UniqueId() % int64(queueNum))
-	case *ExecutorRemote:
-		i = rand.Intn(queueNum)
-	}
-	return i
 }

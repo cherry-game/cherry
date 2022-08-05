@@ -34,8 +34,8 @@ func GetFuncName(fn interface{}) string {
 	return cstring.CutLastString(fullName, ".", "-")
 }
 
-//GetInvokeFunc reflect function convert to HandlerFn
-func GetInvokeFunc(name string, fn interface{}) (*cfacade.HandlerFn, error) {
+//GetInvokeFunc reflect function convert to MethodInfo
+func GetInvokeFunc(name string, fn interface{}) (*cfacade.MethodInfo, error) {
 	if name == "" {
 		return nil, cerr.Error("func name is nil")
 	}
@@ -63,7 +63,7 @@ func GetInvokeFunc(name string, fn interface{}) (*cfacade.HandlerFn, error) {
 		outArgs = append(outArgs, t)
 	}
 
-	invoke := &cfacade.HandlerFn{
+	invoke := &cfacade.MethodInfo{
 		Type:    typ,
 		Value:   val,
 		InArgs:  inArgs,
