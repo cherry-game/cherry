@@ -30,14 +30,6 @@ func NewRoute(nodeType, handleName, method string) *Route {
 	return &Route{nodeType, handleName, method}
 }
 
-func NewRouteByName(routeName string) *Route {
-	r, err := DecodeRoute(routeName)
-	if err != nil {
-		return nil
-	}
-	return r
-}
-
 // String transforms the route into a string
 func (r *Route) String() string {
 	return fmt.Sprintf("%s.%s.%s", r.nodeType, r.handleName, r.method)
