@@ -5,11 +5,6 @@ import (
 	"fmt"
 )
 
-type withMessage struct {
-	cause error
-	msg   string
-}
-
 func Error(text string) error {
 	return errors.New(text)
 }
