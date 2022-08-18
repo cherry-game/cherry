@@ -10,6 +10,7 @@ message Member {
   string              nodeType = 2; // 节点类型
   string              address  = 3; // rpc连接地址
   map<string, string> settings = 4; // 节点配置参数
+  map<string, int32>  routes   = 5; // 路由列表  key:路由名称,value:状态 0.启用 1.停用
 }
 
 // 成员列表结构
@@ -47,7 +48,7 @@ message Push {
 
 // 踢人
 message Kick {
-  int64  uid        = 1; // uid
-  bytes  data       = 2; // 自定义数据
-  bool   close      = 4; // 是否主动关闭连接
+  int64 uid   = 1; // uid
+  bytes data  = 2; // 自定义数据
+  bool  close = 4; // 是否主动关闭连接
 }

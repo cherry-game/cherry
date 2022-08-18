@@ -5,12 +5,26 @@ import (
 	"fmt"
 )
 
+type withMessage struct {
+	cause error
+	msg   string
+}
+
 func Error(text string) error {
 	return errors.New(text)
 }
 
 func Errorf(format string, a ...interface{}) error {
 	return errors.New(fmt.Sprintf(format, a...))
+}
+
+func Wrap(err error, text string) error {
+	return errors.New(fmt.Sprintf("err:%v, text:%s", err, text))
+}
+
+func Wrapf(err error, format string, a ...interface{}) error {
+	text := fmt.Sprintf(format, a...)
+	return Wrap(err, text)
 }
 
 // session

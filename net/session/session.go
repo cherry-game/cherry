@@ -7,8 +7,8 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	ccontext "github.com/cherry-game/cherry/net/context"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"github.com/golang/protobuf/proto"
 	"go.uber.org/zap/zapcore"
+	"google.golang.org/protobuf/proto"
 	"sync/atomic"
 )
 

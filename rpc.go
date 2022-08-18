@@ -8,7 +8,7 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	crouter "github.com/cherry-game/cherry/net/router"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"reflect"
 	"time"
 )
