@@ -8,7 +8,7 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	csession "github.com/cherry-game/cherry/net/session"
-	"google.golang.org/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 type AgentBackend struct {

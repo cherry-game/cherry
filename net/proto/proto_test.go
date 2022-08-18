@@ -2,7 +2,7 @@ package cherryProto
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"testing"
 )
 

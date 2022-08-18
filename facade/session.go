@@ -1,7 +1,7 @@
 package cherryFacade
 
 import (
-	"google.golang.org/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 type (
