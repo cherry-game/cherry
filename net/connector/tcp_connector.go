@@ -13,7 +13,7 @@ import (
 type (
 	TCPConnector struct {
 		cfacade.Component
-		connector
+		Connector
 		running bool
 	}
 
@@ -24,28 +24,28 @@ type (
 
 func NewTCP(address string) *TCPConnector {
 	if address == "" {
-		clog.Warn("create tcp socket fail. address is null.")
+		clog.Warn("create tcp socket fail. Address is null.")
 		return nil
 	}
 
 	return &TCPConnector{
-		connector: newConnector(address, "", ""),
+		Connector: NewConnector(address, "", ""),
 	}
 }
 
 func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
 	if address == "" {
-		clog.Warn("create tcp socket fail. address is null.")
+		clog.Warn("create tcp socket fail. Address is null.")
 		return nil
 	}
 
 	if certFile == "" || keyFile == "" {
-		clog.Warn("create tcp socket fail. certFile or keyFile is null.")
+		clog.Warn("create tcp socket fail. CertFile or KeyFile is null.")
 		return nil
 	}
 
 	return &TCPConnector{
-		connector: newConnector(address, certFile, keyFile),
+		Connector: NewConnector(address, certFile, keyFile),
 	}
 }
 
@@ -54,43 +54,44 @@ func (t *TCPConnector) Name() string {
 }
 
 func (t *TCPConnector) OnAfterInit() {
-	t.executeListener()
 	go t.OnStart()
 }
 
 func (t *TCPConnector) OnStart() {
-	if len(t.onConnectListener) < 1 {
-		panic("onConnectListener() not set.")
+	if len(t.connectListeners) < 1 {
+		panic("ConnectListeners() not set.")
 	}
 
 	var err error
-	t.listener, err = GetNetListener(t.address, t.certFile, t.keyFile)
+	t.Listener, err = GetNetListener(t.Address, t.CertFile, t.KeyFile)
 	if err != nil {
 		clog.Fatalf("failed to listen: %s", err.Error())
 	}
 
-	clog.Infof("tcp connector listening at address %s", t.address)
+	clog.Infof("tcp Connector listening at Address %s", t.Address)
 
-	if t.certFile != "" || t.keyFile != "" {
-		clog.Infof("certFile = %s, keyFile = %s", t.certFile, t.keyFile)
+	if t.CertFile != "" || t.KeyFile != "" {
+		clog.Infof("CertFile = %s, KeyFile = %s", t.CertFile, t.KeyFile)
 	}
 
 	t.running = true
 
+	t.ExecuteListener()
+
 	defer func() {
-		if err := t.listener.Close(); err != nil {
+		if err := t.Listener.Close(); err != nil {
 			clog.Errorf("failed to stop: %s", err.Error())
 		}
 	}()
 
 	for t.running {
-		conn, err := t.listener.Accept()
+		conn, err := t.Listener.Accept()
 		if err != nil {
 			clog.Errorf("failed to accept TCP connection: %s", err.Error())
 			continue
 		}
 
-		t.inChan(&TcpConn{Conn: conn})
+		t.InChan(&TcpConn{Conn: conn})
 	}
 }
 

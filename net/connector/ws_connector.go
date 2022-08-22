@@ -14,7 +14,7 @@ import (
 
 type WSConnector struct {
 	cfacade.Component
-	connector
+	Connector
 	up *websocket.Upgrader
 }
 
@@ -25,7 +25,7 @@ func NewWS(address string) *WSConnector {
 	}
 
 	ws := &WSConnector{
-		connector: newConnector(address, "", ""),
+		Connector: NewConnector(address, "", ""),
 	}
 	return ws
 }
@@ -42,7 +42,7 @@ func NewWSLTS(address, certFile, keyFile string) *WSConnector {
 	}
 
 	w := &WSConnector{
-		connector: newConnector(address, certFile, keyFile),
+		Connector: NewConnector(address, certFile, keyFile),
 	}
 
 	return w
@@ -53,26 +53,25 @@ func (w *WSConnector) Name() string {
 }
 
 func (w *WSConnector) OnAfterInit() {
-	w.executeListener()
 	go w.OnStart()
 }
 
 func (w *WSConnector) OnStart() {
-	if len(w.onConnectListener) < 1 {
+	if len(w.ConnectListeners()) < 1 {
 		panic("onConnectListener() not set.")
 	}
 
 	var err error
-	w.listener, err = GetNetListener(w.address, w.certFile, w.keyFile)
+	w.Listener, err = GetNetListener(w.Address, w.CertFile, w.KeyFile)
 	if err != nil {
 		clog.Fatalf("failed to listen: %s", err.Error())
 	}
 
-	if w.certFile == "" || w.keyFile == "" {
-		clog.Infof("websocket connector listening at address ws://%s", w.address)
+	if w.CertFile == "" || w.KeyFile == "" {
+		clog.Infof("websocket Connector listening at address ws://%s", w.Address)
 	} else {
-		clog.Infof("websocket connector listening at address wss://%s", w.address)
-		clog.Infof("certFile = %s, keyFile = %s", w.certFile, w.keyFile)
+		clog.Infof("websocket Connector listening at address wss://%s", w.Address)
+		clog.Infof("certFile = %s, keyFile = %s", w.CertFile, w.KeyFile)
 	}
 
 	if w.up == nil {
@@ -83,7 +82,9 @@ func (w *WSConnector) OnStart() {
 		}
 	}
 
-	http.Serve(w.listener, w)
+	w.ExecuteListener()
+
+	http.Serve(w.Listener, w)
 }
 
 func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
@@ -91,7 +92,7 @@ func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
 }
 
 func (w *WSConnector) OnStop() {
-	err := w.listener.Close()
+	err := w.Listener.Close()
 	if err != nil {
 		clog.Errorf("failed to stop: %s", err.Error())
 	}
@@ -111,7 +112,7 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.inChan(conn)
+	w.InChan(conn)
 }
 
 // WSConn is an adapter to t.INetConn, which implements all t.INetConn

@@ -2,7 +2,6 @@ package cherryCluster
 
 import (
 	ccode "github.com/cherry-game/cherry/code"
-	cherryConst "github.com/cherry-game/cherry/const"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cagent "github.com/cherry-game/cherry/net/agent"
@@ -33,9 +32,9 @@ func NewNatsRPCServer(app cfacade.IApplication, rpcClient cfacade.RPCClient, buf
 
 func (n *NatsRPCServer) Init() {
 	found := false
-	n.handlerComponent, found = n.Find(cherryConst.HandlerComponent).(*chandler.Component)
+	n.handlerComponent, found = n.Find(chandler.Name).(*chandler.Component)
 	if found == false {
-		clog.Fatalf("%s not found", cherryConst.HandlerComponent)
+		clog.Fatalf("%s not found", chandler.Name)
 	}
 
 	go n.subscribeRemote()

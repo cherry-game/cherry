@@ -1,11 +1,14 @@
 package cherryCluster
 
 import (
-	cconst "github.com/cherry-game/cherry/const"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cnats "github.com/cherry-game/cherry/net/cluster/nats"
+)
+
+const (
+	Name = "cluster_component"
 )
 
 type Component struct {
@@ -19,7 +22,7 @@ func NewComponent() *Component {
 }
 
 func (c *Component) Name() string {
-	return cconst.ClusterComponent
+	return Name
 }
 
 func (c *Component) Init() {

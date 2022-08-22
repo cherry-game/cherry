@@ -8,49 +8,53 @@ import (
 	"net/http"
 )
 
-type connector struct {
-	address           string
-	listener          net.Listener
-	certFile          string
-	keyFile           string
-	onConnectListener []cfacade.OnConnectListener
-	connChan          chan cfacade.INetConn
+type Connector struct {
+	Address          string
+	Listener         net.Listener
+	CertFile         string
+	KeyFile          string
+	connectListeners []cfacade.OnConnectListener
+	connChan         chan cfacade.INetConn
 }
 
-func (w *connector) OnConnectListener(listener ...cfacade.OnConnectListener) {
-	w.onConnectListener = append(w.onConnectListener, listener...)
+func (p *Connector) OnConnectListener(listener ...cfacade.OnConnectListener) {
+	p.connectListeners = append(p.connectListeners, listener...)
 }
 
-func (w *connector) IsSetListener() bool {
-	return len(w.onConnectListener) > 0
+func (p *Connector) ConnectListeners() []cfacade.OnConnectListener {
+	return p.connectListeners
 }
 
-func (w *connector) GetConnChan() chan cfacade.INetConn {
-	return w.connChan
+func (p *Connector) IsSetListener() bool {
+	return len(p.connectListeners) > 0
 }
 
-func (w *connector) inChan(conn cfacade.INetConn) {
-	w.connChan <- conn
+func (p *Connector) GetConnChan() chan cfacade.INetConn {
+	return p.connChan
 }
 
-func (w *connector) executeListener() {
+func (p *Connector) InChan(conn cfacade.INetConn) {
+	p.connChan <- conn
+}
+
+func (p *Connector) ExecuteListener() {
 	go func() {
-		for conn := range w.GetConnChan() {
-			for _, listener := range w.onConnectListener {
+		for conn := range p.GetConnChan() {
+			for _, listener := range p.connectListeners {
 				listener(conn)
 			}
 		}
 	}()
 }
 
-func newConnector(address, certFile, keyFile string) connector {
-	return connector{
-		address:           address,
-		listener:          nil,
-		certFile:          certFile,
-		keyFile:           keyFile,
-		onConnectListener: make([]cfacade.OnConnectListener, 0),
-		connChan:          make(chan cfacade.INetConn),
+func NewConnector(address, certFile, keyFile string) Connector {
+	return Connector{
+		Address:          address,
+		Listener:         nil,
+		CertFile:         certFile,
+		KeyFile:          keyFile,
+		connectListeners: make([]cfacade.OnConnectListener, 0),
+		connChan:         make(chan cfacade.INetConn),
 	}
 }
 

@@ -2,7 +2,6 @@ package cherryHandler
 
 import (
 	"context"
-	cconst "github.com/cherry-game/cherry/const"
 	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -36,7 +35,7 @@ func (h *Handler) OnPreInit() {
 	h.remoteHandlerFuncMap = make(map[string]*cfacade.MethodInfo)
 
 	var found = false
-	h.handlerComponent, found = h.Find(cconst.HandlerComponent).(*Component)
+	h.handlerComponent, found = h.Find(Name).(*Component)
 	if found == false {
 		panic("handler component not found.")
 	}

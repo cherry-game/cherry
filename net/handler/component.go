@@ -13,6 +13,10 @@ import (
 	"strings"
 )
 
+const (
+	Name = "handler_component"
+)
+
 type (
 	//Component handler component
 	Component struct {
@@ -50,7 +54,7 @@ func NewComponent(opts ...Option) *Component {
 }
 
 func (c *Component) Name() string {
-	return cconst.HandlerComponent
+	return Name
 }
 
 func (c *Component) Init() {

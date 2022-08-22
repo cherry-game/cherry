@@ -14,7 +14,7 @@ var (
 func init() {
 	RegisterDiscovery(&DiscoveryDefault{})
 	RegisterDiscovery(&DiscoveryNATS{})
-	RegisterDiscovery(&DiscoveryETCD{})
+	//RegisterDiscovery(&DiscoveryETCD{})
 }
 
 func RegisterDiscovery(discovery cfacade.IDiscovery) {

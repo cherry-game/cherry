@@ -4,16 +4,6 @@ import (
 	"fmt"
 )
 
-// component name
-const (
-	HandlerComponent    = "handler_component"
-	ClusterComponent    = "cluster_component"
-	DataConfigComponent = "data_config_component"
-	ORMComponent        = "db_orm_component"
-	MiniComponentPrefix = "mini_component_"
-	HttpComponentPrefix = "http_component_"
-)
-
 const (
 	ProfileNameFormat = "profile-%s.json"
 	version           = "1.1.29"
