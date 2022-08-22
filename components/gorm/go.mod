@@ -5,7 +5,7 @@ go 1.17
 replace github.com/cherry-game/cherry => ../../
 
 require (
-	github.com/cherry-game/cherry v1.2.0
+	github.com/cherry-game/cherry v1.2.2
 	github.com/go-sql-driver/mysql v1.6.0
 	gorm.io/driver/mysql v1.3.6
 	gorm.io/gorm v1.23.8

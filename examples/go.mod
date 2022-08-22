@@ -10,9 +10,9 @@ replace (
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/cherry-game/cherry v1.2.0
-	github.com/cherry-game/cherry/data-config v1.2.0
-	github.com/cherry-game/cherry/gin v1.2.0
+	github.com/cherry-game/cherry v1.2.2
+	github.com/cherry-game/cherry/data-config v1.2.2
+	github.com/cherry-game/cherry/gin v1.2.2
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/gogo/protobuf v1.3.2

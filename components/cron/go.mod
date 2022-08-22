@@ -5,7 +5,7 @@ go 1.17
 replace github.com/cherry-game/cherry => ../../
 
 require (
-	github.com/cherry-game/cherry v1.2.0
+	github.com/cherry-game/cherry v1.2.2
 	github.com/robfig/cron/v3 v3.0.1
 )
 
