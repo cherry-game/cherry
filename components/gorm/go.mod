@@ -1,4 +1,4 @@
-module github.com/cherry-game/cherry/gorm
+module github.com/cherry-game/cherry/components/gorm
 
 go 1.17
 

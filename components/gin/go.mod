@@ -1,4 +1,4 @@
-module github.com/cherry-game/cherry/gin
+module github.com/cherry-game/cherry/components/gin
 
 go 1.17
 
