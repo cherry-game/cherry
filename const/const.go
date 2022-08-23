@@ -6,7 +6,7 @@ import (
 
 const (
 	ProfileNameFormat = "profile-%s.json"
-	version           = "1.1.29"
+	version           = "1.2.2"
 )
 
 var logo = `
