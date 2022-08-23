@@ -61,11 +61,11 @@
 
 # 扩展组件
 
-### [cron组件](components/cron/README.md)
+### [cron组件](components/cron)
 - 基于`github.com/robfig/cron/v3`进行封装成组件
 - 性能良好
 
-### [data-config组件](components/data-config/README.md)
+### [data-config组件](components/data-config)
 - 策划配表读取管理组件
 - 可基于本地配置文件的方式加载
 - 可基于redis数据的方式加载
@@ -75,11 +75,11 @@
 - 可自定义类型检测
 - 可根据`go-linq`进行数据集合的条件查询
 
-### [etcd组件](components/etcd/README.md)
+### [etcd组件](components/etcd)
 - 基于`etcd`组件进行封装，节点集群和注册发现
 
 
-### [gin组件](components/gin/README.md)
+### [gin组件](components/gin)
 - 集成`gin`组件，实现http server功能
 - 自定义`controller`，增加`PreInit()`、`Init()`、`Stop()`初始周期的管理
 - 增加几个常用的`middleware`组件
@@ -90,7 +90,7 @@
 - 封装了部份必用的参数获取函数
 
 
-### [gorm组件](components/gorm/README.md)
+### [gorm组件](components/gorm)
 - 集成`gorm`组件，实现mysql的数据库访问
 - 支持多个mysql数据库配置和管理
 
