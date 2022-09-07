@@ -89,3 +89,13 @@ func (c CherryTime) DiffInSecondsWithAbs(end CherryTime) int64 {
 func (c CherryTime) DiffInMillisecond(end CherryTime) int64 {
 	return end.ToMillisecond() - c.ToMillisecond()
 }
+
+// DiffInMicrosecond 相关多少微秒
+func (c CherryTime) DiffInMicrosecond(end CherryTime) int64 {
+	return end.ToMicrosecond() - c.ToMicrosecond()
+}
+
+// DiffINanosecond 相关多少纳秒
+func (c CherryTime) DiffINanosecond(end CherryTime) int64 {
+	return end.ToNanosecond() - c.ToNanosecond()
+}
