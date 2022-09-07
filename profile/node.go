@@ -52,8 +52,8 @@ func (n *Node) String() string {
 	)
 }
 
-func LoadNode(nodeId string) (cfacade.INode, error) {
-	nodeConfig := GetConfig("node")
+func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
+	nodeConfig := config.GetConfig("node")
 	if nodeConfig.LastError() != nil {
 		return nil, cerr.Error("`nodes` property not found in profile file.")
 	}
@@ -81,6 +81,10 @@ func LoadNode(nodeId string) (cfacade.INode, error) {
 	}
 
 	return nil, cerr.Errorf("nodeId = %s not found.", nodeId)
+}
+
+func LoadNode(nodeId string) (cfacade.INode, error) {
+	return GetNodeWithConfig(env.jsonConfig, nodeId)
 }
 
 func foundNodeId(nodeId string, nodeIdJson cfacade.JsonConfig) bool {

@@ -67,7 +67,7 @@
         "enable": true,
         "db_id": "center_db_1",
         "db_name": "dev_xgame_center",
-        "uri": "mongodb://user:pass@localhost/?%s",
+        "uri": "mongodb://user:pass@localhost/?%s"
       }
     ]
   }

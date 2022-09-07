@@ -18,8 +18,8 @@ func ToJson(i interface{}) string {
 	return string(bytes)
 }
 
-func ReadMaps(includePath string, maps map[string]interface{}) error {
-	bytes, err := ioutil.ReadFile(includePath)
+func ReadMaps(path string, maps map[string]interface{}) error {
+	bytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return err
 	}

@@ -2,7 +2,6 @@ package cherryProfile
 
 import (
 	"fmt"
-	cconst "github.com/cherry-game/cherry/const"
 	cerr "github.com/cherry-game/cherry/error"
 	cfile "github.com/cherry-game/cherry/extend/file"
 	cjson "github.com/cherry-game/cherry/extend/json"
@@ -20,6 +19,11 @@ var (
 		debug       bool    // debug default is true
 		printLevel  string  // cherry log print level
 	}{}
+)
+
+const (
+	profilePrefix = "profile-"
+	profileSuffix = ".json"
 )
 
 func Dir() string {
@@ -42,46 +46,62 @@ func PrintLevel() string {
 	return env.printLevel
 }
 
-func Init(profilePath, profileName string) error {
+func Init(profilePath, profileName, nodeId string) (cfacade.INode, error) {
 	if profilePath == "" {
-		return cerr.Error("profilePath parameter is null.")
+		profilePath = "./config"
 	}
 
-	if profileName == "" {
-		return cerr.Error("profileName parameter is null.")
+	if nodeId == "" {
+		return nil, cerr.Error("nodeId is nil")
 	}
 
 	judgePath, ok := cfile.JudgePath(profilePath)
 	if !ok {
-		return cerr.Errorf("profilePath = %s not found.", profilePath)
+		return nil, cerr.Errorf("path error. profilePath = %s", profilePath)
 	}
 
-	fileName := fmt.Sprintf(cconst.ProfileNameFormat, profileName)
-	env.jsonConfig = loadFile(judgePath, fileName)
-	if env.jsonConfig.Any == nil || env.jsonConfig.LastError() != nil {
-		return cerr.Errorf("load profile file error. profilePath = %s", profilePath)
+	fileNameList, err := judgeNameList(judgePath, profileName)
+	if err != nil {
+		return nil, err
 	}
 
-	env.profilePath = judgePath
-	env.profileName = profileName
-	env.fileName = fileName
-	env.debug = env.jsonConfig.GetBool("debug", true)
-	env.printLevel = env.jsonConfig.GetString("print_level", "debug")
-	return nil
+	for _, fileName := range fileNameList {
+		cfg, err := loadFile(judgePath, fileName)
+		if err != nil || cfg.Any == nil || cfg.LastError() != nil {
+			continue
+		}
+
+		node, err := GetNodeWithConfig(cfg, nodeId)
+		if err != nil {
+			continue
+		}
+
+		// init env
+		env.profilePath = judgePath
+		env.profileName = profileName
+		env.fileName = fileName
+		env.jsonConfig = cfg
+		env.debug = env.jsonConfig.GetBool("debug", true)
+		env.printLevel = env.jsonConfig.GetString("print_level", "debug")
+
+		return node, nil
+	}
+
+	return nil, cerr.Errorf("profile file not found. nodeId = %s", nodeId)
 }
 
 func GetConfig(path ...interface{}) cfacade.JsonConfig {
 	return env.jsonConfig.GetConfig(path...)
 }
 
-func loadFile(profilePath string, profileFullName string) *Config {
+func loadFile(profilePath string, profileFullName string) (*Config, error) {
 	// merge include json file
 	var maps = make(map[string]interface{})
 
 	// read master json file
-	err := cjson.ReadMaps(path.Join(profilePath, profileFullName), maps)
-	if err != nil {
-		panic(err)
+	fullPath := path.Join(profilePath, profileFullName)
+	if err := cjson.ReadMaps(fullPath, maps); err != nil {
+		return nil, err
 	}
 
 	// read include json file
@@ -90,10 +110,40 @@ func loadFile(profilePath string, profileFullName string) *Config {
 		for _, p := range paths {
 			includePath := path.Join(profilePath, p)
 			if err := cjson.ReadMaps(includePath, maps); err != nil {
-				panic(err)
+				return nil, err
 			}
 		}
 	}
 
-	return Wrap(maps)
+	return Wrap(maps), nil
+}
+
+func judgeNameList(path, name string) ([]string, error) {
+	var list []string
+
+	if name != "" {
+		fileName := mergeProfileName(name)
+		list = append(list, fileName)
+
+	} else {
+		// find path
+		filesPath, err := cfile.ReadDir(path, "profile-", ".json")
+		if err != nil {
+			return nil, err
+		}
+
+		if len(filesPath) < 1 {
+			return nil, cerr.Errorf("[path = %s] profile file not found.", path)
+		}
+
+		for _, fp := range filesPath {
+			list = append(list, fp)
+		}
+	}
+
+	return list, nil
+}
+
+func mergeProfileName(name string) string {
+	return fmt.Sprintf("%s%s%s", profilePrefix, name, profileSuffix)
 }

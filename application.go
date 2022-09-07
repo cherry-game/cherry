@@ -1,7 +1,6 @@
 package cherry
 
 import (
-	"fmt"
 	cconst "github.com/cherry-game/cherry/const"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
@@ -41,11 +40,7 @@ type (
 
 // NewApp create new application instance
 func NewApp(profilePath, profileName, nodeId string) *Application {
-	if err := cprofile.Init(profilePath, profileName); err != nil {
-		panic(fmt.Sprintf("init profile fail. error = %s", err))
-	}
-
-	node, err := cprofile.LoadNode(nodeId)
+	node, err := cprofile.Init(profilePath, profileName, nodeId)
 	if err != nil {
 		panic(err)
 	}

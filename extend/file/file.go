@@ -1,7 +1,9 @@
 package cherryFile
 
 import (
+	cerr "github.com/cherry-game/cherry/error"
 	cslice "github.com/cherry-game/cherry/extend/slice"
+	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -181,11 +183,46 @@ func WalkFiles(rootPath string, fileSuffix string) []string {
 	}
 
 	filepath.Walk(rootPath, func(path string, info os.FileInfo, err error) error {
-		if strings.HasSuffix(path, fileSuffix) {
-			files = append(files, path)
+		if fileSuffix != "" && !strings.HasSuffix(path, fileSuffix) {
+			return nil
 		}
+
+		files = append(files, path)
+
 		return nil
 	})
 
 	return files
+}
+
+func ReadDir(rootPath string, filePrefix, fileSuffix string) ([]string, error) {
+	var files []string
+
+	rootPath, found := JudgePath(rootPath)
+	if found == false {
+		return files, cerr.Errorf("path = %s, file not found.", rootPath)
+	}
+
+	fileInfo, err := ioutil.ReadDir(rootPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, info := range fileInfo {
+		if info.IsDir() {
+			continue
+		}
+
+		if filePrefix != "" && !strings.HasPrefix(info.Name(), filePrefix) {
+			continue
+		}
+
+		if fileSuffix != "" && !strings.HasSuffix(info.Name(), fileSuffix) {
+			continue
+		}
+
+		files = append(files, info.Name())
+	}
+
+	return files, nil
 }
