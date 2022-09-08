@@ -1,6 +1,6 @@
 {
   "debug": true,
-  "log_level": "debug",
+  "print_level": "debug",
   "cluster": {
     "discovery": {
       "mode": "nats",
