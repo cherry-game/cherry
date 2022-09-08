@@ -18,7 +18,7 @@ import cherryETCD "github.com/cherry-game/cherry/components/etcd"
 ```
 
 
-```go
+```
 // 注册etcd组件到discovery
 func main() {
     cherryDiscovery.RegisterDiscovery(cherryETCD.New())

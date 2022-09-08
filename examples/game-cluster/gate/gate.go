@@ -4,7 +4,7 @@ import (
 	"context"
 	"github.com/cherry-game/cherry"
 	cerr "github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/examples/sample1/constant"
+	"github.com/cherry-game/cherry/examples/game-cluster/constant"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"

@@ -19,7 +19,7 @@ import cherryCron "github.com/cherry-game/cherry/components/cron"
 ```
 
 
-```go
+```
 // 以组件方式注入到cherry引擎
 func Run(path, env, node string) {
     // 加载profile配置
@@ -55,4 +55,4 @@ func main() {
 ```
 
 ## example
-- [示例代码跳转](https://github.com/cherry-game/cherry/blob/master/components/cron/cron_test.go)
+- [示例代码跳转](cron_test.go)

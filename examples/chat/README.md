@@ -18,7 +18,7 @@
 ### 调试
 
 - 使用`GoLand`打开源码
-- 找到`examples/chat`目录
+- 找到`/examples/chat/`目录
 - 双击打开`main.go`
 - 点击第11行的绿色箭头，选择`Debug go build github.com/...`
 - 程序调试已经启动，查看GoLand下面的`Console`面板，显示`application is running.`文字则表示成功

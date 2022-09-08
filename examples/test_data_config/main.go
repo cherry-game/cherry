@@ -10,10 +10,6 @@ import (
 )
 
 func main() {
-	app()
-}
-
-func app() {
 	testApp := cherry.NewApp("../config/", "local", "game-1")
 
 	handlers := chandler.NewComponent()
@@ -23,7 +19,7 @@ func app() {
 
 	go func(testApp *cherry.Application) {
 		//120秒后退出应用
-		time.Sleep(120 * time.Second)
+		getDropConfig(testApp)
 		testApp.Shutdown()
 	}(testApp)
 
@@ -34,7 +30,6 @@ func app() {
 }
 
 func getDropConfig(_ cfacade.IApplication) {
-
 	time.Sleep(5 * time.Second)
 
 	for {

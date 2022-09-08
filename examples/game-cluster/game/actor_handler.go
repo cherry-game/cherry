@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"github.com/cherry-game/cherry/examples/sample1/internal/protocols"
+	"github.com/cherry-game/cherry/examples/game-cluster/internal/protocols"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	clog "github.com/cherry-game/cherry/logger"
 	chandler "github.com/cherry-game/cherry/net/handler"

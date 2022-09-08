@@ -19,22 +19,26 @@ go get github.com/cherry-game/cherry/components/data-config@latest
 import cherryDataConfig "github.com/cherry-game/cherry/components/data-config"
 ```
 
+```
+package demo
+import (
+	"github.com/cherry-game/cherry"
+	cherryDataConfig "github.com/cherry-game/cherry/components/data-config"
+)
 
-```go
-// 注册struct到data-config
+// RegisterComponent 注册struct到data-config
 func RegisterComponent() {
-    dataConfig := cherryDataConfig.NewComponent()
-    dataConfig.Register(
-        PlatformConfig,
-        StatusCodeConfig,
-        MaskWordConfig,
-    )
-    
-    //data-config组件注册到cherry引擎
-    cherry.RegisterComponent(dataConfig)
+	dataConfig := cherryDataConfig.NewComponent()
+	dataConfig.Register(
+		&DropList,
+		&DropOne,
+	)
+
+	//data-config组件注册到cherry引擎
+	cherry.RegisterComponent(dataConfig)
 }
 
 ```
 
 ## example
-- [示例代码跳转](https://github.com/cherry-game/cherry/tree/master/examples/test_data_config)
+- [示例代码跳转](../../examples/test_data_config)

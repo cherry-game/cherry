@@ -3,8 +3,8 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/cherry-game/cherry/examples/sample1/constant"
-	"github.com/cherry-game/cherry/examples/sample1/internal/protocols"
+	"github.com/cherry-game/cherry/examples/game-cluster/constant"
+	"github.com/cherry-game/cherry/examples/game-cluster/internal/protocols"
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
 	cherryFacade "github.com/cherry-game/cherry/facade"
 	ch "github.com/cherry-game/cherry/net/handler"
