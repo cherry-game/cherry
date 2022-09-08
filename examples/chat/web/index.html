@@ -71,7 +71,7 @@
     // gate address
     var gateHost = "127.0.0.1";
     var gatePort = 34590;
-    starx.init({host: gateHost, port: gatePort, path: '/nano'}, function () {
+    starx.init({host: gateHost, port: gatePort, path: '/'}, function () {
         console.log("initialized");
         starx.on("onNewUser", onNewUser);
         starx.on("onMembers", onMembers);

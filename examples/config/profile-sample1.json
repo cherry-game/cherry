@@ -71,7 +71,7 @@
     "web": [
       {
         "node_id": "web-1",
-        "address": ":80",
+        "address": "127.0.0.1:80",
         "__settings__": {
           "ref_logger": "master_log"
         },

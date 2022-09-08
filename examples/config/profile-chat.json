@@ -1,20 +1,23 @@
 {
   "debug": true,
-  "log_level": "debug",
+  "@debug": "是否为debug模式",
+  "print_level": "debug",
+  "@print_level": "设置cherry引擎内部的日志打印等级为debug",
   "include": [
     "common/logger.json"
   ],
+  "@include" : "include用于引用其他的配置文件。多环境配置的开发过程中可以抽像一些通用的配置",
   "node": {
     "game": [
       {
         "enable": true,
         "node_id": "game-1",
+        "@node_id": "聊天室的节点id，每个启动的进程都有一个节点id",
         "address": ":34590",
+        "@address": "聊天室服务端的监听端口",
         "__settings__": {
-          "db_id_list": [
-            "game_db_1"
-          ],
-          "ref_logger": "game_log"
+          "ref_logger": "game_log",
+          "@ref_logger": "引用的日志配置，详见common/logger.json的game_log配置参数"
         }
       }
     ]
