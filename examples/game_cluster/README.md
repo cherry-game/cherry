@@ -16,7 +16,7 @@
 ### 克隆
 
 - `git clone https://github.com/cherry-game/cherry.git`
-- 或者通过github下载源码的方式，点击`code`按钮`Download zip`下载源码包
+- 或者通过github页面点击`code`按钮`Download zip`下载源码包的方式进行
 
 ### 调试
 
