@@ -55,7 +55,7 @@
 ### 日志
 - 基于`uber zap`封装，性能良好
 - 可配置多文件进行日志输出
-- 基于`rotatelogs`增加滚动日志
+- 基于`rotatelogs`处理切割日志
 
 ### 消息&路由
 - 实现包结构pomelo protocol

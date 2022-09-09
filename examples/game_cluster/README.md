@@ -3,7 +3,7 @@
 - 本示例默认在windows环境调试
 - GoLand使用不熟练的请自行查阅资料
 - 默认提供了一个windows单机版的nats server，便于演示项目
--
+- 本示例没有使用数据库，所有进程重启后会复原数据，主要原因是降低调试时的部署成本
 
 ## 要求
 
@@ -27,12 +27,20 @@
 
 #### 启动nats server
 
+- nats为消息中间件，所有节点基于nats进行通信
 - 找到`run_nats.bat`，右键点击`Run cmd script`运行单机版`nats`
 - 窗口显示`Listening for client connections on 0.0.0.0:4222` 代表nats启动成功，nats默认监听`4222`端口
 - nats server在`examples/game_cluster/misc/nats-server`目录
-- 正式环境请部署集群的nats!  正式环境请部署集群的nats!  正式环境请部署集群的nats!
+- **正式环境请部署集群的nats!**
 
 #### 启动master节点
+
+> master节点主要用于实现最基础的发现服务,基于nats构建
+> 
+> 正式环境也可配置为etcd方式提供发现服务
+> 
+> 相关的代码在`examples/game_cluster/master/`目录
+> 
 
 - 找到`exmaples/game_cluster/nodes/main.go`，该文件为本示例的main函数，所有项目都从此处启动
 - 点击`func main() {`左边的绿色三角形，选择`Debug ...`运行本函数
@@ -68,8 +76,9 @@
 -
 
 #### 启动压测机器人
+
 - 找到`examples/game_cluster/client/robot`目录，执行`main.go`函数启动压测机器人
-- 
+-
 
 ### 源码讲解
 

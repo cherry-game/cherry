@@ -27,6 +27,7 @@ type (
 )
 
 const (
+	// 客户端连接后，必需先执行第一条协议，进行token验证后，才能进行后续的逻辑
 	firstRouteName = "gate.userHandler.login"
 )
 

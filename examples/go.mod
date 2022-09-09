@@ -12,9 +12,9 @@ replace (
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
 	github.com/cherry-game/cherry v1.2.2
-	github.com/cherry-game/cherry/components/cron v1.2.2
-	github.com/cherry-game/cherry/components/data-config v1.2.2
-	github.com/cherry-game/cherry/components/gin v1.2.2
+	github.com/cherry-game/cherry/components/cron v0.0.0-00010101000000-000000000000
+	github.com/cherry-game/cherry/components/data-config v0.0.0-00010101000000-000000000000
+	github.com/cherry-game/cherry/components/gin v0.0.0-00010101000000-000000000000
 	github.com/gin-gonic/gin v1.8.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goburrow/cache v0.1.4
