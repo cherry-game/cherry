@@ -28,8 +28,8 @@
 #### 启动nats server
 
 > nats为分布式消息中间件，本框架中所有节点都基于nats进行消息通信 \
-> nats server执行程序在`examples/game_cluster/misc/nats-server`目录中
-> 正式环境请使用集群nats部署! \
+> nats server执行程序在`examples/game_cluster/misc/nats-server`目录中 \
+> 正式环境请使用集群nats部署
 
 - **操作步骤：**
     - 找到`run_nats.bat`，右键点击`Run cmd script`运行单机版`nats`
@@ -39,7 +39,7 @@
 
 > master节点主要用于实现最基础的发现服务,基于nats构建 \
 > 正式环境也可配置为etcd方式提供发现服务 \
-> 相关的代码在`examples/game_cluster/master/`目录 \
+> 相关的代码在`examples/game_cluster/master/`目录
 
 - **操作步骤：**
     - 找到`exmaples/game_cluster/nodes/main.go`，该文件为本示例的main函数，所有项目都从此处启动
@@ -63,7 +63,7 @@
 #### 启动web节点
 
 > web节点主要对外提供一些http的接口，可横向扩展，多节点部署 \
-> 目前用于开发者帐号注册、区服列表、sdk登陆/支付回调、验证token生成等业务 \
+> 目前用于开发者帐号注册、区服列表、sdk登陆/支付回调、验证token生成等业务
 
 - **操作步骤：**
     - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
@@ -72,7 +72,7 @@
 #### 启动gate节点
 
 > gate节点为游戏对外网关，可横向扩展，多节点部署 \
-> 主要用于管理客户端的连接、消息路由与转发 \
+> 主要用于管理客户端的连接、消息路由与转发
 
 - **操作步骤：**
     - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
@@ -81,7 +81,7 @@
 #### 启动game节点
 
 > game节点为具体的游戏逻辑业务，根据业务需求可多节点部署 \
-> 在分服的游戏中可提供游戏内的各种逻辑实现 \
+> 在分服的游戏中可提供游戏内的各种逻辑实现
 
 - **操作步骤：**
     - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
@@ -90,7 +90,7 @@
 ### 测试
 
 > 使用golang实现客户端，通过tcp协议连接gate网关进行压力测试 \
-> 使用h5客户端，通过websocket协议连接gate网关进行功能的展示 \
+> 使用h5客户端，通过websocket协议连接gate网关进行功能的展示
 
 #### 启动压测机器人
 
