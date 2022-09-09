@@ -28,6 +28,8 @@ func (p *Controller) index(c *cherryGin.Context) {
 	})
 }
 
+// register 开发模式帐号注册
+// http://127.0.0.1/register?account=test11&password=test11
 func (p *Controller) register(c *cherryGin.Context) {
 	accountName := c.GetString("account", "", true)
 	password := c.GetString("password", "", true)
@@ -54,7 +56,7 @@ func (p *Controller) login(c *cherryGin.Context) {
 		return
 	}
 
-	platformInvoke, err := sdk.GetInvoke(config.SdkId)
+	sdkInvoke, err := sdk.GetInvoke(config.SdkId)
 	if err != nil {
 		cherryLogger.Warnf("[pid = %d] get invoke error. params=%s", pid, c.GetParams())
 		code.RenderResult(c, code.PIDError)
@@ -65,7 +67,7 @@ func (p *Controller) login(c *cherryGin.Context) {
 	params["pid"] = cherryString.ToString(pid)
 
 	// invoke login
-	platformInvoke.Login(config, params, func(statusCode int32, result sdk.Params, error ...error) {
+	sdkInvoke.Login(config, params, func(statusCode int32, result sdk.Params, error ...error) {
 		if code.IsFail(statusCode) {
 			cherryLogger.Warnf("login validate fail. code = %d, params = %s", statusCode, c.GetParams())
 			if len(error) > 0 {
@@ -94,6 +96,8 @@ func (p *Controller) login(c *cherryGin.Context) {
 	})
 }
 
+// severList 区服列表
+// http://127.0.0.1/server/list/2126001
 func (p *Controller) serverList(c *cherryGin.Context) {
 	pid := c.GetInt32("pid", 2126001)
 

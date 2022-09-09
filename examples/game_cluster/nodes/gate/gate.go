@@ -71,7 +71,7 @@ func registerHandlers() {
 	cherry.RegisterHandlerGroup(userGroup)
 }
 
-// gameNodeRoute 实现网关路由消息到游戏节点的逻辑
+// gameNodeRoute 实现网关路由消息到游戏节点的函数
 func gameNodeRoute(ctx context.Context, route *cherryMessage.Route, session *cherrySession.Session) (cherryFacade.IMember, error) {
 	if session == nil || session.IsBind() == false {
 		return nil, cherryError.Error("session not bind,message forwarding is not allowed.")

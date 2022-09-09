@@ -64,13 +64,13 @@ func Validate(token *Token, appKey string) (int32, bool) {
 
 	if token.Timestamp > now.ToMillisecond() {
 		cherryLogger.Warnf("token is expired, token = %s", token)
-		return code.TokenValidateFail, false
+		return code.AccountTokenValidateFail, false
 	}
 
 	newHash := BuildHash(token, appKey)
 	if newHash != token.Hash {
 		cherryLogger.Warnf("hash validate fail. newHash = %s, token = %s", token)
-		return code.TokenValidateFail, false
+		return code.AccountTokenValidateFail, false
 	}
 
 	return code.OK, true

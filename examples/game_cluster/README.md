@@ -1,4 +1,4 @@
-# 分布式多节点示例(保姆级教程)
+# 分布式多节点示例
 
 - 本示例默认在windows环境进行调试
 - GoLand使用不熟练的开发者请自行查阅资料
@@ -81,7 +81,9 @@
 
 #### 启动压测机器人
 
-- 找到`examples/game_cluster/client/robot`目录，执行`main.go`函数启动压测机器人
+- 找到`examples/game_cluster/client/robot/main.go` 文件,并执行
+- 机器人执行逻辑为：注册帐号，登陆获取token、连接网关、用户登录游戏服、查看角色、创建角色、进入角色
+- 默认设定为创建1000个帐号，可自行调整`maxRobotNum`参数进行测试
 
 ### 源码讲解
 

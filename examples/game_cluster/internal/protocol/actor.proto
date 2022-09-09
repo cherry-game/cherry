@@ -16,9 +16,6 @@ message Actor {
   int32  actorLevel = 4;  // 角色等级
   int64  createTime = 5;  // 创建时间
   int64  actorExp   = 6;  // 角色经验值
-  int32  headIcon   = 7;  // 头像图标id
-  int32  vipLevel   = 8;  // vip等级
-  int64  fightPower = 9;  // 总战力
 }
 
 // 查询角色响应

@@ -2,6 +2,7 @@ package db
 
 import (
 	cherryError "github.com/cherry-game/cherry/error"
+	"github.com/cherry-game/cherry/examples/game_cluster/internal/code"
 	"github.com/cherry-game/cherry/examples/game_cluster/internal/guid"
 	cherryString "github.com/cherry-game/cherry/extend/string"
 	cherryTime "github.com/cherry-game/cherry/extend/time"
@@ -21,6 +22,26 @@ func (*DevAccountTable) TableName() string {
 	return "dev_account"
 }
 
+func DevAccountRegister(accountName, password, ip string) int32 {
+	devAccount, _ := DevAccountWithName(accountName)
+	if devAccount != nil {
+		return code.AccountNameIsExist
+	}
+
+	devAccountTable := &DevAccountTable{
+		AccountId:   guid.Next(),
+		AccountName: accountName,
+		Password:    password,
+		CreateIP:    ip,
+		CreateTime:  cherryTime.Now().Unix(),
+	}
+
+	devAccountCache.Put(accountName, devAccountTable)
+	// TODO 保存db
+
+	return code.OK
+}
+
 func DevAccountWithName(accountName string) (*DevAccountTable, error) {
 	val, found := devAccountCache.GetIfPresent(accountName)
 	if found == false {
@@ -36,7 +57,7 @@ func loadDevAccount() {
 	for i := 1; i <= 10; i++ {
 		index := cherryString.ToString(i)
 
-		devAccount := DevAccountTable{
+		devAccount := &DevAccountTable{
 			AccountId:   guid.Next(),
 			AccountName: "test" + index,
 			Password:    "test" + index,

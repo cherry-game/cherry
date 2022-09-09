@@ -108,7 +108,7 @@ func (p *UserHandler) login(session *cs.Session, req *pb.LoginRequest) (*pb.Logi
 func (p *UserHandler) validateToken(base64Token string) (*token.Token, int32) {
 	userToken, ok := token.DecodeToken(base64Token)
 	if ok == false {
-		return nil, code.TokenValidateFail
+		return nil, code.AccountTokenValidateFail
 	}
 
 	platformRow := data.SdkConfig.Get(userToken.PID)

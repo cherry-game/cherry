@@ -13,6 +13,7 @@ var (
 	AreaServerConfig = &areaServerConfig{}
 	SdkConfig        = &sdkConfig{}
 	CodeConfig       = &codeConfig{}
+	ActorInitConfig  = &actorInitConfig{}
 )
 
 func RegisterComponent() {
@@ -23,6 +24,7 @@ func RegisterComponent() {
 		AreaServerConfig,
 		SdkConfig,
 		CodeConfig,
+		ActorInitConfig,
 	)
 
 	cherry.RegisterComponent(dataConfig)

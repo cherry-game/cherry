@@ -5,6 +5,7 @@ import (
 	"github.com/cherry-game/cherry/examples/game_cluster/internal/pb"
 	"github.com/cherry-game/cherry/examples/game_cluster/nodes/center/db"
 	ch "github.com/cherry-game/cherry/net/handler"
+	"strings"
 )
 
 type (
@@ -19,8 +20,29 @@ func (p *Handler) Name() string {
 
 // OnInit center为后端节点，不直接与客户端通信，所以了一些remote函数，供RPC调用
 func (p *Handler) OnInit() {
+	p.AddRemote("registerDevAccount", p.registerDevAccount)
 	p.AddRemote("getDevAccount", p.getDevAccount)
 	p.AddRemote("getUID", p.getUID)
+}
+
+// registerDevAccount 注册开发者帐号
+func (p *Handler) registerDevAccount(req *pb.DevRegister) int32 {
+	accountName := req.AccountName
+	password := req.Password
+
+	if strings.TrimSpace(accountName) == "" || strings.TrimSpace(password) == "" {
+		return code.LoginError
+	}
+
+	if len(accountName) < 3 || len(accountName) > 18 {
+		return code.LoginError
+	}
+
+	if len(password) < 3 || len(password) > 18 {
+		return code.LoginError
+	}
+
+	return db.DevAccountRegister(accountName, password, req.Ip)
 }
 
 // getDevAccount 根据帐号名获取开发者帐号表
