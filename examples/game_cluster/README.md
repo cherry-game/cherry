@@ -27,8 +27,9 @@
 
 #### 启动nats server
 
-> nats为分布式消息中间件，本框架中所有节点都基于nats进行消息通信 \
-> nats server执行程序在`examples/game_cluster/misc/nats-server`目录中 \
+> nats为高性能的分布式消息中间件，详情可通过 https://github.com/nats-io/nats-server 进行了解 \
+> 本框架中所有节点都基于nats进行消息通信 \
+> 单机版nats执行程序在`examples/game_cluster/misc/nats-server`目录中 \
 > 正式环境请使用集群nats部署
 
 - **操作步骤：**
