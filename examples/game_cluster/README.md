@@ -84,6 +84,7 @@
 - 找到`examples/game_cluster/client/robot/main.go` 文件,并执行
 - 机器人执行逻辑为：注册帐号，登陆获取token、连接网关、用户登录游戏服、查看角色、创建角色、进入角色
 - 默认设定为创建1000个帐号，可自行调整`maxRobotNum`参数进行测试
+- 执行完成后，从game节点的`Console`可以查看到`[actorId = 1010, onlineCount = 1000]`字样，代表1000帐号已经进入游戏
 
 ### 源码讲解
 
