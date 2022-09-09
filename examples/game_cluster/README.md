@@ -1,13 +1,15 @@
 # 分布式多节点示例(保姆级教程)
 
-- TODO
+- 本示例默认在windows环境调试
+- GoLand使用不熟练的请自行查阅资料
+- 默认提供了一个windows单机版的nats server，便于演示项目
+-
 
 ## 要求
 
 - 安装GoLand >= 2021.1
 - 安装GO版本 >= 1.17
-- 安装nats.io中间件
-- 本示例默认在windows环境调试(其他环境请自行查阅搭建nats的方法)
+- 安装nats.io >= 2.0
 
 ## 操作步骤
 
@@ -20,13 +22,14 @@
 
 #### 打开项目
 
-- 使用GoLand打开项目(Goland使用不熟练的请自行查阅资料)
-- 找到`examples/game_cluster`目录
+- 使用GoLand打开项目源码
+- 找到`examples/game_cluster`目录，并点击打开
 
-#### 启动nats
+#### 启动nats server
 
 - 找到`run_nats.bat`，右键点击`Run cmd script`运行单机版`nats`
 - 窗口显示`Listening for client connections on 0.0.0.0:4222` 代表nats启动成功，nats默认监听`4222`端口
+- nats server在`examples/game_cluster/misc/nats-server`目录
 - 正式环境请部署集群的nats!  正式环境请部署集群的nats!  正式环境请部署集群的nats!
 
 #### 启动master节点
@@ -62,8 +65,11 @@
 - 找到`Program arguments:`选项，配置参数为:`game --name=gc --node=3000`
 
 ### 测试
+-
 
-- TODO
+#### 启动压测机器人
+- 找到`examples/game_cluster/client/robot`目录，执行`main.go`函数启动压测机器人
+- 
 
 ### 源码讲解
 
