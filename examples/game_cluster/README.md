@@ -27,14 +27,13 @@
 
 #### 启动nats server
 
-> **正式环境请使用集群nats部署!**
+> nats为消息中间件，所有节点基于nats进行通信
 >
+> 正式环境请使用集群nats部署!
 
-- nats为消息中间件，所有节点基于nats进行通信
 - 找到`run_nats.bat`，右键点击`Run cmd script`运行单机版`nats`
 - 窗口显示`Listening for client connections on 0.0.0.0:4222` 代表nats启动成功，nats默认监听`4222`端口
 - nats server在`examples/game_cluster/misc/nats-server`目录
--
 
 #### 启动master节点
 
@@ -43,7 +42,6 @@
 > 正式环境也可配置为etcd方式提供发现服务
 >
 > 相关的代码在`examples/game_cluster/master/`目录
->
 
 - 找到`exmaples/game_cluster/nodes/main.go`，该文件为本示例的main函数，所有项目都从此处启动
 - 点击`func main() {`左边的绿色三角形，选择`Debug ...`运行本函数
@@ -57,20 +55,34 @@
 
 #### 启动center节点
 
+> center节点目前主要用于处理帐号相关的业务或全局唯一的业务
+
 - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
 - 找到`Program arguments:`选项，配置参数为:`center --name=gc --node=gc-center`
 
 #### 启动web节点
+
+> web节点主要用于对外提供一些http的接口，可横向扩展启动多节点
+> 
+> 目前用于开发者帐号注册、区服列表、sdk登陆/支付回调、验证token生成等业务
 
 - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
 - 找到`Program arguments:`选项，配置参数为:`web --name=gc --node=gc-web-1`
 
 #### 启动gate节点
 
+> gate节点为游戏对外网关，可横向扩展启动多节点
+> 
+> 主要用于管理客户端的连接、消息路由与转发
+
 - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
 - 找到`Program arguments:`选项，配置参数为:`gate --name=gc --node=gc-gate-1`
 
 #### 启动game节点
+
+> game节点为具体的游戏逻辑业务
+>
+> 在分服的游戏中可提供游戏内的各种逻辑实现
 
 - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
 - 找到`Program arguments:`选项，配置参数为:`game --name=gc --node=3000`
