@@ -1,9 +1,9 @@
 # 分布式多节点示例(保姆级教程)
 
 - 本示例默认在windows环境进行调试
-- GoLand使用不熟练的请自行查阅资料
-- 默认提供了一个windows单机版的nats server，便于演示项目
-- 本示例没有使用数据库，所有进程重启后会复原数据，主要原因是降低调试时的部署成本
+- GoLand使用不熟练的开发者请自行查阅资料
+- 项目内默认提供了windows单机版的nats server，便于演示项目
+- 本示例没有使用数据库，所有进程重启后会还原数据，主要原因是降低调试时的部署成本
 
 ## 要求
 
@@ -15,7 +15,7 @@
 
 ### 克隆
 
-- git clone https://github.com/cherry-game/cherry.git
+- `git clone https://github.com/cherry-game/cherry.git`
 - 或者通过github下载源码的方式，点击`code`按钮`Download zip`下载源码包
 
 ### 调试
