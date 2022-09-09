@@ -1,0 +1,48 @@
+// TODO message结构的属性名请使用 驼峰小写字母开始
+// TODO enum枚举的属性名请使用 驼峰大写字母开始
+syntax = "proto3";
+option go_package = "/pb";
+package pb;
+
+
+
+
+
+// 角色基本信息
+message Actor {
+  int64  actorId    = 1;  // 角色ID
+  string actorName  = 2;  // 角色名称
+  int32  gender     = 3;  // 角色性别
+  int32  actorLevel = 4;  // 角色等级
+  int64  createTime = 5;  // 创建时间
+  int64  actorExp   = 6;  // 角色经验值
+  int32  headIcon   = 7;  // 头像图标id
+  int32  vipLevel   = 8;  // vip等级
+  int64  fightPower = 9;  // 总战力
+}
+
+// 查询角色响应
+message ActorSelectResponse {
+  repeated Actor actorList = 1;  // 角色列表
+}
+
+//请求创建角色
+message ActorCreateRequest {
+  string actorName = 1; // 角色昵称
+  int32  gender    = 2; // 性别(0女,1男)
+}
+
+//创建角色回应
+message ActorCreateResponse {
+  Actor actorInfo = 1;  // 角色信息
+}
+
+// 进入游戏响应
+message ActorEnterResponse {
+  map<int32, int32> guideMaps = 2;  // 新手引导记录列表
+}
+
+//角色属性变化
+enum ActorAttribute {
+  AA_AttributeNone = 0; // 未使用
+}

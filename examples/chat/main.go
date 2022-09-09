@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryGin "github.com/cherry-game/cherry/gin"
+	cherryGin "github.com/cherry-game/cherry/components/gin"
 	cconnector "github.com/cherry-game/cherry/net/connector"
 	chandler "github.com/cherry-game/cherry/net/handler"
 	cserializer "github.com/cherry-game/cherry/net/serializer"

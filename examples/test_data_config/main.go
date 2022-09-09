@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryDataConfig "github.com/cherry-game/cherry/data-config"
+	cherryDataConfig "github.com/cherry-game/cherry/components/data-config"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	chandler "github.com/cherry-game/cherry/net/handler"

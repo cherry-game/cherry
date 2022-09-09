@@ -1,8 +1,8 @@
 package main
 
 import (
+	cherryGin "github.com/cherry-game/cherry/components/gin"
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
-	cherryGin "github.com/cherry-game/cherry/gin"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )

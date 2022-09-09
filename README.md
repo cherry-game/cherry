@@ -37,7 +37,7 @@
 - 搭建游戏服节点
 - 选择master做为发现服务节点
 - 实现部份基础功能(区服列表、多sdk帐号体系、帐号注册、帐号登录、创建角色、角色登录)
-- [示例代码跳转](examples/game-cluster)
+- [示例代码跳转](examples/game_cluster)
 
 
 # 核心功能

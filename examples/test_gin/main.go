@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	cherryGin "github.com/cherry-game/cherry/gin"
+	cherryGin "github.com/cherry-game/cherry/components/gin"
 )
 
 func main() {
