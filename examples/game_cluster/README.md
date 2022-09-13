@@ -136,3 +136,6 @@
 
 - 本示例使用的profile环境配置文件在`examples/config/profile-gc.json`
 - 本示例读取的策划配置文件在 `examples/config/data/`
+
+### 运行截图
+![screenshot](screenshot.png)
