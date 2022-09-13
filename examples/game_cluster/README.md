@@ -103,6 +103,7 @@
 - `client` 客户端实现
     - h5_client h5客户端(暂未实现)
     - robot go版机器人，用于压测协议
+
 - `internal` 内部业务逻辑
     - `code` 定义一些业务的状态码
     - `component` 组件目录，
@@ -117,13 +118,17 @@
     - `session_key` 一些session相关的常量定义
     - `token` 登录token逻辑，包含生成token、验证token
     - `types` 各种自定义类型封装,方便struct从配置文件、数据库读取数据时进行序列化、反序列化
-- `misc` 杂项 目前放了一个nats-server方便一键启动nats服务
+
+- `misc` 杂项目录
+    - `nats-server` nats服务端程序(生产环境请使用集群版nats)
+
 - `nodes` 分布式节点目录
     - `center`节点
     - `game` 节点
     - `gate` 节点
     - `master` 节点
     - `web` 节点
+
 - `build_protocol.bat` 生成protobuf结构代码到`internal/pb/`目录
 - `run_nats.bat` 运行nats服务端的快捷脚本
 
