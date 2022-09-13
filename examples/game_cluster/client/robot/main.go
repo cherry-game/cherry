@@ -69,6 +69,8 @@ func RegisterDevAccount(url string, accounts map[string]string) {
 }
 
 func RunRobot(url, pid, userName, password, addr string, serverId int32, printLog bool) *Robot {
+
+	// 创建客户端
 	cli := New(
 		cherryClient.New(
 			cherryClient.WithRequestTimeout(3*time.Second),
@@ -77,11 +79,13 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 	)
 	cli.PrintLog = printLog
 
+	// 登录获取token
 	if err := cli.GetToken(url, pid, userName, password); err != nil {
 		cherryLogger.Error(err)
 		return nil
 	}
 
+	// 根据地址连接网关
 	if err := cli.ConnectToTCP(addr); err != nil {
 		cherryLogger.Error(err)
 		return nil
@@ -91,8 +95,10 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 		cherryLogger.Infof("tcp connect %s is ok", addr)
 	}
 
+	// 随机休眠
 	cli.RandSleep()
 
+	// 用户登录到 serverId = 3000的游戏节点
 	err := cli.UserLogin(serverId)
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -105,6 +111,7 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 
 	//cli.RandSleep()
 
+	// 查看是否有角色
 	err = cli.ActorSelect()
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -113,6 +120,7 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 
 	//cli.RandSleep()
 
+	// 创建角色
 	err = cli.ActorCreate()
 	if err != nil {
 		cherryLogger.Warn(err)
@@ -121,6 +129,7 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 
 	//cli.RandSleep()
 
+	// 角色进入游戏
 	err = cli.ActorEnter()
 	if err != nil {
 		cherryLogger.Warn(err)

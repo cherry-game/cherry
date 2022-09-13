@@ -36,19 +36,22 @@ func New(client *cherryClient.Client) *Robot {
 	}
 }
 
-// GetToken http://172.16.124.137/login?pid=2126003&account=test1&password=test1
+// GetToken  http登录获取token对象
+// http://172.16.124.137/login?pid=2126003&account=test1&password=test1
 func (p *Robot) GetToken(url string, pid, userName, password string) error {
+	// http登陆获取token json对象
 	requestURL := fmt.Sprintf("%s/login", url)
 	jsonBytes, _, err := cherryHttp.GET(requestURL, map[string]string{
-		"pid":      pid,
-		"account":  userName,
-		"password": password,
+		"pid":      pid,      //sdk包id
+		"account":  userName, //帐号名
+		"password": password, //密码
 	})
 
 	if err != nil {
 		return err
 	}
 
+	// 转换json对象
 	rsp := code.Result{}
 	if err = jsoniter.Unmarshal(jsonBytes, &rsp); err != nil {
 		return err
@@ -58,6 +61,7 @@ func (p *Robot) GetToken(url string, pid, userName, password string) error {
 		return cherryError.Errorf("get Token fail. [message = %s]", rsp.Message)
 	}
 
+	// 获取token值
 	p.Token = rsp.Data.(string)
 	p.TagName = fmt.Sprintf("%s_%s", pid, userName)
 	p.StartTime = cherryTime.Now()
@@ -65,6 +69,7 @@ func (p *Robot) GetToken(url string, pid, userName, password string) error {
 	return nil
 }
 
+// UserLogin 用户登录对某游戏服
 func (p *Robot) UserLogin(serverId int32) error {
 	route := "gate.userHandler.login"
 
@@ -96,6 +101,7 @@ func (p *Robot) UserLogin(serverId int32) error {
 	return nil
 }
 
+// ActorSelect 查看角色列表
 func (p *Robot) ActorSelect() error {
 	route := "game.actorHandler.select"
 
@@ -123,6 +129,7 @@ func (p *Robot) ActorSelect() error {
 	return nil
 }
 
+// ActorCreate 创建角色
 func (p *Robot) ActorCreate() error {
 	if p.ActorId > 0 {
 		p.Debugf("[%s] deny create actor", p.TagName)
@@ -156,6 +163,7 @@ func (p *Robot) ActorCreate() error {
 	return nil
 }
 
+// ActorEnter 角色进入游戏
 func (p *Robot) ActorEnter() error {
 	route := "game.actorHandler.enter"
 	req := &pb.Int64{
