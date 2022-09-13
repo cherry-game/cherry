@@ -115,3 +115,6 @@
 - db队列
 - mongodb组件
 - gopher-lua脚本
+
+# 游戏服务端架构示例
+![architecture](_docs/game-server-architecture.jpg)
