@@ -128,7 +128,9 @@
 - mongodb组件
 - gopher-lua脚本
 
-# 客户端SDK(pomelo)
+# pomelo客户端SDK
+
+- [通信包结构图](_docs/pomelo-protocol.jpg)
 
 - Javascript
     - websocket version [pomelo-jsclient-websocket](https://github.com/pomelonode/pomelo-jsclient-websocket)
