@@ -79,10 +79,11 @@
 
 ### 集群&注册发现
 
-- 读取`profile->node`配置文件的方式实现节点加载和同步(测试用)
-- 启动`master`单节点的方式，基于nats.io通信的方式实现节点加载和同步(小规模用)
-- etcd方式加载和同步节点(做为组件已实现)
-- 内置基于nats.io实现的RPC,提供同步和异步的调用方式
+- 三种发现服务实现方式:
+    - 开发用，直接读取本地的节点配置文件
+    - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
+    - 线上用，基于etcd封装，实现集群方式的发现服务
+- 基于nats.io实现的RPC调用，默认提供同步/异步的调用方式
 
 # 扩展组件
 
@@ -131,8 +132,8 @@
 # pomelo客户端SDK
 
 - 通信协议格式
-  - 通信协议结构图 [点击查看](_docs/pomelo-protocol.jpg)
-  - pomelo wiki介绍的协议格式 [点击查看](https://github.com/NetEase/pomelo/wiki/%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F)
+    - 通信协议结构图 [点击查看](_docs/pomelo-protocol.jpg)
+    - pomelo wiki介绍的协议格式 [点击查看](https://github.com/NetEase/pomelo/wiki/%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F)
 
 - Javascript
     - websocket version [pomelo-jsclient-websocket](https://github.com/pomelonode/pomelo-jsclient-websocket)
