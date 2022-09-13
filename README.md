@@ -129,7 +129,7 @@
 - mongodb组件
 - gopher-lua脚本
 
-# pomelo客户端SDK
+# 游戏客户端SDK
 
 - 通信协议格式
     - 通信协议结构图 [点击查看](_docs/pomelo-protocol.jpg)
