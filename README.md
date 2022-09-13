@@ -130,7 +130,9 @@
 
 # pomelo客户端SDK
 
-- [通信包结构图](_docs/pomelo-protocol.jpg)
+- 通信协议格式
+  - 通信协议结构图 [点击查看](_docs/pomelo-protocol.jpg)
+  - pomelo wiki介绍的协议格式 [点击查看](https://github.com/NetEase/pomelo/wiki/%E5%8D%8F%E8%AE%AE%E6%A0%BC%E5%BC%8F)
 
 - Javascript
     - websocket version [pomelo-jsclient-websocket](https://github.com/pomelonode/pomelo-jsclient-websocket)
