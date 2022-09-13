@@ -123,11 +123,16 @@
 - 集成`gorm`组件，实现mysql的数据库访问
 - 支持多个mysql数据库配置和管理
 
+### [mongo组件](components/mongo)
+
+- 集成`mongo-driver`驱动
+- 支持多个mongodb数据库配置和管理
+
 ### 待开放组件
 
 - db队列
-- mongodb组件
 - gopher-lua脚本
+- 限流组件
 
 # 游戏客户端SDK
 
