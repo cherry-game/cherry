@@ -116,7 +116,7 @@
     - recover with zap
     - cors跨域
     - max connect限流
-- 封装了部份必用的参数获取函数
+- 封装了GET/POST方式获取各种数据类型的函数
 
 ### [gorm组件](components/gorm)
 
