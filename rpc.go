@@ -62,7 +62,7 @@ func RequestRemote(nodeId string, route string, arg proto.Message, reply proto.M
 	}
 
 	if reply != nil {
-		if err = proto.Unmarshal(rsp.Data, reply); err != nil {
+		if err = _thisApp.Unmarshal(rsp.Data, reply); err != nil {
 			return ccode.RPCUnmarshalError
 		}
 	}
