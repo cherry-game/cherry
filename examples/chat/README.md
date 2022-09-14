@@ -1,11 +1,11 @@
 # 单节点聊天室示例
 
 - 使用cherry引擎构建一个简单的多人聊天室程序
-
+- 建议使用GoLand打开源码
+- 本示例为h5客户端，使用`starx-wsclient`做为客户端sdk，连接类型为`websocket`，序列化类型为`json`
 
 ## 要求
 
-- 安装GoLand
 - GO版本 >= 1.17
 
 ## 操作步骤
@@ -39,5 +39,6 @@
 - `user_handler.go` 用户handler处理
 
 ### 配置
+
 - 涉及的环境配置profile文件在 `/examples/config/profile-chat.json`
 - `profile-chat.json`文件的注释通过`@xxx`表示，详见文件

@@ -1,9 +1,9 @@
 # 分布式多节点示例
 
-- 本示例默认在windows环境进行调试
+- 建议在windows环境进行调试，因项目自带了`nats-server.exe`用于演示项目，其他系统环境请自行搭建nats server
 - 建议使用GoLand打开源码
-- 项目内默认提供了windows单机版的nats server，便于演示项目
-- 本示例没有使用数据库，所有进程重启后会还原数据，主要原因是降低调试时的部署成本
+- 本示例没有使用数据库，进程重启后会还原所有数据，主要原因是降低调试时的部署成本
+- 本示例使用go版本的客户端sdk，连接类型为`tcp`，序列化类型为`protobuf`
 
 ## 要求
 
@@ -138,4 +138,5 @@
 - 本示例读取的策划配置文件在 `examples/config/data/`
 
 ### 运行截图
+
 ![screenshot](screenshot.png)
