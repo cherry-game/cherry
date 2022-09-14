@@ -5,7 +5,7 @@ go 1.17
 replace github.com/cherry-game/cherry => ../../
 
 require (
-	github.com/cherry-game/cherry v1.2.2
+	github.com/cherry-game/cherry v1.2.3
 	github.com/json-iterator/go v1.1.12
 	go.etcd.io/etcd/api/v3 v3.5.4
 	go.etcd.io/etcd/client/v3 v3.5.4

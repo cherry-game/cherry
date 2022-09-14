@@ -11,7 +11,7 @@ replace (
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/cherry-game/cherry v1.2.2
+	github.com/cherry-game/cherry v1.2.3
 	github.com/cherry-game/cherry/components/cron v0.0.0-00010101000000-000000000000
 	github.com/cherry-game/cherry/components/data-config v0.0.0-00010101000000-000000000000
 	github.com/cherry-game/cherry/components/gin v0.0.0-00010101000000-000000000000

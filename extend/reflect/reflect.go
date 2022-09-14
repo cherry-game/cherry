@@ -72,3 +72,19 @@ func GetInvokeFunc(name string, fn interface{}) (*cfacade.MethodInfo, error) {
 
 	return invoke, nil
 }
+
+func IsPtr(val interface{}) bool {
+	if val == nil {
+		return false
+	}
+
+	return reflect.TypeOf(val).Kind() == reflect.Ptr
+}
+
+func IsNotPtr(val interface{}) bool {
+	if val == nil {
+		return false
+	}
+
+	return reflect.TypeOf(val).Kind() != reflect.Ptr
+}

@@ -8,6 +8,7 @@ import (
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cnats "github.com/cherry-game/cherry/net/cluster/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap/zapcore"
 	"time"
 )
@@ -26,17 +27,12 @@ func NewRPCClient(app cfacade.IApplication) *NatsRPCClient {
 	}
 }
 
-func (n *NatsRPCClient) Publish(subject string, val interface{}) error {
+func (n *NatsRPCClient) Publish(subject string, data []byte) error {
 	if n.Running() == false {
 		return cerr.ClusterRPCClientIsStop
 	}
 
-	bytes, err := n.Marshal(val)
-	if err != nil {
-		return err
-	}
-
-	return cnats.Publish(subject, bytes)
+	return cnats.Publish(subject, data)
 }
 
 func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.Push) error {
@@ -51,7 +47,12 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	}
 
 	subject := getPushSubject(nodeType, frontendId)
-	err = n.Publish(subject, push)
+	bytes, err := proto.Marshal(push)
+	if err != nil {
+		return err
+	}
+
+	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishPush] [frontendId = %s, push = {%+v}, err= %v]",
@@ -75,7 +76,12 @@ func (n *NatsRPCClient) PublishKick(nodeId string, kick *cproto.Kick) error {
 	}
 
 	subject := getKickSubject(nodeType, nodeId)
-	err = n.Publish(subject, kick)
+	bytes, err := proto.Marshal(kick)
+	if err != nil {
+		return err
+	}
+
+	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishKick] [nodeId = %s, kick = {%+v}, err = %v]",
@@ -100,7 +106,12 @@ func (n *NatsRPCClient) PublishLocal(nodeId string, request *cproto.Request) err
 	}
 
 	subject := getLocalSubject(nodeType, nodeId)
-	err = n.Publish(subject, request)
+	bytes, err := proto.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishLocal] [nodeId = %s, req = {%+v}, err = %v]",
@@ -125,7 +136,12 @@ func (n *NatsRPCClient) PublishRemote(nodeId string, request *cproto.Request) er
 	}
 
 	subject := getRemoteSubject(nodeType, nodeId)
-	err = n.Publish(subject, request)
+	bytes, err := proto.Marshal(request)
+	if err != nil {
+		return err
+	}
+
+	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishRemote] [nodeId = %s, req = {%+v}, err = %v]",
@@ -153,7 +169,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 		return rsp, err
 	}
 
-	msg, err := n.Marshal(request)
+	msg, err := proto.Marshal(request)
 	if err != nil {
 		clog.Warnf("[RequestRemote] marshal fail. [nodeId = %s, req = {%+v}, err = %v]",
 			nodeId,
@@ -171,7 +187,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 	}
 
 	subject := getRemoteSubject(nodeType, nodeId)
-	rspData, err := cnats.Request(subject, msg, tt)
+	natsMsg, err := cnats.Request(subject, msg, tt)
 	if err != nil {
 		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, req = {%+v}, timeout = %d, err = %v]",
 			nodeId,
@@ -184,7 +200,7 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 		return rsp, err
 	}
 
-	if err = n.Unmarshal(rspData.Data, rsp); err != nil {
+	if err = proto.Unmarshal(natsMsg.Data, rsp); err != nil {
 		clog.Warnf("[RequestRemote] unmarshal fail. [nodeId = %s, req = {%+v}, rsp = %v, err = %v]",
 			nodeId,
 			request,

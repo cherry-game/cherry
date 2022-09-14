@@ -10,6 +10,7 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	csession "github.com/cherry-game/cherry/net/session"
+	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
 )
 
@@ -62,7 +63,7 @@ func (n *NatsRPCServer) subscribeRemote() {
 		return
 	}
 
-	process := func(msg *nats.Msg) {
+	process := func(natsMsg *nats.Msg) {
 		if dropped, err := chanSubscribe.Dropped(); err != nil {
 			clog.Errorf("remote chan dropped messages. [dropped = %d, err = %v]", dropped, err)
 		}
@@ -70,15 +71,15 @@ func (n *NatsRPCServer) subscribeRemote() {
 		request := cproto.GetRequest()
 		defer request.Recycle()
 
-		if err := n.Unmarshal(msg.Data, request); err != nil {
+		if err := proto.Unmarshal(natsMsg.Data, request); err != nil {
 			clog.Warnf("unmarshal fail. [packet = %s, err = %s]", request, err)
-			n.replyError(msg, ccode.RPCUnmarshalError)
+			n.replyError(natsMsg, ccode.RPCUnmarshalError)
 			return
 		}
 
-		statusCode := n.handlerComponent.ProcessRemote(request.Route, request.Data, msg)
+		statusCode := n.handlerComponent.ProcessRemote(request.Route, request.Data, natsMsg)
 		if ccode.IsFail(statusCode) {
-			n.replyError(msg, statusCode)
+			n.replyError(natsMsg, statusCode)
 		}
 	}
 
@@ -100,21 +101,21 @@ func (n *NatsRPCServer) subscribeLocal() {
 	}
 
 	if n.IsFrontend() {
-		for msg := range localChan {
-			n.frontendLocalProcess(msg)
+		for natsMsg := range localChan {
+			n.frontendLocalProcess(natsMsg)
 		}
 	} else {
-		for msg := range localChan {
-			n.backendLocalProcess(msg)
+		for natsMsg := range localChan {
+			n.backendLocalProcess(natsMsg)
 		}
 	}
 }
 
-func (n *NatsRPCServer) frontendLocalProcess(msg *nats.Msg) {
+func (n *NatsRPCServer) frontendLocalProcess(natsMsg *nats.Msg) {
 	request := cproto.GetRequest()
 	defer request.Recycle()
 
-	err := n.Unmarshal(msg.Data, request)
+	err := proto.Unmarshal(natsMsg.Data, request)
 	if err != nil {
 		clog.Warnf("unmarshal fail. [packet = %s, err = %s]", request, err)
 		return
@@ -132,11 +133,11 @@ func (n *NatsRPCServer) frontendLocalProcess(msg *nats.Msg) {
 	}
 }
 
-func (n *NatsRPCServer) backendLocalProcess(msg *nats.Msg) {
+func (n *NatsRPCServer) backendLocalProcess(natsMsg *nats.Msg) {
 	request := cproto.GetRequest()
 	defer request.Recycle()
 
-	err := n.Unmarshal(msg.Data, request)
+	err := proto.Unmarshal(natsMsg.Data, request)
 	if err != nil {
 		clog.Warnf("unmarshal fail. [packet = %s, error = %s]", request, err)
 		return
@@ -168,9 +169,9 @@ func (n *NatsRPCServer) subscribePush() {
 	var (
 		nodeSubject = getPushSubject(n.NodeType(), n.NodeId())
 		pushChan    = make(chan *nats.Msg, n.msgBufferSize)
-		process     = func(msg *nats.Msg) {
+		process     = func(natsMsg *nats.Msg) {
 			push := &cproto.Push{}
-			err := n.Unmarshal(msg.Data, push)
+			err := proto.Unmarshal(natsMsg.Data, push)
 			if err != nil {
 				clog.Error("unmarshal kick error. [error = %v]", err)
 				return
@@ -192,9 +193,9 @@ func (n *NatsRPCServer) subscribeKick() {
 	var (
 		nodeSubject = getKickSubject(n.NodeType(), n.NodeId())
 		kickChan    = make(chan *nats.Msg, n.msgBufferSize)
-		process     = func(msg *nats.Msg) {
+		process     = func(natsMsg *nats.Msg) {
 			kick := &cproto.Kick{}
-			err := n.Unmarshal(msg.Data, kick)
+			err := proto.Unmarshal(natsMsg.Data, kick)
 			if err != nil {
 				clog.Error("unmarshal kick error. [error = %v]", err)
 				return
@@ -209,8 +210,8 @@ func (n *NatsRPCServer) subscribeKick() {
 	cnats.ChanExecute(nodeSubject, kickChan, process)
 }
 
-func (n *NatsRPCServer) replyError(msg *nats.Msg, code int32) {
-	if msg.Reply == "" {
+func (n *NatsRPCServer) replyError(natsMsg *nats.Msg, code int32) {
+	if natsMsg.Reply == "" {
 		return
 	}
 
@@ -218,8 +219,8 @@ func (n *NatsRPCServer) replyError(msg *nats.Msg, code int32) {
 		Code: code,
 	}
 
-	rspData, _ := n.Marshal(rsp)
-	err := msg.Respond(rspData)
+	rspData, _ := proto.Marshal(rsp)
+	err := natsMsg.Respond(rspData)
 	if err != nil {
 		clog.Warn(err)
 	}

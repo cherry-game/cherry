@@ -3,7 +3,7 @@ package cherryProfile
 import (
 	"encoding/json"
 	cherryError "github.com/cherry-game/cherry/error"
-	cutils "github.com/cherry-game/cherry/extend/utils"
+	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -93,8 +93,8 @@ func (p *Config) GetJsonObject(path interface{}, ptrVal interface{}) error {
 		return cherryError.Error("get path value is nil.")
 	}
 
-	if cutils.IsPtr(ptrVal) == false {
-		return cherryError.Error("ptrValue type error.")
+	if creflect.IsPtr(ptrVal) == false {
+		return cherryError.Error("ptrVal type error.")
 	}
 
 	bytes := []byte(str)

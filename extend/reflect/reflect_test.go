@@ -26,3 +26,12 @@ func TestGetFuncName(t *testing.T) {
 	result2 := GetFuncName(test1111)
 	fmt.Println(result2)
 }
+
+func TestIsPtr(t *testing.T) {
+	fmt.Println(IsPtr(nil))
+}
+
+func TestIsNotPtr(t *testing.T) {
+	s := &FunStruct{}
+	fmt.Println(IsNotPtr(s))
+}
