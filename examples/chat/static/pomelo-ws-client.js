@@ -177,8 +177,8 @@
   }
 
   var root = window;
-  var starx = Object.create(EventEmitter.prototype); // object extend from object
-  root.starx = starx;
+  var pomelo = Object.create(EventEmitter.prototype); // object extend from object
+  root.pomelo = pomelo;
   var socket = null;
   var reqId = 0;
   var callbacks = {};
@@ -220,7 +220,7 @@
 
   var initCallback = null;
 
-  starx.init = function(params, cb) {
+  pomelo.init = function(params, cb) {
     initCallback = cb;
     var host = params.host;
     var port = params.port;
@@ -252,7 +252,7 @@
     connect(params, url, cb);
   };
 
-  var defaultDecode = starx.decode = function(data) {
+  var defaultDecode = pomelo.decode = function(data) {
     var msg = Message.decode(data);
 
     if(msg.id > 0){
@@ -267,7 +267,7 @@
     return msg;
   };
 
-  var defaultEncode = starx.encode = function(reqId, route, msg) {
+  var defaultEncode = pomelo.encode = function(reqId, route, msg) {
     var type = reqId ? Message.TYPE_REQUEST : Message.TYPE_NOTIFY;
 
     if(decodeIO_encoder && decodeIO_encoder.lookup(route)) {
@@ -295,7 +295,7 @@
 
     var onopen = function(event) {
       if(!!reconnect) {
-        starx.emit('reconnect');
+        pomelo.emit('reconnect');
       }
       reset();
       var obj = Package.encode(Package.TYPE_HANDSHAKE, Protocol.strencode(JSON.stringify(handshakeBuffer)));
@@ -309,12 +309,12 @@
       }
     };
     var onerror = function(event) {
-      starx.emit('io-error', event);
+      pomelo.emit('io-error', event);
       console.error('socket error: ', event);
     };
     var onclose = function(event) {
-      starx.emit('close',event);
-      starx.emit('disconnect', event);
+      pomelo.emit('close',event);
+      pomelo.emit('disconnect', event);
       console.log('socket close: ', event);
       if(!!params.reconnect && reconnectAttempts < maxReconnectAttempts) {
         reconnect = true;
@@ -333,7 +333,7 @@
     socket.onclose = onclose;
   };
 
-  starx.disconnect = function() {
+  pomelo.disconnect = function() {
     if(socket) {
       if(socket.disconnect) socket.disconnect();
       if(socket.close) socket.close();
@@ -358,7 +358,7 @@
     clearTimeout(reconncetTimer);
   };
 
-  starx.request = function(route, msg, cb) {
+  pomelo.request = function(route, msg, cb) {
     if(arguments.length === 2 && typeof msg === 'function') {
       cb = msg;
       msg = {};
@@ -377,7 +377,7 @@
     routeMap[reqId] = route;
   };
 
-  starx.notify = function(route, msg) {
+  pomelo.notify = function(route, msg) {
     msg = msg || {};
     sendMessage(0, route, msg);
   };
@@ -436,20 +436,20 @@
       heartbeatTimeoutId = setTimeout(heartbeatTimeoutCb, gap);
     } else {
       console.error('server heartbeat timeout');
-      starx.emit('heartbeat timeout');
-      starx.disconnect();
+      pomelo.emit('heartbeat timeout');
+      pomelo.disconnect();
     }
   };
 
   var handshake = function(data) {
     data = JSON.parse(Protocol.strdecode(data));
     if(data.code === RES_OLD_CLIENT) {
-      starx.emit('error', 'client version not fullfill');
+      pomelo.emit('error', 'client version not fullfill');
       return;
     }
 
     if(data.code !== RES_OK) {
-      starx.emit('error', 'handshake fail');
+      pomelo.emit('error', 'handshake fail');
       return;
     }
 
@@ -467,12 +467,12 @@
     if(decode) {
       msg = decode(msg);
     }
-    processMessage(starx, msg);
+    processMessage(pomelo, msg);
   };
 
   var onKick = function(data) {
     data = JSON.parse(Protocol.strdecode(data));
-    starx.emit('onKick', data);
+    pomelo.emit('onKick', data);
   };
 
   handlers[Package.TYPE_HANDSHAKE] = handshake;
@@ -491,10 +491,10 @@
     }
   };
 
-  var processMessage = function(starx, msg) {
+  var processMessage = function(pomelo, msg) {
     if(!msg.id) {
       // server push message
-      starx.emit(msg.route, msg.body);
+      pomelo.emit(msg.route, msg.body);
       return;
     }
 
@@ -510,9 +510,9 @@
 
   };
 
-  var processMessageBatch = function(starx, msgs) {
+  var processMessageBatch = function(pomelo, msgs) {
     for(var i=0, l=msgs.length; i<l; i++) {
-      processMessage(starx, msgs[i]);
+      processMessage(pomelo, msgs[i]);
     }
   };
 
@@ -553,7 +553,7 @@
     }
   };
 
-  //Initilize data used in starx client
+  //Initilize data used in pomelo client
   var initData = function(data) {
     if(!data || !data.sys) {
       return;
@@ -570,5 +570,5 @@
       }
     }
 
-    window.starx = starx;
+    window.pomelo = pomelo;
   }})();

@@ -2,7 +2,7 @@
 
 - 使用cherry引擎构建一个简单的多人聊天室程序
 - 建议使用GoLand打开源码
-- 本示例为h5客户端，使用`starx-wsclient`做为客户端sdk，连接类型为`websocket`，序列化类型为`json`
+- 本示例为h5客户端，使用`pomelo-ws-client`做为客户端sdk，连接类型为`websocket`，序列化类型为`json`
 
 ## 要求
 
@@ -31,7 +31,7 @@
 
 ### 源码
 
-- `web`目录，放置h5的聊天室客户端文件，包含html和js版的客户端协议
+- `static`目录为h5客户端静态文件，包含html和js版的客户端协议
 - `main.go` 主函数
 - `protocol.go` 与客户端通信的协议结构(json方式)
 - `room_handler.go` 房间handler处理
