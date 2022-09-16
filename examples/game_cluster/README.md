@@ -1,9 +1,12 @@
 # 分布式多节点示例
 
-- 建议在windows环境进行调试，因项目自带了`nats-server.exe`用于演示项目，其他系统环境请自行搭建nats server
+- 建议在windows环境进行调试(因项目自带了`nats-server.exe`)，其他操作系统请自行搭建nats server
 - 建议使用GoLand打开源码
 - 本示例没有使用数据库，进程重启后会还原所有数据，主要原因是降低调试时的部署成本
-- 本示例使用go版本的客户端sdk，连接类型为`tcp`，序列化类型为`protobuf`
+- 本示例分为两种客户端演示：
+    - `robot_client` 为go实现的游戏压测客户端,使用`tcp/protobuf`协议
+    - `nodes/web/view/` 为h5实现的游戏客户端，使用`websocket/protobuf`协议
+    - 欢迎开发者一起入群商讨，构建更好的demo
 
 ## 要求
 
@@ -84,7 +87,7 @@
 
 - 以下为操作步骤:
 - 按照`master`的启动方式，再复制一个配置项 `Copy Configurations`，并配置启动参数
-- 找到`Program arguments:`选项，配置参数为:`game --name=gc --node=3000`
+- 找到`Program arguments:`选项，配置参数为:`game --name=gc --node=10001`
 
 ### 测试
 
@@ -93,16 +96,15 @@
 
 #### 启动压测机器人
 
-- 找到`examples/game_cluster/client/robot/main.go` 文件,并执行
+- 找到`examples/game_cluster/robot_client/main.go` 文件,并执行
 - 机器人执行逻辑为：注册帐号，登陆获取token、连接网关、用户登录游戏服、查看角色、创建角色、进入角色
 - 默认设定为创建1000个帐号，可自行调整`maxRobotNum`参数进行测试
-- 执行完成后，从game节点的`Console`可以查看到`[actorId = 1010, onlineCount = 1000]`字样，代表1000帐号已经进入游戏
+- 执行完成后，从game节点的`Console`可以查看到`onlineCount = 10000`字样，表示1万帐号已经进入游戏
+
+### 启动h5客户端
+- 直接访问`http://127.0.0.1`，按照界面步骤提示操作
 
 ### 源码讲解
-
-- `client` 客户端实现
-    - h5_client h5客户端(暂未实现)
-    - robot go版机器人，用于压测协议
 
 - `internal` 内部业务逻辑
     - `code` 定义一些业务的状态码
@@ -127,8 +129,8 @@
     - `game` 节点
     - `gate` 节点
     - `master` 节点
-    - `web` 节点
-
+    - `web` 节点(为了演示方便，包含了h5客户端)
+- `robot_client` 压测机器人(tcp/protobuf协议)
 - `build_protocol.bat` 生成protobuf结构代码到`internal/pb/`目录
 - `run_nats.bat` 运行nats服务端的快捷脚本
 

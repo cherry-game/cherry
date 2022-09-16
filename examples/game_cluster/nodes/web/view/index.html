@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Game Cluster</title>
+    <meta charset="utf-8">
+
+    <script src="static/pb.js"></script>
+    <script src="static/protocol.js" type="text/javascript"></script>
+    <script src="static/pomelo-client-protobuf.js" type="text/javascript"></script>
+    <script src="static/jquery-3.6.1.min.js"></script>
+    <script src="static/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="static/bootstrap.min.css">
+
+    <style type="text/css">
+        .col-center-block {
+            position: absolute;
+            top: 50%;
+            -webkit-transform: translateY(-50%);
+            -moz-transform: translateY(-50%);
+            -ms-transform: translateY(-50%);
+            -o-transform: translateY(-50%);
+            transform: translateY(-50%);
+            min-height: 300px;
+            height: auto;
+        }
+    </style>
+</head>
+
+<body>
+<div class="container-fluid">
+
+    <div id="p3" class="col-center-block col-lg-4 col-lg-offset-4  col-sm-6 col-sm-offset-3 col-xs-8 col-xs-offset-2"
+         style="display:none;">
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <label class="col-sm-4 control-label">游戏服</label>
+                <div class="col-sm-6">
+                    <select class="form-control" id="server-list">
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-4 control-label"></label>
+                <div class="col-sm-6">
+                    <button type="button" class="btn btn-primary" id="btn-p3">进入</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="p4" class="col-center-block col-lg-4 col-lg-offset-4  col-sm-6 col-sm-offset-3 col-xs-8 col-xs-offset-2"
+         style="display:none;">
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <label class="col-sm-4 control-label">性别</label>
+                <div class="col-sm-6">
+                    <select class="form-control" id="create-actor-gender">
+                        <option value="0">女</option>
+                        <option value="1">男</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-4 control-label">角色名</label>
+                <div class="col-sm-6">
+                    <input class="form-control" id="create-actor-name" type="text" value="test1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-4 control-label"></label>
+                <div class="col-sm-6">
+                    <button type="button" class="btn btn-primary" id="btn-p4">创建角色</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="p5" class="col-center-block col-lg-4 col-lg-offset-4  col-sm-6 col-sm-offset-3 col-xs-8 col-xs-offset-2"
+         style="display:none;">
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <label class="col-sm-4 control-label">角色列表</label>
+                <div class="col-sm-6">
+                    <select class="form-control" id="actor-list">
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="col-sm-4 control-label"></label>
+                <div class="col-sm-6">
+                    <button type="button" class="btn btn-primary" id="btn-p5">选择角色</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div id="p6" class="col-center-block col-lg-4 col-lg-offset-4  col-sm-6 col-sm-offset-3 col-xs-8 col-xs-offset-2"
+         style="display:none;">
+        <form class="form-horizontal" role="form">
+            <div class="form-group">
+                <div class="col-sm-6" id="actor-info">
+                </div>
+            </div>
+        </form>
+    </div>
+
+</div>
+
+<div class="modal fade" id="panel_env" role="dialog" data-backdrop="static" aria-labelledby="myModalLabel">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="myModalLabel">
+                    帐号-注册&登录
+                </h4>
+            </div>
+            <div class="modal-body">
+                <form class="form-horizontal" role="form">
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">web节点</label>
+                        <div class="col-sm-6">
+                            <select class="form-control" id="web-url">
+                                <option value="http://127.0.0.1:80">本机 127.0.0.1:80</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">账号</label>
+                        <div class="col-sm-6">
+                            <input class="form-control" id="account-name" type="text" value="test1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">密码</label>
+                        <div class="col-sm-6">
+                            <input class="form-control" id="account-password" type="text" value="test1">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label">sdk包id</label>
+                        <div class="col-sm-6">
+                            <input class="form-control" id="pid" type="text" value="2126001">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label"></label>
+                        <div class="col-sm-6">
+                            <button type="button" class="btn btn-primary" id="btn-reg">注册</button>
+                            <button type="button" class="btn btn-primary" id="btn-login">登录</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="col-sm-4 control-label"></label>
+                        <div class="col-sm-6 alert alert-danger" id="account-msg">
+                        </div>
+                    </div>
+                </form>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+
+<script>
+    var url, accountName, accountPassword, pid, token;
+    var serverId, gateHost, gatePort;
+    var actorInfo;
+
+    $(document).ready(function () {
+        $('#panel_env').modal("show");
+        $("#account-msg").hide();
+
+
+        $("#btn-p3").click(server_login);
+        $("#btn-p4").click(actorCreate);
+
+        $("#btn-p5").click(actorEnter);
+
+        $("#btn-reg").click(account_register);
+        $("#btn-login").click(account_login);
+    });
+
+    function setting_info() {
+        url = $("#web-url").val();
+        accountName = $("#account-name").val();
+        accountPassword = $("#account-password").val();
+        pid = $("#pid").val();
+        console.log(url, accountName, accountPassword, pid);
+    }
+
+    function account_register() {
+        setting_info();
+
+        var requestUrl = url + "/register?account=" + accountName + "&password=" + accountPassword;
+        $.get(requestUrl, function (data, status) {
+            $("#account-msg").show().html(data.message);
+            console.log(data, status);
+        });
+    }
+
+    function account_login() {
+        setting_info();
+
+        var requestUrl = url + "/login?pid=" + pid + "&account=" + accountName + "&password=" + accountPassword;
+        $.get(requestUrl, function (data, status) {
+            $("#account-msg").show().html(data.message);
+            console.log(data, status);
+
+            if (data.code == 0) {
+                token = data.data;
+                $('#panel_env').modal("hide");
+
+                load_server_list();
+                $("#p3").show();
+            }
+        });
+    }
+
+    function load_server_list() {
+        var requestUrl = url + "/server/list/" + pid;
+        $.get(requestUrl, function (data, status) {
+            console.log(data, status);
+
+            if (data.code != 0) {
+                alert("区服列表加载错误.")
+                return
+            }
+
+            var servers = data.data.servers;
+            for (var i in servers) {
+                s = servers[i];
+                var gateAddr = get_gate_addr(data.data.areas, s.areaId);
+                console.log(s, gateAddr);
+                var $op = "<option value ='" + s.serverId + "' gate='" + gateAddr + "'>" + s.serverName + "</option>";
+                $("#server-list").append($op);
+            }
+        });
+    }
+
+    function get_gate_addr(areas, areaId) {
+        for (var i in areas) {
+            if (areas[i].areaId == areaId) {
+                return areas[i].gate;
+            }
+        }
+        return "";
+    }
+
+    function server_login() {
+        var s = $("#server-list option:selected");
+        serverId = s.val();
+        var gate = s.attr("gate").split(":");
+
+        gateHost = gate[0];
+        gatePort = gate[1];
+        console.log(serverId, gateHost, gatePort);
+
+        pomelo.init({host: gateHost, port: gatePort, path: '/'}, function () {
+            console.log("connected!");
+
+            var loginRequest = new proto.pb.LoginRequest();
+            loginRequest.setServerid(serverId);
+            loginRequest.setToken(token);
+
+            var loginData = loginRequest.serializeBinary()
+
+            // request login
+            pomelo.request("gate.userHandler.login", loginData, function (data) {
+                data = proto.pb.LoginResponse.deserializeBinary(data.body).toObject();
+                console.log(data);
+                if (data.uid > 0) {
+                    actorSelect();
+                }
+            });
+        });
+    }
+
+    function actorSelect() {
+        var noneRequest = new proto.pb.None();
+        var noneData = noneRequest.serializeBinary();
+
+        pomelo.request("game.actorHandler.select", noneData, function (data) {
+            data = proto.pb.ActorSelectResponse.deserializeBinary(data.body).toObject();
+            console.log(data);
+
+            if (data.actorlistList.length > 0) {
+                actorInfo = data.actorlistList[0];
+                setActorList();
+
+                $("#p3").hide();
+                $("#p5").show();
+            } else {
+                $("#p3").hide();
+                $("#p4").show();
+            }
+        });
+    }
+
+    function setActorList() {
+        var opt = "<option value='" + actorInfo.actorid + "'>" + actorInfo.actorname + "</option>";
+        $("#actor-list").append(opt);
+    }
+
+    function actorCreate() {
+        var gender = $("#create-actor-gender option:selected").val();
+        var actorName = $("#create-actor-name").val();
+
+        var createRequest = new proto.pb.ActorCreateRequest()
+        createRequest.setGender(gender);
+        createRequest.setActorname(actorName);
+
+        var createData = createRequest.serializeBinary();
+
+        pomelo.request("game.actorHandler.create", createData, function (data) {
+            if (data.isError > 0) {
+                showError(data);
+                return;
+            }
+
+            data = proto.pb.ActorCreateResponse.deserializeBinary(data.body).toObject();
+            if (data.actorinfo.actorid > 0) {
+                actorInfo = data.actorinfo;
+                setActorList();
+                console.log(data.actorinfo);
+                $("#p4").hide();
+                $("#p5").show();
+            }
+        });
+    }
+
+    function actorEnter() {
+        var enterRequest = new proto.pb.Int64();
+        enterRequest.setValue(actorInfo.actorid);
+
+        var enterData = enterRequest.serializeBinary();
+
+        pomelo.request("game.actorHandler.enter", enterData, function (data) {
+            if (data.isError > 0) {
+                showError(data);
+                return;
+            }
+
+            data = proto.pb.ActorEnterResponse.deserializeBinary(data.body).toObject();
+            console.log(data.guidemaps);
+
+            $("#actor-info").html(JSON.stringify(actorInfo) + "角色已进入游戏，流程结束!");
+
+            $("#p5").hide();
+            $("#p6").show();
+        });
+    }
+
+    function showError(data) {
+        var err = proto.pb.ErrorResponse.deserializeBinary(data.body).toObject()
+        alert(err.code + err.message);
+    }
+
+</script>
+
+</html>

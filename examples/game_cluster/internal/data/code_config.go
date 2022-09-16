@@ -14,7 +14,7 @@ type (
 
 	// 状态码列表
 	codeConfig struct {
-		maps map[int32]codeRow
+		maps map[int32]*codeRow
 	}
 )
 
@@ -23,7 +23,7 @@ func (p *codeConfig) Name() string {
 }
 
 func (p *codeConfig) Init() {
-	p.maps = make(map[int32]codeRow)
+	p.maps = make(map[int32]*codeRow)
 }
 
 func (p *codeConfig) OnLoad(maps interface{}, _ bool) (int, error) {
@@ -34,10 +34,10 @@ func (p *codeConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 
 	codeMaps := make(map[int32]string)
 
-	loadMaps := make(map[int32]codeRow)
+	loadMaps := make(map[int32]*codeRow)
 	for index, data := range list {
-		loadConfig := codeRow{}
-		err := DecodeData(data, &loadConfig)
+		loadConfig := &codeRow{}
+		err := DecodeData(data, loadConfig)
 		if err != nil {
 			cherryLogger.Warnf("decode error. [row = %d, %v], err = %s", index+1, loadConfig, err)
 			continue
@@ -65,15 +65,7 @@ func (p *codeConfig) Get(code int32) *codeRow {
 	if found == false {
 		return nil
 	}
-	return &val
-}
-
-func (p *codeConfig) List() []codeRow {
-	var list []codeRow
-	for _, config := range p.maps {
-		list = append(list, config)
-	}
-	return list
+	return val
 }
 
 func (p *codeConfig) GetMessage(code int32) string {

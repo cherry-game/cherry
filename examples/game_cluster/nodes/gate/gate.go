@@ -21,6 +21,8 @@ func Run(path, name, node string) {
 	// 创建一个cherry实例
 	gateApp := cherry.Configure(path, name, node)
 
+	// 默认序列类型为protobuf,所以没有调用 cherry.SetSerializer()
+
 	// 注册检则中心服组件，主要用于检则中心服是否先启动
 	checkCenter.RegisterComponent()
 	// 注册数据配表组件，具体详见data-config的使用方法和参数配置
@@ -41,14 +43,15 @@ func Run(path, name, node string) {
 }
 
 func createConnector(app cherryFacade.IApplication) {
-	//创建一个tcp的连接
-	tcpConnector := cherryConnector.NewTCP(app.Address())
+	// TODO 网关可以同时添加多个连接器,方便各种类型协议进行通信(比如做h5、手游多端游戏产品)
+
+	//创建一个tcp监听，用于client/robot压测机器人连接网关tcp,protobuf
+	tcpConnector := cherryConnector.NewTCP(":10011")
 	cherry.RegisterConnector(tcpConnector)
 
-	// 如果有必要，也可以同时添加websocket连接器，这样网关具有同时处理tcp和websocket协议的能力
-	//wsConnector := cherryConnector.NewWS("21000")
-	//cherry.RegisterConnector(wsConnector)
-
+	//再创建一个websocket监听，用于h5客户端建立连接
+	wsConnector := cherryConnector.NewWS(app.Address())
+	cherry.RegisterConnector(wsConnector)
 }
 
 //// rateLimiter 限速过滤

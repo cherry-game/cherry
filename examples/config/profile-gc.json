@@ -54,7 +54,7 @@
     ],
     "game": [
       {
-        "node_id": "3000",
+        "node_id": "10001",
         "__settings__": {
           "db_id_list": [
             "game_db_1"

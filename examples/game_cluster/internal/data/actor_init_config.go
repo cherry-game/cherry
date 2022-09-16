@@ -16,7 +16,7 @@ type (
 
 	// 角色初始化数据
 	actorInitConfig struct {
-		maps map[int32]ActorInitRow
+		maps map[int32]*ActorInitRow
 	}
 )
 
@@ -25,7 +25,7 @@ func (p *actorInitConfig) Name() string {
 }
 
 func (p *actorInitConfig) Init() {
-	p.maps = make(map[int32]ActorInitRow)
+	p.maps = make(map[int32]*ActorInitRow)
 }
 
 func (p *actorInitConfig) OnLoad(maps interface{}, _ bool) (int, error) {
@@ -34,10 +34,10 @@ func (p *actorInitConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
-	loadMaps := make(map[int32]ActorInitRow)
+	loadMaps := make(map[int32]*ActorInitRow)
 	for index, data := range list {
-		loadConfig := ActorInitRow{}
-		err := DecodeData(data, &loadConfig)
+		loadConfig := &ActorInitRow{}
+		err := DecodeData(data, loadConfig)
 		if err != nil {
 			cherryLogger.Warnf("decode error. [row = %d, %v], err = %s", index+1, loadConfig, err)
 			continue
@@ -55,5 +55,5 @@ func (p *actorInitConfig) OnAfterLoad(_ bool) {
 
 func (p *actorInitConfig) Get(gender int32) (*ActorInitRow, bool) {
 	val, found := p.maps[gender]
-	return &val, found
+	return val, found
 }

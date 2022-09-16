@@ -16,13 +16,23 @@ type Controller struct {
 }
 
 func (p *Controller) Init() {
-	p.Any("/", p.index)
-	p.Any("/register", p.register)
-	p.Any("/login", p.login)
-	p.GET("/server/list/:pid", p.serverList)
+	group := p.Group("/")
+	group.GET("/", p.index)
+	group.GET("/hello", p.hello)
+	group.GET("/register", p.register)
+	group.GET("/login", p.login)
+	group.GET("/server/list/:pid", p.serverList)
 }
 
+// index h5客户端
 func (p *Controller) index(c *cherryGin.Context) {
+	c.HTML200("index.html")
+}
+
+// hello 输出json示例
+//http://127.0.0.1/hello
+func (p *Controller) hello(c *cherryGin.Context) {
+	// 输出json
 	code.RenderResult(c, code.OK, map[string]string{
 		"data": "hello",
 	})

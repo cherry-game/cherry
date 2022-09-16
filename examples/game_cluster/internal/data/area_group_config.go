@@ -13,7 +13,7 @@ type (
 
 	// 游戏区分组
 	areaGroupConfig struct {
-		maps map[int32]AreaGroupRow
+		maps map[int32]*AreaGroupRow
 	}
 )
 
@@ -23,7 +23,7 @@ func (p *areaGroupConfig) Name() string {
 }
 
 func (p *areaGroupConfig) Init() {
-	p.maps = make(map[int32]AreaGroupRow)
+	p.maps = make(map[int32]*AreaGroupRow)
 }
 
 func (p *areaGroupConfig) OnLoad(maps interface{}, _ bool) (int, error) {
@@ -32,10 +32,10 @@ func (p *areaGroupConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
-	loadMaps := make(map[int32]AreaGroupRow)
+	loadMaps := make(map[int32]*AreaGroupRow)
 	for index, data := range list {
-		loadConfig := AreaGroupRow{}
-		err := DecodeData(data, &loadConfig)
+		loadConfig := &AreaGroupRow{}
+		err := DecodeData(data, loadConfig)
 		if err != nil {
 			cherryLogger.Warnf("decode error. [row = %d, %v], err = %s", index+1, loadConfig, err)
 			continue
@@ -54,7 +54,7 @@ func (p *areaGroupConfig) OnAfterLoad(_ bool) {
 
 func (p *areaGroupConfig) Get(pk int32) (*AreaGroupRow, bool) {
 	i, found := p.maps[pk]
-	return &i, found
+	return i, found
 }
 
 func (p *areaGroupConfig) Contain(pk int32) bool {

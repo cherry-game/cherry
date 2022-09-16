@@ -14,7 +14,7 @@ type (
 
 	// 游戏区
 	areaConfig struct {
-		maps map[int32]AreaRow
+		maps map[int32]*AreaRow
 	}
 )
 
@@ -24,7 +24,7 @@ func (p *areaConfig) Name() string {
 }
 
 func (p *areaConfig) Init() {
-	p.maps = make(map[int32]AreaRow)
+	p.maps = make(map[int32]*AreaRow)
 }
 
 func (p *areaConfig) OnLoad(maps interface{}, _ bool) (int, error) {
@@ -33,10 +33,10 @@ func (p *areaConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
-	loadMaps := make(map[int32]AreaRow)
+	loadMaps := make(map[int32]*AreaRow)
 	for index, data := range list {
-		loadConfig := AreaRow{}
-		err := DecodeData(data, &loadConfig)
+		loadConfig := &AreaRow{}
+		err := DecodeData(data, loadConfig)
 		if err != nil {
 			cherryLogger.Warnf("decode error. [row = %d, %v], err = %s", index+1, loadConfig, err)
 			continue
@@ -55,7 +55,7 @@ func (p *areaConfig) OnAfterLoad(_ bool) {
 
 func (p *areaConfig) Get(pk int32) (*AreaRow, bool) {
 	i, found := p.maps[pk]
-	return &i, found
+	return i, found
 }
 
 func (p *areaConfig) Contain(pk int32) bool {

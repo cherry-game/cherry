@@ -70,6 +70,7 @@ func CreateActor(session *cs.Session, name string, serverId int32, actorInit *da
 	// 先进缓存
 	actorTableCache.Put(actorId, actor)
 	actorNameCache.Put(name, actor.ActorId) // 缓存角色名
+	uidCache.Put(uid, actorId)
 
 	// TODO 保存db
 

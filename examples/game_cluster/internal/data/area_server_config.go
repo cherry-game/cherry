@@ -15,7 +15,7 @@ type (
 
 	// 游戏区分组
 	areaServerConfig struct {
-		maps map[int32]AreaServerRow
+		maps map[int32]*AreaServerRow
 	}
 )
 
@@ -25,7 +25,7 @@ func (p *areaServerConfig) Name() string {
 }
 
 func (p *areaServerConfig) Init() {
-	p.maps = make(map[int32]AreaServerRow)
+	p.maps = make(map[int32]*AreaServerRow)
 }
 
 func (p *areaServerConfig) OnLoad(maps interface{}, _ bool) (int, error) {
@@ -34,10 +34,10 @@ func (p *areaServerConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
-	loadMaps := make(map[int32]AreaServerRow)
+	loadMaps := make(map[int32]*AreaServerRow)
 	for index, data := range list {
-		loadConfig := AreaServerRow{}
-		err := DecodeData(data, &loadConfig)
+		loadConfig := &AreaServerRow{}
+		err := DecodeData(data, loadConfig)
 		if err != nil {
 			cherryLogger.Warnf("decode error. [row = %d, %v], err = %s", index+1, loadConfig, err)
 			continue
@@ -56,7 +56,7 @@ func (p *areaServerConfig) OnAfterLoad(_ bool) {
 
 func (p *areaServerConfig) Get(pk int32) (*AreaServerRow, bool) {
 	i, found := p.maps[pk]
-	return &i, found
+	return i, found
 }
 
 func (p *areaServerConfig) Contain(pk int32) bool {
@@ -69,7 +69,7 @@ func (p *areaServerConfig) ListWithAreaId(areaId int32) []*AreaServerRow {
 
 	for _, row := range p.maps {
 		if row.AreaId == areaId {
-			list = append(list, &row)
+			list = append(list, row)
 		}
 	}
 
