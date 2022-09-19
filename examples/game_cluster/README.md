@@ -4,9 +4,9 @@
 - 建议使用GoLand打开源码
 - 本示例没有使用数据库，进程重启后会还原所有数据，主要原因是降低调试时的部署成本
 - 本示例分为两种客户端演示：
-    - `robot_client` 为go实现的游戏压测客户端,使用`tcp/protobuf`协议
+    - `robot_client` 为go实现的游戏压测客户端，使用`tcp/protobuf`协议
     - `nodes/web/view/` 为h5实现的游戏客户端，使用`websocket/protobuf`协议
-    - 欢迎开发者一起入群商讨，构建更好的demo
+- 欢迎开发者一起入群商讨，构建更好的demo
 
 ## 要求
 
