@@ -41,8 +41,7 @@ func (h *Data) Do(session *csession.Session, packet cfacade.IPacket) {
 		return
 	}
 
-	err = msg.ParseRoute()
-	if err != nil {
+	if err = msg.ParseRoute(); err != nil {
 		session.Warnf("packet decode route error. [data = %s, error = %s]", packet.Data(), err)
 		return
 	}

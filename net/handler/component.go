@@ -7,7 +7,7 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	ccontext "github.com/cherry-game/cherry/net/context"
-	cmessage "github.com/cherry-game/cherry/net/message"
+	cmsg "github.com/cherry-game/cherry/net/message"
 	csession "github.com/cherry-game/cherry/net/session"
 	"github.com/nats-io/nats.go"
 	"strings"
@@ -33,7 +33,7 @@ type (
 
 	Option func(options *options)
 
-	FilterFn func(ctx context.Context, session *csession.Session, message *cmessage.Message) bool
+	FilterFn func(ctx context.Context, session *csession.Session, message *cmsg.Message) bool
 )
 
 func NewComponent(opts ...Option) *Component {
@@ -124,26 +124,20 @@ func (c *Component) PostEvent(event cfacade.IEvent) {
 	}
 }
 
-func (c *Component) GetHandler(route string) (*cmessage.Route, *HandlerGroup, cfacade.IHandler, bool) {
-	r, err := cmessage.DecodeRoute(route)
-	if err != nil {
-		clog.Warnf("[Route = %s] decode fail.", route)
-		return nil, nil, nil, false
-	}
-
-	handlerName := c.nameFn(r.HandleName())
+func (c *Component) GetHandler(handlerName string) (*HandlerGroup, cfacade.IHandler, bool) {
+	handlerName = c.nameFn(handlerName)
 	if handlerName == "" {
-		clog.Warnf("[Route = %s] could not find handle name.", route)
-		return nil, nil, nil, false
+		clog.Warnf("[handlerName = %s] could not find handle name.", handlerName)
+		return nil, nil, false
 	}
 
 	group, handler := c.getGroup(handlerName)
 	if group == nil || handler == nil {
-		clog.Warnf("[Route = %s] could not find handler group.", route)
-		return nil, nil, nil, false
+		clog.Warnf("[handlerName = %s] could not find handler group.", handlerName)
+		return nil, nil, false
 	}
 
-	return r, group, handler, true
+	return group, handler, true
 }
 
 func (c *Component) getGroup(handlerName string) (*HandlerGroup, cfacade.IHandler) {
@@ -155,7 +149,7 @@ func (c *Component) getGroup(handlerName string) (*HandlerGroup, cfacade.IHandle
 	return nil, nil
 }
 
-func (c *Component) ProcessLocal(session *csession.Session, msg *cmessage.Message) {
+func (c *Component) ProcessLocal(session *csession.Session, msg *cmsg.Message) {
 	if !c.App().Running() {
 		return
 	}
@@ -171,31 +165,26 @@ func (c *Component) ProcessLocal(session *csession.Session, msg *cmessage.Messag
 	}
 
 	if msg.RouteInfo() == nil {
-		err := msg.ParseRoute()
-		if err != nil {
+		if err := msg.ParseRoute(); err != nil {
 			session.Warnf("[local] route decode error. [route = %s, error = %s]", msg.Route, err)
 			return
 		}
 	}
 
-	if msg.RouteInfo().NodeType() != c.App().NodeType() {
-		session.Warnf("[local] msg node type error. [route = %s]", msg.Route)
-		return
-	}
-
-	ctx := ccontext.Add(context.Background(), cconst.MessageIdKey, msg.ID)
-
-	rt, group, handler, found := c.GetHandler(msg.Route)
+	routeInfo := msg.RouteInfo()
+	group, handler, found := c.GetHandler(routeInfo.HandleName())
 	if found == false {
 		clog.Warnf("[local] route not found handler. [route = %s]", msg.Route)
 		return
 	}
 
-	fn, found := handler.LocalHandler(rt.Method())
+	fn, found := handler.LocalHandler(routeInfo.Method())
 	if found == false {
-		clog.Debugf("[local] not find route. [Route = %v, method = %s]", msg.Route, rt.Method())
+		clog.Debugf("[local] not find route. [Route = %v, method = %s]", msg.Route, routeInfo.Method())
 		return
 	}
+
+	ctx := ccontext.Add(context.Background(), cconst.MessageIdKey, msg.ID)
 
 	executor := &ExecutorLocal{
 		IApplication:  c.App(),
@@ -206,6 +195,8 @@ func (c *Component) ProcessLocal(session *csession.Session, msg *cmessage.Messag
 		beforeFilters: c.beforeFilters,
 		afterFilters:  c.afterFilters,
 	}
+
+	// in queue
 	group.InQueue(fn.QueueHash, executor)
 }
 
@@ -214,15 +205,21 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 		return ccode.AppIsStop
 	}
 
-	rt, group, handler, found := c.GetHandler(route)
+	routeInfo, err := cmsg.DecodeRoute(route)
+	if err != nil {
+		clog.Warnf("route decode error. [route = %s]", route)
+		return ccode.RPCRouteDecodeError
+	}
+
+	group, handler, found := c.GetHandler(routeInfo.HandleName())
 	if found == false {
 		clog.Warnf("handler not found. [route = %s]", route)
 		return ccode.RPCHandlerError
 	}
 
-	fn, found := handler.RemoteHandler(rt.Method())
+	fn, found := handler.RemoteHandler(routeInfo.Method())
 	if found == false {
-		clog.Debugf("could not find route method. [Route = %v, method = %s].", route, rt.Method())
+		clog.Debugf("could not find route method. [Route = %v, method = %s].", route, routeInfo.Method())
 		return ccode.RPCHandlerError
 	}
 
@@ -233,7 +230,7 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 	executor := &ExecutorRemote{
 		IApplication: c.App(),
 		handlerFn:    fn,
-		rt:           rt,
+		rt:           routeInfo,
 		data:         data,
 		natsMsg:      natsMsg,
 	}
