@@ -209,3 +209,48 @@ func (g *Context) RenderJsonString(json string) {
 	g.Header(contentType, jsonContentType)
 	g.String(http.StatusOK, json)
 }
+
+func (g *Context) GetIntCookie(name string, defaultValue int) int {
+	value, err := g.Cookie(name)
+	if err != nil {
+		return defaultValue
+	}
+
+	if v, k := cstring.ToInt(value); k {
+		return v
+	}
+	return defaultValue
+}
+
+func (g *Context) GetInt32Cookie(name string, defaultValue int32) int32 {
+	value, err := g.Cookie(name)
+	if err != nil {
+		return defaultValue
+	}
+
+	if v, k := cstring.ToInt32(value); k {
+		return v
+	}
+	return defaultValue
+}
+
+func (g *Context) GetInt64Cookie(name string, defaultValue int64) int64 {
+	value, err := g.Cookie(name)
+	if err != nil {
+		return defaultValue
+	}
+
+	if v, k := cstring.ToInt64(value); k {
+		return v
+	}
+	return defaultValue
+}
+
+func (g *Context) GetStringCookie(name string, defaultValue string) string {
+	value, err := g.Cookie(name)
+	if err != nil {
+		return defaultValue
+	}
+
+	return value
+}
