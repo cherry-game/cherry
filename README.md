@@ -75,7 +75,7 @@
 - websocket
 - http server
 - http client
-- kcp(未实现，以后做为组件集成)
+- kcp(未实现，以后作为组件集成)
 
 ### 集群&注册发现
 
