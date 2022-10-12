@@ -10,14 +10,3 @@ use (
 	./components/mongo
 	./examples
 )
-
-replace (
-	github.com/cherry-game/cherry v1.2.4 => ./
-	github.com/cherry-game/cherry/components/cron v0.0.0-00010101000000-000000000000 => ./components/cron
-	github.com/cherry-game/cherry/components/data-config v0.0.0-00010101000000-000000000000 => ./components/data-config
-	github.com/cherry-game/cherry/components/etcd v0.0.0-00010101000000-000000000000 => ./components/etcd
-	github.com/cherry-game/cherry/components/gin v0.0.0-00010101000000-000000000000 => ./components/gin
-	github.com/cherry-game/cherry/components/gorm v0.0.0-00010101000000-000000000000 => ./components/gorm
-	github.com/cherry-game/cherry/components/mongo v0.0.0-00010101000000-000000000000 => ./components/mongo
-	github.com/cherry-game/cherry/examples v0.0.0-00010101000000-000000000000 => ./examples
-)
