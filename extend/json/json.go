@@ -2,7 +2,7 @@ package cherryJson
 
 import (
 	jsoniter "github.com/json-iterator/go"
-	"io/ioutil"
+	"os"
 )
 
 func ToJson(i interface{}) string {
@@ -19,7 +19,7 @@ func ToJson(i interface{}) string {
 }
 
 func ReadMaps(path string, maps map[string]interface{}) error {
-	bytes, err := ioutil.ReadFile(path)
+	bytes, err := os.ReadFile(path)
 	if err != nil {
 		return err
 	}

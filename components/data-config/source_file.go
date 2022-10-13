@@ -6,7 +6,7 @@ import (
 	"github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
-	"io/ioutil"
+	"os"
 	"time"
 )
 
@@ -60,7 +60,7 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 		return nil, cerr.Errorf("path is dir. fullPath = %s", fullPath)
 	}
 
-	data, err = ioutil.ReadFile(fullPath)
+	data, err = os.ReadFile(fullPath)
 	if err != nil {
 		return nil, cerr.Errorf("read file err. err = %v, path = %s", err, fullPath)
 	}

@@ -3,7 +3,6 @@ package cherryFile
 import (
 	cerr "github.com/cherry-game/cherry/error"
 	cslice "github.com/cherry-game/cherry/extend/slice"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -203,7 +202,7 @@ func ReadDir(rootPath string, filePrefix, fileSuffix string) ([]string, error) {
 		return files, cerr.Errorf("path = %s, file not found.", rootPath)
 	}
 
-	fileInfo, err := ioutil.ReadDir(rootPath)
+	fileInfo, err := os.ReadDir(rootPath)
 	if err != nil {
 		return nil, err
 	}

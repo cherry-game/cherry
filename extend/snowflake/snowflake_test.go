@@ -367,13 +367,13 @@ func TestMarshalJSON(t *testing.T) {
 	id := ID(13587)
 	expected := "\"13587\""
 
-	bytes, err := id.MarshalJSON()
+	jsonBytes, err := id.MarshalJSON()
 	if err != nil {
 		t.Fatalf("Unexpected error during MarshalJSON")
 	}
 
-	if string(bytes) != expected {
-		t.Fatalf("Got %s, expected %s", string(bytes), expected)
+	if string(jsonBytes) != expected {
+		t.Fatalf("Got %s, expected %s", string(jsonBytes), expected)
 	}
 }
 
@@ -492,14 +492,14 @@ func BenchmarkUnmarshal(b *testing.B) {
 	// Generate the ID to unmarshal
 	node, _ := NewNode(1)
 	id := node.Generate()
-	bytes, _ := id.MarshalJSON()
+	jsonBytes, _ := id.MarshalJSON()
 
 	var id2 ID
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		_ = id2.UnmarshalJSON(bytes)
+		_ = id2.UnmarshalJSON(jsonBytes)
 	}
 }
 

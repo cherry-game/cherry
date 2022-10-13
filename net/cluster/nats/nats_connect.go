@@ -26,11 +26,11 @@ type (
 )
 
 func New(opts ...OptionFunc) *NatsConnect {
-	nats := &NatsConnect{}
+	conn := &NatsConnect{}
 	for _, opt := range opts {
-		opt(&nats.Options)
+		opt(&conn.Options)
 	}
-	return nats
+	return conn
 }
 
 func (p *NatsConnect) Connect() {

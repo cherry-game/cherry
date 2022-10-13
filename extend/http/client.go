@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	clog "github.com/cherry-game/cherry/logger"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -39,7 +38,7 @@ func GET(url string, values ...map[string]string) ([]byte, *http.Response, error
 		}
 	}(rsp.Body)
 
-	bytes, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}
@@ -63,7 +62,7 @@ func POST(url string, values map[string]string) ([]byte, *http.Response, error) 
 		}
 	}(rsp.Body)
 
-	bytes, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}
@@ -84,14 +83,14 @@ func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
 		return nil, rsp, err
 	}
 
-	defer func(Body io.ReadCloser) {
-		e := Body.Close()
+	defer func(body io.ReadCloser) {
+		e := body.Close()
 		if e != nil {
 			clog.Warnf("HTTP PostJSON [url = %s], error = %s", url, e)
 		}
 	}(rsp.Body)
 
-	bytes, err := ioutil.ReadAll(rsp.Body)
+	bytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}

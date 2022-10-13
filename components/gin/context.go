@@ -4,7 +4,7 @@ import (
 	cslice "github.com/cherry-game/cherry/extend/slice"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -19,7 +19,7 @@ type Context struct {
 }
 
 func (g *Context) GetBody() string {
-	data, err := ioutil.ReadAll(g.Request.Body)
+	data, err := io.ReadAll(g.Request.Body)
 	if err != nil {
 		return string(data)
 	}

@@ -27,7 +27,7 @@ func GetRequest() *Request {
 	return request
 }
 
-func (x *Request) Recycle() {
-	x.Reset()
-	requestPool.Put(x)
+func (m *Request) Recycle() {
+	m.Reset()
+	requestPool.Put(m)
 }

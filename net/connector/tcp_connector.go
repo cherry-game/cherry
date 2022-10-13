@@ -6,7 +6,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cpacket "github.com/cherry-game/cherry/net/packet"
 	"io"
-	"io/ioutil"
 	"net"
 )
 
@@ -100,7 +99,7 @@ func (t *TCPConnector) OnStop() {
 }
 
 func (t *TcpConn) GetNextMessage() (b []byte, err error) {
-	header, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(cpacket.HeadLength)))
+	header, err := io.ReadAll(io.LimitReader(t.Conn, int64(cpacket.HeadLength)))
 	if err != nil {
 		return nil, err
 	}
@@ -115,7 +114,7 @@ func (t *TcpConn) GetNextMessage() (b []byte, err error) {
 		return nil, err
 	}
 
-	msgData, err := ioutil.ReadAll(io.LimitReader(t.Conn, int64(msgSize)))
+	msgData, err := io.ReadAll(io.LimitReader(t.Conn, int64(msgSize)))
 	if err != nil {
 		return nil, err
 	}

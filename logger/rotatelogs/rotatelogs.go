@@ -199,7 +199,7 @@ func (rl *RotateLogs) getWriterNoLock(bailOnRotateFail, useGenerationalNames boo
 		return nil, cerror.Errorf("failed to open file %s: %s", rl.pattern, err)
 	}
 
-	if err := rl.rotate_nolock(filename); err != nil {
+	if err := rl.rotateNoLock(filename); err != nil {
 		err = cerror.Wrap(err, "failed to rotate")
 		if bailOnRotateFail {
 			// Failure to rotate is a problem, but it's really not a great
@@ -276,9 +276,9 @@ func (rl *RotateLogs) Rotate() error {
 	return nil
 }
 
-func (rl *RotateLogs) rotate_nolock(filename string) error {
-	lockfn := filename + `_lock`
-	fh, err := os.OpenFile(lockfn, os.O_CREATE|os.O_EXCL, 0644)
+func (rl *RotateLogs) rotateNoLock(filename string) error {
+	lockFile := filename + `_lock`
+	fh, err := os.OpenFile(lockFile, os.O_CREATE|os.O_EXCL, 0644)
 	if err != nil {
 		// Can't lock, just return
 		return err
@@ -287,7 +287,7 @@ func (rl *RotateLogs) rotate_nolock(filename string) error {
 	var guard cleanupGuard
 	guard.fn = func() {
 		fh.Close()
-		os.Remove(lockfn)
+		os.Remove(lockFile)
 	}
 	defer guard.Run()
 
