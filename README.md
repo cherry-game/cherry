@@ -13,10 +13,7 @@
 
 # 讨论与交流
 
-- QQ群:191651647
-- 扫码加群
-
-![qr-code](_docs/qq-qun.png)
+- [QQ群讨论: 191651647 ](https://jq.qq.com/?_wv=1027&k=vdIddlK0)
 
 # 教程
 
