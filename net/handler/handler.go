@@ -106,6 +106,12 @@ func (h *Handler) AddLocal(name string, fn interface{}, hashFn ...cfacade.QueueH
 	h.localHandlerFuncMap[name] = invokeFn
 }
 
+func (h *Handler) AddLocalWithNames(names []string, fn interface{}, hashFn ...cfacade.QueueHashFn) {
+	for _, name := range names {
+		h.AddLocal(name, fn, hashFn...)
+	}
+}
+
 func (h *Handler) AddRemotes(remoteFns ...interface{}) {
 	for _, fn := range remoteFns {
 		funcName := creflect.GetFuncName(fn)
@@ -129,6 +135,12 @@ func (h *Handler) AddRemote(name string, fn interface{}, hashFn ...cfacade.Queue
 	}
 
 	h.remoteHandlerFuncMap[name] = invokeFn
+}
+
+func (h *Handler) AddRemoteWithNames(names []string, fn interface{}, hashFn ...cfacade.QueueHashFn) {
+	for _, name := range names {
+		h.AddRemote(name, fn, hashFn...)
+	}
 }
 
 func getInvokeFunc(name string, fn interface{}) (*cfacade.MethodInfo, error) {
