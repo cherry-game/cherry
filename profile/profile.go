@@ -7,7 +7,7 @@ import (
 	cjson "github.com/cherry-game/cherry/extend/json"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
-	"path"
+	"path/filepath"
 )
 
 var (
@@ -99,7 +99,7 @@ func loadFile(profilePath string, profileFullName string) (*Config, error) {
 	var maps = make(map[string]interface{})
 
 	// read master json file
-	fullPath := path.Join(profilePath, profileFullName)
+	fullPath := filepath.Join(profilePath, profileFullName)
 	if err := cjson.ReadMaps(fullPath, maps); err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func loadFile(profilePath string, profileFullName string) (*Config, error) {
 	if v, found := maps["include"].([]interface{}); found {
 		paths := cstring.ToStringSlice(v)
 		for _, p := range paths {
-			includePath := path.Join(profilePath, p)
+			includePath := filepath.Join(profilePath, p)
 			if err := cjson.ReadMaps(includePath, maps); err != nil {
 				return nil, err
 			}

@@ -31,7 +31,7 @@ func JudgeFile(filePath string) (string, bool) {
 		return "", false
 	}
 
-	fullFilePath := path.Join(newPath, n)
+	fullFilePath := filepath.Join(newPath, n)
 	if IsFile(fullFilePath) {
 		return fullFilePath, true
 	}
@@ -40,29 +40,27 @@ func JudgeFile(filePath string) (string, bool) {
 }
 
 func JudgePath(filePath string) (string, bool) {
-	dir := GetStackDir()
-	for _, d := range dir {
-		tmpPath := path.Join(d, filePath)
-		ok := IsDir(tmpPath)
-		if ok {
-			return tmpPath, true
-		}
-	}
-
-	tmpPath := path.Join(GetWorkPath(), filePath)
+	tmpPath := filepath.Join(GetWorkDir(), filePath)
 	ok := IsDir(tmpPath)
 	if ok {
 		return tmpPath, true
 	}
 
-	tmpPath = path.Join(GetCurrentDirectory(), filePath)
+	tmpPath = filepath.Join(GetCurrentDirectory(), filePath)
 	ok = IsDir(tmpPath)
 	if ok {
 		return tmpPath, true
 	}
 
-	ok = IsDir(filePath)
-	if ok {
+	dir := GetStackDir()
+	for _, d := range dir {
+		tmpPath = filepath.Join(d, filePath)
+		if IsDir(tmpPath) {
+			return tmpPath, true
+		}
+	}
+
+	if IsDir(filePath) {
 		return filePath, true
 	}
 
@@ -134,7 +132,7 @@ func GetStackDir() []string {
 	return dir
 }
 
-func GetWorkPath() string {
+func GetWorkDir() string {
 	p, err := os.Getwd()
 	if err != nil {
 		panic(err)
@@ -143,7 +141,7 @@ func GetWorkPath() string {
 }
 
 func JoinPath(elem ...string) (string, error) {
-	filePath := path.Join(elem...)
+	filePath := filepath.Join(elem...)
 
 	err := CheckPath(filePath)
 	if err != nil {
