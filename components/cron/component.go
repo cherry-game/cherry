@@ -7,13 +7,17 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
+const (
+	Name = "cron_component"
+)
+
 type Component struct {
 	cfacade.Component
 }
 
 // Name unique components name
 func (*Component) Name() string {
-	return "cron_component"
+	return Name
 }
 
 func (p *Component) Init() {

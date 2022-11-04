@@ -5,7 +5,7 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
-	goSqlDriver "github.com/go-sql-driver/mysql"
+	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	Name          = "db_orm_component"
+	Name          = "gorm_component"
 	connectFormat = "%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local"
 )
 
@@ -108,7 +108,9 @@ func (s *Component) Init() {
 		}
 	}
 
-	goSqlDriver.SetLogger(clog.DefaultLogger)
+	if err := mysqlDriver.SetLogger(clog.DefaultLogger); err != nil {
+		clog.Warnf("mysql driver setLogger error = %v", err)
+	}
 }
 
 func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
