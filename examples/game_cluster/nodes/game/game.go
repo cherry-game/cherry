@@ -5,7 +5,7 @@ import (
 	cherryCron "github.com/cherry-game/cherry/components/cron"
 	checkCenter "github.com/cherry-game/cherry/examples/game_cluster/internal/component/check_center"
 	"github.com/cherry-game/cherry/examples/game_cluster/internal/data"
-	"github.com/cherry-game/cherry/examples/game_cluster/nodes/center/db"
+	"github.com/cherry-game/cherry/examples/game_cluster/nodes/game/db"
 	"github.com/cherry-game/cherry/examples/game_cluster/nodes/game/module/actor"
 	"github.com/cherry-game/cherry/examples/game_cluster/nodes/game/sessions"
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
