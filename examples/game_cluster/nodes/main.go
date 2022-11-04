@@ -126,7 +126,7 @@ func getFlag() []cli.Flag {
 			Name:     "path",
 			Usage:    "profile config path",
 			Required: false,
-			Value:    "../../config",
+			Value:    "./examples/config",
 		},
 		&cli.StringFlag{
 			Name:     "name",

@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	maxRobotNum       = 10000              // 运行x个机器人
+	maxRobotNum       = 1000               // 运行x个机器人
 	url               = "http://127.0.0.1" // web node
 	addr              = "127.0.0.1:10011"  // 网关地址(正式环境通过区服列表获取)
 	serverId    int32 = 10001              // 测试的游戏服id
@@ -35,7 +35,7 @@ func main() {
 	RegisterDevAccount(url, accounts)
 
 	for userName, password := range accounts {
-		time.Sleep(time.Duration(rand.Int31n(3)) * time.Millisecond)
+		time.Sleep(time.Duration(rand.Int31n(5)) * time.Millisecond)
 		go RunRobot(url, pid, userName, password, addr, serverId, printLog)
 	}
 

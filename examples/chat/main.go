@@ -14,7 +14,7 @@ func main() {
 	// @profilePath 为profile的配置路径,
 	// @profileName 为profile的环境名称,这里配置值为chat则表示会读取 ../config/profile-chat.json文件
 	// @nodeId 		节点id,每个节点都有一个唯一的节点id，并且他们归属于某一个节点类型(nodeType)
-	app := cherry.Configure("../config/", "chat", "game-1")
+	app := cherry.Configure("./examples/config/", "chat", "game-1")
 
 	// 设置json作为客户端通信时序列化的格式,详见protocol.go定义的结构
 	// 引擎自带json和protobuf，默认值启用protobuf,也可根据实际情况进行扩展
