@@ -126,12 +126,11 @@ func (f *SourceFile) newWatcher() {
 }
 
 func (f *SourceFile) Stop() {
-	if f.watcher != nil {
-		err := f.watcher.Remove(f.monitorPath)
-		if err != nil {
-			cherryLogger.Warn(err)
-		}
-		cherryLogger.Infof("remove watcher [path = %s]", f.monitorPath)
-		f.watcher.Closed <- struct{}{}
+	if f.watcher == nil {
+		return
 	}
+
+	err := f.watcher.Remove(f.monitorPath)
+	cherryLogger.Warnf("remote watcher [path = %s, err = %v]", f.monitorPath, err)
+	//f.watcher.Closed <- struct{}{}
 }
