@@ -320,14 +320,14 @@ func (p *Client) processMessage(msg *cmsg.Message) {
 	if msg.Type == cmsg.Response {
 		value, found := p.responseMaps.LoadAndDelete(msg.ID)
 		if !found {
+			clog.Warnf("callback not found. [msg = %v]", msg)
 			return
 		}
 
 		rspChan, ok := value.(chan *cmsg.Message)
-		if !ok {
-			return
+		if ok {
+			rspChan <- msg
 		}
-		rspChan <- msg
 		return
 	}
 
