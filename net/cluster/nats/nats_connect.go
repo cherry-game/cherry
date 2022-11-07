@@ -37,7 +37,7 @@ func (p *NatsConnect) Connect() {
 	for {
 		conn, err := nats.Connect(p.Address, p.GetNatsOption()...)
 		if err != nil {
-			clog.Warnf("nats connect fail! retrying in 3 seconds. address = %s, err = %s", p.Address, err)
+			clog.Warnf("nats connect fail! retrying in 3 seconds. err = %s", err)
 			time.Sleep(3 * time.Second)
 			continue
 		}

@@ -28,8 +28,8 @@ type (
 		TagName       string           // 客户标识
 		conn          cfacade.INetConn // 连接对象
 		connected     bool             // 是否连接
-		responseMaps  sync.Map         // 响应消息队列 key:ID, value:Message
-		pushMsgMaps   sync.Map         // push消息回调列表 key:route, value: OnMessageFn
+		responseMaps  sync.Map         // 响应消息队列 key:ID, value: chan *Message
+		pushMsgMaps   sync.Map         // push消息回调列表 key:route, value:OnMessageFn
 		nextID        uint32           // 消息自增id
 		closeChan     chan struct{}    // 关闭chan
 		actionChan    chan ActionFn    // 动作执行队列
@@ -145,41 +145,31 @@ func (p *Client) Request(route string, val interface{}) (*cmsg.Message, error) {
 		return nil, err
 	}
 
-	ticker := time.NewTicker(p.requestTimeout)
-	ch := make(chan bool)
+	rspChan := make(chan *cmsg.Message)
+	p.responseMaps.Store(id, rspChan)
 
-	rsp := &cmsg.Message{}
-	go func() {
-		for {
-			if m, found := p.responseMaps.LoadAndDelete(id); found {
-				rsp = m.(*cmsg.Message)
-				ch <- true
-				break
-			}
-		}
-	}()
-
+	timeoutTicker := time.NewTicker(p.requestTimeout)
 	defer func() {
-		ticker.Stop()
+		timeoutTicker.Stop()
 	}()
 
 	select {
-	case <-ch:
+	case rspMsg := <-rspChan:
 		{
-			if rsp.Error {
+			if rspMsg.Error {
 				errRsp := &cproto.Response{}
-				if e := p.serializer.Unmarshal(rsp.Data, errRsp); e != nil {
+				if e := p.serializer.Unmarshal(rspMsg.Data, errRsp); e != nil {
 					return nil, e
 				}
 
 				return nil, cerr.Errorf("[route = %s, statusCode = %d, val = %+v]", route, errRsp.Code, val)
 			} else {
-				return rsp, nil
+				return rspMsg, nil
 			}
 		}
-	case <-ticker.C:
+	case <-timeoutTicker.C:
 		{
-
+			p.responseMaps.Delete(id)
 			return nil, cerr.Errorf("[route = %s, val = %+v] time out", route, val)
 		}
 	}
@@ -328,7 +318,16 @@ func (p *Client) processMessage(msg *cmsg.Message) {
 	}()
 
 	if msg.Type == cmsg.Response {
-		p.responseMaps.Store(msg.ID, msg)
+		value, found := p.responseMaps.LoadAndDelete(msg.ID)
+		if !found {
+			return
+		}
+
+		rspChan, ok := value.(chan *cmsg.Message)
+		if !ok {
+			return
+		}
+		rspChan <- msg
 		return
 	}
 
@@ -358,7 +357,7 @@ func (p *Client) getPackets() ([]cfacade.IPacket, error) {
 	return packets, nil
 }
 
-// Send send the message to the server
+// Send the message to the server
 func (p *Client) Send(msgType cmsg.Type, route string, val interface{}) (uint, error) {
 	data, err := p.serializer.Marshal(val)
 	if err != nil {
