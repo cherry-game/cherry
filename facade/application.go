@@ -48,7 +48,8 @@ type (
 		GetInt(path interface{}, defaultVal ...int) int
 		GetInt32(path interface{}, defaultVal ...int32) int32
 		GetInt64(path interface{}, defaultVal ...int64) int64
-		GetJsonObject(path interface{}, ptrVal interface{}) error
+		MarshalWithPath(path interface{}, ptrVal interface{}) error
+		Marshal(ptrVal interface{}) error
 	}
 )
 

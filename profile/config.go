@@ -1,7 +1,6 @@
 package cherryProfile
 
 import (
-	"encoding/json"
 	cherryError "github.com/cherry-game/cherry/error"
 	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -87,25 +86,26 @@ func (p *Config) GetInt64(path interface{}, defaultVal ...int64) int64 {
 	return result.ToInt64()
 }
 
-func (p *Config) GetJsonObject(path interface{}, ptrVal interface{}) error {
-	str := p.GetString(path, "")
-	if str == "" {
-		return cherryError.Error("get path value is nil.")
+func (p *Config) MarshalWithPath(path interface{}, ptrVal interface{}) error {
+	pathValue := p.Get(path)
+	if pathValue.LastError() != nil {
+		return pathValue.LastError()
 	}
 
 	if creflect.IsPtr(ptrVal) == false {
 		return cherryError.Error("ptrVal type error.")
 	}
 
-	bytes := []byte(str)
-	if json.Valid(bytes) == false {
-		return cherryError.Error("value convert to bytes is error.")
-	}
-
-	err := json.Unmarshal(bytes, ptrVal)
+	err := jsoniter.UnmarshalFromString(pathValue.ToString(), ptrVal)
 	if err != nil {
 		return err
 	}
-
 	return nil
+}
+
+func (p *Config) Marshal(value interface{}) error {
+	if p.LastError() != nil {
+		return p.LastError()
+	}
+	return jsoniter.UnmarshalFromString(p.ToString(), value)
 }
