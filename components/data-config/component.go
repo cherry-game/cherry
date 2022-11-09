@@ -1,7 +1,6 @@
 package cherryDataConfig
 
 import (
-	"fmt"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -34,21 +33,21 @@ func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
 	dataConfig := cprofile.GetConfig("data_config")
 	if dataConfig.LastError() != nil {
-		panic(fmt.Sprintf("`data_config` node in `%s` file not found.", cprofile.FileName()))
+		clog.Fatalf("`data_config` node in `%s` file not found.", cprofile.FileName())
 	}
 
 	// get data source
 	sourceName := dataConfig.GetString("data_source")
 	d.dataSource = GetDataSource(sourceName)
 	if d.dataSource == nil {
-		panic(fmt.Sprintf("[sourceName = %s] data source not found.", sourceName))
+		clog.Fatalf("[sourceName = %s] data source not found.", sourceName)
 	}
 
 	// get parser
 	parserName := dataConfig.GetString("parser")
 	d.parser = GetParser(parserName)
 	if d.parser == nil {
-		panic(fmt.Sprintf("[parserName = %s] parser not found.", parserName))
+		clog.Fatalf("[parserName = %s] parser not found.", parserName)
 	}
 
 	cutils.Try(func() {
