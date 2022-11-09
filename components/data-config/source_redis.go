@@ -9,62 +9,65 @@ import (
 	"github.com/go-redis/redis/v8"
 )
 
-// SourceRedis redis方式获取数据配置
-//
-// 从profile-x.json中获取data_config的属性配置，
-// 如果"data_source"的值为"redis"，则启用redis方式读取数据配置.
-// 通过redis的订阅机制来触发哪个配置有变更，则进行重新加载处理.
-// 程序启动后，会订阅“subscribeKey”，当有变更时，则执行加载.
-type SourceRedis struct {
-	changeFn     ConfigChangeFn
-	close        chan struct{}
-	prefixKey    string
-	subscribeKey string
-	address      string
-	password     string
-	db           int
-	rdb          *redis.Client
-}
+type (
+	// SourceRedis redis方式获取数据配置
+	//
+	// 从profile-x.json中获取data_config的属性配置，
+	// 如果"data_source"的值为"redis"，则启用redis方式读取数据配置.
+	// 通过redis的订阅机制来触发哪个配置有变更，则进行重新加载处理.
+	// 程序启动后，会订阅“subscribeKey”，当有变更时，则执行加载.
+	SourceRedis struct {
+		redisConfig
+		changeFn ConfigChangeFn
+		close    chan bool
+		rdb      *redis.Client
+	}
+
+	redisConfig struct {
+		Address      string `json:"address"`       // redis地址
+		Password     string `json:"password"`      // 密码
+		DB           int    `json:"db"`            // db index
+		PrefixKey    string `json:"prefix_key"`    // 前缀
+		SubscribeKey string `json:"subscribe_key"` // 订阅key
+	}
+)
 
 func (r *SourceRedis) Name() string {
 	return "redis"
 }
 
 func (r *SourceRedis) Init(_ IDataConfig) {
-	r.close = make(chan struct{})
-
 	//read data_config->file node
-	redisConfig := cprofile.GetConfig("data_config").GetConfig(r.Name())
-	if redisConfig.LastError() != nil {
+	dataConfig := cprofile.GetConfig("data_config").GetConfig(r.Name())
+	if dataConfig.Marshal(&r.redisConfig) != nil {
 		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cprofile.FileName())
 		return
 	}
 
-	r.prefixKey = redisConfig.GetString("prefix_key")
-	r.subscribeKey = redisConfig.GetString("subscribe_key")
-	r.address = redisConfig.GetString("address")
-	r.password = redisConfig.GetString("password")
-	r.db = redisConfig.GetInt("db")
+	r.newRedis()
+	r.close = make(chan bool)
 
+	go r.newSubscribe()
+}
+
+func (r *SourceRedis) newRedis() {
 	r.rdb = redis.NewClient(&redis.Options{
-		Addr:     r.address,
-		Password: r.password,
-		DB:       r.db,
+		Addr:     r.Address,
+		Password: r.Password,
+		DB:       r.DB,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
 			clog.Infof("data config for redis connected")
 			return nil
 		},
 	})
-
-	go r.newSubscribe()
 }
 
 func (r *SourceRedis) newSubscribe() {
-	if r.subscribeKey == "" {
+	if r.SubscribeKey == "" {
 		panic("subscribe key is empty.")
 	}
 
-	sub := r.rdb.Subscribe(context.Background(), r.subscribeKey)
+	sub := r.rdb.Subscribe(context.Background(), r.SubscribeKey)
 
 	defer func(sub *redis.PubSub) {
 		err := sub.Close()
@@ -102,7 +105,7 @@ func (r *SourceRedis) ReadBytes(configName string) (data []byte, error error) {
 		return nil, cerr.Error("configName is empty.")
 	}
 
-	key := fmt.Sprintf("%s:%s", r.prefixKey, configName)
+	key := fmt.Sprintf("%s:%s", r.PrefixKey, configName)
 
 	return r.rdb.Get(context.Background(), key).Bytes()
 }
@@ -112,8 +115,8 @@ func (r *SourceRedis) OnChange(fn ConfigChangeFn) {
 }
 
 func (r *SourceRedis) Stop() {
-	clog.Infof("close redis client [address = %s]", r.address)
-	r.close <- struct{}{}
+	clog.Infof("close redis client [address = %s]", r.Address)
+	r.close <- true
 
 	if r.rdb != nil {
 		err := r.rdb.Close()

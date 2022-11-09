@@ -19,13 +19,10 @@ type Component struct {
 	dataSource IDataSource
 	parser     IDataParser
 	configs    []IConfig
-	configMaps map[string]IConfig
 }
 
 func NewComponent() *Component {
-	return &Component{
-		configMaps: make(map[string]IConfig),
-	}
+	return &Component{}
 }
 
 // Name unique components name
@@ -84,10 +81,10 @@ func (d *Component) Init() {
 
 		// on change process
 		d.dataSource.OnChange(func(configName string, data []byte) {
-			configFile := d.GetIConfigFile(configName)
-			if configFile != nil {
-				d.onLoadConfig(configFile, data, true)
-				configFile.OnAfterLoad(true)
+			iConfig := d.GetIConfig(configName)
+			if iConfig != nil {
+				d.onLoadConfig(iConfig, data, true)
+				iConfig.OnAfterLoad(true)
 			}
 		})
 
@@ -115,8 +112,6 @@ func (d *Component) onLoadConfig(cfg IConfig, data []byte, reload bool) {
 	}
 
 	clog.Infof("[config = %s] loaded. [size = %d]", cfg.Name(), size)
-
-	d.configMaps[cfg.Name()] = cfg
 }
 
 func (d *Component) OnStop() {
@@ -138,10 +133,10 @@ func (d *Component) Register(configs ...IConfig) {
 	}
 }
 
-func (d *Component) GetIConfigFile(name string) IConfig {
-	for _, file := range d.configs {
-		if file.Name() == name {
-			return file
+func (d *Component) GetIConfig(name string) IConfig {
+	for _, cfg := range d.configs {
+		if cfg.Name() == name {
+			return cfg
 		}
 	}
 	return nil
