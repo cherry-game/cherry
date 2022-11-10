@@ -1,9 +1,12 @@
 package cherryMessage
 
 import (
-	"fmt"
 	cerr "github.com/cherry-game/cherry/error"
 	"strings"
+)
+
+const (
+	dot = "."
 )
 
 // Route struct
@@ -32,7 +35,7 @@ func NewRoute(nodeType, handleName, method string) *Route {
 
 // String transforms the route into a string
 func (r *Route) String() string {
-	return fmt.Sprintf("%s.%s.%s", r.nodeType, r.handleName, r.method)
+	return r.nodeType + dot + r.handleName + dot + r.method
 }
 
 // DecodeRoute decodes the route
@@ -41,7 +44,7 @@ func DecodeRoute(route string) (*Route, error) {
 		return nil, cerr.RouteFieldCantEmpty
 	}
 
-	r := strings.Split(route, ".")
+	r := strings.Split(route, dot)
 	for _, s := range r {
 		if strings.TrimSpace(s) == "" {
 			return nil, cerr.RouteFieldCantEmpty

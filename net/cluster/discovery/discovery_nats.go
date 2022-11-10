@@ -238,7 +238,7 @@ func (m *DiscoveryNATS) OnStop() {
 			return
 		}
 
-		clog.Debugf("[nodeId = %s] unregister node to [[master = %s]",
+		clog.Debugf("[nodeId = %s] unregister node to [master = %s]",
 			m.NodeId(),
 			m.masterMember.GetNodeId(),
 		)
