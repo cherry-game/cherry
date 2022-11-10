@@ -4,13 +4,13 @@ import (
 	"fmt"
 	ccode "github.com/cherry-game/cherry/code"
 	cerr "github.com/cherry-game/cherry/error"
+	ccrypto "github.com/cherry-game/cherry/extend/crypto"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cmessage "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
-	"math/rand"
 	"reflect"
 	"runtime/debug"
 )
@@ -187,5 +187,6 @@ func printRet(t []reflect.Value) interface{} {
 }
 
 func (p *ExecutorRemote) QueueHash(queueNum int) int {
-	return rand.Intn(queueNum)
+	hash := ccrypto.CRC32(p.rt.String())
+	return hash % queueNum
 }
