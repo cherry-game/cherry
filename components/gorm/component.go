@@ -131,7 +131,7 @@ func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
 
 	sqlDB.SetMaxIdleConns(cfg.MaxIdleConnect)
 	sqlDB.SetMaxOpenConns(cfg.MaxOpenConnect)
-	//sqlDB.SetConnMaxLifetime(time.Minute)
+	sqlDB.SetConnMaxLifetime(time.Minute)
 
 	if cfg.LogMode {
 		return db.Debug(), nil
