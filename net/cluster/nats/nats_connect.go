@@ -57,7 +57,7 @@ func (p *NatsConnect) LoadConfig(config cfacade.JsonConfig) {
 	p.Address = address
 	p.ReconnectDelay = config.GetInt("reconnect_delay")
 	p.MaxReconnects = config.GetInt("max_reconnects")
-	p.RequestTimeout = time.Duration(config.GetInt("request_timeout")) * time.Second
+	p.RequestTimeout = time.Duration(config.GetInt("request_timeout", 1)) * time.Second
 	p.User = config.GetString("user")
 	p.Password = config.GetString("password")
 }
@@ -69,7 +69,9 @@ func (p *NatsConnect) GetNatsOption() []nats.Option {
 		options = append(options, nats.ReconnectWait(time.Duration(p.ReconnectDelay)*time.Second))
 	}
 
-	options = append(options, nats.MaxReconnects(p.MaxReconnects))
+	if p.MaxReconnects > 0 {
+		options = append(options, nats.MaxReconnects(p.MaxReconnects))
+	}
 
 	options = append(options, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
