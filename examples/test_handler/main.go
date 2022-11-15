@@ -30,7 +30,7 @@ func app() {
 	)
 
 	handlerComponent := cherryHandler.NewComponent(
-		cherryHandler.WithNameFunc(strings.ToLower),
+		cherryHandler.WithName(strings.ToLower),
 	)
 	//add TestHandler
 

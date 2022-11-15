@@ -22,13 +22,15 @@ type (
 	Component struct {
 		options
 		cfacade.Component
-		groups []*HandlerGroup
+		groups    []*HandlerGroup
+		closeChan chan bool
 	}
 
 	options struct {
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
+		eventChan     chan cfacade.IEvent
 	}
 
 	Option func(options *options)
@@ -43,7 +45,9 @@ func NewComponent(opts ...Option) *Component {
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn:        strings.ToLower,
+			eventChan:     make(chan cfacade.IEvent, 10240),
 		},
+		closeChan: make(chan bool, 0),
 	}
 
 	for _, opt := range opts {
@@ -58,6 +62,41 @@ func (c *Component) Name() string {
 }
 
 func (c *Component) Init() {
+	go c.runEventChan()
+}
+
+func (c *Component) runEventChan() {
+	var eventInQueueFunc = func(event cfacade.IEvent) {
+		if event == nil {
+			return
+		}
+
+		for _, group := range c.groups {
+			for _, handler := range group.handlers {
+				if eventInfo, found := handler.Event(event.Name()); found {
+					executor := &ExecutorEvent{
+						event:      event,
+						eventSlice: eventInfo.List,
+					}
+					group.InQueue(eventInfo.QueueHash, executor)
+				}
+			}
+		}
+	}
+
+	for {
+		select {
+		case event := <-c.eventChan:
+			{
+				eventInQueueFunc(event)
+			}
+		case <-c.closeChan:
+			{
+				clog.Infof("execute component close chan.")
+				break
+			}
+		}
+	}
 }
 
 func (c *Component) OnAfterInit() {
@@ -68,6 +107,8 @@ func (c *Component) OnAfterInit() {
 }
 
 func (c *Component) OnStop() {
+	c.closeChan <- true
+
 	for _, group := range c.groups {
 		if group == nil {
 			continue
@@ -111,17 +152,7 @@ func (c *Component) PostEvent(event cfacade.IEvent) {
 		return
 	}
 
-	for _, group := range c.groups {
-		for _, handler := range group.handlers {
-			if eventInfo, found := handler.Event(event.Name()); found {
-				executor := &ExecutorEvent{
-					event:      event,
-					eventSlice: eventInfo.List,
-				}
-				group.InQueue(eventInfo.QueueHash, executor)
-			}
-		}
-	}
+	c.eventChan <- event
 }
 
 func (c *Component) GetHandler(handlerName string) (*HandlerGroup, cfacade.IHandler, bool) {
@@ -267,10 +298,18 @@ func WithAfterFilter(afterFilters ...FilterFn) Option {
 	}
 }
 
-func WithNameFunc(fn func(string) string) Option {
+func WithName(fn func(string) string) Option {
 	return func(options *options) {
 		if fn != nil {
 			options.nameFn = fn
+		}
+	}
+}
+
+func WithEventQueueCap(eventQueueCap int) Option {
+	return func(options *options) {
+		if eventQueueCap > 0 {
+			options.eventChan = make(chan cfacade.IEvent, eventQueueCap)
 		}
 	}
 }
