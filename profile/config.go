@@ -5,6 +5,7 @@ import (
 	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
+	"time"
 )
 
 type (
@@ -84,6 +85,11 @@ func (p *Config) GetInt64(path interface{}, defaultVal ...int64) int64 {
 	}
 
 	return result.ToInt64()
+}
+
+func (p *Config) GetDuration(path interface{}, defaultVal ...int64) time.Duration {
+	v := p.GetInt64(path, defaultVal...)
+	return time.Duration(v)
 }
 
 func (p *Config) MarshalWithPath(path interface{}, ptrVal interface{}) error {

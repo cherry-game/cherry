@@ -1,6 +1,9 @@
 package cherryFacade
 
-import jsoniter "github.com/json-iterator/go"
+import (
+	jsoniter "github.com/json-iterator/go"
+	"time"
+)
 
 type (
 
@@ -48,6 +51,7 @@ type (
 		GetInt(path interface{}, defaultVal ...int) int
 		GetInt32(path interface{}, defaultVal ...int32) int32
 		GetInt64(path interface{}, defaultVal ...int64) int64
+		GetDuration(path interface{}, defaultVal ...int64) time.Duration
 		MarshalWithPath(path interface{}, ptrVal interface{}) error
 		Marshal(ptrVal interface{}) error
 	}
