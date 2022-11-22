@@ -38,9 +38,11 @@ func (n *NatsRPCClient) Publish(subject string, data []byte) error {
 func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.Push) error {
 	nodeType, err := cdiscovery.GetType(frontendId)
 	if err != nil {
-		clog.Warnf("[PublishPush] get nodeType fail. [frontendId = %s, push = {%+v}, err = %v]",
+		clog.Warnf("[PublishPush] get nodeType fail. [frontendId = %s, route = %s, uid = %d, dataLen = %d, err = %v]",
 			frontendId,
-			push,
+			push.Route,
+			push.Uid,
+			len(push.Data),
 			err,
 		)
 		return err
@@ -55,9 +57,11 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[PublishPush] [frontendId = %s, push = {%+v}, err= %v]",
+		clog.Debugf("[PublishPush] [frontendId = %s, route = %s, uid = %d, dataLen = %d, err= %v]",
 			frontendId,
-			push,
+			push.Route,
+			push.Uid,
+			len(push.Data),
 			err,
 		)
 	}
