@@ -9,6 +9,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cmessage "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
 	"reflect"
@@ -147,7 +148,7 @@ func (p *ExecutorRemote) natsResponse(rsp *cproto.Response) {
 		return
 	}
 
-	rspData, _ := p.Marshal(rsp)
+	rspData, _ := proto.Marshal(rsp)
 	err := p.natsMsg.Respond(rspData)
 	if err != nil {
 		clog.Warn(err)
