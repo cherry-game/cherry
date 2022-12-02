@@ -35,8 +35,8 @@
 
 > nats为高性能的分布式消息中间件，详情可通过`https://github.com/nats-io/nats-server` 进行了解 <br />
 > 本框架中所有节点都基于nats进行消息通信 <br />
-> 单机版nats执行程序在`examples/game_cluster/misc/nats-server`目录中 <br />
-> 正式环境请使用集群nats部署
+> 单机版nats执行程序在`examples/3rd/nats-server`目录中 <br />
+> 正式环境请使用集群nats-streaming-server进行部署 `https://github.com/nats-io/nats-streaming-server`
 
 - 操作步骤:
 - 找到`run_nats.bat`，右键点击`Run cmd script`运行单机版`nats`
@@ -121,9 +121,6 @@
     - `session_key` 一些session相关的常量定义
     - `token` 登录token逻辑，包含生成token、验证token
     - `types` 各种自定义类型封装,方便struct从配置文件、数据库读取数据时进行序列化、反序列化
-
-- `misc` 杂项目录
-    - `nats-server` nats服务端程序(生产环境请使用集群版nats)
 
 - `nodes` 分布式节点目录
     - `center`节点

@@ -21,7 +21,7 @@
   "node": {
     "master": [
       {
-        "node_id": "gc-master",
+        "node_id": "chat-master",
         "address": "",
         "__settings__": {
           "ref_logger": "master_log"

@@ -7,17 +7,50 @@
     "common/logger.json"
   ],
   "@include" : "include用于引用其他的配置文件。多环境配置的开发过程中可以抽像一些通用的配置",
+  "cluster": {
+    "discovery": {
+      "mode": "nats",
+      "@mode1": "mode=default,从profile-{x}.json读取node节点的配置数据",
+      "@mode2": "mode=nats,通过nats->master_node_id获取已注册的节点",
+      "@mode3": "mode=etcd,通过etcd同步已注册节点"
+    },
+    "nats": {
+      "master_node_id": "chat-master",
+      "address": "nats://127.0.0.1:4222",
+      "reconnect_delay": 1,
+      "max_reconnects": 0,
+      "request_timeout": 2,
+      "user": "",
+      "password": ""
+    }
+  },
   "node": {
-    "game": [
+    "master": [
       {
         "enable": true,
-        "node_id": "game-1",
-        "@node_id": "聊天室的节点id，每个启动的进程都有一个节点id",
-        "address": ":34590",
-        "@address": "聊天室服务端的监听端口",
+        "node_id": "chat-master",
+        "address": "",
         "__settings__": {
-          "ref_logger": "game_log",
-          "@ref_logger": "引用的日志配置，详见common/logger.json的game_log配置参数"
+          "ref_logger": "master_log"
+        }
+      }
+    ],
+    "room": [
+      {
+        "enable": true,
+        "node_id": "room-1",
+        "address": ":34590",
+        "__settings__": {
+          "ref_logger": "room_log"
+        }
+      }
+    ],
+    "log": [
+      {
+        "enable": true,
+        "node_id": "log-1",
+        "__settings__": {
+          "ref_logger": "log_log"
         }
       }
     ]

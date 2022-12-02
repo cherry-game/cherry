@@ -1,0 +1,1 @@
+nats-server.exe

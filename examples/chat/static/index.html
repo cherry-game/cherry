@@ -30,7 +30,7 @@
         $("#sendMsg").click(function () {
             var inputMsg = $("#inputMsg").val();
 
-            pomelo.notify('game.roomHandler.syncMessage', {
+            pomelo.notify('room.roomHandler.syncMessage', {
                 name: nickname,
                 content: inputMsg
             });
@@ -47,7 +47,7 @@
             pomelo.on("onBalance", onBalance);
 
             // request login
-            pomelo.request("game.userHandler.login", {"nickname": nickname}, function (data) {
+            pomelo.request("room.userHandler.login", {"nickname": nickname}, function (data) {
                 console.log(data);
                 if (data.code === 0) {
                     pomelo.on('onMessage', onMessage);

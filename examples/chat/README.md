@@ -1,4 +1,4 @@
-# 单节点聊天室示例
+# 多节点精简版聊天室示例
 
 - 使用cherry引擎构建一个简单的多人聊天室程序
 - 建议使用GoLand打开源码
@@ -19,9 +19,11 @@
 
 - 使用`GoLand`打开源码
 - 找到`/examples/chat/`目录
-- 双击打开`main.go`
-- 点击第11行的绿色箭头，选择`Debug go build github.com/...`
-- 程序调试已经启动，查看GoLand下面的`Console`面板，显示`application is running.`文字则表示成功
+- 启动nats服务`3rd/nat-server/run_nats.bat`
+- 启动master节点`master/main.go`
+- 启动log节点`log/main.go`
+- 启动room节点`room/main.go`
+- 访问`http://127.0.0.1:80`
 
 ### 测试
 
@@ -31,12 +33,11 @@
 
 ### 源码
 
+- `log` 目录为日志服节点(演示rpc接收消息并返回)
+- `master` 发现服务, master节点
+- `protocol` 通信协议,json序列化
+- `room` 房间服节点
 - `static`目录为h5客户端静态文件，包含html和js版的客户端协议
-- `main.go` 主函数
-- `protocol.go` 与客户端通信的协议结构(json方式)
-- `room_handler.go` 房间handler处理
-- `topic_service.go` 服务类
-- `user_handler.go` 用户handler处理
 
 ### 配置
 

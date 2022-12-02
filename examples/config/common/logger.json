@@ -16,6 +16,27 @@
       "file_link_path": "logs/game.link",
       "file_path_format": "logs/game_%Y%m%d%H%M.log"
     },
+    "master_log": {
+      "level": "debug",
+      "enable_console": true,
+      "enable_write_file": false,
+      "file_link_path": "logs/master.log",
+      "file_path_format": "logs/master_%Y%m%d%H%M.log"
+    },
+    "room_log": {
+      "level": "debug",
+      "enable_console": true,
+      "enable_write_file": false,
+      "file_link_path": "logs/room.log",
+      "file_path_format": "logs/room_%Y%m%d%H%M.log"
+    },
+    "log_log": {
+      "level": "debug",
+      "enable_console": true,
+      "enable_write_file": false,
+      "file_link_path": "logs/log.log",
+      "file_path_format": "logs/log_%Y%m%d%H%M.log"
+    },
     "test_handler": {
       "level": "debug",
       "enable_console": false,
