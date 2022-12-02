@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	roundAtomicId = atomic.Int64{}
+	roundAtomicId int64 = 0
 )
 
 // RandomQueueHash 随机handler queue
@@ -17,5 +17,6 @@ func RandomQueueHash(_ cfacade.IExecutor, queueNum int) int {
 
 // RoundQueueHash 轮询handler queue
 func RoundQueueHash(_ cfacade.IExecutor, queueNum int) int {
-	return int(roundAtomicId.Add(1) % int64(queueNum))
+	atomicId := atomic.AddInt64(&roundAtomicId, 1)
+	return int(atomicId % int64(queueNum))
 }

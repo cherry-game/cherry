@@ -1,9 +1,9 @@
 package guid
 
-import "go.uber.org/atomic"
+import "sync/atomic"
 
 var (
-	nextId = &atomic.Int64{}
+	nextId int64 = 0
 )
 
 // Next 生成唯一id
@@ -12,5 +12,5 @@ var (
 // snowflake
 // redis
 func Next() int64 {
-	return nextId.Inc()
+	return atomic.AddInt64(&nextId, 1)
 }
