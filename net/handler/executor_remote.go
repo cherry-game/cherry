@@ -1,7 +1,6 @@
 package cherryHandler
 
 import (
-	"fmt"
 	ccode "github.com/cherry-game/cherry/code"
 	cerr "github.com/cherry-game/cherry/error"
 	ccrypto "github.com/cherry-game/cherry/extend/crypto"
@@ -37,14 +36,14 @@ func (p *ExecutorRemote) Data() []byte {
 
 func (p *ExecutorRemote) invoke0() []reflect.Value {
 	var params []reflect.Value
-	ret := p.handlerFn.Value.Call(params)
+	rets := p.handlerFn.Value.Call(params)
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[remote0] [route = %s, req = null, rsp = %+v",
 			p.rt.String(),
-			printRet(ret),
+			rets,
 		)
 	}
-	return ret
+	return rets
 }
 
 func (p *ExecutorRemote) invoke1() []reflect.Value {
@@ -61,16 +60,16 @@ func (p *ExecutorRemote) invoke1() []reflect.Value {
 	params = make([]reflect.Value, 1)
 	params[0] = reflect.ValueOf(val)
 
-	ret := p.handlerFn.Value.Call(params)
+	rets := p.handlerFn.Value.Call(params)
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[remote1] call result. [route = %s, req = %v, rsp = %+v]",
 			p.rt.String(),
 			params[0],
-			printRet(ret),
+			rets,
 		)
 	}
 
-	return ret
+	return rets
 }
 
 func (p *ExecutorRemote) Invoke() {
@@ -92,19 +91,18 @@ func (p *ExecutorRemote) Invoke() {
 		return
 	}
 
-	var ret []reflect.Value
-
+	var rets []reflect.Value
 	if argsLen == 0 {
-		ret = p.invoke0()
+		rets = p.invoke0()
 	} else if argsLen == 1 {
-		ret = p.invoke1()
+		rets = p.invoke1()
 	}
 
-	p.response(ret)
+	p.response(rets)
 }
 
-func (p *ExecutorRemote) response(ret []reflect.Value) {
-	if ret == nil {
+func (p *ExecutorRemote) response(rets []reflect.Value) {
+	if rets == nil {
 		p.natsResponse(&cproto.Response{
 			Code: ccode.RPCRemoteExecuteError,
 		})
@@ -115,21 +113,23 @@ func (p *ExecutorRemote) response(ret []reflect.Value) {
 		Code: ccode.OK,
 	}
 
-	if len(ret) == 1 {
-		if val := ret[0].Interface(); val != nil {
-			if code, ok := val.(int32); ok {
-				rsp.Code = code
+	retLen := len(rets)
+
+	if retLen == 1 {
+		if val := rets[0].Interface(); val != nil {
+			if c, ok := val.(int32); ok {
+				rsp.Code = c
 			}
 		}
-	} else if len(ret) == 2 {
-		if val := ret[1].Interface(); val != nil {
-			if code, ok := val.(int32); ok {
-				rsp.Code = code
+	} else if retLen == 2 {
+		if val := rets[1].Interface(); val != nil {
+			if c, ok := val.(int32); ok {
+				rsp.Code = c
 			}
 		}
 
-		if ret[0].IsNil() == false {
-			data, err := p.Marshal(ret[0].Interface())
+		if rets[0].IsNil() == false {
+			data, err := p.Marshal(rets[0].Interface())
 			if err != nil {
 				rsp.Code = ccode.RPCRemoteExecuteError
 				clog.Warn(err)
@@ -170,21 +170,6 @@ func (p *ExecutorRemote) UnmarshalData() (interface{}, error) {
 	}
 
 	return val, err
-}
-
-func printRet(t []reflect.Value) interface{} {
-	switch len(t) {
-	case 1:
-		{
-			return fmt.Sprintf("%v", t[0].Interface())
-		}
-	case 2:
-		{
-			return fmt.Sprintf("%v, %v", t[0].Interface(), t[0].Interface())
-		}
-	}
-
-	return ""
 }
 
 func (p *ExecutorRemote) QueueHash(queueNum int) int {

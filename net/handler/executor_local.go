@@ -2,6 +2,7 @@ package cherryHandler
 
 import (
 	"context"
+	cherryCode "github.com/cherry-game/cherry/code"
 	ccrypto "github.com/cherry-game/cherry/extend/crypto"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -60,7 +61,7 @@ func (p *ExecutorLocal) Invoke() {
 	}
 
 	var params []reflect.Value
-	var ret []reflect.Value
+	var rets []reflect.Value
 
 	if p.handlerFn.IsRaw {
 		params = make([]reflect.Value, argsLen)
@@ -68,14 +69,14 @@ func (p *ExecutorLocal) Invoke() {
 		params[1] = reflect.ValueOf(p.session)
 		params[2] = reflect.ValueOf(p.msg)
 
-		ret = p.handlerFn.Value.Call(params)
+		rets = p.handlerFn.Value.Call(params)
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.msg.Route,
 				p.msg.ID,
 				p.msg.Data,
-				printRet(ret),
+				rets,
 			)
 		}
 	} else {
@@ -96,63 +97,53 @@ func (p *ExecutorLocal) Invoke() {
 			params[2] = reflect.ValueOf(val)
 		}
 
-		ret = p.handlerFn.Value.Call(params)
+		rets = p.handlerFn.Value.Call(params)
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			p.session.Debugf("[local] [groupIndex = %d, route = %s, mid = %d, req = %+v, rsp = %+v]",
 				p.groupIndex,
 				p.msg.Route,
 				p.msg.ID,
 				val,
-				printRet(ret),
+				rets,
 			)
 		}
 	}
 
 	if p.msg.Type == cmsg.Request {
-		retLen := len(ret)
+		retLen := len(rets)
 
-		switch retLen {
-		case 1:
-			{
-				if face := ret[0].Interface(); face != nil {
-					if code, ok := face.(int32); ok {
-						rsp := &cproto.Response{
-							Code: code,
-						}
-						p.session.ResponseMID(p.msg.ID, rsp, true)
-					}
-				}
-				break
+		if retLen == 1 {
+			p.responseCode(rets[0])
+		} else if retLen == 2 {
+			if rets[0].IsNil() {
+				p.responseCode(rets[1])
+			} else {
+				p.session.ResponseMID(p.msg.ID, rets[0].Interface())
 			}
-		case 2:
-			{
-				if ret[0].IsNil() {
-					if face := ret[1].Interface(); face != nil {
-						if code, ok := face.(int32); ok {
-							rsp := &cproto.Response{
-								Code: code,
-							}
-
-							p.session.ResponseMID(p.msg.ID, rsp, true)
-						} else {
-							p.session.Warn(face)
-						}
-					} else {
-						p.session.Warnf("ret value type error. [type = %+v]", ret)
-					}
-				} else {
-					p.session.ResponseMID(p.msg.ID, ret[0].Interface())
-				}
-				break
-			}
-		default:
-			{
-				p.session.Warnf("[local] response type error. ret = %+v", ret)
-				break
-			}
+		} else {
+			p.session.Warnf("[local] response type error. [route = %s, ret = %+v]", p.msg.Route, rets)
 		}
 	}
 
+	p.executeAfterFilters()
+}
+
+func (p *ExecutorLocal) responseCode(ret reflect.Value) {
+	if v := ret.Interface(); v != nil {
+		if c, ok := v.(int32); ok {
+			rsp := &cproto.Response{
+				Code: c,
+			}
+			p.session.ResponseMID(p.msg.ID, rsp, cherryCode.IsFail(c))
+		} else {
+			p.session.Warn(v)
+		}
+	} else {
+		p.session.Warnf("[local] response type error. [route = %s, ret = %+v]", p.msg.Route, ret)
+	}
+}
+
+func (p *ExecutorLocal) executeAfterFilters() {
 	for _, filter := range p.afterFilters {
 		if !filter(p.ctx, p.session, p.msg) {
 			break

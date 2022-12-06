@@ -162,7 +162,7 @@ func (p *Client) Request(route string, val interface{}) (*cmsg.Message, error) {
 					return nil, e
 				}
 
-				return nil, cerr.Errorf("[route = %s, statusCode = %d, val = %+v]", route, errRsp.Code, val)
+				return nil, cerr.Errorf("[route = %s, statusCode = %d, req = %+v]", route, errRsp.Code, val)
 			} else {
 				return rspMsg, nil
 			}
@@ -170,7 +170,7 @@ func (p *Client) Request(route string, val interface{}) (*cmsg.Message, error) {
 	case <-timeoutTicker.C:
 		{
 			p.responseMaps.Delete(id)
-			return nil, cerr.Errorf("[route = %s, val = %+v] time out", route, val)
+			return nil, cerr.Errorf("[route = %s, req = %+v] time out", route, val)
 		}
 	}
 }
