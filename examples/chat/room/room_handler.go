@@ -21,7 +21,7 @@ func (h *roomHandler) OnInit() {
 	csession.AddOnCreateListener(h.disconnected)
 }
 
-func (h *roomHandler) syncMessage(s *csession.Session, req *protocol.SyncMessage) error {
+func (h *roomHandler) syncMessage(s *csession.Session, req *protocol.SyncMessage) {
 	// Send an RPC to master server to stats
 	stats(s, s.UID())
 
@@ -30,7 +30,10 @@ func (h *roomHandler) syncMessage(s *csession.Session, req *protocol.SyncMessage
 	clog.Infof("--------> write code = %d, response = %+v", writeCode, rsp)
 
 	// Sync message to all members in this room
-	return group.Broadcast("onMessage", req)
+	err := group.Broadcast("onMessage", req)
+	if err != nil {
+		clog.Error(err)
+	}
 }
 
 func (h *roomHandler) disconnected(session *csession.Session) (next bool) {
