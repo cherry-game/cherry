@@ -112,16 +112,16 @@ func (p *ExecutorLocal) Invoke() {
 	if p.msg.Type == cmsg.Request {
 		retLen := len(rets)
 
-		if retLen == 1 {
-			p.responseCode(rets[0])
-		} else if retLen == 2 {
-			if rets[0].IsNil() {
-				p.responseCode(rets[1])
-			} else {
-				p.session.ResponseMID(p.msg.ID, rets[0].Interface())
+		if retLen > 0 {
+			if retLen == 1 {
+				p.responseCode(rets[0])
+			} else if retLen == 2 {
+				if rets[0].IsNil() {
+					p.responseCode(rets[1])
+				} else {
+					p.session.ResponseMID(p.msg.ID, rets[0].Interface())
+				}
 			}
-		} else {
-			p.session.Warnf("[local] response type error. [route = %s, ret = %+v]", p.msg.Route, rets)
 		}
 	}
 
