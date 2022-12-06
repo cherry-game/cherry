@@ -111,23 +111,44 @@ func (p *ExecutorLocal) Invoke() {
 	if p.msg.Type == cmsg.Request {
 		retLen := len(ret)
 
-		if retLen == 2 {
-			if ret[0].IsNil() {
-				if face := ret[1].Interface(); face != nil {
+		switch retLen {
+		case 1:
+			{
+				if face := ret[0].Interface(); face != nil {
 					if code, ok := face.(int32); ok {
 						rsp := &cproto.Response{
 							Code: code,
 						}
-
 						p.session.ResponseMID(p.msg.ID, rsp, true)
+					}
+				}
+				break
+			}
+		case 2:
+			{
+				if ret[0].IsNil() {
+					if face := ret[1].Interface(); face != nil {
+						if code, ok := face.(int32); ok {
+							rsp := &cproto.Response{
+								Code: code,
+							}
+
+							p.session.ResponseMID(p.msg.ID, rsp, true)
+						} else {
+							p.session.Warn(face)
+						}
 					} else {
-						p.session.Warn(face)
+						p.session.Warnf("ret value type error. [type = %+v]", ret)
 					}
 				} else {
-					p.session.Warnf("ret value type error. [type = %+v]", ret)
+					p.session.ResponseMID(p.msg.ID, ret[0].Interface())
 				}
-			} else {
-				p.session.ResponseMID(p.msg.ID, ret[0].Interface())
+				break
+			}
+		default:
+			{
+				p.session.Warnf("[local] response type error. ret = %+v", ret)
+				break
 			}
 		}
 	}
