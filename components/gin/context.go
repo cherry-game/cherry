@@ -141,6 +141,15 @@ func (g *Context) PostInt(name string, defaultValue int) int {
 	return defaultValue
 }
 
+func (g *Context) PostInt32(name string, defaultValue int32) int32 {
+	if value, ok := g.GetPostForm(name); ok {
+		if v, k := cstring.ToInt32(value); k {
+			return v
+		}
+	}
+	return defaultValue
+}
+
 func (g *Context) PostInt64(name string, defaultValue int64) int64 {
 	if value, ok := g.GetPostForm(name); ok {
 		if v, k := cstring.ToInt64(value); k {
