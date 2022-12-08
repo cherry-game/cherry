@@ -75,11 +75,12 @@ func RequestRemote(nodeId string, route string, arg, reply interface{}, timeout 
 		return rsp.Code
 	}
 
-	if reply != nil {
+	if reply != nil && rsp.Data != nil {
 		if err = _thisApp.Unmarshal(rsp.Data, reply); err != nil {
-			clog.Warnf("[RequestRemote] reply unmarshal error. [nodeId = %s, route = %s, err = %+v]",
+			clog.Warnf("[RequestRemote] reply unmarshal error. [nodeId = %s, route = %s, data = %+v, err = %+v]",
 				nodeId,
 				route,
+				rsp.Data,
 				err,
 			)
 			return ccode.RPCUnmarshalError
