@@ -69,7 +69,7 @@ func createConnector(app cherryFacade.IApplication) {
 //}
 
 func registerHandlers() {
-	userGroup := cherryHandler.NewGroup(512, 512)
+	userGroup := cherryHandler.NewGroup(1024, 1024)
 	userGroup.AddHandlers(&UserHandler{})
 	cherry.RegisterHandlerGroup(userGroup)
 }
