@@ -4,6 +4,7 @@ import (
 	"context"
 	ccode "github.com/cherry-game/cherry/code"
 	cconst "github.com/cherry-game/cherry/const"
+	cherryQueue "github.com/cherry-game/cherry/extend/queue"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	ccontext "github.com/cherry-game/cherry/net/context"
@@ -11,6 +12,7 @@ import (
 	csession "github.com/cherry-game/cherry/net/session"
 	"github.com/nats-io/nats.go"
 	"strings"
+	"time"
 )
 
 const (
@@ -22,15 +24,15 @@ type (
 	Component struct {
 		options
 		cfacade.Component
-		groups    []*HandlerGroup
-		closeChan chan bool
+		closeChan  chan bool
+		groups     []*HandlerGroup
+		eventQueue *cherryQueue.Queue
 	}
 
 	options struct {
 		beforeFilters []FilterFn
 		afterFilters  []FilterFn
 		nameFn        func(string) string
-		eventChan     chan cfacade.IEvent
 	}
 
 	Option func(options *options)
@@ -45,9 +47,9 @@ func NewComponent(opts ...Option) *Component {
 			beforeFilters: make([]FilterFn, 0),
 			afterFilters:  make([]FilterFn, 0),
 			nameFn:        strings.ToLower,
-			eventChan:     make(chan cfacade.IEvent, 10240),
 		},
-		closeChan: make(chan bool, 0),
+		closeChan:  make(chan bool, 0),
+		eventQueue: cherryQueue.NewQueue(),
 	}
 
 	for _, opt := range opts {
@@ -65,9 +67,15 @@ func (c *Component) Init() {
 	go c.runEventChan()
 }
 
-func (c *Component) runEventChan() {
-	var eventInQueueFunc = func(event cfacade.IEvent) {
-		if event == nil {
+func (c *Component) postEventToQueue(num int) {
+	for i := 0; i < num; i++ {
+		e, ok := c.eventQueue.Pop()
+		if !ok {
+			return
+		}
+
+		event, ok := e.(cfacade.IEvent)
+		if !ok {
 			return
 		}
 
@@ -83,15 +91,21 @@ func (c *Component) runEventChan() {
 			}
 		}
 	}
+}
+
+func (c *Component) runEventChan() {
+	postTicker := time.NewTicker(10 * time.Millisecond)
+	postNum := 1000
 
 	for {
 		select {
-		case event := <-c.eventChan:
+		case <-postTicker.C:
 			{
-				eventInQueueFunc(event)
+				c.postEventToQueue(postNum)
 			}
 		case <-c.closeChan:
 			{
+				postTicker.Stop()
 				clog.Infof("execute component close chan.")
 				break
 			}
@@ -152,7 +166,8 @@ func (c *Component) PostEvent(event cfacade.IEvent) {
 		return
 	}
 
-	c.eventChan <- event
+	c.eventQueue.Push(event)
+	//c.eventChan <- event
 }
 
 func (c *Component) GetHandler(handlerName string) (*HandlerGroup, cfacade.IHandler, bool) {
@@ -309,7 +324,7 @@ func WithName(fn func(string) string) Option {
 func WithEventQueueCap(eventQueueCap int) Option {
 	return func(options *options) {
 		if eventQueueCap > 0 {
-			options.eventChan = make(chan cfacade.IEvent, eventQueueCap)
+			//options.eventChan = make(chan cfacade.IEvent, eventQueueCap)
 		}
 	}
 }
