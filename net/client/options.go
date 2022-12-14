@@ -11,7 +11,7 @@ type (
 		codec          cfacade.IPacketCodec // packet codec
 		heartBeat      int                  // second
 		requestTimeout time.Duration        // Send request timeout
-		handshake      string               // hand shake content
+		handshake      string               // handshake content
 		isErrorBreak   bool                 // an error occurs,is it break
 	}
 

@@ -29,7 +29,7 @@ type (
 		conn          cfacade.INetConn // 连接对象
 		connected     bool             // 是否连接
 		responseMaps  sync.Map         // 响应消息队列 key:ID, value: chan *Message
-		pushMsgMaps   sync.Map         // push消息回调列表 key:route, value:OnMessageFn
+		pushBindMaps  sync.Map         // push消息绑定列表 key:route, value:OnMessageFn
 		nextID        uint32           // 消息自增id
 		closeChan     chan struct{}    // 关闭chan
 		actionChan    chan ActionFn    // 动作执行队列
@@ -53,7 +53,7 @@ func New(opts ...Option) *Client {
 			isErrorBreak:   true,
 		},
 		responseMaps:  sync.Map{},
-		pushMsgMaps:   sync.Map{},
+		pushBindMaps:  sync.Map{},
 		nextID:        0,
 		closeChan:     make(chan struct{}),
 		actionChan:    make(chan ActionFn, 128),
@@ -145,29 +145,28 @@ func (p *Client) Request(route string, val interface{}) (*cmsg.Message, error) {
 		return nil, err
 	}
 
-	rspChan := make(chan *cmsg.Message)
-	p.responseMaps.Store(id, rspChan)
+	reqCtx := NewRequestContext(p.requestTimeout)
+	p.responseMaps.Store(id, &reqCtx)
 
-	timeoutTicker := time.NewTicker(p.requestTimeout)
 	defer func() {
-		timeoutTicker.Stop()
+		reqCtx.Close()
 	}()
 
 	select {
-	case rspMsg := <-rspChan:
+	case rsp := <-reqCtx.Chan:
 		{
-			if rspMsg.Error {
+			if rsp.Error {
 				errRsp := &cproto.Response{}
-				if e := p.serializer.Unmarshal(rspMsg.Data, errRsp); e != nil {
+				if e := p.serializer.Unmarshal(rsp.Data, errRsp); e != nil {
 					return nil, e
 				}
 
 				return nil, cerr.Errorf("[route = %s, statusCode = %d, req = %+v]", route, errRsp.Code, val)
 			} else {
-				return rspMsg, nil
+				return rsp, nil
 			}
 		}
-	case <-timeoutTicker.C:
+	case <-reqCtx.C:
 		{
 			p.responseMaps.Delete(id)
 			return nil, cerr.Errorf("[route = %s, req = %+v] time out", route, val)
@@ -187,7 +186,7 @@ func (p *Client) Notify(route string, val interface{}) error {
 
 // On listener route
 func (p *Client) On(route string, fn OnMessageFn) {
-	p.pushMsgMaps.Store(route, fn)
+	p.pushBindMaps.Store(route, fn)
 }
 
 // IsConnected return the connection status
@@ -324,15 +323,16 @@ func (p *Client) processMessage(msg *cmsg.Message) {
 			return
 		}
 
-		rspChan, ok := value.(chan *cmsg.Message)
+		reqCtx, ok := value.(*RequestContext)
 		if ok {
-			rspChan <- msg
+			reqCtx.Chan <- msg
 		}
+
 		return
 	}
 
 	if msg.Type == cmsg.Push {
-		value, found := p.pushMsgMaps.Load(msg.Route)
+		value, found := p.pushBindMaps.Load(msg.Route)
 		if found {
 			fn, ok := value.(OnMessageFn)
 			if ok {
