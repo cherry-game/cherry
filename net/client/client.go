@@ -332,7 +332,7 @@ func (p *Client) processMessage(msg *cmsg.Message) {
 	}
 
 	if msg.Type == cmsg.Push {
-		value, found := p.pushMsgMaps.LoadAndDelete(msg.Route)
+		value, found := p.pushMsgMaps.Load(msg.Route)
 		if found {
 			fn, ok := value.(OnMessageFn)
 			if ok {
