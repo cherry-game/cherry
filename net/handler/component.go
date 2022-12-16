@@ -94,8 +94,8 @@ func (c *Component) postEventToQueue(num int) {
 }
 
 func (c *Component) runEventChan() {
-	postTicker := time.NewTicker(10 * time.Millisecond)
-	postNum := 1000
+	postTicker := time.NewTicker(1 * time.Millisecond)
+	postNum := 100
 
 	for {
 		select {

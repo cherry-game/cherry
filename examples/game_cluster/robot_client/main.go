@@ -73,7 +73,7 @@ func RunRobot(url, pid, userName, password, addr string, serverId int32, printLo
 	// 创建客户端
 	cli := New(
 		cherryClient.New(
-			cherryClient.WithRequestTimeout(3*time.Second),
+			cherryClient.WithRequestTimeout(10*time.Second),
 			cherryClient.WithErrorBreak(true),
 		),
 	)
