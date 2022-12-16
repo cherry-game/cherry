@@ -10,7 +10,6 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cpkg "github.com/cherry-game/cherry/net/packet"
 	csession "github.com/cherry-game/cherry/net/session"
-	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap/zapcore"
 	"sync"
 	"sync/atomic"
@@ -77,7 +76,7 @@ func (a *Agent) SendRaw(bytes []byte) {
 	a.chWrite <- bytes
 }
 
-func (a *Agent) RPC(nodeId string, route string, req proto.Message, _ proto.Message) int32 {
+func (a *Agent) RPC(nodeId string, route string, req, _ interface{}) int32 {
 	clog.Errorf("[RPC] cluster no implement. [nodeId = %s, route = %s, req = {%+v}]", nodeId, route, req)
 	return ccode.OK
 }

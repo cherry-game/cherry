@@ -8,7 +8,6 @@ import (
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	csession "github.com/cherry-game/cherry/net/session"
-	"github.com/gogo/protobuf/proto"
 )
 
 type AgentBackend struct {
@@ -124,7 +123,7 @@ func (a *AgentBackend) Response(mid uint, val interface{}, isError ...bool) {
 	}
 }
 
-func (a *AgentBackend) RPC(nodeId string, route string, req proto.Message, rsp proto.Message) int32 {
+func (a *AgentBackend) RPC(nodeId string, route string, req, rsp interface{}) int32 {
 	if _, err := cmsg.DecodeRoute(route); err != nil {
 		a.session.Errorf("[RPC] decode route fail. [nodeId = %s, route = %s, req = %+v, err = %v]",
 			nodeId,
