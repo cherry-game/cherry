@@ -21,10 +21,10 @@ type TestHandler struct {
 func (t *TestHandler) OnInit() {
 	t.AddEvent("testEventName", t.testEvent)
 
-	t.AddLocals(
-		t.testMethod1,
-		t.testMethod2,
-	)
+	var methods []interface{}
+	methods = append(methods, t.testMethod1)
+	methods = append(methods, t.testMethod2)
+	t.AddLocals(methods)
 
 	t.AddLocal("testLocalMethod", t.testLocalMethod)
 	t.AddRemote("testRemoteMethod", t.testRemoteMethod)

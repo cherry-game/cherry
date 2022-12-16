@@ -81,14 +81,14 @@ func (h *Handler) Component() *Component {
 	return h.handlerComponent
 }
 
-func (h *Handler) AddLocals(localFns ...interface{}) {
+func (h *Handler) AddLocals(localFns []interface{}, hashFn ...cfacade.QueueHashFn) {
 	for _, fn := range localFns {
 		funcName := creflect.GetFuncName(fn)
 		if funcName == "" {
 			clog.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
-		h.AddLocal(funcName, fn)
+		h.AddLocal(funcName, fn, hashFn...)
 	}
 }
 
@@ -112,14 +112,14 @@ func (h *Handler) AddLocalWithNames(names []string, fn interface{}, hashFn ...cf
 	}
 }
 
-func (h *Handler) AddRemotes(remoteFns ...interface{}) {
+func (h *Handler) AddRemotes(remoteFns []interface{}, hashFn ...cfacade.QueueHashFn) {
 	for _, fn := range remoteFns {
 		funcName := creflect.GetFuncName(fn)
 		if funcName == "" {
 			clog.Warnf("get function name fail. fn=%v", fn)
 			continue
 		}
-		h.AddRemote(funcName, fn)
+		h.AddRemote(funcName, fn, hashFn...)
 	}
 }
 
