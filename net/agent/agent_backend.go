@@ -14,14 +14,12 @@ type AgentBackend struct {
 	cfacade.IApplication
 	rpcClient cfacade.RPCClient
 	session   *csession.Session
-	ip        string
 }
 
-func NewAgentBackend(app cfacade.IApplication, rpcClient cfacade.RPCClient, ip string) AgentBackend {
+func NewAgentBackend(app cfacade.IApplication, rpcClient cfacade.RPCClient) AgentBackend {
 	return AgentBackend{
 		IApplication: app,
 		rpcClient:    rpcClient,
-		ip:           ip,
 	}
 }
 
@@ -177,11 +175,7 @@ func (a *AgentBackend) RPC(nodeId string, route string, req, rsp interface{}) in
 }
 
 func (a *AgentBackend) SendRaw(data []byte) {
-	a.rpcClient.Publish(a.session.FrontendId(), data)
-}
-
-func (a *AgentBackend) RemoteAddr() string {
-	return a.ip
+	clog.Warnf("[SendRaw] no implement. [data = %v]", data)
 }
 
 func (a *AgentBackend) Close() {

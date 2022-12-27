@@ -9,28 +9,28 @@ import (
 type (
 	ExecutorEvent struct {
 		Executor
-		event      cfacade.IEvent
+		eventData  cfacade.IEvent
 		eventSlice []cfacade.EventFn
 	}
 )
 
-func (p *ExecutorEvent) Event() cfacade.IEvent {
-	return p.event
+func (p *ExecutorEvent) EventData() cfacade.IEvent {
+	return p.eventData
 }
 
 func (p *ExecutorEvent) Invoke() {
 	defer func() {
 		if rev := recover(); rev != nil {
 			clog.Warnf("recover in Event. %s", string(debug.Stack()))
-			clog.Warnf("event = [%+v]", p.Event)
+			clog.Warnf("event = [%+v]", p.eventData)
 		}
 	}()
 
 	for _, fn := range p.eventSlice {
-		fn(p.event)
+		fn(p.eventData)
 	}
 }
 
 func (p *ExecutorEvent) QueueHash(queueNum int) int {
-	return int(p.event.UniqueId() % int64(queueNum))
+	return int(p.eventData.UniqueId() % int64(queueNum))
 }

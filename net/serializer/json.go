@@ -1,6 +1,8 @@
 package cherrySerializer
 
-import "encoding/json"
+import (
+	jsoniter "github.com/json-iterator/go"
+)
 
 type JSON struct{}
 
@@ -14,13 +16,13 @@ func (j *JSON) Marshal(v interface{}) ([]byte, error) {
 		return data, nil
 	}
 
-	return json.Marshal(v)
+	return jsoniter.Marshal(v)
 }
 
 // Unmarshal parses the JSON-encoded data and stores the result
 // in the value pointed to by v.
 func (j *JSON) Unmarshal(data []byte, v interface{}) error {
-	return json.Unmarshal(data, v)
+	return jsoniter.Unmarshal(data, v)
 }
 
 // Name returns the name of the serializer.

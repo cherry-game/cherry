@@ -7,6 +7,7 @@ import (
 	cagent "github.com/cherry-game/cherry/net/agent"
 	ccluster "github.com/cherry-game/cherry/net/cluster"
 	ccommand "github.com/cherry-game/cherry/net/command"
+	ccontext "github.com/cherry-game/cherry/net/context"
 	chandler "github.com/cherry-game/cherry/net/handler"
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cpacket "github.com/cherry-game/cherry/net/packet"
@@ -142,7 +143,7 @@ func initOnSession() {
 }
 
 func initCommand() {
-	if _, found := _commands[cpacket.Handshake]; found == false {
+	if _, found := _commands[cpacket.Handshake]; !found {
 		if len(_handshakeData) < 1 {
 			_handshakeData["heartbeat"] = _heartbeat.Seconds()
 			_handshakeData["dict"] = cmsg.GetDictionary()
@@ -153,17 +154,17 @@ func initCommand() {
 		RegisterCommand(handshakeCommand)
 	}
 
-	if _, found := _commands[cpacket.HandshakeAck]; found == false {
+	if _, found := _commands[cpacket.HandshakeAck]; !found {
 		handshakeAckCommand := ccommand.NewHandshakeACK()
 		RegisterCommand(handshakeAckCommand)
 	}
 
-	if _, found := _commands[cpacket.Heartbeat]; found == false {
+	if _, found := _commands[cpacket.Heartbeat]; !found {
 		heartbeatCommand := ccommand.NewHeartbeat(_thisApp)
 		RegisterCommand(heartbeatCommand)
 	}
 
-	if _, found := _commands[cpacket.Data]; found == false {
+	if _, found := _commands[cpacket.Data]; !found {
 		// connector forward message
 		handDataCommand := ccommand.NewData(
 			_thisApp,
@@ -175,10 +176,10 @@ func initCommand() {
 }
 
 // ForwardLocal forward message to backend node
-func forwardLocal(session *csession.Session, msg *cmsg.Message) {
+func forwardLocal(ctx context.Context, session *csession.Session, msg *cmsg.Message) {
 	member, err := crouter.Route(context.Background(), msg.RouteInfo(), session)
 	if member == nil || err != nil {
-		session.Warnf("get router node fail. [session = %v, msg = %s, error = %s]",
+		session.Warnf("forward node fail. [session = %v, msg = %s, error = %s]",
 			session,
 			msg,
 			err,
@@ -186,11 +187,15 @@ func forwardLocal(session *csession.Session, msg *cmsg.Message) {
 		return
 	}
 
-	request := buildRequest(session, msg)
+	request := buildRequest(ctx, session, msg)
 	defer request.Recycle()
 
 	if err = _clusterComponent.PublishLocal(member.GetNodeId(), request); err != nil {
-		session.Warnf("publish local fail. [error = %s]", err)
+		session.Warnf("publish local fail. [nodeId = %s, route = %s, error = %s]",
+			member.GetNodeId(),
+			msg.Route,
+			err,
+		)
 	}
 }
 
@@ -267,18 +272,19 @@ func PostEvent(event cfacade.IEvent) {
 	_handlerComponent.PostEvent(event)
 }
 
-func buildRequest(session *csession.Session, msg *cmsg.Message) *cproto.Request {
+func buildRequest(ctx context.Context, session *csession.Session, msg *cmsg.Message) *cproto.Request {
 	request := cproto.GetRequest()
 	request.Sid = session.SID()
 	request.Uid = session.UID()
 	request.FrontendId = session.FrontendId()
-	request.Ip = session.RemoteAddress()
 	request.Setting = session.Data()
+	request.Context = ccontext.Encode(ctx)
+
 	request.MsgType = int32(msg.Type)
 	request.MsgId = uint32(msg.ID)
 	request.Route = msg.Route
-	request.IsError = false
 	request.Data = msg.Data
+	request.IsError = false
 
 	return request
 }

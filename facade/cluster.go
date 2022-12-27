@@ -33,12 +33,11 @@ type (
 
 type (
 	RPCClient interface {
-		Publish(subject string, data []byte) error                                                                //发布消息给目标节点
-		PublishPush(frontendId FrontendId, push *cproto.Push) error                                               //发布推送给前端节点
-		PublishKick(nodeId string, kick *cproto.Kick) error                                                       //发布踢人给前端节点
-		PublishLocal(nodeId string, request *cproto.Request) error                                                //发布本地消息
-		PublishRemote(nodeId string, request *cproto.Request) error                                               //发布远程消息
-		RequestRemote(nodeId string, request *cproto.Request, timeout ...time.Duration) (*cproto.Response, error) //请求远程消息
+		PublishPush(frontendId FrontendId, push *cproto.Push) error                                               // 发布推送给前端节点
+		PublishKick(frontendId FrontendId, kick *cproto.Kick) error                                               // 发布踢人给前端节点
+		PublishLocal(nodeId string, request *cproto.Request) error                                                // 发布本地消息
+		PublishRemote(nodeId string, request *cproto.Request) error                                               // 发布远程消息
+		RequestRemote(nodeId string, request *cproto.Request, timeout ...time.Duration) (*cproto.Response, error) // 请求远程消息
 		OnStop()
 	}
 

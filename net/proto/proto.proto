@@ -4,51 +4,50 @@ option go_package = "github.com/cherry-game/cherry/net/proto/proto;cherryProto";
 
 package cherryProto;
 
-// 成员结构
+// member data
 message Member {
-  string              nodeId   = 1; // 节点id
-  string              nodeType = 2; // 节点类型
-  string              address  = 3; // rpc连接地址
-  map<string, string> settings = 4; // 节点配置参数
-  //map<string, int32>  routes   = 5; // 路由列表  key:路由名称,value:状态 0.启用 1.停用
+  string              nodeId = 1;     // node id
+  string              nodeType = 2;   // node type
+  string              address = 3;    // rpc ip address
+  map<string, string> settings = 4;   // node settings data
+  //map<string, int32>  routes   = 5; // route list  key:route name,value:status 0.enable 1.disable
 }
 
-// 成员列表结构
+// member list data
 message MemberList {
   repeated Member list = 1;
 }
 
-// 请求消息结构
+// cross node request data
 message Request {
-  string              sid        = 1;  // sid
-  int64               uid        = 2;  // uid
-  string              frontendId = 3;  // 前端节点id
-  string              ip         = 4;  // client ip
-  map<string, string> setting    = 5;  // 附带的参数
-  int32               msgType    = 6;  // 消息类型(request,notify,response,push)
-  uint32              msgId      = 7;  // 消息序号id
-  string              route      = 8;  // 路由
-  bytes               data       = 9;  // 自定义数据
-  bool                isError    = 10; // 是否返回错误
-  string              reply      = 11; // 回复标识
+  string sid = 1;                    // session id
+  int64  uid = 2;                    // user id
+  string frontendId = 3;             // frontend id
+  map<string, string>  setting = 4;  // session setting data
+  bytes  context = 5;                // context data to bytes
+  int32  msgType = 11;               // msg type(request,notify,response,push)
+  uint32 msgId = 12;                 // client message id
+  string route = 13;                 // route name
+  bytes  data = 14;                  // protocol data
+  bool   isError = 15;               // is error
 }
 
-// 响应消息结构
+// cross node response data
 message Response {
   int32 code = 1; // message code
-  bytes data = 2; // 自定义数据
+  bytes data = 2; // message data
 }
 
-// 推送
+// push data
 message Push {
-  string route = 1; // 路由
-  int64  uid   = 2; // uid
-  bytes  data  = 3; // 自定义数据
+  string route = 1; // route name
+  int64  uid = 2;   // uid
+  bytes  data = 3;  // message data
 }
 
-// 踢人
+// kick data
 message Kick {
-  int64 uid   = 1; // uid
-  bytes data  = 2; // 自定义数据
-  bool  close = 4; // 是否主动关闭连接
+  int64 uid = 1;   // uid
+  bytes data = 2;  // message data
+  bool  close = 3; // is close connection
 }

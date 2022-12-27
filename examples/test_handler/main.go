@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"github.com/cherry-game/cherry"
 	"github.com/cherry-game/cherry/extend/time"
 	"github.com/cherry-game/cherry/facade"
@@ -79,7 +80,8 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 	for {
 
 		if app.Running() == false {
-			return
+			time.Sleep(1 * time.Second)
+			continue
 		}
 
 		session := &cherrySession.Session{}
@@ -93,7 +95,7 @@ func mockRequestMsg1(app cherryFacade.IApplication, handler *cherryHandler.Compo
 			},
 		}
 
-		handler.ProcessLocal(session, msg)
+		handler.ProcessLocal(context.TODO(), session, msg)
 		//time.Sleep(time.Microsecond * 1)
 
 		i++
@@ -113,7 +115,7 @@ func mockRequestMsg2(app cherryFacade.IApplication, handler *cherryHandler.Compo
 			Route: "game.testHandler.test222",
 		}
 
-		handler.ProcessLocal(session, msg)
+		handler.ProcessLocal(context.TODO(), session, msg)
 
 		//time.Sleep(time.Millisecond * 1)
 	}

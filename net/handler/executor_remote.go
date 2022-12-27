@@ -11,6 +11,7 @@ import (
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/net/context"
 	"reflect"
 	"runtime/debug"
 )
@@ -18,7 +19,7 @@ import (
 type (
 	ExecutorRemote struct {
 		Executor
-		cfacade.IApplication
+		ctx       context.Context
 		handlerFn *cfacade.MethodInfo
 		rt        *cmessage.Route
 		data      []byte
@@ -74,9 +75,17 @@ func (p *ExecutorRemote) invoke1() []reflect.Value {
 
 func (p *ExecutorRemote) Invoke() {
 	defer func() {
+		if err := p.isTimeout(p.ctx); err != nil {
+			clog.Warnf("[remote] process is timeout. [err = %v, route = %s, data = %v]",
+				err,
+				p.rt.String(),
+				p.data,
+			)
+		}
+
 		if rev := recover(); rev != nil {
 			clog.Warnf("[remote] recover in Remote. %s", string(debug.Stack()))
-			clog.Warnf("[route = %s,data = %v]", p.rt.String(), p.data)
+			clog.Warnf("[route = %s, data = %v]", p.rt.String(), p.data)
 		}
 	}()
 
@@ -129,7 +138,7 @@ func (p *ExecutorRemote) response(rets []reflect.Value) {
 		}
 
 		if rets[0].IsNil() == false {
-			data, err := p.Marshal(rets[0].Interface())
+			data, err := _component.Marshal(rets[0].Interface())
 			if err != nil {
 				rsp.Code = ccode.RPCRemoteExecuteError
 				clog.Warn(err)
@@ -164,7 +173,7 @@ func (p *ExecutorRemote) UnmarshalData() (interface{}, error) {
 
 	var val interface{}
 	val = reflect.New(in2.Elem()).Interface()
-	err := p.Unmarshal(p.data, val)
+	err := _component.Unmarshal(p.data, val)
 	if err != nil {
 		return nil, err
 	}

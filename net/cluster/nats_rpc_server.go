@@ -6,6 +6,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cagent "github.com/cherry-game/cherry/net/agent"
 	cnats "github.com/cherry-game/cherry/net/cluster/nats"
+	ccontext "github.com/cherry-game/cherry/net/context"
 	chandler "github.com/cherry-game/cherry/net/handler"
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
@@ -77,7 +78,10 @@ func (n *NatsRPCServer) subscribeRemote() {
 			return
 		}
 
-		statusCode := n.handlerComponent.ProcessRemote(request.Route, request.Data, natsMsg)
+		// decode to context
+		ctx := ccontext.Decode(request.Context)
+
+		statusCode := n.handlerComponent.ProcessRemote(ctx, request.Route, request.Data, natsMsg)
 		if ccode.IsFail(statusCode) {
 			n.replyError(natsMsg, statusCode)
 		}
@@ -147,9 +151,12 @@ func (n *NatsRPCServer) backendLocalProcess(natsMsg *nats.Msg) {
 		request.Data = []byte{}
 	}
 
+	// decode to context
+	ctx := ccontext.Decode(request.Context)
+
 	// new fake session for backend node
-	agent := cagent.NewAgentBackend(n.IApplication, n.rpcClient, request.Ip)
-	session := csession.FakeSession(request, &agent)
+	agent := cagent.NewAgentBackend(n.IApplication, n.rpcClient)
+	session := csession.BackendSession(request, &agent)
 	agent.SetSession(session)
 
 	// build message
@@ -161,7 +168,7 @@ func (n *NatsRPCServer) backendLocalProcess(natsMsg *nats.Msg) {
 		Error: request.IsError,
 	}
 
-	n.handlerComponent.ProcessLocal(session, message)
+	n.handlerComponent.ProcessLocal(ctx, session, message)
 }
 
 // subscribePush subscribe message write to client

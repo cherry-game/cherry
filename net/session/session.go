@@ -7,7 +7,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	ccontext "github.com/cherry-game/cherry/net/context"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap/zapcore"
 	"sync/atomic"
 )
@@ -30,7 +29,7 @@ type (
 	}
 )
 
-func FakeSession(request *cproto.Request, network cfacade.INetwork) *Session {
+func BackendSession(request *cproto.Request, network cfacade.INetwork) *Session {
 	session := &Session{
 		settings: settings{
 			data: make(map[string]string),
@@ -95,7 +94,7 @@ func (s *Session) SendRaw(bytes []byte) {
 }
 
 // RPC sends message to remote server
-func (s *Session) RPC(nodeId string, route string, req proto.Message, rsp proto.Message) int32 {
+func (s *Session) RPC(nodeId string, route string, req, rsp interface{}) int32 {
 	return s.entity.RPC(nodeId, route, req, rsp)
 }
 
@@ -148,10 +147,7 @@ func (s *Session) OnDataListener() bool {
 }
 
 func (s *Session) RemoteAddress() string {
-	if s.entity == nil {
-		return ""
-	}
-	return s.entity.RemoteAddr()
+	return s.GetString(IPKey)
 }
 
 func (s *Session) String() string {

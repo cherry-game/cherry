@@ -17,7 +17,6 @@ type (
 		eventFuncMap         map[string]*cfacade.EventInfo  // event func
 		localHandlerFuncMap  map[string]*cfacade.MethodInfo // local invoke Handler functions
 		remoteHandlerFuncMap map[string]*cfacade.MethodInfo // remote invoke Handler functions
-		handlerComponent     *Component                     // handler component
 	}
 )
 
@@ -33,12 +32,6 @@ func (h *Handler) OnPreInit() {
 	h.eventFuncMap = make(map[string]*cfacade.EventInfo)
 	h.localHandlerFuncMap = make(map[string]*cfacade.MethodInfo)
 	h.remoteHandlerFuncMap = make(map[string]*cfacade.MethodInfo)
-
-	var found = false
-	h.handlerComponent, found = h.Find(Name).(*Component)
-	if found == false {
-		panic("handler component not found.")
-	}
 }
 
 func (h *Handler) OnInit() {
@@ -78,7 +71,7 @@ func (h *Handler) RemoteHandler(funcName string) (*cfacade.MethodInfo, bool) {
 }
 
 func (h *Handler) Component() *Component {
-	return h.handlerComponent
+	return _component
 }
 
 func (h *Handler) AddLocals(localFns []interface{}, hashFn ...cfacade.QueueHashFn) {
@@ -184,24 +177,15 @@ func (h *Handler) AddEvent(eventName string, fn cfacade.EventFn, hashFn ...cfaca
 }
 
 func (h *Handler) PostEvent(e cfacade.IEvent) {
-	if h.handlerComponent == nil {
-		clog.Errorf("handlerComponent is nil. [event = %s]", e)
-		return
-	}
-
-	h.handlerComponent.PostEvent(e)
+	_component.PostEvent(e)
 }
 
 func (h *Handler) AddBeforeFilter(beforeFilters ...FilterFn) {
-	if h.handlerComponent != nil {
-		h.handlerComponent.AddBeforeFilter(beforeFilters...)
-	}
+	_component.AddBeforeFilter(beforeFilters...)
 }
 
 func (h *Handler) AddAfterFilter(afterFilters ...FilterFn) {
-	if h.handlerComponent != nil {
-		h.handlerComponent.AddAfterFilter(afterFilters...)
-	}
+	_component.AddAfterFilter(afterFilters...)
 }
 
 func (h *Handler) Response(ctx context.Context, session *csession.Session, data interface{}) {

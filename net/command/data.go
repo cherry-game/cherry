@@ -1,10 +1,13 @@
 package cherryCommand
 
 import (
+	"context"
 	cfacade "github.com/cherry-game/cherry/facade"
+	ccontext "github.com/cherry-game/cherry/net/context"
 	cmsg "github.com/cherry-game/cherry/net/message"
 	cpacket "github.com/cherry-game/cherry/net/packet"
 	csession "github.com/cherry-game/cherry/net/session"
+	"time"
 )
 
 type (
@@ -14,7 +17,7 @@ type (
 		forwardMessage ProcessMessage
 	}
 
-	ProcessMessage func(session *csession.Session, msg *cmsg.Message)
+	ProcessMessage func(ctx context.Context, session *csession.Session, msg *cmsg.Message)
 )
 
 func NewData(app cfacade.IApplication, localMessage ProcessMessage, forwardMessage ProcessMessage) *Data {
@@ -46,9 +49,13 @@ func (h *Data) Do(session *csession.Session, packet cfacade.IPacket) {
 		return
 	}
 
+	ctx := ccontext.New()
+	ctx = ccontext.Add(ctx, ccontext.BuildPacketTimeKey, time.Now().UnixMilli())
+	ctx = ccontext.Add(ctx, ccontext.MessageIdKey, msg.ID)
+
 	if msg.RouteInfo().NodeType() == h.NodeType() {
-		h.localMessage(session, msg)
+		h.localMessage(ctx, session, msg)
 	} else {
-		h.forwardMessage(session, msg)
+		h.forwardMessage(ctx, session, msg)
 	}
 }

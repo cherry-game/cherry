@@ -66,6 +66,7 @@ func NewAgent(app cfacade.IApplication, conn cfacade.INetConn, opts *Options) *A
 
 func (a *Agent) SetSession(session *csession.Session) {
 	a.session = session
+	a.session.Set(csession.IPKey, a.remoteAddr())
 }
 
 func (a *Agent) SetLastAt() {
@@ -123,14 +124,6 @@ func (a *Agent) Kick(reason interface{}) {
 	}
 }
 
-func (a *Agent) RemoteAddr() string {
-	if a.conn != nil {
-		return cnet.GetIPV4(a.conn.RemoteAddr())
-	}
-
-	return ""
-}
-
 func (a *Agent) Close() {
 	a.Lock()
 	defer a.Unlock()
@@ -147,6 +140,14 @@ func (a *Agent) Close() {
 	if err := a.conn.Close(); err != nil {
 		a.session.Debugf("session close. [error = %s]", err)
 	}
+}
+
+func (a *Agent) remoteAddr() string {
+	if a.conn != nil {
+		return cnet.GetIPV4(a.conn.RemoteAddr())
+	}
+
+	return ""
 }
 
 func (a *Agent) send(typ cmsg.Type, route string, mid uint, v interface{}, isError bool) {
@@ -232,7 +233,6 @@ func (a *Agent) writeChan() {
 
 		close(a.chSend)
 		close(a.chWrite)
-		//close(a.chDie)
 	}()
 
 	for {

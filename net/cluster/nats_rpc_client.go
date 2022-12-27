@@ -7,6 +7,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
 	cnats "github.com/cherry-game/cherry/net/cluster/nats"
+	ccontext "github.com/cherry-game/cherry/net/context"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/gogo/protobuf/proto"
 	"go.uber.org/zap/zapcore"
@@ -69,17 +70,17 @@ func (n *NatsRPCClient) PublishPush(frontendId cfacade.FrontendId, push *cproto.
 	return err
 }
 
-func (n *NatsRPCClient) PublishKick(nodeId string, kick *cproto.Kick) error {
-	nodeType, err := cdiscovery.GetType(nodeId)
+func (n *NatsRPCClient) PublishKick(frontendId cfacade.FrontendId, kick *cproto.Kick) error {
+	nodeType, err := cdiscovery.GetType(frontendId)
 	if err != nil {
-		clog.Warnf("[PublishKick] get nodeType fail. [nodeId = %s, kick = {%+v}]",
-			nodeId,
+		clog.Warnf("[PublishKick] get nodeType fail. [frontendId = %s, kick = {%+v}]",
+			frontendId,
 			kick,
 		)
 		return err
 	}
 
-	subject := getKickSubject(nodeType, nodeId)
+	subject := getKickSubject(nodeType, frontendId)
 	bytes, err := proto.Marshal(kick)
 	if err != nil {
 		return err
@@ -88,8 +89,8 @@ func (n *NatsRPCClient) PublishKick(nodeId string, kick *cproto.Kick) error {
 	err = n.Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[PublishKick] [nodeId = %s, kick = {%+v}, err = %v]",
-			nodeId,
+		clog.Debugf("[PublishKick] [frontendId = %s, kick = {%+v}, err = %v]",
+			frontendId,
 			kick,
 			err,
 		)
@@ -139,6 +140,10 @@ func (n *NatsRPCClient) PublishRemote(nodeId string, request *cproto.Request) er
 		return err
 	}
 
+	ctx := ccontext.New()
+	ctx = ccontext.Add(ctx, ccontext.BuildPacketTimeKey, time.Now().UnixMilli())
+	request.Context = ccontext.Encode(ctx)
+
 	subject := getRemoteSubject(nodeType, nodeId)
 	bytes, err := proto.Marshal(request)
 	if err != nil {
@@ -172,6 +177,10 @@ func (n *NatsRPCClient) RequestRemote(nodeId string, request *cproto.Request, ti
 		rsp.Code = ccode.DiscoveryNotFoundNode
 		return rsp, err
 	}
+
+	ctx := ccontext.New()
+	ctx = ccontext.Add(ctx, ccontext.BuildPacketTimeKey, time.Now().UnixMilli())
+	request.Context = ccontext.Encode(ctx)
 
 	msg, err := proto.Marshal(request)
 	if err != nil {

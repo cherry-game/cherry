@@ -3,7 +3,6 @@ package cherryHandler
 import (
 	"context"
 	ccode "github.com/cherry-game/cherry/code"
-	cconst "github.com/cherry-game/cherry/const"
 	cherryQueue "github.com/cherry-game/cherry/extend/queue"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -19,47 +18,51 @@ const (
 	Name = "handler_component"
 )
 
+var (
+	_component = &Component{
+		options: options{
+			beforeFilters:  make([]FilterFn, 0),
+			afterFilters:   make([]FilterFn, 0),
+			nameFn:         strings.ToLower,
+			processTimeout: 1 * time.Second,
+		},
+		closeChan:  make(chan bool),
+		eventQueue: cherryQueue.NewQueue(),
+		groups:     make([]*HandlerGroup, 0),
+	}
+)
+
 type (
 	//Component handler component
 	Component struct {
-		options
 		cfacade.Component
+		options
 		closeChan  chan bool
-		groups     []*HandlerGroup
 		eventQueue *cherryQueue.Queue
+		groups     []*HandlerGroup
 	}
 
 	options struct {
-		beforeFilters []FilterFn
-		afterFilters  []FilterFn
-		nameFn        func(string) string
+		beforeFilters  []FilterFn
+		afterFilters   []FilterFn
+		nameFn         func(string) string
+		processTimeout time.Duration
 	}
 
-	Option func(options *options)
+	Option func(*options)
 
 	FilterFn func(ctx context.Context, session *csession.Session, message *cmsg.Message) bool
 )
 
 func NewComponent(opts ...Option) *Component {
-	component := &Component{
-		groups: make([]*HandlerGroup, 0),
-		options: options{
-			beforeFilters: make([]FilterFn, 0),
-			afterFilters:  make([]FilterFn, 0),
-			nameFn:        strings.ToLower,
-		},
-		closeChan:  make(chan bool, 0),
-		eventQueue: cherryQueue.NewQueue(),
-	}
-
 	for _, opt := range opts {
-		opt(&component.options)
+		opt(&_component.options)
 	}
 
-	return component
+	return _component
 }
 
-func (c *Component) Name() string {
+func (*Component) Name() string {
 	return Name
 }
 
@@ -67,35 +70,9 @@ func (c *Component) Init() {
 	go c.runEventChan()
 }
 
-func (c *Component) postEventToQueue(num int) {
-	for i := 0; i < num; i++ {
-		e, ok := c.eventQueue.Pop()
-		if !ok {
-			return
-		}
-
-		event, ok := e.(cfacade.IEvent)
-		if !ok {
-			return
-		}
-
-		for _, group := range c.groups {
-			for _, handler := range group.handlers {
-				if eventInfo, found := handler.Event(event.Name()); found {
-					executor := &ExecutorEvent{
-						event:      event,
-						eventSlice: eventInfo.List,
-					}
-					group.InQueue(eventInfo.QueueHash, executor)
-				}
-			}
-		}
-	}
-}
-
 func (c *Component) runEventChan() {
-	postTicker := time.NewTicker(1 * time.Millisecond)
-	postNum := 100
+	postTicker := time.NewTicker(5 * time.Millisecond)
+	postNum := 500
 
 	for {
 		select {
@@ -113,8 +90,33 @@ func (c *Component) runEventChan() {
 	}
 }
 
+func (c *Component) postEventToQueue(num int) {
+	for i := 0; i < num; i++ {
+		e, ok := c.eventQueue.Pop()
+		if !ok {
+			return
+		}
+
+		eventData, ok := e.(cfacade.IEvent)
+		if !ok {
+			return
+		}
+
+		for _, group := range c.groups {
+			for _, handler := range group.handlers {
+				if eventInfo, found := handler.Event(eventData.Name()); found {
+					executor := &ExecutorEvent{
+						eventData:  eventData,
+						eventSlice: eventInfo.List,
+					}
+					group.InQueue(eventInfo.QueueHash, executor)
+				}
+			}
+		}
+	}
+}
+
 func (c *Component) OnAfterInit() {
-	//run handler group
 	for _, g := range c.groups {
 		g.run(c.App())
 	}
@@ -167,7 +169,6 @@ func (c *Component) PostEvent(event cfacade.IEvent) {
 	}
 
 	c.eventQueue.Push(event)
-	//c.eventChan <- event
 }
 
 func (c *Component) GetHandler(handlerName string) (*HandlerGroup, cfacade.IHandler, bool) {
@@ -195,7 +196,7 @@ func (c *Component) getGroup(handlerName string) (*HandlerGroup, cfacade.IHandle
 	return nil, nil
 }
 
-func (c *Component) ProcessLocal(session *csession.Session, msg *cmsg.Message) {
+func (c *Component) ProcessLocal(ctx context.Context, session *csession.Session, msg *cmsg.Message) {
 	if !c.App().Running() {
 		return
 	}
@@ -230,23 +231,20 @@ func (c *Component) ProcessLocal(session *csession.Session, msg *cmsg.Message) {
 		return
 	}
 
-	ctx := ccontext.Add(context.Background(), cconst.MessageIdKey, msg.ID)
+	ctx = ccontext.Add(ctx, ccontext.InHandlerTimeKey, time.Now().UnixMilli())
 
 	executor := &ExecutorLocal{
-		IApplication:  c.App(),
-		session:       session,
-		msg:           msg,
-		handlerFn:     fn,
-		ctx:           ctx,
-		beforeFilters: c.beforeFilters,
-		afterFilters:  c.afterFilters,
+		ctx:       ctx,
+		session:   session,
+		msg:       msg,
+		handlerFn: fn,
 	}
 
 	// in queue
 	group.InQueue(fn.QueueHash, executor)
 }
 
-func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) int32 {
+func (c *Component) ProcessRemote(ctx context.Context, route string, data []byte, natsMsg *nats.Msg) int32 {
 	if !c.App().Running() {
 		return ccode.AppIsStop
 	}
@@ -273,12 +271,14 @@ func (c *Component) ProcessRemote(route string, data []byte, natsMsg *nats.Msg) 
 		data = []byte{}
 	}
 
+	ctx = ccontext.Add(ctx, ccontext.InHandlerTimeKey, time.Now().UnixMilli())
+
 	executor := &ExecutorRemote{
-		IApplication: c.App(),
-		handlerFn:    fn,
-		rt:           routeInfo,
-		data:         data,
-		natsMsg:      natsMsg,
+		ctx:       ctx,
+		handlerFn: fn,
+		rt:        routeInfo,
+		data:      data,
+		natsMsg:   natsMsg,
 	}
 
 	group.InQueue(fn.QueueHash, executor)
@@ -321,10 +321,10 @@ func WithName(fn func(string) string) Option {
 	}
 }
 
-func WithEventQueueCap(eventQueueCap int) Option {
+func WithProcessTimeout(d time.Duration) Option {
 	return func(options *options) {
-		if eventQueueCap > 0 {
-			//options.eventChan = make(chan cfacade.IEvent, eventQueueCap)
+		if d > 0 {
+			options.processTimeout = d
 		}
 	}
 }

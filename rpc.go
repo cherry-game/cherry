@@ -181,10 +181,10 @@ func PublishRemoteByRoute(route string, arg interface{}) {
 	PublishRemote("", route, arg)
 }
 
-func Kick(nodeId string, uid cfacade.UID, val interface{}, close bool) error {
+func Kick(frontendId cfacade.FrontendId, uid cfacade.UID, val interface{}, close bool) error {
 	if creflect.IsNotPtr(val) {
-		return cerror.Errorf("[kick] val is not ptr. [nodeId = %s, uid = %s, val = %+v]",
-			nodeId,
+		return cerror.Errorf("[kick] val is not ptr. [frontendId = %s, uid = %s, val = %+v]",
+			frontendId,
 			uid,
 			val,
 		)
@@ -201,7 +201,7 @@ func Kick(nodeId string, uid cfacade.UID, val interface{}, close bool) error {
 		Close: close,
 	}
 
-	return _clusterComponent.PublishKick(nodeId, kick)
+	return _clusterComponent.PublishKick(frontendId, kick)
 }
 
 func Push(frontendId string, route string, uid cfacade.UID, val interface{}) error {

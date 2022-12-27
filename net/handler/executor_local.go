@@ -17,13 +17,10 @@ import (
 type (
 	ExecutorLocal struct {
 		Executor
-		cfacade.IApplication
-		session       *csession.Session
-		msg           *cmsg.Message
-		handlerFn     *cfacade.MethodInfo
-		ctx           context.Context
-		beforeFilters []FilterFn
-		afterFilters  []FilterFn
+		ctx       context.Context
+		session   *csession.Session
+		msg       *cmsg.Message
+		handlerFn *cfacade.MethodInfo
 	}
 )
 
@@ -41,13 +38,20 @@ func (p *ExecutorLocal) Context() context.Context {
 
 func (p *ExecutorLocal) Invoke() {
 	defer func() {
+		if err := p.isTimeout(p.ctx); err != nil {
+			clog.Warnf("local process is timeout. [err = %v, msg = %+v]",
+				err,
+				p.msg,
+			)
+		}
+
 		if rev := recover(); rev != nil {
 			clog.Warnf("recover in Local. %s", string(debug.Stack()))
 			clog.Warnf("msg = [%+v]", p.msg)
 		}
 	}()
 
-	for _, filter := range p.beforeFilters {
+	for _, filter := range _component.beforeFilters {
 		if filter(p.ctx, p.session, p.msg) == false {
 			return
 		}
@@ -144,7 +148,7 @@ func (p *ExecutorLocal) responseCode(ret reflect.Value) {
 }
 
 func (p *ExecutorLocal) executeAfterFilters() {
-	for _, filter := range p.afterFilters {
+	for _, filter := range _component.afterFilters {
 		if !filter(p.ctx, p.session, p.msg) {
 			break
 		}
@@ -157,7 +161,7 @@ func (p *ExecutorLocal) unmarshalData(index int) (interface{}, error) {
 	var val interface{}
 	val = reflect.New(in2.Elem()).Interface()
 
-	err := p.Unmarshal(p.msg.Data, val)
+	err := _component.Unmarshal(p.msg.Data, val)
 	if err != nil {
 		return nil, err
 	}
