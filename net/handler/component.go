@@ -20,43 +20,37 @@ const (
 
 var (
 	_component = &Component{
-		options: options{
-			beforeFilters:  make([]FilterFn, 0),
-			afterFilters:   make([]FilterFn, 0),
-			nameFn:         strings.ToLower,
-			processTimeout: 1 * time.Second,
-		},
-		closeChan:  make(chan bool),
-		eventQueue: cherryQueue.NewQueue(),
-		groups:     make([]*HandlerGroup, 0),
+		closeChan:      make(chan bool),
+		eventQueue:     cherryQueue.NewQueue(),
+		groups:         make([]*HandlerGroup, 0),
+		beforeFilters:  make([]FilterFn, 0),
+		afterFilters:   make([]FilterFn, 0),
+		nameFn:         strings.ToLower,
+		processTimeout: 1 * time.Second,
 	}
 )
 
 type (
-	//Component handler component
+	// Component handler component
 	Component struct {
 		cfacade.Component
-		options
-		closeChan  chan bool
-		eventQueue *cherryQueue.Queue
-		groups     []*HandlerGroup
-	}
-
-	options struct {
+		closeChan      chan bool
+		eventQueue     *cherryQueue.Queue
+		groups         []*HandlerGroup
 		beforeFilters  []FilterFn
 		afterFilters   []FilterFn
 		nameFn         func(string) string
 		processTimeout time.Duration
 	}
 
-	Option func(*options)
+	Option func(*Component)
 
 	FilterFn func(ctx context.Context, session *csession.Session, message *cmsg.Message) bool
 )
 
 func NewComponent(opts ...Option) *Component {
 	for _, opt := range opts {
-		opt(&_component.options)
+		opt(_component)
 	}
 
 	return _component
@@ -71,7 +65,7 @@ func (c *Component) Init() {
 }
 
 func (c *Component) runEventChan() {
-	postTicker := time.NewTicker(5 * time.Millisecond)
+	postTicker := time.NewTicker(2 * time.Millisecond)
 	postNum := 500
 
 	for {
@@ -298,33 +292,33 @@ func (c *Component) AddAfterFilter(afterFilters ...FilterFn) {
 }
 
 func WithBeforeFilter(beforeFilters ...FilterFn) Option {
-	return func(options *options) {
+	return func(c *Component) {
 		if len(beforeFilters) > 0 {
-			options.beforeFilters = append(options.beforeFilters, beforeFilters...)
+			c.beforeFilters = append(c.beforeFilters, beforeFilters...)
 		}
 	}
 }
 
 func WithAfterFilter(afterFilters ...FilterFn) Option {
-	return func(options *options) {
+	return func(c *Component) {
 		if len(afterFilters) > 0 {
-			options.afterFilters = append(options.afterFilters, afterFilters...)
+			c.afterFilters = append(c.afterFilters, afterFilters...)
 		}
 	}
 }
 
 func WithName(fn func(string) string) Option {
-	return func(options *options) {
+	return func(c *Component) {
 		if fn != nil {
-			options.nameFn = fn
+			c.nameFn = fn
 		}
 	}
 }
 
 func WithProcessTimeout(d time.Duration) Option {
-	return func(options *options) {
+	return func(c *Component) {
 		if d > 0 {
-			options.processTimeout = d
+			c.processTimeout = d
 		}
 	}
 }
