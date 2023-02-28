@@ -40,7 +40,7 @@ func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
 	mongoIdList := s.App().Settings().Get("mongo_id_list")
 	if mongoIdList.LastError() != nil || mongoIdList.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `mongo_id_list` property not exists.", s.NodeId())
+		clog.Warnf("[nodeId = %s] `mongo_id_list` property not exists.", s.App().NodeId())
 		return
 	}
 

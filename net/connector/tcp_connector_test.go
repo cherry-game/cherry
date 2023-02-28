@@ -1,8 +1,8 @@
 package cherryConnector
 
 import (
-	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	"net"
 	"sync"
 	"testing"
 )
@@ -12,12 +12,11 @@ func TestNewTCPConnector(t *testing.T) {
 	wg.Add(1)
 
 	tcp := NewTCP(":9071")
-
-	tcp.OnConnectListener(func(conn cfacade.INetConn) {
-		clog.Infof("new net.INetConn = %s", conn.RemoteAddr())
+	tcp.OnConnect(func(conn net.Conn) {
+		clog.Infof("new net.Conn = %s", conn.RemoteAddr())
 	})
 
-	tcp.OnStart()
+	tcp.Start()
 
 	wg.Wait()
 }

@@ -1,127 +1,78 @@
 package cherryConnector
 
 import (
-	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cpacket "github.com/cherry-game/cherry/net/packet"
-	"io"
-	"net"
 )
 
 type (
 	TCPConnector struct {
 		cfacade.Component
 		Connector
-		running bool
-	}
-
-	TcpConn struct {
-		net.Conn
+		Options
 	}
 )
 
-func NewTCP(address string) *TCPConnector {
-	if address == "" {
-		clog.Warn("create tcp socket fail. Address is null.")
-		return nil
-	}
-
-	return &TCPConnector{
-		Connector: NewConnector(address, "", ""),
-	}
-}
-
-func NewTCPLTS(address, certFile, keyFile string) *TCPConnector {
-	if address == "" {
-		clog.Warn("create tcp socket fail. Address is null.")
-		return nil
-	}
-
-	if certFile == "" || keyFile == "" {
-		clog.Warn("create tcp socket fail. CertFile or KeyFile is null.")
-		return nil
-	}
-
-	return &TCPConnector{
-		Connector: NewConnector(address, certFile, keyFile),
-	}
-}
-
-func (t *TCPConnector) Name() string {
+func (*TCPConnector) Name() string {
 	return "tcp_connector"
 }
 
 func (t *TCPConnector) OnAfterInit() {
-	go t.OnStart()
-}
-
-func (t *TCPConnector) OnStart() {
-	if len(t.connectListeners) < 1 {
-		panic("ConnectListeners() not set.")
-	}
-
-	var err error
-	t.Listener, err = GetNetListener(t.Address, t.CertFile, t.KeyFile)
-	if err != nil {
-		clog.Fatalf("failed to listen: %s", err.Error())
-	}
-
-	clog.Infof("tcp Connector listening at Address %s", t.Address)
-
-	if t.CertFile != "" || t.KeyFile != "" {
-		clog.Infof("CertFile = %s, KeyFile = %s", t.CertFile, t.KeyFile)
-	}
-
-	t.running = true
-
-	t.ExecuteListener()
-
-	defer func() {
-		if err := t.Listener.Close(); err != nil {
-			clog.Errorf("failed to stop: %s", err.Error())
-		}
-	}()
-
-	for t.running {
-		conn, err := t.Listener.Accept()
-		if err != nil {
-			clog.Errorf("failed to accept TCP connection: %s", err.Error())
-			continue
-		}
-
-		t.InChan(&TcpConn{Conn: conn})
-	}
+	go t.Start()
 }
 
 func (t *TCPConnector) OnStop() {
-	t.running = false
+	t.Stop()
 }
 
-func (t *TcpConn) GetNextMessage() (b []byte, err error) {
-	header, err := io.ReadAll(io.LimitReader(t.Conn, int64(cpacket.HeadLength)))
+func NewTCP(address string, opts ...Option) *TCPConnector {
+	if address == "" {
+		clog.Warn("Create tcp connector fail. Address is null.")
+		return nil
+	}
+
+	tcp := &TCPConnector{
+		Options: Options{
+			address:  address,
+			certFile: "",
+			keyFile:  "",
+			chanSize: 256,
+		},
+	}
+
+	for _, opt := range opts {
+		opt(&tcp.Options)
+	}
+
+	tcp.Connector = NewConnector(tcp.chanSize)
+
+	return tcp
+}
+
+func (t *TCPConnector) Start() {
+	listener, err := t.GetListener(t.certFile, t.keyFile, t.address)
 	if err != nil {
-		return nil, err
+		clog.Fatalf("failed to listen: %s", err)
 	}
 
-	// if the header has no data, we can consider it as a closed connection
-	if len(header) == 0 {
-		return nil, cerr.PacketConnectClosed
+	clog.Infof("Tcp connector listening at Address %s", t.address)
+	if t.certFile != "" || t.keyFile != "" {
+		clog.Infof("certFile = %s, keyFile = %s", t.certFile, t.keyFile)
 	}
 
-	msgSize, _, err := cpacket.ParseHeader(header)
-	if err != nil {
-		return nil, err
-	}
+	t.Connector.Start()
 
-	msgData, err := io.ReadAll(io.LimitReader(t.Conn, int64(msgSize)))
-	if err != nil {
-		return nil, err
-	}
+	for t.Running() {
+		conn, err := listener.Accept()
+		if err != nil {
+			clog.Errorf("Failed to accept TCP connection: %s", err.Error())
+			continue
+		}
 
-	if len(msgData) < msgSize {
-		return nil, cerr.PacketMsgSmallerThanExpected
+		t.InChan(conn)
 	}
+}
 
-	return append(header, msgData...), nil
+func (t *TCPConnector) Stop() {
+	t.Connector.Stop()
 }

@@ -12,7 +12,7 @@ type Node struct {
 	nodeType   string
 	address    string
 	rpcAddress string
-	settings   cfacade.JsonConfig
+	settings   cfacade.ProfileJSON
 	enabled    bool
 }
 
@@ -32,7 +32,7 @@ func (n *Node) RpcAddress() string {
 	return n.rpcAddress
 }
 
-func (n *Node) Settings() cfacade.JsonConfig {
+func (n *Node) Settings() cfacade.ProfileJSON {
 	return n.settings
 }
 
@@ -63,7 +63,7 @@ func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
 		for i := 0; i < typeJson.Size(); i++ {
 			item := typeJson.GetConfig(i)
 
-			if foundNodeId(nodeId, item.GetConfig("node_id")) == false {
+			if findNodeId(nodeId, item.GetConfig("node_id")) == false {
 				continue
 			}
 
@@ -84,10 +84,10 @@ func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
 }
 
 func LoadNode(nodeId string) (cfacade.INode, error) {
-	return GetNodeWithConfig(env.jsonConfig, nodeId)
+	return GetNodeWithConfig(cfg.jsonConfig, nodeId)
 }
 
-func foundNodeId(nodeId string, nodeIdJson cfacade.JsonConfig) bool {
+func findNodeId(nodeId string, nodeIdJson cfacade.ProfileJSON) bool {
 	if nodeIdJson.ToString() == nodeId {
 		return true
 	}

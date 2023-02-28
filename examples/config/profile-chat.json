@@ -1,4 +1,5 @@
 {
+  "env": "chat",
   "debug": true,
   "@debug": "是否为debug模式",
   "print_level": "debug",

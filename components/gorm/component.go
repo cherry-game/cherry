@@ -51,7 +51,7 @@ func (s *Component) Name() string {
 	return Name
 }
 
-func parseMysqlConfig(groupId string, item cfacade.JsonConfig) *mySqlConfig {
+func parseMysqlConfig(groupId string, item cfacade.ProfileJSON) *mySqlConfig {
 	return &mySqlConfig{
 		GroupId:        groupId,
 		Id:             item.GetString("db_id"),
@@ -70,7 +70,7 @@ func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
 	dbIdList := s.App().Settings().Get("db_id_list")
 	if dbIdList.LastError() != nil || dbIdList.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.NodeId())
+		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.App().NodeId())
 		return
 	}
 

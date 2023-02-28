@@ -20,7 +20,7 @@ type Component struct {
 	configs    []IConfig
 }
 
-func NewComponent() *Component {
+func New() *Component {
 	return &Component{}
 }
 
@@ -33,7 +33,7 @@ func (d *Component) Init() {
 	// read data_config node in profile-{env}.json
 	dataConfig := cprofile.GetConfig("data_config")
 	if dataConfig.LastError() != nil {
-		clog.Fatalf("`data_config` node in `%s` file not found.", cprofile.FileName())
+		clog.Fatalf("`data_config` node in `%s` file not found.", cprofile.Name())
 	}
 
 	// get data source

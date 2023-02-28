@@ -1,199 +1,209 @@
 package cherrySession
 
-import (
-	"context"
-	"fmt"
-	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
-	ccontext "github.com/cherry-game/cherry/net/context"
-	cproto "github.com/cherry-game/cherry/net/proto"
-	"go.uber.org/zap/zapcore"
-	"sync/atomic"
-)
+//import (
+//	"fmt"
+//	cnuid "github.com/cherry-game/cherry/extend/nuid"
+//	cstring "github.com/cherry-game/cherry/extend/string"
+//	cfacade "github.com/cherry-game/cherry/facade"
+//	clog "github.com/cherry-game/cherry/logger"
+//	"go.uber.org/zap/zapcore"
+//)
+//
+//type Session map[string]string
 
-const (
-	Init = iota
-	WaitAck
-	Working
-	Closed
-)
-
-type (
-	Session struct {
-		settings
-		state      int32              // current session state
-		entity     cfacade.INetwork   // network
-		sid        cfacade.SID        // session id
-		uid        cfacade.UID        // user unique id
-		frontendId cfacade.FrontendId // frontend node id
-	}
-)
-
-func BackendSession(request *cproto.Request, network cfacade.INetwork) *Session {
-	session := &Session{
-		settings: settings{
-			data: make(map[string]string),
-		},
-		state:      Working,
-		entity:     network,
-		sid:        request.Sid,
-		uid:        request.Uid,
-		frontendId: request.FrontendId,
-	}
-	session.ImportAll(request.Setting)
-
-	return session
-}
-
-func NewSession(sid cfacade.SID, frontendId cfacade.FrontendId, network cfacade.INetwork) *Session {
-	session := &Session{
-		settings: settings{
-			data: make(map[string]string),
-		},
-		state:      Init,
-		entity:     network,
-		sid:        sid,
-		uid:        0,
-		frontendId: frontendId,
-	}
-
-	return session
-}
-
-func (s *Session) State() int32 {
-	return atomic.LoadInt32(&s.state)
-}
-
-func (s *Session) SetState(state int32) {
-	atomic.StoreInt32(&s.state, state)
-}
-
-func (s *Session) SID() cfacade.SID {
-	return s.sid
-}
-
-func (s *Session) UID() cfacade.UID {
-	return s.uid
-}
-
-func (s *Session) FrontendId() cfacade.FrontendId {
-	return s.frontendId
-}
-
-func (s *Session) IsBind() bool {
-	return s.uid > 0
-}
-
-func (s *Session) SendRaw(bytes []byte) {
-	if s.entity == nil {
-		s.Debug("entity is nil")
-		return
-	}
-
-	s.entity.SendRaw(bytes)
-}
-
-// RPC sends message to remote server
-func (s *Session) RPC(nodeId string, route string, req, rsp interface{}) int32 {
-	return s.entity.RPC(nodeId, route, req, rsp)
-}
-
-// Push message to client
-func (s *Session) Push(route string, v interface{}) {
-	s.entity.Push(route, v)
-}
-
-// ResponseMID responses message to client, mid is
-// request message ID
-func (s *Session) ResponseMID(mid uint, v interface{}, isError ...bool) {
-	s.entity.Response(mid, v, isError...)
-}
-
-func (s *Session) Response(ctx context.Context, v interface{}, isError ...bool) {
-	mid := ccontext.GetMessageId(ctx)
-	s.ResponseMID(mid, v, isError...)
-}
-
-func (s *Session) Kick(reason interface{}, close bool) {
-	s.entity.Kick(reason)
-
-	if close {
-		s.Close()
-	}
-}
-
-func (s *Session) Close() {
-	s.entity.Close()
-}
-
-func (s *Session) OnCloseListener() {
-	// when session closed,the func is executed
-	for _, listener := range onCloseListener {
-		if listener(s) == false {
-			break
-		}
-	}
-	Unbind(s.sid)
-}
-
-func (s *Session) OnDataListener() bool {
-	for _, listener := range onDataListener {
-		if listener(s) == false {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (s *Session) RemoteAddress() string {
-	return s.GetString(IPKey)
-}
-
-func (s *Session) String() string {
-	return fmt.Sprintf("[sid = %s, uid = %d, address = %s]",
-		s.sid,
-		s.uid,
-		s.RemoteAddress(),
-	)
-}
-
-func (s *Session) logPrefix() string {
-	return fmt.Sprintf("[uid = %d] ", s.uid)
-}
-
-func (s *Session) Debug(args ...interface{}) {
-	clog.DefaultLogger.Debug(s.logPrefix(), fmt.Sprint(args...))
-}
-
-func (s *Session) Debugf(template string, args ...interface{}) {
-	clog.DefaultLogger.Debug(s.logPrefix(), fmt.Sprintf(template, args...))
-}
-
-func (s *Session) Info(args ...interface{}) {
-	clog.DefaultLogger.Info(s.logPrefix(), fmt.Sprint(args...))
-}
-
-func (s *Session) Infof(template string, args ...interface{}) {
-	clog.DefaultLogger.Info(s.logPrefix(), fmt.Sprintf(template, args...))
-}
-
-func (s *Session) Warn(args ...interface{}) {
-	clog.DefaultLogger.Warn(s.logPrefix(), fmt.Sprint(args...))
-}
-
-func (s *Session) Warnf(template string, args ...interface{}) {
-	clog.DefaultLogger.Warn(s.logPrefix(), fmt.Sprintf(template, args...))
-}
-
-func (s *Session) Error(args ...interface{}) {
-	clog.DefaultLogger.Error(s.logPrefix(), fmt.Sprint(args...))
-}
-
-func (s *Session) Errorf(template string, args ...interface{}) {
-	clog.DefaultLogger.Error(s.logPrefix(), fmt.Sprintf(template, args...))
-}
-
-func (s *Session) LogEnable(level zapcore.Level) bool {
-	return clog.Enable(level)
-}
+//
+//func NewSession(frontendId cfacade.FrontendID, gateActorId string) Session {
+//	sid := cnuid.Next()
+//	session := Session{}
+//	session[KeySID] = sid
+//	session[KeyFrontendID] = frontendId
+//	session[KeyAgentPath] = fmt.Sprintf("%s.%s.%s", frontendId, gateActorId, sid)
+//	session[KeyIP] = ""
+//	return session
+//}
+//
+//func (m Session) SID() cfacade.SID {
+//	return m.GetString(KeySID)
+//}
+//
+//func (m Session) UID() cfacade.UID {
+//	return m.GetInt64(KeyUID)
+//}
+//
+//func (m Session) FrontendID() cfacade.FrontendID {
+//	return m.GetString(KeyFrontendID)
+//}
+//
+//func (m Session) AgentPath() string {
+//	return m.GetString(KeyAgentPath)
+//}
+//
+//func (m Session) IP() string {
+//	return m.GetString(KeyIP)
+//}
+//
+//func (m Session) MessageID() uint {
+//	return m.GetUint(KeyMessageID)
+//}
+//
+//func (m Session) PacketTime() int64 {
+//	return m.GetInt64(KeyPacketTime)
+//}
+//
+//func (m Session) IsBind() bool {
+//	return m.UID() > 0
+//}
+//
+//func (m Session) Remove(key string) {
+//	delete(m, key)
+//}
+//
+//func (m Session) ImportAll(data map[string]string) {
+//	for k, v := range data {
+//		m.Set(k, v)
+//	}
+//}
+//
+//func (m Session) Set(key string, value string) {
+//	if key == "" || value == "" {
+//		return
+//	}
+//
+//	m[key] = value
+//}
+//
+//func (m Session) Contains(key string) bool {
+//	_, found := m[key]
+//	return found
+//}
+//
+//func (m Session) Restore(data map[string]string) {
+//	m.Clear()
+//
+//	for k, v := range data {
+//		m.Set(k, v)
+//	}
+//}
+//
+//// Clear releases all settings related to current sc
+//func (m Session) Clear() {
+//	for k := range m {
+//		delete(m, k)
+//	}
+//}
+//
+//func (m Session) AddData(key string, value interface{}) {
+//	m[key] = cstring.ToString(value)
+//}
+//
+//func (m Session) GetUint(key string) uint {
+//	v, ok := m[key]
+//	if !ok {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToUint(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//func (m Session) GetInt(key string) int {
+//	v, ok := m[key]
+//	if !ok {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//// GetInt32 returns the value associated with the key as a int32.
+//func (m Session) GetInt32(key string) int32 {
+//	v, ok := m[key]
+//	if !ok {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt32(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//// GetInt64 returns the value associated with the key as a int64.
+//func (m Session) GetInt64(key string) int64 {
+//	v, ok := m[key]
+//	if !ok {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt64(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//// GetString returns the value associated with the key as a string.
+//func (m Session) GetString(key string) string {
+//	v, ok := m[key]
+//	if !ok {
+//		return ""
+//	}
+//
+//	return v
+//}
+//
+//func (m Session) Copy() Session {
+//	session := Session{}
+//	for k, v := range m {
+//		session.Set(k, v)
+//	}
+//	return session
+//}
+//
+//func (m Session) logPrefix() string {
+//	return fmt.Sprintf("[uid = %d] ", m.UID())
+//}
+//
+//func (m Session) Debug(args ...interface{}) {
+//	clog.DefaultLogger.Debug(m.logPrefix(), fmt.Sprint(args...))
+//}
+//
+//func (m Session) Debugf(template string, args ...interface{}) {
+//	clog.DefaultLogger.Debug(m.logPrefix(), fmt.Sprintf(template, args...))
+//}
+//
+//func (m Session) Info(args ...interface{}) {
+//	clog.DefaultLogger.Info(m.logPrefix(), fmt.Sprint(args...))
+//}
+//
+//func (m Session) Infof(template string, args ...interface{}) {
+//	clog.DefaultLogger.Info(m.logPrefix(), fmt.Sprintf(template, args...))
+//}
+//
+//func (m Session) Warn(args ...interface{}) {
+//	clog.DefaultLogger.Warn(m.logPrefix(), fmt.Sprint(args...))
+//}
+//
+//func (m Session) Warnf(template string, args ...interface{}) {
+//	clog.DefaultLogger.Warn(m.logPrefix(), fmt.Sprintf(template, args...))
+//}
+//
+//func (m Session) Error(args ...interface{}) {
+//	clog.DefaultLogger.Error(m.logPrefix(), fmt.Sprint(args...))
+//}
+//
+//func (m Session) Errorf(template string, args ...interface{}) {
+//	clog.DefaultLogger.Error(m.logPrefix(), fmt.Sprintf(template, args...))
+//}
+//
+//func (m Session) LogEnable(level zapcore.Level) bool {
+//	return clog.Enable(level)
+//}

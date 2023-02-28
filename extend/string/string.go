@@ -3,12 +3,12 @@ package cherryString
 import (
 	"encoding/json"
 	"strconv"
-	str "strings"
+	goStrings "strings"
 )
 
-//CutLastString 截取字符串中最后一段，以@beginChar开始,@endChar结束的字符
-//@text 文本
-//@beginChar 开始
+// CutLastString 截取字符串中最后一段，以@beginChar开始,@endChar结束的字符
+// @text 文本
+// @beginChar 开始
 func CutLastString(text, beginChar, endChar string) string {
 	if text == "" || beginChar == "" || endChar == "" {
 		return ""
@@ -16,9 +16,8 @@ func CutLastString(text, beginChar, endChar string) string {
 
 	textRune := []rune(text)
 
-	beginIndex := str.LastIndex(text, beginChar)
-
-	endIndex := str.LastIndex(text, endChar)
+	beginIndex := goStrings.LastIndex(text, beginChar)
+	endIndex := goStrings.LastIndex(text, endChar)
 	if endIndex < 0 || endIndex < beginIndex {
 		endIndex = len(textRune)
 	}
@@ -34,7 +33,19 @@ func IsNotBlank(value string) bool {
 	return value != ""
 }
 
+func ToUint(value string, def ...uint) (uint, bool) {
+	val, err := strconv.ParseUint(value, 10, 32)
+	if err != nil {
+		if len(def) > 0 {
+			return def[0], false
+		}
+		return 0, false
+	}
+	return uint(val), true
+}
+
 func ToInt(value string, def ...int) (int, bool) {
+
 	val, err := strconv.Atoi(value)
 	if err != nil {
 		if len(def) > 0 {
@@ -106,4 +117,12 @@ func ToStringSlice(val []interface{}) []string {
 		}
 	}
 	return result
+}
+
+func SplitIndex(s, sep string, index int) (string, bool) {
+	ret := goStrings.Split(s, sep)
+	if index >= len(ret) {
+		return "", false
+	}
+	return ret[index], true
 }

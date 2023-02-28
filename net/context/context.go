@@ -1,118 +1,97 @@
 package cherryContext
 
-import (
-	"context"
-	clog "github.com/cherry-game/cherry/logger"
-	jsoniter "github.com/json-iterator/go"
-)
-
-const (
-	zeroUint  uint  = 0
-	zeroInt64 int64 = 0
-)
-
-func New() context.Context {
-	ctx := context.TODO()
-	return ctx
-}
-
-// Add adds a key and value that will be propagated through RPC calls
-func Add(ctx context.Context, key string, val interface{}) context.Context {
-	propagate := ToMap(ctx)
-	propagate[key] = val
-	return context.WithValue(ctx, PropagateCtxKey, propagate)
-}
-
-// Get get a value from the propagate
-func Get(ctx context.Context, key string) interface{} {
-	propagate := ToMap(ctx)
-	if val, ok := propagate[key]; ok {
-		return val
-	}
-	return nil
-}
-
-func GetInt64(ctx context.Context, key string) int64 {
-	val := Get(ctx, key)
-	if val == nil {
-		return zeroInt64
-	}
-
-	f64, ok := val.(float64)
-	if ok {
-		return int64(f64)
-	}
-
-	i64, ok := val.(int64)
-	if ok {
-		return i64
-	}
-
-	return zeroInt64
-}
-
-func GetMessageId(ctx context.Context) uint {
-	val := Get(ctx, MessageIdKey)
-	if val == nil {
-		return zeroUint
-	}
-
-	i, ok := val.(float64)
-	if ok {
-		return uint(i)
-	}
-
-	return zeroUint
-}
-
-func GetBuildPacketTime(ctx context.Context) int64 {
-	return GetInt64(ctx, BuildPacketTimeKey)
-}
-
-func GetInHandlerTime(ctx context.Context) int64 {
-	return GetInt64(ctx, InHandlerTimeKey)
-}
-
-// ToMap returns the values that will be propagated through RPC calls in map[string]interface{} format
-func ToMap(ctx context.Context) map[string]interface{} {
-	if ctx == nil {
-		return map[string]interface{}{}
-	}
-	p := ctx.Value(PropagateCtxKey)
-	if p != nil {
-		return p.(map[string]interface{})
-	}
-	return map[string]interface{}{}
-}
-
-// FromMap creates a new context from a map with propagated values
-func FromMap(val map[string]interface{}) context.Context {
-	return context.WithValue(context.Background(), PropagateCtxKey, val)
-}
-
-// Encode returns the given propagatable context encoded in binary format
-func Encode(ctx context.Context) []byte {
-	m := ToMap(ctx)
-	if len(m) > 0 {
-		bytes, err := jsoniter.Marshal(m)
-		if err != nil {
-			clog.Warn(err)
-		}
-		return bytes
-	}
-	return nil
-}
-
-// Decode returns a context given a binary encoded message
-func Decode(m []byte) context.Context {
-	if len(m) == 0 {
-		return context.TODO()
-	}
-	mp := make(map[string]interface{}, 0)
-	err := jsoniter.Unmarshal(m, &mp)
-	if err != nil {
-		return context.TODO()
-	}
-
-	return FromMap(mp)
-}
+//import (
+//	"context"
+//	cstring "github.com/cherry-game/cherry/extend/string"
+//)
+//
+//func New() context.Context {
+//	return context.TODO()
+//}
+//
+//// Add adds a key and value that will be propagated through RPC calls
+//func Add(ctx context.Context, key string, val interface{}) context.Context {
+//	propagate := ToMap(ctx)
+//	propagate[key] = cstring.ToString(val)
+//	return context.WithValue(ctx, PropagateCtxKey, propagate)
+//}
+//
+//func ParseToString(ctx context.Context, key string) string {
+//	propagate := ToMap(ctx)
+//	if val, ok := propagate[key]; ok {
+//		return val
+//	}
+//	return ""
+//}
+//
+//func PraseToInt(ctx context.Context, key string) int {
+//	v := ParseToString(ctx, key)
+//	if v == "" {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//// ParseToInt32 returns the value associated with the key as a int32.
+//func ParseToInt32(ctx context.Context, key string) int32 {
+//	v := ParseToString(ctx, key)
+//	if v == "" {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt32(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//// ParseToInt64 returns the value associated with the key as a int64.
+//func ParseToInt64(ctx context.Context, key string) int64 {
+//	v := ParseToString(ctx, key)
+//	if v == "" {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToInt64(v)
+//	if !ok {
+//		return 0
+//	}
+//	return value
+//}
+//
+//func ParseToUint(ctx context.Context, key string) uint {
+//	v := ParseToString(ctx, key)
+//	if v == "" {
+//		return 0
+//	}
+//
+//	value, ok := cstring.ToUint(v, 0)
+//	if ok {
+//		return value
+//	}
+//	return 0
+//}
+//
+//// ToMap returns the values that will be propagated through RPC calls in map[string]interface{} format
+//func ToMap(ctx context.Context) map[string]string {
+//	if ctx == nil {
+//		return map[string]string{}
+//	}
+//
+//	p := ctx.Value(PropagateCtxKey)
+//	if p != nil {
+//		return p.(map[string]string)
+//	}
+//
+//	return map[string]string{}
+//}
+//
+//func FromMap(val map[string]string) context.Context {
+//	return context.WithValue(context.Background(), PropagateCtxKey, val)
+//}

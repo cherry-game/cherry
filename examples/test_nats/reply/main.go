@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/binary"
 	cherryLogger "github.com/cherry-game/cherry/logger"
 	"github.com/nats-io/nats.go"
 	"log"
@@ -8,6 +9,10 @@ import (
 	"os/signal"
 	"time"
 )
+
+func BytesToInt64(buf []byte) int64 {
+	return int64(binary.BigEndian.Uint64(buf))
+}
 
 func main() {
 	urls := nats.DefaultURL
@@ -22,7 +27,11 @@ func main() {
 	}
 
 	nc.Subscribe(subj, func(msg *nats.Msg) {
-		cherryLogger.Debugf("msg = %v", msg)
+		t := BytesToInt64(msg.Data)
+
+		dt := time.Now().UnixMicro() - t
+
+		cherryLogger.Debugf("dt = %d, msg = %v", dt, msg)
 		msg.Respond([]byte("response msg"))
 	})
 	nc.Flush()

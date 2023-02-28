@@ -1,21 +1,36 @@
 package cherryFacade
 
-type IComponent interface {
-	IAppContext
-	Name() string
-	Init()
-	OnAfterInit()
-	OnBeforeStop()
-	OnStop()
-}
+type (
+	IComponent interface {
+		Name() string
+		App() IApplication
+		IComponentLifecycle
+	}
+
+	IComponentLifecycle interface {
+		Set(app IApplication)
+		Init()
+		OnAfterInit()
+		OnBeforeStop()
+		OnStop()
+	}
+)
 
 // Component base component
 type Component struct {
-	AppContext
+	app IApplication
 }
 
 func (*Component) Name() string {
 	return ""
+}
+
+func (p *Component) App() IApplication {
+	return p.app
+}
+
+func (p *Component) Set(app IApplication) {
+	p.app = app
 }
 
 func (*Component) Init() {

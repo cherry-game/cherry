@@ -1,56 +1,66 @@
+// Package cherryQueue provides an efficient implementation of a multi-producer, single-consumer lock-free queue.
+//
+// The Push function is safe to call from multiple goroutines. The pop and Empty APIs must only be
+// called from a single, consumer goroutine.
 package cherryQueue
 
+// This implementation is based on http://www.1024cores.net/home/lock-free-algorithms/queues/non-intrusive-mpsc-node-based-queue
+
 import (
-	"container/list"
-	"sync"
+	"sync/atomic"
+	"unsafe"
 )
 
+type node struct {
+	next *node
+	val  interface{}
+}
+
 type Queue struct {
-	mutex sync.RWMutex
-	list  *list.List
+	head, tail *node
 }
 
-func NewQueue() *Queue {
-	return &Queue{
-		mutex: sync.RWMutex{},
-		list:  list.New(),
+func NewQueue() Queue {
+	q := Queue{}
+	stub := &node{}
+	q.head = stub
+	q.tail = stub
+	return q
+}
+
+// Push adds x to the back of the queue.
+//
+// Push can be safely called from multiple goroutines
+func (q *Queue) Push(x interface{}) {
+	n := new(node)
+	n.val = x
+	// current producer acquires head node
+	prev := (*node)(atomic.SwapPointer((*unsafe.Pointer)(unsafe.Pointer(&q.head)), unsafe.Pointer(n)))
+
+	// release node to consumer
+	atomic.StorePointer((*unsafe.Pointer)(unsafe.Pointer(&prev.next)), unsafe.Pointer(n))
+}
+
+// Pop removes the item from the front of the queue or nil if the queue is empty
+//
+// Pop must be called from a single, consumer goroutine
+func (q *Queue) Pop() interface{} {
+	tail := q.tail
+	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next)))) // acquire
+	if next != nil {
+		q.tail = next
+		v := next.val
+		next.val = nil
+		return v
 	}
+	return nil
 }
 
-func (p *Queue) Pop() (interface{}, bool) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	if p.Empty() {
-		return nil, false
-	}
-
-	element := p.list.Front()
-	if element == nil {
-		return nil, false
-	}
-
-	p.list.Remove(element)
-	return element.Value, true
-}
-
-func (p *Queue) Push(val interface{}) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	p.list.PushBack(val)
-}
-
-func (p *Queue) Len() int {
-	return p.list.Len()
-}
-
-func (p *Queue) Empty() bool {
-	return p.list.Len() == 0
-}
-
-func (p *Queue) Clear() {
-	p.mutex.Lock()
-	p.list.Init()
-	p.mutex.Unlock()
+// Empty returns true if the queue is empty
+//
+//	must be called from a single, consumer goroutine
+func (q *Queue) Empty() bool {
+	tail := q.tail
+	next := (*node)(atomic.LoadPointer((*unsafe.Pointer)(unsafe.Pointer(&tail.next))))
+	return next == nil
 }

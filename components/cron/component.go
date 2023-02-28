@@ -1,7 +1,6 @@
 package cherryCron
 
 import (
-	"github.com/cherry-game/cherry"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	"github.com/robfig/cron/v3"
@@ -21,7 +20,6 @@ func (*Component) Name() string {
 }
 
 func (p *Component) Init() {
-	Start()
 	clog.Info("cron component init.")
 }
 
@@ -30,10 +28,9 @@ func (p *Component) OnStop() {
 	clog.Infof("cron component is stopped.")
 }
 
-func RegisterComponent(opts ...cron.Option) {
+func New(opts ...cron.Option) cfacade.IComponent {
 	if len(opts) > 0 {
 		Init(opts...)
 	}
-
-	cherry.RegisterComponent(&Component{})
+	return &Component{}
 }

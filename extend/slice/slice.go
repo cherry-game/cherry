@@ -6,6 +6,7 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	"math/rand"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -234,4 +235,13 @@ func IsSlice(value interface{}) bool {
 	default:
 		return false
 	}
+}
+
+func IsEmptyWithString(p []string) bool {
+	for _, s := range p {
+		if strings.TrimSpace(s) == "" {
+			return true
+		}
+	}
+	return false
 }

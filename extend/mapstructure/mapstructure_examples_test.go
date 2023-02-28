@@ -229,7 +229,7 @@ func ExampleDecode_remainingData() {
 }
 
 func ExampleDecode_omitempty() {
-	// Add omitempty annotation to avoid map keys for empty values
+	// NewActor omitempty annotation to avoid map keys for empty values
 	type Family struct {
 		LastName string
 	}

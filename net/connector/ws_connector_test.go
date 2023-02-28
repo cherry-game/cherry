@@ -2,8 +2,8 @@ package cherryConnector
 
 import (
 	"fmt"
-	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	"net"
 	"sync"
 	"testing"
 )
@@ -14,20 +14,23 @@ func TestNewWSConnector(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 
-	connector := NewWS(":9071")
-
-	connector.OnConnectListener(func(conn cfacade.INetConn) {
-		clog.Infof("new net.INetConn = %s", conn.RemoteAddr())
-
+	ws := NewWS(":9071")
+	ws.OnConnect(func(conn net.Conn) {
+		clog.Infof("new net.Conn = %s", conn.RemoteAddr())
 		go func() {
 			for {
-				msg, err := conn.GetNextMessage()
-				fmt.Println(msg, err)
+				buf := make([]byte, 2048)
+				for {
+					n, err := conn.Read(buf)
+					if err != nil {
+						return
+					}
+					fmt.Println(buf[:n])
+				}
 			}
 		}()
 	})
-
-	connector.OnStart()
+	ws.Start()
 
 	wg.Wait()
 }

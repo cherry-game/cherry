@@ -43,7 +43,7 @@ func defaultConsoleConfig() *Config {
 	return config
 }
 
-func NewConfig(jsonConfig cfacade.JsonConfig) *Config {
+func NewConfig(jsonConfig cfacade.ProfileJSON) *Config {
 	config := &Config{}
 
 	config.Level = jsonConfig.GetString("level", "debug")

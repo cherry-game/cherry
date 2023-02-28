@@ -43,6 +43,7 @@ var (
 	PacketConnectClosed          = Error("client connection closed")
 	PacketInvalidHeader          = Error("invalid header")
 	PacketMsgSmallerThanExpected = Error("received less data than expected, EOF?")
+	PacketHeadFuncNoSet          = Error("head func no set")
 )
 
 // message
@@ -65,4 +66,13 @@ var (
 	ClusterRPCClientIsStop = Error("rpc client is stop")
 	ClusterNoImplement     = Error("no implement")
 	NodeTypeIsNil          = Error("node type is nil.")
+)
+
+var (
+	ActorPathError = Error("actor path is error.")
+)
+
+var (
+	FuncIsNil     = Error("function is nil")
+	FuncTypeError = Error("Is not func type")
 )

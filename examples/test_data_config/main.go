@@ -5,17 +5,20 @@ import (
 	cherryDataConfig "github.com/cherry-game/cherry/components/data-config"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	chandler "github.com/cherry-game/cherry/net/handler"
 	"time"
 )
 
 func main() {
-	testApp := cherry.NewApp("../config/", "local", "game-1")
+	testApp := cherry.NewApp(
+		"./examples/config/profile-local.json",
+		"game-1",
+		false,
+		cherry.Standalone,
+	)
 
-	handlers := chandler.NewComponent()
-
-	dataConfig := cherryDataConfig.NewComponent()
+	dataConfig := cherryDataConfig.New()
 	dataConfig.Register(&DropList, &DropOne)
+	testApp.Register(dataConfig)
 
 	go func(testApp *cherry.Application) {
 		//120秒后退出应用
@@ -23,10 +26,7 @@ func main() {
 		testApp.Shutdown()
 	}(testApp)
 
-	testApp.Startup(
-		handlers,
-		dataConfig,
-	)
+	testApp.Startup()
 }
 
 func getDropConfig(_ cfacade.IApplication) {

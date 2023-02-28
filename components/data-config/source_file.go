@@ -34,7 +34,7 @@ func (f *SourceFile) Init(_ IDataConfig) {
 	//read data_config->file node
 	dataConfig := cprofile.GetConfig("data_config").GetConfig(f.Name())
 	if dataConfig.Marshal(&f.fileConfig) != nil {
-		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cprofile.FileName())
+		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cprofile.Name())
 		return
 	}
 
@@ -151,7 +151,7 @@ func (f *fileConfig) check() error {
 	}
 
 	var err error
-	f.MonitorPath, err = cherryFile.JoinPath(cprofile.Dir(), f.FilePath)
+	f.MonitorPath, err = cherryFile.JoinPath(cprofile.Path(), f.FilePath)
 	if err != nil {
 		return err
 	}

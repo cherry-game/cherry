@@ -1,12 +1,19 @@
 package main
 
 import (
+	"encoding/binary"
 	"github.com/nats-io/nats.go"
 	"log"
 	"os"
 	"os/signal"
 	"time"
 )
+
+func Int64ToBytes(i int64) []byte {
+	var buf = make([]byte, 8)
+	binary.BigEndian.PutUint64(buf, uint64(i))
+	return buf
+}
 
 func main() {
 	urls := nats.DefaultURL
@@ -26,7 +33,7 @@ func main() {
 			break
 		}
 
-		nc.Publish(subj, []byte("aaa"))
+		nc.Publish(subj, Int64ToBytes(time.Now().UnixMicro()))
 		time.Sleep(1 * time.Second)
 		i++
 	}

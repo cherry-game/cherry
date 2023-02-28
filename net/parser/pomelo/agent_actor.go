@@ -1,0 +1,161 @@
+package pomelo
+
+import (
+	ccode "github.com/cherry-game/cherry/code"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	cactor "github.com/cherry-game/cherry/net/actor"
+	pomeloMessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
+	ppacket "github.com/cherry-game/cherry/net/parser/pomelo/packet"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	"github.com/nats-io/nuid"
+	"go.uber.org/zap/zapcore"
+	"net"
+	"time"
+)
+
+type (
+	AgentActor struct {
+		cactor.Base
+		agentActorID   string
+		connectors     []cfacade.IConnector
+		onNewAgentFunc OnNewAgentFunc
+	}
+
+	OnNewAgentFunc func(newAgent *Agent)
+)
+
+func NewActor(agentActorID string) *AgentActor {
+	if agentActorID == "" {
+		panic("agentActorID is empty.")
+	}
+
+	parser := &AgentActor{
+		agentActorID: agentActorID,
+		connectors:   make([]cfacade.IConnector, 0),
+	}
+
+	return parser
+}
+
+// OnInit Actor初始化前触发该函数
+func (p *AgentActor) OnInit() {
+	p.Remote().Register(ResponseFuncName, p.response)
+	p.Remote().Register(PushFuncName, p.push)
+	p.Remote().Register(KickFuncName, p.kick)
+}
+
+func (p *AgentActor) Load(app cfacade.IApplication) {
+	if len(p.connectors) < 1 {
+		panic("connectors is nil. Please call the AddConnector(...) method add IConnector.")
+	}
+
+	cmd.init(app)
+
+	//  注册自己为actor
+	if _, err := app.ActorSystem().CreateActor(p.agentActorID, p); err != nil {
+		clog.Panicf("Create agent actor fail. err = %+v", err)
+	}
+
+	for _, connector := range p.connectors {
+		connector.OnConnect(p.defaultOnConnectFunc)
+		p.App().Register(connector) // Add connector to component
+	}
+}
+
+func (p *AgentActor) AddConnector(connector cfacade.IConnector) {
+	p.connectors = append(p.connectors, connector)
+}
+
+// defaultOnConnectFunc 创建新连接时，通过当前agentActor创建child agent actor
+func (p *AgentActor) defaultOnConnectFunc(conn net.Conn) {
+	sid := nuid.Next()
+	session := cproto.NewSession(sid, p.Path().String())
+	agent := NewAgent(p.App(), conn, &session)
+
+	if p.onNewAgentFunc != nil {
+		p.onNewAgentFunc(&agent)
+	}
+
+	BindSID(&agent)
+	agent.Run()
+}
+
+func (*AgentActor) SetDictionary(dict map[string]uint16) {
+	pomeloMessage.SetDictionary(dict)
+}
+
+func (*AgentActor) SetDataCompression(compression bool) {
+	pomeloMessage.SetDataCompression(compression)
+}
+
+func (*AgentActor) SetWriteBacklog(size int) {
+	cmd.writeBacklog = size
+}
+
+func (*AgentActor) SetHeartbeat(t time.Duration) {
+	if t.Seconds() < 1 {
+		t = 60 * time.Second
+	}
+	cmd.heartbeatTime = t
+}
+
+func (*AgentActor) SetSysData(key string, value interface{}) {
+	cmd.sysData[key] = value
+}
+
+func (p *AgentActor) SetOnNewAgent(fn OnNewAgentFunc) {
+	p.onNewAgentFunc = fn
+}
+
+func (*AgentActor) SetOnDataRoute(fn DataRouteFunc) {
+	if fn != nil {
+		cmd.onDataRouteFunc = fn
+	}
+}
+
+func (*AgentActor) SetOnPacket(typ ppacket.Type, fn PacketFunc) {
+	cmd.onPacketFuncMap[typ] = fn
+}
+
+func (p *AgentActor) response(rsp *cproto.PomeloResponse) {
+	agent, found := GetAgent(rsp.Sid)
+	if !found {
+		if clog.PrintLevel(zapcore.DebugLevel) {
+			clog.Debugf("[response] Not found agent. [rsp = %+v]", rsp)
+		}
+		return
+	}
+
+	if ccode.IsOK(rsp.Code) {
+		agent.ResponseMID(rsp.Mid, rsp.Data, false)
+	} else {
+		errRsp := &cproto.Response{
+			Code: rsp.Code,
+		}
+		agent.ResponseMID(rsp.Mid, errRsp, true)
+	}
+}
+
+func (p *AgentActor) push(rsp *cproto.PomeloPush) {
+	agent, found := GetAgent(rsp.Sid)
+	if !found {
+		if clog.PrintLevel(zapcore.DebugLevel) {
+			clog.Debugf("[push] Not found agent. [rsp = %+v]", rsp)
+		}
+		return
+	}
+
+	agent.Push(rsp.Route, rsp.Data)
+}
+
+func (p *AgentActor) kick(rsp *cproto.PomeloKick) {
+	agent, found := GetAgentWithUID(rsp.Uid)
+	if !found {
+		agent, found = GetAgent(rsp.Sid)
+	}
+
+	if found {
+		agent.Kick(rsp.Reason, rsp.Close)
+	}
+}

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cdiscovery "github.com/cherry-game/cherry/net/cluster/discovery"
+	cdiscovery "github.com/cherry-game/cherry/net/discovery"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
 	jsoniter "github.com/json-iterator/go"
@@ -23,7 +23,7 @@ var (
 
 // ETCD etcd方式发现服务
 type ETCD struct {
-	cfacade.IApplication
+	app cfacade.IApplication
 	cdiscovery.DiscoveryDefault
 	prefix  string
 	config  clientv3.Config
@@ -40,8 +40,8 @@ func (p *ETCD) Name() string {
 	return "etcd"
 }
 
-func (p *ETCD) Init(app cfacade.IApplication) {
-	p.IApplication = app
+func (p *ETCD) Load(app cfacade.IApplication) {
+	p.app = app
 	p.ttl = 10
 
 	clusterConfig := cprofile.GetConfig("cluster").GetConfig(p.Name())
@@ -60,7 +60,7 @@ func (p *ETCD) Init(app cfacade.IApplication) {
 }
 
 func (p *ETCD) OnStop() {
-	key := fmt.Sprintf(registerKeyFormat, p.NodeId())
+	key := fmt.Sprintf(registerKeyFormat, p.app.NodeId())
 	_, err := p.cli.Delete(context.Background(), key)
 	clog.Infof("etcd stopping! err = %v", err)
 
@@ -83,7 +83,7 @@ func getEndPoints(config jsoniter.Any) []string {
 	return strings.Split(config.Get("end_points").ToString(), ",")
 }
 
-func (p *ETCD) loadConfig(config cfacade.JsonConfig) {
+func (p *ETCD) loadConfig(config cfacade.ProfileJSON) {
 	p.config = clientv3.Config{
 		Logger: clog.DefaultLogger.Desugar(),
 	}
@@ -134,7 +134,7 @@ func (p *ETCD) getLeaseId() {
 			case <-keepaliveChan:
 				{
 				}
-			case die := <-p.DieChan():
+			case die := <-p.app.DieChan():
 				{
 					if die {
 						return
@@ -147,9 +147,9 @@ func (p *ETCD) getLeaseId() {
 
 func (p *ETCD) register() {
 	registerMember := &cproto.Member{
-		NodeId:   p.NodeId(),
-		NodeType: p.NodeType(),
-		Address:  p.RpcAddress(),
+		NodeId:   p.app.NodeId(),
+		NodeType: p.app.NodeType(),
+		Address:  p.app.RpcAddress(),
 		Settings: make(map[string]string),
 	}
 
@@ -159,7 +159,7 @@ func (p *ETCD) register() {
 		return
 	}
 
-	key := fmt.Sprintf(registerKeyFormat, p.NodeId())
+	key := fmt.Sprintf(registerKeyFormat, p.app.NodeId())
 	_, err = p.cli.Put(context.Background(), key, jsonString, clientv3.WithLease(p.leaseID))
 	if err != nil {
 		clog.Fatal(err)

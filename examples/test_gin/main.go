@@ -6,13 +6,17 @@ import (
 )
 
 func main() {
-	testApp := cherry.NewApp("../config/", "local", "web-1")
-	defer testApp.OnShutdown()
+	app := cherry.NewApp(
+		"./examples/config/profile-local.json",
+		"web-1",
+		false,
+		cherry.Standalone,
+	)
 
-	httpServer := cherryGin.NewHttp("web_1", testApp.Address())
+	httpServer := cherryGin.NewHttp("web_1", app.Address())
 	httpServer.Use(cherryGin.Cors(), cherryGin.MaxConnect(2))
-
 	httpServer.Register(new(Test1Controller))
 
-	testApp.Startup(httpServer)
+	app.Register(httpServer)
+	app.Startup()
 }

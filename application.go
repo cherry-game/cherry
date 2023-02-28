@@ -6,12 +6,11 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cpacket "github.com/cherry-game/cherry/net/packet"
+	cactor "github.com/cherry-game/cherry/net/actor"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"os"
 	"os/signal"
-	"reflect"
 	"sync/atomic"
 	"syscall"
 )
@@ -26,8 +25,6 @@ type (
 
 	Application struct {
 		cfacade.INode
-		cfacade.ISerializer
-		cfacade.IPacketCodec
 		isFrontend   bool
 		nodeMode     NodeMode
 		startTime    ctime.CherryTime     // application start time
@@ -35,12 +32,16 @@ type (
 		dieChan      chan bool            // wait for end application
 		components   []cfacade.IComponent // all components
 		onShutdownFn []func()             // on shutdown execute functions
+		serializer   cfacade.ISerializer  // serializer
+		discovery    cfacade.IDiscovery   // discovery component
+		cluster      cfacade.ICluster     // cluster component
+		actorSystem  *cactor.System       // actor system
 	}
 )
 
 // NewApp create new application instance
-func NewApp(profilePath, profileName, nodeId string) *Application {
-	node, err := cprofile.Init(profilePath, profileName, nodeId)
+func NewApp(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *Application {
+	node, err := cprofile.Init(profileFilePath, nodeId)
 	if err != nil {
 		panic(err)
 	}
@@ -52,15 +53,17 @@ func NewApp(profilePath, profileName, nodeId string) *Application {
 	clog.Info(cconst.GetLOGO())
 
 	app := &Application{
-		INode:        node,
-		ISerializer:  cserializer.NewProtobuf(),
-		IPacketCodec: cpacket.NewPomeloCodec(),
-		isFrontend:   true,
-		nodeMode:     Standalone,
-		startTime:    ctime.Now(),
-		running:      0,
-		dieChan:      make(chan bool),
+		INode:      node,
+		serializer: cserializer.NewProtobuf(),
+		isFrontend: isFrontend,
+		nodeMode:   mode,
+		startTime:  ctime.Now(),
+		running:    0,
+		dieChan:    make(chan bool),
 	}
+
+	// create actor system
+	app.actorSystem = cactor.NewSystem(app)
 
 	return app
 }
@@ -115,7 +118,7 @@ func (a *Application) Find(name string) cfacade.IComponent {
 	return nil
 }
 
-// Remove remove component by name
+// Remove component by name
 func (a *Application) Remove(name string) cfacade.IComponent {
 	if name == "" {
 		return nil
@@ -136,12 +139,12 @@ func (a *Application) All() []cfacade.IComponent {
 	return a.components
 }
 
-func (a *Application) StartTime() string {
-	return a.startTime.ToDateTimeFormat()
+func (a *Application) OnShutdown(fn ...func()) {
+	a.onShutdownFn = append(a.onShutdownFn, fn...)
 }
 
 // Startup load components before startup
-func (a *Application) Startup(components ...cfacade.IComponent) {
+func (a *Application) Startup() {
 	defer func() {
 		if r := recover(); r != nil {
 			clog.Error(r)
@@ -149,7 +152,7 @@ func (a *Application) Startup(components ...cfacade.IComponent) {
 	}()
 
 	if a.Running() {
-		clog.Error("application has running.")
+		clog.Error("Application has running.")
 		return
 	}
 
@@ -162,20 +165,16 @@ func (a *Application) Startup(components ...cfacade.IComponent) {
 	clog.Infof("[nodeType    = %s]", a.NodeType())
 	clog.Infof("[pid         = %d]", os.Getpid())
 	clog.Infof("[startTime   = %s]", a.StartTime())
-	clog.Infof("[profile     = %s]", cprofile.Name())
-	clog.Infof("[profilePath = %s]", cprofile.Dir())
-	clog.Infof("[profileFile = %s]", cprofile.FileName())
+	clog.Infof("[profilePath = %s]", cprofile.Path())
+	clog.Infof("[profileName = %s]", cprofile.Name())
+	clog.Infof("[env         = %s]", cprofile.Env())
+	clog.Infof("[debug       = %v]", cprofile.Debug())
 	clog.Infof("[printLevel  = %s]", cprofile.PrintLevel())
-	clog.Infof("[isDebug     = %v]", cprofile.Debug())
 	clog.Infof("[logLevel    = %s]", clog.DefaultLogger.Level)
 	clog.Infof("[stackLevel  = %s]", clog.DefaultLogger.StackLevel)
 	clog.Infof("[writeFile   = %v]", clog.DefaultLogger.EnableWriteFile)
-	clog.Infof("[codec       = %v]", reflect.TypeOf(a.IPacketCodec))
-	clog.Infof("[serializer  = %s]", a.ISerializer.Name())
+	clog.Infof("[serializer  = %s]", a.serializer.Name())
 	clog.Info("-------------------------------------------------")
-
-	// add components
-	a.Register(components...)
 
 	// component list
 	for _, c := range a.components {
@@ -219,16 +218,15 @@ func (a *Application) Startup(components ...cfacade.IComponent) {
 
 	clog.Info("------- application will shutdown -------")
 
-	cutils.Try(func() {
-		if a.onShutdownFn != nil {
-			for _, f := range a.onShutdownFn {
+	if a.onShutdownFn != nil {
+		for _, f := range a.onShutdownFn {
+			cutils.Try(func() {
 				f()
-			}
+			}, func(errString string) {
+				clog.Warnf("[onShutdownFn] error = %s", errString)
+			})
 		}
-
-	}, func(errString string) {
-		clog.Warnf("[onShutdownFn] error = %s", errString)
-	})
+	}
 
 	//all components in reverse order
 	for i := len(a.components) - 1; i >= 0; i-- {
@@ -249,27 +247,55 @@ func (a *Application) Startup(components ...cfacade.IComponent) {
 		})
 	}
 
-	clog.Info("------- application has been shutdown... -------")
-}
+	a.actorSystem.OnStop()
 
-func (a *Application) OnShutdown(fn ...func()) {
-	a.onShutdownFn = append(a.onShutdownFn, fn...)
+	clog.Info("------- application has been shutdown... -------")
 }
 
 func (a *Application) Shutdown() {
 	a.dieChan <- true
 }
 
-func (a *Application) SetSerializer(serializer cfacade.ISerializer) {
-	if a.Running() {
-		return
-	}
-	a.ISerializer = serializer
+func (a *Application) Serializer() cfacade.ISerializer {
+	return a.serializer
 }
 
-func (a *Application) SetPacketCodec(codec cfacade.IPacketCodec) {
-	if a.Running() {
+func (a *Application) Discovery() cfacade.IDiscovery {
+	return a.discovery
+}
+
+func (a *Application) Cluster() cfacade.ICluster {
+	return a.cluster
+}
+
+func (a *Application) ActorSystem() cfacade.IActorSystem {
+	return a.actorSystem
+}
+
+func (a *Application) StartTime() string {
+	return a.startTime.ToDateTimeFormat()
+}
+
+func (a *Application) SetSerializer(serializer cfacade.ISerializer) {
+	if a.Running() || serializer == nil {
 		return
 	}
-	a.IPacketCodec = codec
+
+	a.serializer = serializer
+}
+
+func (a *Application) SetDiscovery(discovery cfacade.IDiscovery) {
+	if a.Running() || discovery == nil {
+		return
+	}
+
+	a.discovery = discovery
+}
+
+func (a *Application) SetCluster(cluster cfacade.ICluster) {
+	if a.Running() || cluster == nil {
+		return
+	}
+
+	a.cluster = cluster
 }

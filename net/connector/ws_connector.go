@@ -1,164 +1,122 @@
 package cherryConnector
 
 import (
-	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cpacket "github.com/cherry-game/cherry/net/packet"
 	"github.com/gorilla/websocket"
 	"io"
-	"net"
 	"net/http"
 	"time"
 )
 
-type WSConnector struct {
-	cfacade.Component
-	Connector
-	up *websocket.Upgrader
+type (
+	WSConnector struct {
+		cfacade.Component
+		Connector
+		Options
+		upgrade *websocket.Upgrader
+	}
+
+	// WSConn is an adapter to t.INetConn, which implements all INetConn
+	// interface base on *websocket.INetConn
+	WSConn struct {
+		*websocket.Conn
+		typ    int // message type
+		reader io.Reader
+	}
+)
+
+func (*WSConnector) Name() string {
+	return "websocket_connector"
 }
 
-func NewWS(address string) *WSConnector {
+func (w *WSConnector) OnAfterInit() {
+	go w.Start()
+}
+
+func (w *WSConnector) OnStop() {
+	w.Stop()
+}
+
+func NewWS(address string, opts ...Option) *WSConnector {
 	if address == "" {
 		clog.Warn("create websocket fail. address is null.")
 		return nil
 	}
 
 	ws := &WSConnector{
-		Connector: NewConnector(address, "", ""),
+		Options: Options{
+			address:  address,
+			certFile: "",
+			keyFile:  "",
+			chanSize: 256,
+		},
+		upgrade: &websocket.Upgrader{
+			ReadBufferSize:  1024,
+			WriteBufferSize: 1024,
+			CheckOrigin: func(_ *http.Request) bool {
+				return true
+			},
+		},
 	}
+
+	for _, opt := range opts {
+		opt(&ws.Options)
+	}
+
+	ws.Connector = NewConnector(ws.chanSize)
+
 	return ws
 }
 
-func NewWSLTS(address, certFile, keyFile string) *WSConnector {
-	if address == "" {
-		clog.Warn("create websocket fail. address is null.")
-		return nil
-	}
-
-	if certFile == "" || keyFile == "" {
-		clog.Warn("create websocket fail. certFile or keyFile is null.")
-		return nil
-	}
-
-	w := &WSConnector{
-		Connector: NewConnector(address, certFile, keyFile),
-	}
-
-	return w
-}
-
-func (w *WSConnector) Name() string {
-	return "websocket_connector"
-}
-
-func (w *WSConnector) OnAfterInit() {
-	go w.OnStart()
-}
-
-func (w *WSConnector) OnStart() {
-	if len(w.ConnectListeners()) < 1 {
-		panic("onConnectListener() not set.")
-	}
-
-	var err error
-	w.Listener, err = GetNetListener(w.Address, w.CertFile, w.KeyFile)
+func (w *WSConnector) Start() {
+	listener, err := w.GetListener(w.certFile, w.keyFile, w.address)
 	if err != nil {
-		clog.Fatalf("failed to listen: %s", err.Error())
+		clog.Fatalf("failed to listen: %s", err)
 	}
 
-	if w.CertFile == "" || w.KeyFile == "" {
-		clog.Infof("websocket Connector listening at address ws://%s", w.Address)
-	} else {
-		clog.Infof("websocket Connector listening at address wss://%s", w.Address)
-		clog.Infof("certFile = %s, keyFile = %s", w.CertFile, w.KeyFile)
+	clog.Infof("Websocket connector listening at Address %s", w.address)
+	if w.certFile != "" || w.keyFile != "" {
+		clog.Infof("certFile = %s, keyFile = %s", w.certFile, w.keyFile)
 	}
 
-	if w.up == nil {
-		w.up = &websocket.Upgrader{
-			ReadBufferSize:  1024,
-			WriteBufferSize: 1024,
-			CheckOrigin:     CheckOrigin,
-		}
-	}
+	w.Connector.Start()
 
-	w.ExecuteListener()
+	http.Serve(listener, w)
+}
 
-	http.Serve(w.Listener, w)
+func (w *WSConnector) Stop() {
+	w.Connector.Stop()
 }
 
 func (w *WSConnector) SetUpgrade(upgrade *websocket.Upgrader) {
-	w.up = upgrade
-}
-
-func (w *WSConnector) OnStop() {
-	err := w.Listener.Close()
-	if err != nil {
-		clog.Errorf("failed to stop: %s", err.Error())
+	if upgrade != nil {
+		w.upgrade = upgrade
 	}
 }
 
-//ServerHTTP server.Handler
 func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-	wsConn, err := w.up.Upgrade(rw, r, nil)
+	wsConn, err := w.upgrade.Upgrade(rw, r, nil)
 	if err != nil {
 		clog.Infof("Upgrade failure, URI=%s, Error=%s", r.RequestURI, err.Error())
 		return
 	}
 
-	conn, err := NewWSConn(wsConn)
-	if err != nil {
-		clog.Errorf("Failed to create new ws connection: %s", err.Error())
-		return
-	}
-
-	w.InChan(conn)
-}
-
-// WSConn is an adapter to t.INetConn, which implements all t.INetConn
-// interface base on *websocket.INetConn
-type WSConn struct {
-	conn   *websocket.Conn
-	typ    int // message type
-	reader io.Reader
+	conn := NewWSConn(wsConn)
+	w.InChan(&conn)
 }
 
 // NewWSConn return an initialized *WSConn
-func NewWSConn(conn *websocket.Conn) (*WSConn, error) {
-	c := &WSConn{conn: conn}
-	return c, nil
-}
-
-// GetNextMessage reads the next message available in the stream
-func (c *WSConn) GetNextMessage() (b []byte, err error) {
-	_, msgBytes, err := c.conn.ReadMessage()
-	if err != nil {
-		return nil, err
+func NewWSConn(conn *websocket.Conn) WSConn {
+	c := WSConn{
+		Conn: conn,
 	}
-
-	if len(msgBytes) < cpacket.HeadLength {
-		return nil, cerr.PacketInvalidHeader
-	}
-
-	header := msgBytes[:cpacket.HeadLength]
-
-	msgSize, _, err := cpacket.ParseHeader(header)
-	if err != nil {
-		return nil, err
-	}
-
-	dataLen := len(msgBytes[cpacket.HeadLength:])
-
-	if dataLen < msgSize || dataLen > msgSize {
-		return nil, cerr.PacketMsgSmallerThanExpected
-	}
-
-	return msgBytes, err
+	return c
 }
 
 func (c *WSConn) Read(b []byte) (int, error) {
 	if c.reader == nil {
-		t, r, err := c.conn.NextReader()
+		t, r, err := c.NextReader()
 		if err != nil {
 			return 0, err
 		}
@@ -169,7 +127,7 @@ func (c *WSConn) Read(b []byte) (int, error) {
 	if err != nil && err != io.EOF {
 		return n, err
 	} else if err == io.EOF {
-		_, r, err := c.conn.NextReader()
+		_, r, err := c.NextReader()
 		if err != nil {
 			return 0, err
 		}
@@ -180,24 +138,12 @@ func (c *WSConn) Read(b []byte) (int, error) {
 }
 
 func (c *WSConn) Write(b []byte) (int, error) {
-	err := c.conn.WriteMessage(websocket.BinaryMessage, b)
+	err := c.WriteMessage(websocket.BinaryMessage, b)
 	if err != nil {
 		return 0, err
 	}
 
 	return len(b), nil
-}
-
-func (c *WSConn) Close() error {
-	return c.conn.Close()
-}
-
-func (c *WSConn) LocalAddr() net.Addr {
-	return c.conn.LocalAddr()
-}
-
-func (c *WSConn) RemoteAddr() net.Addr {
-	return c.conn.RemoteAddr()
 }
 
 func (c *WSConn) SetDeadline(t time.Time) error {
@@ -206,12 +152,4 @@ func (c *WSConn) SetDeadline(t time.Time) error {
 	}
 
 	return c.SetWriteDeadline(t)
-}
-
-func (c *WSConn) SetReadDeadline(t time.Time) error {
-	return c.conn.SetReadDeadline(t)
-}
-
-func (c *WSConn) SetWriteDeadline(t time.Time) error {
-	return c.conn.SetWriteDeadline(t)
 }

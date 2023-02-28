@@ -1,8 +1,6 @@
 package cherryProfile
 
 import (
-	cherryError "github.com/cherry-game/cherry/error"
-	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	jsoniter "github.com/json-iterator/go"
 	"time"
@@ -15,13 +13,12 @@ type (
 )
 
 func Wrap(val interface{}) *Config {
-	cfg := &Config{
+	return &Config{
 		Any: jsoniter.Wrap(val),
 	}
-	return cfg
 }
 
-func (p *Config) GetConfig(path ...interface{}) cfacade.JsonConfig {
+func (p *Config) GetConfig(path ...interface{}) cfacade.ProfileJSON {
 	return &Config{
 		Any: p.Any.Get(path...),
 	}
@@ -87,26 +84,16 @@ func (p *Config) GetInt64(path interface{}, defaultVal ...int64) int64 {
 	return result.ToInt64()
 }
 
-func (p *Config) GetDuration(path interface{}, defaultVal ...int64) time.Duration {
-	v := p.GetInt64(path, defaultVal...)
-	return time.Duration(v)
-}
-
-func (p *Config) MarshalWithPath(path interface{}, ptrVal interface{}) error {
-	pathValue := p.Get(path)
-	if pathValue.LastError() != nil {
-		return pathValue.LastError()
+func (p *Config) GetDuration(path interface{}, defaultVal ...time.Duration) time.Duration {
+	result := p.Get(path)
+	if result.LastError() != nil {
+		if len(defaultVal) > 0 {
+			return defaultVal[0]
+		}
+		return 0
 	}
 
-	if creflect.IsPtr(ptrVal) == false {
-		return cherryError.Error("ptrVal type error.")
-	}
-
-	err := jsoniter.UnmarshalFromString(pathValue.ToString(), ptrVal)
-	if err != nil {
-		return err
-	}
-	return nil
+	return time.Duration(result.ToInt64())
 }
 
 func (p *Config) Marshal(value interface{}) error {

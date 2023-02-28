@@ -1,4 +1,5 @@
 {
+  "env": "dev",
   "debug": true,
   "print_level": "debug",
   "include": [

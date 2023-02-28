@@ -58,7 +58,7 @@
   "logger": {
     "game_log": {
       "level": "debug",
-      "enable_write_file": true,
+      "enable_write_file": false,
       "enable_console": true,
       "file_link_path": "logs/game.log",
       "file_path_format": "logs/game_%Y%m%d%H%M.log"

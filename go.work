@@ -6,6 +6,7 @@ use (
 	./components/data-config
 	./components/etcd
 	./components/gin
+	./components/gops
 	./components/gorm
 	./components/mongo
 	./examples

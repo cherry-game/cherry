@@ -17,11 +17,9 @@ func TestQueue(t *testing.T) {
 	}
 
 	for i := 0; i < num; i++ {
-		v, ok := q.Pop()
-		fmt.Println(v, ok)
+		fmt.Println(q.Pop())
 	}
 
-	fmt.Println(fmt.Sprintf("len = %d", q.Len()))
 }
 
 func BenchmarkNewFIFOQueue(b *testing.B) {
@@ -62,8 +60,8 @@ func TestQueuePop(t *testing.T) {
 			case <-postTicker.C:
 				{
 					for i := 0; i < postNum; i++ {
-						v, ok := q.Pop()
-						if !ok {
+						v := q.Pop()
+						if v == nil {
 							break
 						}
 						fmt.Println(v)

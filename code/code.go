@@ -4,7 +4,7 @@ const (
 	OK                    int32 = 0  // is ok
 	SessionUIDNotBind     int32 = 10 // session uid not bind
 	DiscoveryNotFoundNode int32 = 11 // discovery not fond node id
-	AppIsStop             int32 = 12 // application is stop
+	AppIsStop             int32 = 12 // application is stopped
 	RPCNetError           int32 = 20 // rpc net error
 	RPCUnmarshalError     int32 = 21 // rpc data unmarshal error
 	RPCMarshalError       int32 = 22 // rpc data marshal error

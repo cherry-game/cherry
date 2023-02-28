@@ -36,3 +36,10 @@ func TestToString(t *testing.T) {
 	var valueUint8 uint8 = 10
 	fmt.Println(ToString(valueUint8))
 }
+
+func TestToInt64(t *testing.T) {
+	str := "actorPlayer.1"
+	v, e := ToInt64(str)
+	fmt.Println(v, e)
+
+}

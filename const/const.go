@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	version = "1.2.10"
+	version = "1.3.0"
 )
 
 var logo = `
@@ -26,3 +26,7 @@ func GetLOGO() string {
 func Version() string {
 	return version
 }
+
+const (
+	DOT = "." //ActorPath的分隔符
+)

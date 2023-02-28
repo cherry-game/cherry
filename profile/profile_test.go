@@ -6,8 +6,7 @@ import (
 )
 
 func TestLoadFile(t *testing.T) {
-	path := "../../examples/config/"
-	name := ""
-	node, err := Init(path, name, "game-1")
+	path := "../../examples/config/profile-dev.json"
+	node, err := Init(path, "game-1")
 	fmt.Println(node, err)
 }

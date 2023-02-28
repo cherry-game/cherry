@@ -10,7 +10,7 @@
 - 它具备高性能、可伸缩、分布式、协程分组管理等特点。并且上手简单、易学
 - 让开发者更多的关注游戏业务，高效完成功能实现
 - 文档陆续补充中，欢迎加入一起建设框架
-- **即将上线Actor model组件，敬请关注** 
+- ** 新增Actor model组件 **
 
 # 讨论与交流
 
@@ -26,7 +26,7 @@
 - 实现创建房间
 - 实现发送消息
 - 实现广播消息
-- [示例代码跳转](examples/chat)
+- [示例代码跳转](examples/demo_chat)
 
 ### 多节点分布式游戏示例(❤强烈推荐)
 
@@ -37,7 +37,7 @@
 - 搭建游戏服节点
 - 选择master做为发现服务节点
 - 实现部份基础功能(区服列表、多sdk帐号体系、帐号注册、帐号登录、创建角色、角色登录)
-- [示例代码跳转](examples/game_cluster)
+- [示例代码跳转](examples/demo_game_cluster)
 
 # 核心功能
 
@@ -75,17 +75,6 @@
 - http client
 - kcp(未实现，以后作为组件集成)
 
-### actor模型(即将上线)
-- 每个Actor独立运行在一个goroutine中，所有的逻辑都是串行处理
-- Actor接收三种消息：本地消息(Local)、远程消息(Remote)、事件消息(Event)
-    - 三种消息都有自己的队列(Queue)，每个队列依据FIFO原则进行消费
-    - 本地消息(Local)，用于接收游戏客户端发送过来的本地消息
-    - 远程消息(Remote)，用于Actor之间调用的远程消息
-    - 事件消息(Event)，通过订阅/发布进行的事件消息
-- Actor可以创建多个子Actor(ChildActor)，子Actor的消息由父Actor进行路由转发
-- Actor可以创建多个定时器(Timer)进行定时业务的处理
-- 通过cluster集群组件、discovery发现服务组件，进行跨节点的actor通信
-
 ### 集群&注册发现
 
 - 三种发现服务实现方式:
@@ -93,6 +82,17 @@
     - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
     - 线上用，基于etcd封装，实现集群方式的发现服务
 - 基于nats.io实现的RPC调用，默认提供同步/异步的调用方式
+
+
+### actor模型
+- 每个Actor独立运行在一个goroutine中，所有的逻辑都是串行处理
+- Actor接收三种消息：本地消息(Local)、远程消息(Remote)、事件消息(Event)
+  - 三种消息都有自己的队列(Queue)，每个队列依据FIFO原则进行消费
+  - 本地消息(Local)，用于接收游戏客户端发送过来的本地消息
+  - 远程消息(Remote)，用于Actor之间调用的远程消息
+  - 事件消息(Event)，通过订阅/发布进行的事件消息
+- Actor可以创建多个子Actor(ChildActor)，子Actor的消息由父Actor进行路由转发
+- 通过cluster集群组件、discovery发现服务组件，进行跨节点的actor通信
 
 # 扩展组件
 
