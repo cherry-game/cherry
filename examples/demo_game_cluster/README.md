@@ -64,21 +64,21 @@
 - 操作步骤:
     - 在`Program arguments:`选项填入参数:`center --path=./examples/config/profile-gc.json --node=gc-center`
 
-#### 0x05 启动gate节点
-
-> gate节点为游戏对外网关，可横向扩展，多节点部署 <br />
-> 主要用于管理客户端的连接、消息路由与转发
-
-- 操作步骤:
-    - 在`Program arguments:`选项填入参数:`gate --path=./examples/config/profile-gc.json --node=gc-gate-1`
-
-#### 0x06 启动web节点
+#### 0x05 启动web节点
 
 > web节点主要对外提供一些http的接口，可横向扩展，多节点部署 <br />
 > 目前用于开发者帐号注册、区服列表、sdk登陆/支付回调、验证token生成等业务
 
 - 操作步骤:
   - 在`Program arguments:`选项填入参数:`web --path=./examples/config/profile-gc.json --node=gc-web-1`
+
+#### 0x06 启动gate节点
+
+> gate节点为游戏对外网关，可横向扩展，多节点部署 <br />
+> 主要用于管理客户端的连接、消息路由与转发
+
+- 操作步骤:
+    - 在`Program arguments:`选项填入参数:`gate --path=./examples/config/profile-gc.json --node=gc-gate-1`
 
 #### 0x07 启动game节点
 

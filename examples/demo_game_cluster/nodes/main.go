@@ -20,8 +20,8 @@ func main() {
 			versionCommand(),
 			masterCommand(),
 			centerCommand(),
-			gateCommand(),
 			webCommand(),
+			gateCommand(),
 			gameCommand(),
 		},
 	}
@@ -70,20 +70,6 @@ func centerCommand() *cli.Command {
 	}
 }
 
-func gateCommand() *cli.Command {
-	return &cli.Command{
-		Name:      "gate",
-		Usage:     "run gate node",
-		UsageText: "node gate --path=./examples/config/profile-gc.json --node=gc-gate-1",
-		Flags:     getFlag(),
-		Action: func(c *cli.Context) error {
-			path, node := getParameters(c)
-			gate.Run(path, node)
-			return nil
-		},
-	}
-}
-
 func webCommand() *cli.Command {
 	return &cli.Command{
 		Name:      "web",
@@ -93,6 +79,20 @@ func webCommand() *cli.Command {
 		Action: func(c *cli.Context) error {
 			path, node := getParameters(c)
 			web.Run(path, node)
+			return nil
+		},
+	}
+}
+
+func gateCommand() *cli.Command {
+	return &cli.Command{
+		Name:      "gate",
+		Usage:     "run gate node",
+		UsageText: "node gate --path=./examples/config/profile-gc.json --node=gc-gate-1",
+		Flags:     getFlag(),
+		Action: func(c *cli.Context) error {
+			path, node := getParameters(c)
+			gate.Run(path, node)
 			return nil
 		},
 	}
