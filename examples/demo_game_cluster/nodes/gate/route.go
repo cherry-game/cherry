@@ -7,7 +7,6 @@ import (
 	cslice "github.com/cherry-game/cherry/extend/slice"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/parser/pomelo"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
 	cproto "github.com/cherry-game/cherry/net/proto"
@@ -17,7 +16,7 @@ var (
 	// 客户端连接后，必需先执行第一条协议，进行token验证后，才能进行后续的逻辑
 	firstRouteName = "gate.user.login"
 
-	// 角色进入游戏前的，前三个协议
+	// 角色进入游戏时的前三个协议
 	beforeLoginRoutes = []string{
 		"game.player.select", //查询玩家角色
 		"game.player.create", //玩家创建角色
@@ -43,46 +42,35 @@ func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Messa
 	}
 
 	session := pomelo.BuildSession(agent, msg)
-	if agent.App().NodeType() == route.NodeType() {
-		pomelo.LocalDataRoute(agent, &session, route, msg)
+	if agent.NodeType() == route.NodeType() {
+		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
+		pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
+	} else {
+		gameNodeRoute(agent, &session, route, msg)
+	}
+}
+
+// gameNodeRoute 实现agent路由消息到游戏节点
+func gameNodeRoute(agent *pomelo.Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message) {
+	if !session.IsBind() {
 		return
 	}
 
-	gameNodeRoute(agent, &session, route, msg)
-}
-
-// gameNodeRoute 实现agent路由消息到游戏节点的函数
-func gameNodeRoute(agent *pomelo.Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message) {
-	// agent没有完成"角色登录",则禁止转发到game节点
+	// 如果agent没有完成"角色登录",则禁止转发到game节点
 	if !session.Contains(sessionKey.PlayerID) {
 		// 如果不是角色登录协议则踢掉agent
-		_, found := cslice.StringIn(msg.Route, beforeLoginRoutes)
-		if !found {
+		if found := cslice.StringInSlice(msg.Route, beforeLoginRoutes); !found {
 			agent.Kick(notLoginRsp, true)
 			return
 		}
 	}
 
-	// 获取绑定的ServerID，进行消息转发
 	serverId := session.GetString(sessionKey.ServerID)
-	member, found := agent.App().Discovery().GetMember(serverId)
-	if !found {
-		clog.Warnf("[sid = %s,uid = %d] Find node fail. [route = %s]",
-			agent.SID(),
-			agent.UID(),
-			msg.Route,
-		)
+	if serverId == "" {
 		return
 	}
 
-	childID := cstring.ToString(agent.UID())
-
-	clusterPacket := cproto.GetClusterPacket()
-	clusterPacket.SourcePath = session.AgentPath
-	clusterPacket.TargetPath = cfacade.NewPath(member.GetNodeId(), route.HandleName(), childID)
-	clusterPacket.FuncName = route.Method()
-	clusterPacket.Session = session   // agent session
-	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
-
-	pomelo.PublishClusterLocal(agent, member.GetNodeId(), clusterPacket)
+	childId := cstring.ToString(session.Uid)
+	targetPath := cfacade.NewChildPath(serverId, route.HandleName(), childId)
+	pomelo.ClusterLocalDataRoute(agent, session, route, msg, serverId, targetPath)
 }

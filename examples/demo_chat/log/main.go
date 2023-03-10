@@ -2,7 +2,6 @@ package main
 
 import (
 	"github.com/cherry-game/cherry"
-	"github.com/cherry-game/cherry/net/parser/pomelo"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 )
 
@@ -14,8 +13,6 @@ func main() {
 		cherry.Cluster,
 	)
 	app.SetSerializer(cserializer.NewJSON())
-
-	app.SetActorInvoke(pomelo.LocalInvokeFunc, pomelo.RemoteInvokeFunc)
 
 	app.AddActors(
 		&ActorLog{},

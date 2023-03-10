@@ -5,5 +5,6 @@ type (
 	INetParser interface {
 		Load(application IApplication)
 		AddConnector(connector IConnector)
+		Connectors() []IConnector
 	}
 )

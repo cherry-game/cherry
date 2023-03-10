@@ -38,11 +38,6 @@
                 content: inputMsg
             });
 
-            pomelo.notify('log.log.hello', {
-                name: nickname,
-                content: inputMsg
-            });
-
             console.log(nickname, inputMsg);
         });
 
@@ -58,7 +53,7 @@
             pomelo.on("onBalance", onBalance);
 
             // request login
-            pomelo.request("room.user.login", {"nickname": nickname}, function (data) {
+            pomelo.request("room.room.login", {"nickname": nickname}, function (data) {
                 console.log(data);
                 if (data.code === 0) {
                     pomelo.on('onMessage', onMessage);

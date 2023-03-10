@@ -9,16 +9,12 @@ import (
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/nodes/web/controller"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/nodes/web/sdk"
 	cherryFile "github.com/cherry-game/cherry/extend/file"
-	"github.com/cherry-game/cherry/net/parser/pomelo"
 	"github.com/gin-gonic/gin"
 )
 
 func Run(profileFilePath, nodeId string) {
 	// 配置cherry引擎,加载profile配置文件
 	app := cherry.Configure(profileFilePath, nodeId, false, cherry.Cluster)
-
-	// 设置actor组件调用函数
-	app.SetActorInvoke(pomelo.LocalInvokeFunc, pomelo.RemoteInvokeFunc)
 
 	// 注册调度组件
 	app.Register(cherryCron.New())

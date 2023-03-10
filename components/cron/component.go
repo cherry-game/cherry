@@ -20,6 +20,7 @@ func (*Component) Name() string {
 }
 
 func (p *Component) Init() {
+	Start()
 	clog.Info("cron component init.")
 }
 

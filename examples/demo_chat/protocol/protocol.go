@@ -1,11 +1,10 @@
 package protocol
 
-import cherryTime "github.com/cherry-game/cherry/extend/time"
+import "time"
 
 // LoginRequest 登录请求
 type LoginRequest struct {
 	Nickname string `json:"nickname"`
-	UID      int64  `json:"uid"`
 }
 
 // LoginResponse 登录响应
@@ -45,5 +44,5 @@ type Int64 struct {
 
 // PacketSpendTime 从打包到当前时间，花费了多少时间(纳秒)
 func (p *SyncMessage) PacketSpendTime() int64 {
-	return cherryTime.Now().UnixNano() - p.PacketTime
+	return time.Now().UnixNano() - p.PacketTime
 }

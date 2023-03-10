@@ -1,7 +1,7 @@
 # 分布式多节点示例
 
-- 建议在windows环境进行调试(项目已自带`nats-server.exe`)，其他操作系统请自行搭建nats server
-- 为降低运行成本，本示例没有使用数据库，进程重启会还原所有数据
+- 建议在windows环境进行调试(示例自带`nats-server.exe`)，其他操作系统需自行搭建nats server
+- 本示例没有使用数据库，进程重启会还原所有数据
 - 客户端演示分为两种：
     - `robot_client` 为go实现的游戏压测客户端，使用`tcp/protobuf`协议
     - `nodes/web/view/` 为h5实现的游戏客户端，使用`websocket/protobuf`协议

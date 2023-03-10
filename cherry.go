@@ -2,7 +2,7 @@ package cherry
 
 import (
 	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
+	cactor "github.com/cherry-game/cherry/net/actor"
 	ccluster "github.com/cherry-game/cherry/net/cluster"
 	cdiscovery "github.com/cherry-game/cherry/net/discovery"
 )
@@ -10,8 +10,8 @@ import (
 type (
 	AppBuilder struct {
 		*Application
-		components []cfacade.IComponent
-		netParser  cfacade.INetParser
+		components  []cfacade.IComponent
+		actorSystem *cactor.Component
 	}
 )
 
@@ -20,7 +20,7 @@ func Configure(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *
 	appBuilder := &AppBuilder{
 		Application: app,
 		components:  make([]cfacade.IComponent, 0),
-		netParser:   nil,
+		actorSystem: cactor.New(),
 	}
 
 	return appBuilder
@@ -28,6 +28,9 @@ func Configure(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *
 
 func (p *AppBuilder) Startup() {
 	app := p.Application
+
+	app.SetActorSystem(p.actorSystem)
+	app.Register(p.actorSystem)
 
 	if app.NodeMode() == Cluster {
 		discovery := cdiscovery.New()
@@ -42,13 +45,13 @@ func (p *AppBuilder) Startup() {
 	// Register custom components
 	app.Register(p.components...)
 
-	if p.isFrontend {
-		if p.netParser == nil {
-			clog.Panic("gate is nil.")
+	if app.netParser != nil {
+		for _, connector := range app.netParser.Connectors() {
+			app.Register(connector)
 		}
-		p.netParser.Load(app)
 	}
 
+	// startup
 	app.Startup()
 }
 
@@ -56,10 +59,8 @@ func (p *AppBuilder) Register(component ...cfacade.IComponent) {
 	p.components = append(p.components, component...)
 }
 
-func (p *AppBuilder) AddActors(actorHandlers ...cfacade.IActorHandler) {
-	for _, handler := range actorHandlers {
-		p.actorSystem.CreateActor(handler.AliasID(), handler)
-	}
+func (p *AppBuilder) AddActors(actors ...cfacade.IActorHandler) {
+	p.actorSystem.Add(actors...)
 }
 
 func (p *AppBuilder) NetParser() cfacade.INetParser {
@@ -68,9 +69,4 @@ func (p *AppBuilder) NetParser() cfacade.INetParser {
 
 func (p *AppBuilder) SetNetParser(parser cfacade.INetParser) {
 	p.netParser = parser
-}
-
-func (p *AppBuilder) SetActorInvoke(local cfacade.InvokeFunc, remote cfacade.InvokeFunc) {
-	p.actorSystem.SetLocalInvoke(local)
-	p.actorSystem.SetRemoteInvoke(remote)
 }

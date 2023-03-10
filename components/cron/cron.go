@@ -50,7 +50,7 @@ func AddEveryHourFunc(cmd func(), minute, second int) (cron.EntryID, error) {
 // AddDurationFunc 每间隔x秒执行一次
 func AddDurationFunc(cmd func(), duration time.Duration) (cron.EntryID, error) {
 	spec := fmt.Sprintf("@every %ds", int(duration.Seconds()))
-	clog.Info(spec)
+	clog.Debug(spec)
 	return _cron.AddFunc(spec, cmd)
 }
 

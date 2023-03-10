@@ -46,23 +46,6 @@ func (p *ActorAgent) setSession(req *pb.StringKeyValue) {
 	}
 }
 
-// OnSessionClose  当agent断开时，关闭对应的ActorAgent
-func (p *ActorAgent) OnSessionClose(agent *pomelo.Agent) {
-	session := agent.Session()
-	serverId := session.GetString(sessionKey.ServerID)
-	if serverId == "" {
-		clog.Warnf("Get server id fail. path = %s", p.Path())
-		return
-	}
-
-	// 使用uid做childID
-	targetPath := fmt.Sprintf("%s.player.%d", serverId, session.Uid)
-	p.Call(targetPath, "sessionClose", nil)
-
-	// 自己退出
-	p.Exit()
-}
-
 // login 用户登录，验证帐号 (*pb.LoginResponse, int32)
 func (p *ActorAgent) login(session *cproto.Session, req *pb.LoginRequest) {
 	agent, found := pomelo.GetAgent(p.ActorID())
@@ -148,4 +131,24 @@ func (p *ActorAgent) checkGateSession(uid cfacade.UID) {
 		actorPath := fmt.Sprintf("%s.user", member.GetNodeId())
 		p.Call(actorPath, pomelo.KickFuncName, rsp)
 	}
+}
+
+// onSessionClose  当agent断开时，关闭对应的ActorAgent
+func (p *ActorAgent) onSessionClose(agent *pomelo.Agent) {
+	session := agent.Session()
+	serverId := session.GetString(sessionKey.ServerID)
+	if serverId == "" {
+		return
+	}
+
+	// 通知game节点关闭session
+	childId := cstring.ToString(session.Uid)
+	if childId != "" {
+		targetPath := cfacade.NewChildPath(serverId, "player", childId)
+		p.Call(targetPath, "sessionClose", nil)
+	}
+
+	// 自己退出
+	p.Exit()
+	clog.Infof("sessionClose path = %s", p.Path())
 }

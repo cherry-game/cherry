@@ -1,6 +1,7 @@
 package cherryActor
 
 import (
+	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	"time"
 )
@@ -23,6 +24,7 @@ type (
 type (
 	IMailBox interface {
 		Register(funcName string, fn interface{}) // 注册执行函数
+		GetFuncInfo(funcName string) (*creflect.FuncInfo, bool)
 	}
 )
 

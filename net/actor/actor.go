@@ -52,14 +52,13 @@ type (
 
 func (p *Actor) run() {
 	p.onInit()
+	defer p.onStop()
 
 	for {
 		if p.loop() {
 			break
 		}
 	}
-
-	p.onStop()
 }
 
 func (p *Actor) loop() bool {
@@ -99,7 +98,7 @@ func (p *Actor) processLocal() {
 		return
 	}
 
-	p.lastAt = time.Now().UnixMilli()
+	p.lastAt = time.Now().Unix()
 
 	next, invoke := p.handler.OnLocalReceived(m)
 	if invoke {
@@ -139,10 +138,8 @@ func invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFun
 	}
 
 	defer func() {
-		m.Recycle()
-
 		if rev := recover(); rev != nil {
-			clog.Warnf("[%s] Function invoke error. [source = %s, target = %s -> %s, type = %v]",
+			clog.Errorf("[%s] Function invoke error. [source = %s, target = %s -> %s, type = %v]",
 				mailbox.name,
 				m.Source,
 				m.Target,
@@ -150,6 +147,7 @@ func invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFun
 				funcInfo.InArgs,
 			)
 		}
+		m.Recycle()
 	}()
 
 	fn(app, funcInfo, m)
@@ -161,7 +159,7 @@ func (p *Actor) processRemote() {
 		return
 	}
 
-	p.lastAt = time.Now().UnixMilli()
+	p.lastAt = time.Now().Unix()
 
 	next, invoke := p.handler.OnRemoteReceived(m)
 	if invoke {
@@ -193,7 +191,7 @@ func (p *Actor) processEvent() {
 		return
 	}
 
-	p.lastAt = time.Now().UnixMilli()
+	p.lastAt = time.Now().Unix()
 	p.event.funcInvoke(eventData)
 }
 
@@ -227,8 +225,8 @@ func (p *Actor) onInit() {
 		clog.Debugf("[onInit] actorID = %s", p.ActorID())
 	}
 
-	p.state = WorkerState
 	p.handler.OnInit()
+	p.state = WorkerState
 }
 
 func (p *Actor) onStop() {
@@ -251,14 +249,6 @@ func (p *Actor) onStop() {
 		p.event.onStop()
 		p.timer.onStop()
 
-		//p.child = nil
-		//p.handler = nil
-		//p.localMail = nil
-		//p.remoteMail = nil
-		//p.event = nil
-		//p.timer = nil
-		//p.path = nil
-		//p.system = nil
 	}, func(errString string) {
 		clog.Error(errString)
 	})
@@ -284,12 +274,21 @@ func (p *Actor) Path() *cfacade.ActorPath {
 	return p.path
 }
 
+func (p *Actor) PathString() string {
+	return p.path.String()
+}
+
 func (p *Actor) Call(targetPath, funcName string, arg interface{}) error {
 	return p.system.Call(p.path.String(), targetPath, funcName, arg)
 }
 
 func (p *Actor) CallWait(targetPath, funcName string, arg interface{}, reply interface{}) error {
 	return p.system.CallWait(p.path.String(), targetPath, funcName, arg, reply)
+}
+
+// LastAt second
+func (p *Actor) LastAt() int64 {
+	return p.lastAt
 }
 
 func (p *Actor) Exit() {
@@ -304,11 +303,11 @@ func (p *Actor) System() *System {
 	return p.system
 }
 
-func (p *Actor) Local() *mailbox {
+func (p *Actor) Local() IMailBox {
 	return p.localMail
 }
 
-func (p *Actor) Remote() *mailbox {
+func (p *Actor) Remote() IMailBox {
 	return p.remoteMail
 }
 
@@ -325,22 +324,15 @@ func (p *Actor) Timer() ITimer {
 }
 
 func (p *Actor) PostRemote(m *cfacade.Message) {
-	if p.state != StopState {
-		p.remoteMail.Push(m)
-	}
-
+	p.system.PostRemote(m)
 }
 
 func (p *Actor) PostLocal(m *cfacade.Message) {
-	if p.state != StopState {
-		p.localMail.Push(m)
-	}
+	p.system.PostLocal(m)
 }
 
 func (p *Actor) PostEvent(data cfacade.IEventData) {
-	if p.state != StopState {
-		p.event.Push(data)
-	}
+	p.system.PostEvent(data)
 }
 
 func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System) (Actor, error) {
@@ -359,7 +351,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,
-		lastAt:  time.Now().UnixMilli(),
+		lastAt:  time.Now().Unix(),
 	}
 
 	localMailbox := newMailbox(LocalName)
@@ -374,7 +366,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 	child := newChild(&thisActor)
 	thisActor.child = &child
 
-	timer := newTimer()
+	timer := newTimer(&thisActor)
 	thisActor.timer = &timer
 
 	// spawn load!

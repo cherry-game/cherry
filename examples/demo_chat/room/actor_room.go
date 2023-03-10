@@ -3,14 +3,22 @@ package main
 import (
 	"fmt"
 	"github.com/cherry-game/cherry/examples/demo_chat/protocol"
-	cherryTime "github.com/cherry-game/cherry/extend/time"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cactor "github.com/cherry-game/cherry/net/actor"
 	"github.com/cherry-game/cherry/net/parser/pomelo"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	"sync/atomic"
 	"time"
 )
+
+var (
+	_nextUID int64
+)
+
+func newUID() int64 {
+	return atomic.AddInt64(&_nextUID, 1)
+}
 
 type (
 	actorRoom struct {
@@ -33,10 +41,10 @@ func (p *actorRoom) AliasID() string {
 func (p *actorRoom) OnInit() {
 	p.userMap = make(map[int64]*User)
 
-	p.Remote().Register("join", p.join)
-	p.Remote().Register("exit", p.exit)
-
+	p.Local().Register("login", p.login)
 	p.Local().Register("syncMessage", p.syncMessage)
+
+	p.Remote().Register("exit", p.exit)
 }
 
 func (*actorRoom) OnLocalReceived(_ *cfacade.Message) (bool, bool) {
@@ -44,27 +52,37 @@ func (*actorRoom) OnLocalReceived(_ *cfacade.Message) (bool, bool) {
 	return false, true
 }
 
-func (p *actorRoom) join(req *protocol.LoginRequest) {
-	var pushUser []string
-	for _, u := range p.userMap {
-		pushUser = append(pushUser, u.nickname)
+func (p *actorRoom) login(session *cproto.Session, req *protocol.LoginRequest) {
+	clog.Debugf("nickname = %s", req.Nickname)
+
+	if session.IsBind() {
+		return
 	}
 
+	agent, found := pomelo.GetAgent(session.Sid)
+	if !found {
+		return
+	}
+
+	uid := newUID()
+	agent.Bind(uid)
+
 	user := &User{
-		uid:      req.UID,
+		uid:      uid,
 		nickname: req.Nickname,
 		balance:  1000,
 		message:  0,
 	}
 
-	p.userMap[req.UID] = user
+	p.userMap[uid] = user
 
 	// 广播其他用户，有新用户进入房间
 	newUserRequest := &protocol.NewUserBroadcast{
 		Content: fmt.Sprintf("user join: %+v", req),
 	}
-
 	p.broadcast("onNewUser", newUserRequest)
+
+	agent.Response(session, &protocol.LoginResponse{})
 }
 
 func (p *actorRoom) exit(req *protocol.Int64) {
@@ -88,20 +106,21 @@ func (p *actorRoom) syncMessage(session *cproto.Session, req *protocol.SyncMessa
 	p.broadcast("onMessage", req)
 
 	// 扣减当前用户的余额，并通知客户端
-	if agent, found := pomelo.GetAgent(session.Sid); found {
+	agent, found := pomelo.GetAgent(session.Sid)
+	if found {
 		agent.Push("onBalance", &protocol.UserBalanceResponse{
 			CurrentBalance: user.balance,
 		})
 	}
 
-	dt := cherryTime.Now().UnixNano() - session.PacketTime
+	dt := time.Now().UnixNano() - session.PacketTime
 	clog.Debugf("write log.  dt= %d(nano second), message = %+v", dt, req)
 
+	// 测试往log节点写日志
 	req.PacketTime = time.Now().UnixNano()
-
 	rsp := &protocol.WriteResponse{}
 	err := p.CallWait("log-1.log", "write", req, rsp)
-	clog.Debugf("cluster %v %v", rsp, err)
+	clog.Debugf("log->write() %v %v", rsp, err)
 }
 
 func (p *actorRoom) broadcast(route string, v interface{}) {

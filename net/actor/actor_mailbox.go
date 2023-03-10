@@ -72,8 +72,4 @@ func (p *mailbox) onStop() {
 	}
 
 	p.queue.Destroy()
-
-	//p.thisActor = nil
-	//p.funcMap = nil
-	//p.queue.Destroy()
 }

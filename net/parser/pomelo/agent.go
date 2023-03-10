@@ -24,15 +24,15 @@ const (
 
 type (
 	Agent struct {
-		app         cfacade.IApplication // app
-		conn        net.Conn             // low-level conn fd
-		state       int32                // current agent state
-		session     *cproto.Session      // session
-		chDie       chan struct{}        // wait for close
-		chPending   chan *pendingMessage // push message queue
-		chWrite     chan []byte          // push bytes queue
-		lastAt      int64                // last heartbeat unix time stamp
-		onCloseFunc []OnCloseFunc        // on close agent
+		cfacade.IApplication                      // app
+		conn                 net.Conn             // low-level conn fd
+		state                int32                // current agent state
+		session              *cproto.Session      // session
+		chDie                chan struct{}        // wait for close
+		chPending            chan *pendingMessage // push message queue
+		chWrite              chan []byte          // push bytes queue
+		lastAt               int64                // last heartbeat unix time stamp
+		onCloseFunc          []OnCloseFunc        // on close agent
 	}
 
 	pendingMessage struct {
@@ -48,15 +48,15 @@ type (
 
 func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) Agent {
 	agent := Agent{
-		app:         app,
-		conn:        conn,
-		state:       AgentInit,
-		session:     session,
-		chDie:       make(chan struct{}),
-		chPending:   make(chan *pendingMessage, cmd.writeBacklog),
-		chWrite:     make(chan []byte, cmd.writeBacklog),
-		lastAt:      0,
-		onCloseFunc: nil,
+		IApplication: app,
+		conn:         conn,
+		state:        AgentInit,
+		session:      session,
+		chDie:        make(chan struct{}),
+		chPending:    make(chan *pendingMessage, cmd.writeBacklog),
+		chWrite:      make(chan []byte, cmd.writeBacklog),
+		lastAt:       0,
+		onCloseFunc:  nil,
 	}
 
 	agent.session.Ip = agent.RemoteAddr()
@@ -72,10 +72,6 @@ func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) 
 	}
 
 	return agent
-}
-
-func (a *Agent) App() cfacade.IApplication {
-	return a.app
 }
 
 func (a *Agent) State() int32 {
@@ -272,7 +268,7 @@ func (p *pendingMessage) String() string {
 }
 
 func (a *Agent) processPending(data *pendingMessage) {
-	payload, err := a.app.Serializer().Marshal(data.payload)
+	payload, err := a.Serializer().Marshal(data.payload)
 	if err != nil {
 		clog.Warnf("[sid = %s,uid = %d] Payload marshal error. [data = %s]",
 			a.SID(),
@@ -386,7 +382,7 @@ func (a *Agent) Push(route string, val interface{}) {
 }
 
 func (a *Agent) Kick(reason interface{}, close bool) {
-	bytes, err := a.app.Serializer().Marshal(reason)
+	bytes, err := a.Serializer().Marshal(reason)
 	if err != nil {
 		clog.Warnf("[sid = %s,uid = %d] Kick marshal fail. [reason = {%+v}, err = %s]",
 			a.SID(),

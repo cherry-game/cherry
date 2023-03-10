@@ -25,6 +25,8 @@ type (
 		Path() *ActorPath
 		Call(targetPath, funcName string, arg interface{}) error
 		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) error
+		LastAt() int64
+		Exit()
 	}
 
 	IActorHandler interface {
@@ -47,7 +49,6 @@ type (
 
 type (
 	IEventData interface {
-		Name() string     // 事件名
-		SenderID() string // 发送者ActorID
+		Name() string // 事件名
 	}
 )

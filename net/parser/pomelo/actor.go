@@ -15,7 +15,7 @@ import (
 )
 
 type (
-	AgentActor struct {
+	actor struct {
 		cactor.Base
 		agentActorID   string
 		connectors     []cfacade.IConnector
@@ -25,12 +25,12 @@ type (
 	OnNewAgentFunc func(newAgent *Agent)
 )
 
-func NewActor(agentActorID string) *AgentActor {
+func NewActor(agentActorID string) *actor {
 	if agentActorID == "" {
 		panic("agentActorID is empty.")
 	}
 
-	parser := &AgentActor{
+	parser := &actor{
 		agentActorID: agentActorID,
 		connectors:   make([]cfacade.IConnector, 0),
 	}
@@ -39,36 +39,39 @@ func NewActor(agentActorID string) *AgentActor {
 }
 
 // OnInit Actor初始化前触发该函数
-func (p *AgentActor) OnInit() {
+func (p *actor) OnInit() {
 	p.Remote().Register(ResponseFuncName, p.response)
 	p.Remote().Register(PushFuncName, p.push)
 	p.Remote().Register(KickFuncName, p.kick)
 }
 
-func (p *AgentActor) Load(app cfacade.IApplication) {
+func (p *actor) Load(app cfacade.IApplication) {
 	if len(p.connectors) < 1 {
 		panic("connectors is nil. Please call the AddConnector(...) method add IConnector.")
 	}
 
 	cmd.init(app)
 
-	//  注册自己为actor
+	//  Create agent actor
 	if _, err := app.ActorSystem().CreateActor(p.agentActorID, p); err != nil {
 		clog.Panicf("Create agent actor fail. err = %+v", err)
 	}
 
 	for _, connector := range p.connectors {
 		connector.OnConnect(p.defaultOnConnectFunc)
-		p.App().Register(connector) // Add connector to component
 	}
 }
 
-func (p *AgentActor) AddConnector(connector cfacade.IConnector) {
+func (p *actor) AddConnector(connector cfacade.IConnector) {
 	p.connectors = append(p.connectors, connector)
 }
 
+func (p *actor) Connectors() []cfacade.IConnector {
+	return p.connectors
+}
+
 // defaultOnConnectFunc 创建新连接时，通过当前agentActor创建child agent actor
-func (p *AgentActor) defaultOnConnectFunc(conn net.Conn) {
+func (p *actor) defaultOnConnectFunc(conn net.Conn) {
 	sid := nuid.Next()
 	session := cproto.NewSession(sid, p.Path().String())
 	agent := NewAgent(p.App(), conn, &session)
@@ -81,44 +84,44 @@ func (p *AgentActor) defaultOnConnectFunc(conn net.Conn) {
 	agent.Run()
 }
 
-func (*AgentActor) SetDictionary(dict map[string]uint16) {
+func (*actor) SetDictionary(dict map[string]uint16) {
 	pomeloMessage.SetDictionary(dict)
 }
 
-func (*AgentActor) SetDataCompression(compression bool) {
+func (*actor) SetDataCompression(compression bool) {
 	pomeloMessage.SetDataCompression(compression)
 }
 
-func (*AgentActor) SetWriteBacklog(size int) {
+func (*actor) SetWriteBacklog(size int) {
 	cmd.writeBacklog = size
 }
 
-func (*AgentActor) SetHeartbeat(t time.Duration) {
+func (*actor) SetHeartbeat(t time.Duration) {
 	if t.Seconds() < 1 {
 		t = 60 * time.Second
 	}
 	cmd.heartbeatTime = t
 }
 
-func (*AgentActor) SetSysData(key string, value interface{}) {
+func (*actor) SetSysData(key string, value interface{}) {
 	cmd.sysData[key] = value
 }
 
-func (p *AgentActor) SetOnNewAgent(fn OnNewAgentFunc) {
+func (p *actor) SetOnNewAgent(fn OnNewAgentFunc) {
 	p.onNewAgentFunc = fn
 }
 
-func (*AgentActor) SetOnDataRoute(fn DataRouteFunc) {
+func (*actor) SetOnDataRoute(fn DataRouteFunc) {
 	if fn != nil {
 		cmd.onDataRouteFunc = fn
 	}
 }
 
-func (*AgentActor) SetOnPacket(typ ppacket.Type, fn PacketFunc) {
+func (*actor) SetOnPacket(typ ppacket.Type, fn PacketFunc) {
 	cmd.onPacketFuncMap[typ] = fn
 }
 
-func (p *AgentActor) response(rsp *cproto.PomeloResponse) {
+func (p *actor) response(rsp *cproto.PomeloResponse) {
 	agent, found := GetAgent(rsp.Sid)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
@@ -137,7 +140,7 @@ func (p *AgentActor) response(rsp *cproto.PomeloResponse) {
 	}
 }
 
-func (p *AgentActor) push(rsp *cproto.PomeloPush) {
+func (p *actor) push(rsp *cproto.PomeloPush) {
 	agent, found := GetAgent(rsp.Sid)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
@@ -149,7 +152,7 @@ func (p *AgentActor) push(rsp *cproto.PomeloPush) {
 	agent.Push(rsp.Route, rsp.Data)
 }
 
-func (p *AgentActor) kick(rsp *cproto.PomeloKick) {
+func (p *actor) kick(rsp *cproto.PomeloKick) {
 	agent, found := GetAgentWithUID(rsp.Uid)
 	if !found {
 		agent, found = GetAgent(rsp.Sid)

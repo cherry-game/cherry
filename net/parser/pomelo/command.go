@@ -1,7 +1,6 @@
 package pomelo
 
 import (
-	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -146,85 +145,55 @@ func dataCommand(agent *Agent, pkg *ppacket.Packet) {
 	cmd.onDataRouteFunc(agent, route, &msg)
 }
 
+// DefaultDataRoute 默认的消息路由
 func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message) {
 	session := BuildSession(agent, msg)
 
 	// current node
-	if agent.app.NodeType() == route.NodeType() {
-		LocalDataRoute(agent, &session, route, msg)
-	} else {
-		ClusterLocalDataRoute(agent, &session, route, msg)
+	if agent.NodeType() == route.NodeType() {
+		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
+		LocalDataRoute(agent, &session, route, msg, targetPath)
+		return
 	}
+
+	if !session.IsBind() {
+		clog.Warnf("[sid = %s,uid = %d] Session is not bind with UID. failed to forward message.[route = %s]",
+			agent.SID(),
+			agent.UID(),
+			msg.Route,
+		)
+		return
+	}
+
+	nodeID, found := GetRandNodeID(agent, route)
+	if !found {
+		return
+	}
+
+	targetPath := cfacade.NewPath(nodeID, route.HandleName())
+	ClusterLocalDataRoute(agent, &session, route, msg, nodeID, targetPath)
 }
 
-func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message) {
+func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
 	message := cfacade.GetMessage()
 	message.Source = session.AgentPath
-	message.Target = cfacade.NewPath(agent.app.NodeId(), route.HandleName(), agent.SID())
+	message.Target = targetPath
 	message.FuncName = route.Method()
-	message.Args = []interface{}{
-		session,
-		msg.Data,
-	}
+	message.Session = session
+	message.Args = msg.Data
 
-	agent.app.ActorSystem().PostLocal(message)
+	agent.ActorSystem().PostLocal(message)
 }
 
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message) {
-	if !session.IsBind() {
-		clog.Warnf("[sid = %s,uid = %d] session not bind. failed to forward message.[route = %s]",
-			agent.SID(),
-			agent.UID(),
-			msg.Route,
-		)
-		return
-	}
-
-	member, found := GetRandMember(agent, route)
-	if !found {
-		clog.Warnf("[sid = %s,uid = %d] Find node fail. [route = %s]",
-			agent.SID(),
-			agent.UID(),
-			msg.Route,
-		)
-		return
-	}
-
+func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeId, targetPath string) {
 	clusterPacket := cproto.GetClusterPacket()
 	clusterPacket.SourcePath = session.AgentPath
-	clusterPacket.TargetPath = cfacade.NewPath(member.GetNodeId(), route.HandleName(), cstring.ToString(agent.UID()))
+	clusterPacket.TargetPath = targetPath
 	clusterPacket.FuncName = route.Method()
 	clusterPacket.Session = session   // agent session
 	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
 
-	PublishClusterLocal(agent, member.GetNodeId(), clusterPacket)
-}
-
-func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {
-	session := agent.session.Copy()
-	session.PacketTime = time.Now().UnixNano() // nano second
-	session.Mid = uint32(msg.ID)
-	return session
-}
-
-func GetRandMember(agent *Agent, route *pmessage.Route) (cfacade.IMember, bool) {
-	memberList := agent.app.Discovery().ListByType(route.NodeType())
-	if len(memberList) < 1 {
-		return nil, false
-	}
-
-	var member cfacade.IMember
-	if len(memberList) == 1 {
-		member = memberList[0]
-	} else {
-		member = memberList[rand.Intn(len(memberList))]
-	}
-
-	return member, true
-}
-
-func PublishClusterLocal(agent *Agent, nodeId string, clusterPacket *cproto.ClusterPacket) {
-	err := agent.app.Cluster().PublishLocal(nodeId, clusterPacket)
+	err := agent.Cluster().PublishLocal(nodeId, clusterPacket)
 	if err != nil {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Warnf("[sid = %s,uid = %d] Publish local fail. [nodeId = %s, target = %s, funcName = %s, error = %s]",
@@ -237,4 +206,32 @@ func PublishClusterLocal(agent *Agent, nodeId string, clusterPacket *cproto.Clus
 			)
 		}
 	}
+}
+
+func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {
+	session := agent.session.Copy()
+	session.PacketTime = time.Now().UnixNano() // nano second
+	session.Mid = uint32(msg.ID)
+	return session
+}
+
+func GetRandNodeID(agent *Agent, route *pmessage.Route) (string, bool) {
+	memberList := agent.Discovery().ListByType(route.NodeType())
+	if len(memberList) < 1 {
+		clog.Warnf("[sid = %s,uid = %d] Find node fail. [route = %s]",
+			agent.SID(),
+			agent.UID(),
+			route.String(),
+		)
+		return "", false
+	}
+
+	var member cfacade.IMember
+	if len(memberList) == 1 {
+		member = memberList[0]
+	} else {
+		member = memberList[rand.Intn(len(memberList))]
+	}
+
+	return member.GetNodeId(), true
 }

@@ -3,6 +3,7 @@ package cherryFacade
 import (
 	cconst "github.com/cherry-game/cherry/const"
 	cerr "github.com/cherry-game/cherry/error"
+	cproto "github.com/cherry-game/cherry/net/proto"
 	"strings"
 	"sync"
 )
@@ -13,7 +14,9 @@ type (
 		Target       string           // 目标actor path
 		targetPath   *ActorPath       // 目标actor path对象
 		FuncName     string           // 请求调用的函数名
-		Args         []interface{}    // 请求的参数
+		Session      *cproto.Session  // session of gateway
+		Args         interface{}      // 请求的参数
+		EncodeArgs   bool             // 是否已解码args
 		Err          error            // 返回的错误
 		ClusterReply IRespond         // 返回消息的接口
 		IsCluster    bool             // 是否为集群消息
@@ -79,7 +82,7 @@ func (p *ActorPath) IsParent() bool {
 
 // String
 func (p *ActorPath) String() string {
-	return NewPath(p.NodeID, p.ActorID, p.ChildID)
+	return NewChildPath(p.NodeID, p.ActorID, p.ChildID)
 }
 
 func NewActorPath(nodeID, actorID, childID string) *ActorPath {
@@ -90,11 +93,15 @@ func NewActorPath(nodeID, actorID, childID string) *ActorPath {
 	}
 }
 
-func NewPath(nodeID, actorID, childID string) string {
+func NewChildPath(nodeID, actorID, childID string) string {
 	if childID == "" {
-		return nodeID + cconst.DOT + actorID
+		return NewPath(nodeID, actorID)
 	}
 	return nodeID + cconst.DOT + actorID + cconst.DOT + childID
+}
+
+func NewPath(nodeID, actorID string) string {
+	return nodeID + cconst.DOT + actorID
 }
 
 func ToActorPath(path string) (*ActorPath, error) {

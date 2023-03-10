@@ -20,9 +20,6 @@ func Run(profileFilePath, nodeId string) {
 		cherry.Cluster,
 	)
 
-	// 设置actor组件调用函数
-	app.SetActorInvoke(pomelo.LocalInvokeFunc, pomelo.RemoteInvokeFunc)
-
 	// 使用pomelo网络数据包解析器
 	agentActor := pomelo.NewActor("user")
 	//创建一个tcp监听，用于client/robot压测机器人连接网关tcp
@@ -32,9 +29,8 @@ func Run(profileFilePath, nodeId string) {
 	//当有新连接创建Agent时，启动一个自定义(ActorAgent)的子actor
 	agentActor.SetOnNewAgent(func(newAgent *pomelo.Agent) {
 		childActor := &ActorAgent{}
-		newAgent.AddOnClose(childActor.OnSessionClose)
-		// actorID == sid
-		agentActor.Child().Create(newAgent.SID(), childActor)
+		newAgent.AddOnClose(childActor.onSessionClose)
+		agentActor.Child().Create(newAgent.SID(), childActor) // actorID == sid
 	})
 
 	// 设置数据路由函数
@@ -48,20 +44,6 @@ func Run(profileFilePath, nodeId string) {
 	// 注册数据配表组件，具体详见data-config的使用方法和参数配置
 	app.Register(data.New())
 
-	//启动cherry引擎，设置为前端类型的节点，并且以集群方式运行
+	//启动cherry引擎
 	app.Startup()
 }
-
-//// rateLimiter 限速过滤
-//func rateLimiter(app cherryFacade.IApplication) {
-//	enable := app.Settings().GetBool("rate_limit")
-//	if enable {
-//		cherrySession.AddOnDataListener(rate.SessionIPLimiter(
-//			3*time.Second,
-//			100,
-//			code.NodeRateLimiter,
-//			false,
-//			180,
-//		))
-//	}
-//}

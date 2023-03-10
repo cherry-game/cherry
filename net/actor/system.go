@@ -3,12 +3,10 @@ package cherryActor
 import (
 	ccode "github.com/cherry-game/cherry/code"
 	cerror "github.com/cherry-game/cherry/error"
-	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -19,10 +17,10 @@ type (
 	System struct {
 		mutex            sync.RWMutex
 		app              cfacade.IApplication
-		actorMap         map[string]*Actor // key:actorID, value:*actor
-		actorOrder       []string          // key:actorID
-		localInvokeFunc  cfacade.InvokeFunc
-		remoteInvokeFunc cfacade.InvokeFunc
+		actorMap         map[string]*Actor  // key:actorID, value:*actor
+		actorOrder       []string           // key:actorID
+		localInvokeFunc  cfacade.InvokeFunc // default local func
+		remoteInvokeFunc cfacade.InvokeFunc // default remote func
 		tellTimeout      time.Duration
 	}
 )
@@ -33,8 +31,8 @@ func NewSystem(app cfacade.IApplication) *System {
 		mutex:            sync.RWMutex{},
 		actorMap:         make(map[string]*Actor, 0),
 		actorOrder:       []string{},
-		localInvokeFunc:  defaultInvokeFunc,
-		remoteInvokeFunc: defaultInvokeFunc,
+		localInvokeFunc:  InvokeLocalFunc,
+		remoteInvokeFunc: InvokeRemoteFunc,
 		tellTimeout:      3 * time.Second,
 	}
 
@@ -48,7 +46,7 @@ func (p *System) NodeId() string {
 	return p.app.NodeId()
 }
 
-func (p *System) OnStop() {
+func (p *System) Stop() {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 
@@ -155,9 +153,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) error {
 	remoteMsg.Source = source
 	remoteMsg.Target = target
 	remoteMsg.FuncName = funcName
-	remoteMsg.Args = []interface{}{
-		arg,
-	}
+	remoteMsg.Args = arg
 
 	if p.PostRemote(remoteMsg) {
 		return nil
@@ -218,9 +214,7 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		message.Source = source
 		message.Target = target
 		message.FuncName = funcName
-		message.Args = []interface{}{
-			arg,
-		}
+		message.Args = arg
 
 		message.ChanResult = make(chan interface{})
 		if !p.PostRemote(message) {
@@ -253,7 +247,7 @@ func (p *System) PostRemote(m *cfacade.Message) bool {
 	}
 
 	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		targetActor.PostRemote(m)
+		targetActor.remoteMail.Push(m)
 		return true
 	}
 
@@ -273,7 +267,7 @@ func (p *System) PostLocal(m *cfacade.Message) bool {
 	}
 
 	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		targetActor.PostLocal(m)
+		targetActor.localMail.Push(m)
 		return true
 	}
 
@@ -308,12 +302,4 @@ func (p *System) SetRemoteInvoke(fn cfacade.InvokeFunc) {
 	if fn != nil {
 		p.remoteInvokeFunc = fn
 	}
-}
-
-func defaultInvokeFunc(_ cfacade.IApplication, funcInfo *creflect.FuncInfo, m *cfacade.Message) {
-	values := make([]reflect.Value, len(m.Args))
-	for i, arg := range m.Args {
-		values[i] = reflect.ValueOf(arg)
-	}
-	funcInfo.Value.Call(values)
 }

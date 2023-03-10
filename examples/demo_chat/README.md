@@ -17,7 +17,7 @@
 
 ### 调试
 
-- 使用`GoLand`打开源码
+- 推荐使用`GoLand`打开源码
 - 找到`/examples/chat/`目录
 - 启动nats服务`3rd/nat-server/run_nats.bat`
 - 启动master节点`master/main.go`
@@ -47,5 +47,5 @@
 ### 关于actor model的使用
 
 - 从`room/main.go`文件可得知，节点启动时通过`pomelo.NewActor("user")`创建了一个`user actor`. 该`actor`用于管理客户端连接.
-- 通过`app.AddActors(...)`可得知，注册了`room`、`write`两个actor
+- 通过`app.AddActors(...)`可得知，注册了`room`actor，用于房间管理
 - 如果需要创建多个聊天房间，可以通过room的子actor实现

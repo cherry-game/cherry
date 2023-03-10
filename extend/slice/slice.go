@@ -38,6 +38,11 @@ func StringIn(v string, sl []string) (int, bool) {
 	return 0, false
 }
 
+func StringInSlice(v string, sl []string) bool {
+	_, ok := StringIn(v, sl)
+	return ok
+}
+
 // InInterface checks given interface in interface slice.
 func InInterface(v interface{}, sl []interface{}) bool {
 	for _, vv := range sl {

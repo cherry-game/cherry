@@ -47,7 +47,7 @@ func New(opts ...Option) *Client {
 		options: options{
 			serializer:     cserializer.NewProtobuf(),
 			heartBeat:      30,
-			requestTimeout: 3 * time.Second,
+			requestTimeout: 10 * time.Second,
 			isErrorBreak:   true,
 		},
 		responseMaps:  sync.Map{},
@@ -226,7 +226,7 @@ func (p *Client) handleHandshake() error {
 	}
 
 	if p.handshakeData.Sys.Heartbeat > 1 {
-		p.heartBeat = p.handshakeData.Sys.Heartbeat
+		p.heartBeat = p.handshakeData.Sys.Heartbeat / 2
 	}
 
 	err = p.SendRaw(pomeloPacket.HandshakeAck, []byte{})

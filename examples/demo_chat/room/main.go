@@ -4,6 +4,9 @@ import (
 	"github.com/cherry-game/cherry"
 	cherryCode "github.com/cherry-game/cherry/code"
 	cherryGin "github.com/cherry-game/cherry/components/gin"
+	"github.com/cherry-game/cherry/examples/demo_chat/protocol"
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 	cconnector "github.com/cherry-game/cherry/net/connector"
 	"github.com/cherry-game/cherry/net/parser/pomelo"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -31,31 +34,42 @@ func main() {
 	// protobuf		cserializer.NewProtobuf()
 	app.SetSerializer(cserializer.NewJSON())
 
-	// 设置actor组件调用函数
-	app.SetActorInvoke(pomelo.LocalInvokeFunc, pomelo.RemoteInvokeFunc)
-
 	// 创建pomelo网络数据包解析器，它同时也是一个actor
 	agentActor := pomelo.NewActor("user")
 	// 添加websocket连接器, 根据业务需要可添加多类型的connector
 	agentActor.AddConnector(cconnector.NewWS(":34590"))
-	// 创建Agent时，启动一个自定义(actorUser)的子actor
+	// 创建Agent时，关联onClose函数
 	agentActor.SetOnNewAgent(func(newAgent *pomelo.Agent) {
-		newUser := newActorUser(newAgent)
-		agentActor.Child().Create(newAgent.SID(), &newUser)
+
+		newAgent.AddOnClose(func(agent *pomelo.Agent) {
+			session := agent.Session()
+			if !session.IsBind() {
+				return
+			}
+
+			// 发送玩家断开连接的消息给room actor
+			req := &protocol.Int64{
+				Value: session.Uid,
+			}
+
+			agentActor.Call(".room", "exit", req)
+			clog.Debugf("[sid = %s,uid = %d] session disconnected.",
+				session.Sid,
+				session.Uid,
+			)
+		})
+
 	})
 
 	// 设置数据路由函数
 	agentActor.SetOnDataRoute(onDataRoute)
 
-	// 当建立新的客户端连接时，默认使用系统自带的处理方式
-	//agentActor.SetOnConnect()
 	// 设置网络包解析器
 	app.SetNetParser(agentActor)
 
 	//添加actor
 	app.AddActors(
 		&actorRoom{},
-		&actorWrite{},
 	)
 
 	// 启动http server
@@ -66,19 +80,22 @@ func main() {
 }
 
 func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Message) {
-	// 登录消息可继续进行
-	if msg.Route == "room.user.login" {
-		pomelo.DefaultDataRoute(agent, route, msg)
+	session := pomelo.BuildSession(agent, msg)
+
+	if msg.Route == "room.room.login" {
+		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
+		pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
 		return
 	}
 
-	// session未绑定uid，拦截消息
-	if !agent.Session().IsBind() {
+	// session未绑定uid，踢下线
+	if !session.IsBind() {
 		agent.ResponseCode(agent.Session(), cherryCode.SessionUIDNotBind)
 		return
 	}
 
-	pomelo.DefaultDataRoute(agent, route, msg)
+	targetPath := cfacade.NewPath(agent.NodeId(), route.HandleName())
+	pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
 }
 
 // 为了省事，构造一个http server用于部署我们的客户端h5静态文件

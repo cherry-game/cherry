@@ -98,5 +98,8 @@ func ForeachAgent(fn func(a *Agent)) {
 }
 
 func Count() int {
+	lock.RLock()
+	defer lock.RUnlock()
+
 	return len(sidAgentMap)
 }

@@ -3,20 +3,23 @@ package cherryActor
 import "time"
 
 type actorTimer struct {
-	timerMap map[string]func() // register timer map
+	thisActor   *Actor
+	timerIdList []string
 }
 
-func newTimer() actorTimer {
+func newTimer(thisActor *Actor) actorTimer {
 	return actorTimer{
-		timerMap: make(map[string]func()),
+		thisActor: thisActor,
 	}
 }
 
 func (p *actorTimer) onStop() {
-	p.timerMap = nil
 }
 
-func (*actorTimer) Add(cmd func(dt time.Duration), endAt time.Time, count ...int) (id string) {
+func (p *actorTimer) Add(cmd func(dt time.Duration), endAt time.Time, count ...int) (id string) {
+
+	p.thisActor.Call(p.thisActor.PathString(), "_update_timer", "1")
+
 	return ""
 }
 

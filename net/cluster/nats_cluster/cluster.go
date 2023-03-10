@@ -93,10 +93,8 @@ func (p *Cluster) localProcess() {
 		message.Target = packet.TargetPath
 		message.FuncName = packet.FuncName
 		message.IsCluster = true
-		message.Args = []interface{}{
-			packet.Session,
-			packet.ArgBytes,
-		}
+		message.Session = packet.Session
+		message.Args = packet.ArgBytes
 
 		p.app.ActorSystem().PostLocal(message)
 	}
@@ -141,9 +139,7 @@ func (p *Cluster) remoteProcess() {
 		message.Target = packet.TargetPath
 		message.FuncName = packet.FuncName
 		if packet.ArgBytes != nil {
-			message.Args = []interface{}{
-				packet.ArgBytes,
-			}
+			message.Args = packet.ArgBytes
 		}
 
 		message.IsCluster = true

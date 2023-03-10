@@ -6,7 +6,6 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cactor "github.com/cherry-game/cherry/net/actor"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"os"
@@ -35,7 +34,8 @@ type (
 		serializer   cfacade.ISerializer  // serializer
 		discovery    cfacade.IDiscovery   // discovery component
 		cluster      cfacade.ICluster     // cluster component
-		actorSystem  *cactor.System       // actor system
+		actorSystem  cfacade.IActorSystem // actor system
+		netParser    cfacade.INetParser   // net packet parser
 	}
 )
 
@@ -61,9 +61,6 @@ func NewApp(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *App
 		running:    0,
 		dieChan:    make(chan bool),
 	}
-
-	// create actor system
-	app.actorSystem = cactor.NewSystem(app)
 
 	return app
 }
@@ -190,11 +187,20 @@ func (a *Application) Startup() {
 	}
 	clog.Info("-------------------------------------------------")
 
-	//execute OnAfterInit()
+	// execute OnAfterInit()
 	for _, c := range a.components {
 		clog.Infof("[component = %s] -> OnAfterInit().", c.Name())
 		c.OnAfterInit()
 	}
+
+	// load net packet parser
+	if a.isFrontend {
+		if a.netParser == nil {
+			clog.Panic("net packet parser is nil.")
+		}
+		a.netParser.Load(a)
+	}
+
 	clog.Info("-------------------------------------------------")
 	spendTime := a.startTime.DiffInMillisecond(ctime.Now())
 	clog.Infof("[spend time = %dms] application is running.", spendTime)
@@ -247,8 +253,6 @@ func (a *Application) Startup() {
 		})
 	}
 
-	a.actorSystem.OnStop()
-
 	clog.Info("------- application has been shutdown... -------")
 }
 
@@ -298,4 +302,16 @@ func (a *Application) SetCluster(cluster cfacade.ICluster) {
 	}
 
 	a.cluster = cluster
+}
+
+func (a *Application) SetActorSystem(actorSystem cfacade.IActorSystem) {
+	if a.Running() || actorSystem == nil {
+		return
+	}
+
+	a.actorSystem = actorSystem
+}
+
+func (a *Application) SetNetParser(netParser cfacade.INetParser) {
+	a.netParser = netParser
 }

@@ -11,7 +11,6 @@ import (
 	cherrySnowflake "github.com/cherry-game/cherry/extend/snowflake"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	cherryUtils "github.com/cherry-game/cherry/extend/utils"
-	"github.com/cherry-game/cherry/net/parser/pomelo"
 )
 
 func Run(profileFilePath, nodeId string) {
@@ -25,9 +24,6 @@ func Run(profileFilePath, nodeId string) {
 
 	// 配置cherry引擎
 	app := cherry.Configure(profileFilePath, nodeId, false, cherry.Cluster)
-
-	// 设置actor组件调用函数
-	app.SetActorInvoke(pomelo.LocalInvokeFunc, pomelo.RemoteInvokeFunc)
 
 	// diagnose
 	app.Register(cherryGops.New())

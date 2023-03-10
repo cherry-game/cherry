@@ -5,5 +5,4 @@ const (
 	OpenID   = "open_id"   // string 第三方登陆sdk的用户唯一标识
 	PID      = "pid"       // int32 sdk包id
 	PlayerID = "player_id" // int64 玩家id
-	UID      = "uid"       // int64 用户id
 )

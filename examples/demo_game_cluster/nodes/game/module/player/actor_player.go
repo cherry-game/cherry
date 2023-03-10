@@ -9,6 +9,7 @@ import (
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/nodes/game/db"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/nodes/game/module/online"
 	cstring "github.com/cherry-game/cherry/extend/string"
+	clog "github.com/cherry-game/cherry/logger"
 	"github.com/cherry-game/cherry/net/parser/pomelo"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
@@ -18,12 +19,13 @@ type (
 	actorPlayer struct {
 		pomelo.ActorBase
 		isOnline bool // 玩家是否在线
+		playerId int64
 		uid      int64
 	}
 )
 
 func (p *actorPlayer) OnInit() {
-	p.uid, _ = cstring.ToInt64(p.ActorID())
+	clog.Debugf("[actorPlayer] path = %s init!", p.PathString())
 
 	// 注册 session关闭的remote函数(网关触发连接断开后，会调用RPC发送该消息)
 	p.Remote().Register("sessionClose", p.sessionClose)
@@ -33,11 +35,18 @@ func (p *actorPlayer) OnInit() {
 	p.Local().Register("enter", p.playerEnter)   // 注册 进入角色
 }
 
+func (p *actorPlayer) OnStop() {
+	clog.Debugf("[actorPlayer] path = %s exit!", p.PathString())
+}
+
 // sessionClose 接收角色session关闭处理
 func (p *actorPlayer) sessionClose() {
 	online.UnBindPlayer(p.uid)
 	p.isOnline = false
 	p.Exit()
+
+	evt := event.NewPlayerLogout(p.ActorID(), p.playerId)
+	p.PostEvent(evt)
 }
 
 // playerSelect 玩家查询角色列表
@@ -71,8 +80,7 @@ func (p *actorPlayer) playerCreate(session *cproto.Session, req *pb.PlayerCreate
 	}
 
 	// 帐号是否已经在当前游戏服存在角色
-	playerId := db.GetPlayerIdWithUID(session.Uid)
-	if playerId > 0 {
+	if db.GetPlayerIdWithUID(session.Uid) > 0 {
 		p.ResponseCode(session, code.PlayerCreateFail)
 		return
 	}
@@ -95,7 +103,7 @@ func (p *actorPlayer) playerCreate(session *cproto.Session, req *pb.PlayerCreate
 	// TODO 更新最后一次登陆的角色信息到中心节点
 
 	// 抛出角色创建事件
-	playerCreateEvent := event.NewPlayerCreate(playerId, req.PlayerName, req.Gender)
+	playerCreateEvent := event.NewPlayerCreate(newPlayerTable.PlayerId, req.PlayerName, req.Gender)
 	p.PostEvent(&playerCreateEvent)
 
 	playerInfo := buildPBPlayer(newPlayerTable)
@@ -130,6 +138,10 @@ func (p *actorPlayer) playerEnter(session *cproto.Session, req *pb.Int64) {
 		Value: cstring.ToString(playerId),
 	})
 
+	p.uid = playerTable.UID
+	p.playerId = playerTable.PlayerId
+	p.isOnline = true // 设置为在线状态
+
 	// 这里改为客户端主动请求更佳
 	// [01]推送角色 道具数据
 	//module.Item.ListPush(session, playerId)
@@ -147,8 +159,7 @@ func (p *actorPlayer) playerEnter(session *cproto.Session, req *pb.Int64) {
 	p.Response(session, response)
 
 	// 角色登录事件
-	playerLoginEvent := event.NewPlayerLogin(playerId)
-	p.PostEvent(&playerLoginEvent)
+	p.PostEvent(event.NewPlayerLogin(p.ActorID(), playerId))
 }
 
 func buildPBPlayer(playerTable *db.PlayerTable) pb.Player {
