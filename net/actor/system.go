@@ -81,7 +81,7 @@ func (p *System) GetActor(id string) (*Actor, bool) {
 	return actorInstance, found
 }
 
-func (p *System) remoteActor(actorID string) {
+func (p *System) removeActor(actorID string) {
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
 

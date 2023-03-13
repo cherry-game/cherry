@@ -234,7 +234,7 @@ func (p *Actor) onStop() {
 		p.handler.OnStop()
 
 		if p.path.IsParent() {
-			p.system.remoteActor(p.ActorID())
+			p.system.removeActor(p.ActorID())
 			p.child.onStop()
 		} else {
 			if parent, found := p.system.GetActor(p.path.ActorID); found {
