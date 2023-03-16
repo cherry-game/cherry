@@ -369,6 +369,9 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 	timer := newTimer(&thisActor)
 	thisActor.timer = &timer
 
+	// register update timer func
+	thisActor.remoteMail.Register(updateTimerFuncName, thisActor.timer._updateTimer_)
+
 	// spawn load!
 	actorLoad, ok := handler.(IActorLoader)
 	if ok {

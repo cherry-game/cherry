@@ -30,16 +30,15 @@ type (
 
 type (
 	ITimer interface {
-		Add(cmd func(dt time.Duration), endAt time.Time, count ...int) (id string)      // 根据结束时间添加定时器
-		AddEveryDay(cmd func(dt time.Duration), hour, minutes, seconds int) (id string) // 添加每天定时器
-		AddEveryHour(cmd func(dt time.Duration), minutes, seconds int) (id string)      // 添加每小时定时器
-		AddDuration(cmd func(dt time.Duration), duration time.Duration) (id string)     // 根据指定的时间截添加定时器
-		Remove(id string)                                                               // 移除定时器
+		Add(d time.Duration, fn func()) uint64                   // 添加定时器,循环执行
+		AddOnce(d time.Duration, fn func())                      // 添加定时器,执行一次
+		AddFixedHour(hour, minute, second int, fn func()) uint64 // 固定x小时x分x秒,循环执行
+		AddFixedMinute(minute, second int, fn func()) uint64     // 固定x分x秒,循环执行
+		AddSchedule(s ITimerSchedule, f func()) uint64           // 添加自定义调度
+		Remove(id uint64)                                        // 移除定时器
 	}
-)
 
-type (
-	ITask interface {
-		RunTask(fn func())
+	ITimerSchedule interface {
+		Next(time.Time) time.Time
 	}
 )
