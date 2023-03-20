@@ -222,7 +222,7 @@ func (p *Actor) getChildActor(m *cfacade.Message) (*Actor, bool) {
 
 func (p *Actor) onInit() {
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[onInit] actorID = %s", p.ActorID())
+		clog.Debugf("[onInit] actor path = %s", p.path)
 	}
 
 	p.handler.OnInit()
@@ -324,11 +324,11 @@ func (p *Actor) Timer() ITimer {
 }
 
 func (p *Actor) PostRemote(m *cfacade.Message) {
-	p.system.PostRemote(m)
+	p.remoteMail.Push(m)
 }
 
 func (p *Actor) PostLocal(m *cfacade.Message) {
-	p.system.PostLocal(m)
+	p.localMail.Push(m)
 }
 
 func (p *Actor) PostEvent(data cfacade.IEventData) {

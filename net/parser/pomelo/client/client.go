@@ -295,6 +295,7 @@ func (p *Client) handleData() {
 			{
 				if err := p.SendRaw(pomeloPacket.Heartbeat, []byte{}); err != nil {
 					clog.Warnf("[%s] packet encode error. %s", p.TagName, err.Error())
+					return
 				}
 			}
 		case <-p.closeChan:
