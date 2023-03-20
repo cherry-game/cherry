@@ -1,7 +1,6 @@
 package gate
 
 import (
-	"fmt"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/internal/code"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/internal/data"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/internal/pb"
@@ -128,7 +127,7 @@ func (p *ActorAgent) checkGateSession(uid cfacade.UID) {
 	members := p.App().Discovery().ListByType(p.App().NodeType(), p.App().NodeId())
 	for _, member := range members {
 		// user是gate.go里自定义的agentActorID
-		actorPath := fmt.Sprintf("%s.user", member.GetNodeId())
+		actorPath := cfacade.NewPath(member.GetNodeId(), "user")
 		p.Call(actorPath, pomelo.KickFuncName, rsp)
 	}
 }

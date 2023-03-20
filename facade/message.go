@@ -3,6 +3,7 @@ package cherryFacade
 import (
 	cconst "github.com/cherry-game/cherry/const"
 	cerr "github.com/cherry-game/cherry/error"
+	cstring "github.com/cherry-game/cherry/extend/string"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"strings"
 	"sync"
@@ -93,15 +94,15 @@ func NewActorPath(nodeID, actorID, childID string) *ActorPath {
 	}
 }
 
-func NewChildPath(nodeID, actorID, childID string) string {
+func NewChildPath(nodeID, actorID, childID interface{}) string {
 	if childID == "" {
 		return NewPath(nodeID, actorID)
 	}
-	return nodeID + cconst.DOT + actorID + cconst.DOT + childID
+	return cstring.ToString(nodeID) + cconst.DOT + cstring.ToString(actorID) + cconst.DOT + cstring.ToString(childID)
 }
 
-func NewPath(nodeID, actorID string) string {
-	return nodeID + cconst.DOT + actorID
+func NewPath(nodeID, actorID interface{}) string {
+	return cstring.ToString(nodeID) + cconst.DOT + cstring.ToString(actorID)
 }
 
 func ToActorPath(path string) (*ActorPath, error) {

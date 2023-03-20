@@ -1,6 +1,7 @@
 package cherryActor
 
 import (
+	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 )
 
@@ -41,4 +42,12 @@ func (*Base) OnRemoteReceived(_ *cfacade.Message) (next bool, invoke bool) {
 // OnFindChild 寻找子Actor时触发该函数.开发者可以自定义创建子Actor
 func (*Base) OnFindChild(_ *cfacade.Message) (cfacade.IActor, bool) {
 	return nil, false
+}
+
+func (p *Base) NewPath(actorID interface{}) string {
+	return cfacade.NewPath(p.path.NodeID, cstring.ToString(actorID))
+}
+
+func (p *Base) NewChildPath(actorID, childID interface{}) string {
+	return cfacade.NewChildPath(p.path.NodeID, cstring.ToString(actorID), cstring.ToString(childID))
 }
