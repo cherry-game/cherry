@@ -17,7 +17,6 @@ type (
 		FuncName     string           // 请求调用的函数名
 		Session      *cproto.Session  // session of gateway
 		Args         interface{}      // 请求的参数
-		EncodeArgs   bool             // 是否已解码args
 		Err          error            // 返回的错误
 		ClusterReply IRespond         // 返回消息的接口
 		IsCluster    bool             // 是否为集群消息

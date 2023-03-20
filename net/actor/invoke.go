@@ -66,28 +66,18 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 }
 
 func EncodeRemoteArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
-	//if m.EncodeArgs {
-	//	return nil
-	//}
-
 	if m.IsCluster {
 		if fi.InArgsLen == 0 {
-			m.EncodeArgs = true
 			return nil
 		}
 
 		return EncodeArgs(app, fi, 0, m)
-	} else {
-		//m.EncodeArgs = true
 	}
 
 	return nil
 }
 
 func EncodeLocalArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
-	//if m.EncodeArgs {
-	//	return nil
-	//}
 	return EncodeArgs(app, fi, 1, m)
 }
 
@@ -114,7 +104,6 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 		)
 	}
 
-	m.EncodeArgs = true
 	m.Args = argValue
 
 	return nil
