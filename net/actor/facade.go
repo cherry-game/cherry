@@ -36,6 +36,7 @@ type (
 		AddFixedMinute(minute, second int, fn func()) uint64     // 固定x分x秒,循环执行
 		AddSchedule(s ITimerSchedule, f func()) uint64           // 添加自定义调度
 		Remove(id uint64)                                        // 移除定时器
+		RemoveAll()                                              // 移除所有定时器
 	}
 
 	ITimerSchedule interface {

@@ -32,9 +32,7 @@ func newTimer(thisActor *Actor) actorTimer {
 }
 
 func (p *actorTimer) onStop() {
-	for _, info := range p.timerInfoMap {
-		info.timer.Stop()
-	}
+	p.RemoveAll()
 	p.thisActor = nil
 }
 
@@ -111,6 +109,12 @@ func (p *actorTimer) Remove(id uint64) {
 	}
 }
 
+func (p *actorTimer) RemoveAll() {
+	for _, info := range p.timerInfoMap {
+		info.timer.Stop()
+	}
+}
+
 func (p *actorTimer) addTimerInfo(timer *cherryTimeWheel.Timer, fn func(), once bool) {
 	p.timerInfoMap[timer.ID()] = &timerInfo{
 		timer: timer,
@@ -134,7 +138,7 @@ func (p *actorTimer) _updateTimer_(id uint64) {
 	cutils.Try(func() {
 		value.fn()
 	}, func(errString string) {
-		clog.Warn(errString)
+		clog.Error(errString)
 	})
 
 	if value.once {
