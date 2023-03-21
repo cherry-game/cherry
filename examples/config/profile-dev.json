@@ -21,13 +21,13 @@
     ],
     "game": [
       {
-        "enable": true,
+        "enable": false,
         "node_id": "game-1",
         "address": ":10860",
         "__settings__": {
           "maintain_state": 2,
           "db_id_list": [
-            "game_db_1"
+            "center_db_1"
           ],
           "ref_logger": "game_log"
         }
@@ -39,10 +39,10 @@
       {
         "enable": true,
         "db_id": "center_db_1",
-        "db_name": "dev_xgame_center",
+        "db_name": "dev_center",
         "host": "dev.com",
-        "user_name": "gameserver",
-        "password": "password",
+        "user_name": "dev_user",
+        "password": "dev_password",
         "max_idle_connect": 4,
         "max_open_connect": 8,
         "log_mode": true
@@ -52,10 +52,10 @@
       {
         "enable": true,
         "db_id": "game_db_1",
-        "db_name": "game_01",
+        "db_name": "dev_game",
         "host": "dev.com",
-        "user_name": "root",
-        "password": "123456",
+        "user_name": "dev_user",
+        "password": "dev_password",
         "max_idle_connect": 4,
         "max_open_connect": 8,
         "log_mode": true

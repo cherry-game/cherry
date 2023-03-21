@@ -18,4 +18,4 @@ import cherryGORM "github.com/cherry-game/cherry/components/gorm"
 ```
 
 ## example
-- 示例代码待补充
+- 请查看 `examples/demo_gorm`
