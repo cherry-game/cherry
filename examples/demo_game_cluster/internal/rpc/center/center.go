@@ -34,8 +34,8 @@ func Ping(app cfacade.IApplication) bool {
 
 	rsp := &pb.Bool{}
 	targetPath := nodeId + opsActor
-	err := app.ActorSystem().CallWait("", targetPath, ping, nil, rsp)
-	if err != nil {
+	errCode := app.ActorSystem().CallWait("", targetPath, ping, nil, rsp)
+	if code.IsFail(errCode) {
 		return false
 	}
 
@@ -52,10 +52,10 @@ func RegisterDevAccount(app cfacade.IApplication, accountName, password, ip stri
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int32{}
-	err := app.ActorSystem().CallWait("", targetPath, registerDevAccount, req, rsp)
-	if err != nil {
-		clog.Warnf("[RegisterDevAccount] accountName = %s, err = %v", accountName, err)
-		return code.AccountRegisterError
+	errCode := app.ActorSystem().CallWait("", targetPath, registerDevAccount, req, rsp)
+	if code.IsFail(errCode) {
+		clog.Warnf("[RegisterDevAccount] accountName = %s, errCode = %v", accountName, errCode)
+		return errCode
 	}
 
 	return rsp.Value
@@ -70,9 +70,9 @@ func GetDevAccount(app cfacade.IApplication, accountName, password string) int64
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int64{}
-	err := app.ActorSystem().CallWait("", targetPath, getDevAccount, req, rsp)
-	if err != nil {
-		clog.Warnf("[GetDevAccount] accountName = %s, err = %v", accountName, err)
+	errCode := app.ActorSystem().CallWait("", targetPath, getDevAccount, req, rsp)
+	if code.IsFail(errCode) {
+		clog.Warnf("[GetDevAccount] accountName = %s, errCode = %v", accountName, errCode)
 		return 0
 	}
 
@@ -89,10 +89,10 @@ func GetUID(app cfacade.IApplication, sdkId, pid int32, openId string) (cfacade.
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int64{}
-	err := app.ActorSystem().CallWait("", targetPath, getUID, req, rsp)
-	if err != nil {
-		clog.Warnf("[GetUID] err = %v", err)
-		return 0, code.AccountGetFail
+	errCode := app.ActorSystem().CallWait("", targetPath, getUID, req, rsp)
+	if code.IsFail(errCode) {
+		clog.Warnf("[GetUID] errCode = %v", errCode)
+		return 0, errCode
 	}
 
 	return rsp.Value, code.OK

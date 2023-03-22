@@ -2,7 +2,6 @@ package cherryActor
 
 import (
 	ccode "github.com/cherry-game/cherry/code"
-	cerror "github.com/cherry-game/cherry/error"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -114,18 +113,34 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 }
 
 // Call 发送远程消息(不回复)
-func (p *System) Call(source, target, funcName string, arg interface{}) error {
+func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 	if target == "" {
-		return cerror.Error("TargetPath is nil.")
+		clog.Warnf("Target path error. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorTargetPathIsNil
 	}
 
 	if len(funcName) < 1 {
-		return cerror.Errorf("FuncName = %s error.", funcName)
+		clog.Warnf("FuncName error. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorFuncNameError
 	}
 
 	targetPath, err := cfacade.ToActorPath(target)
 	if err != nil {
-		return err
+		clog.Warnf("ToActorPath error. [source = %s, target = %s, funcName = %s, err = %v]",
+			source,
+			target,
+			funcName,
+			err,
+		)
+		return ccode.ActorConvertPathError
 	}
 
 	if targetPath.NodeID != "" && targetPath.NodeID != p.NodeId() {
@@ -141,46 +156,76 @@ func (p *System) Call(source, target, funcName string, arg interface{}) error {
 					target,
 					err,
 				)
-				return err
+				return ccode.ActorMarshalError
 			}
 			clusterPacket.ArgBytes = argsBytes
 		}
 
-		return p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
+		err = p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
+		if err != nil {
+			clog.Warnf("Publish remote error. [source = %s, target = %s, funcName = %s, err = %v]",
+				source,
+				target,
+				funcName,
+				err,
+			)
+			return ccode.ActorPublishRemoteError
+		}
+	} else {
+
+		remoteMsg := cfacade.GetMessage()
+		remoteMsg.Source = source
+		remoteMsg.Target = target
+		remoteMsg.FuncName = funcName
+		remoteMsg.Args = arg
+
+		if !p.PostRemote(remoteMsg) {
+			clog.Warnf("Call error. [source = %s, target = %s, funcName = %s]", source, target, funcName)
+			return ccode.ActorCallFail
+		}
 	}
 
-	remoteMsg := cfacade.GetMessage()
-	remoteMsg.Source = source
-	remoteMsg.Target = target
-	remoteMsg.FuncName = funcName
-	remoteMsg.Args = arg
-
-	if p.PostRemote(remoteMsg) {
-		return nil
-	}
-
-	clog.Warnf("Call error. [message = %+v]", remoteMsg)
-
-	return ErrActorPathTell
+	return ccode.OK
 }
 
 // CallWait 发送远程消息(等待回复)
-func (p *System) CallWait(source, target, funcName string, arg interface{}, reply interface{}) error {
+func (p *System) CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32 {
 	if target == "" {
-		return cerror.Error("TargetPath is nil.")
+		clog.Warnf("Target path error. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorTargetPathIsNil
 	}
 
 	if len(funcName) < 1 {
-		return cerror.Errorf("FuncName = %s error.", funcName)
+		clog.Warnf("FuncName error. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorFuncNameError
 	}
 
 	targetPath, err := cfacade.ToActorPath(target)
 	if err != nil {
-		return err
+		clog.Warnf("ToActorPath error. [source = %s, target = %s, funcName = %s, err = %v]",
+			source,
+			target,
+			funcName,
+			err,
+		)
+		return ccode.ActorConvertPathError
 	}
 
 	if source == target {
-		return cerror.Error("SourcePath can't be the same as targetPath.")
+		clog.Warnf("source == target. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorSourceEqualTarget
 	}
 
 	// forward to remote actor
@@ -197,17 +242,26 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 					target,
 					err,
 				)
-				return err
+				return ccode.ActorMarshalError
 			}
 			clusterPacket.ArgBytes = argsBytes
 		}
 
 		rsp := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.tellTimeout)
-		if ccode.IsOK(rsp.Code) {
-			return p.app.Serializer().Unmarshal(rsp.Data, reply)
+		if ccode.IsFail(rsp.Code) {
+			return rsp.Code
 		}
 
-		return cerror.Errorf("return code = %d", rsp.Code)
+		if reply != nil {
+			err = p.app.Serializer().Unmarshal(rsp.Data, reply)
+			if err != nil {
+				clog.Warnf("Marshal reply error. [targetPath = %s, error = %s]",
+					target,
+					err,
+				)
+				return ccode.ActorMarshalError
+			}
+		}
 
 	} else {
 		message := cfacade.GetMessage()
@@ -215,28 +269,41 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		message.Target = target
 		message.FuncName = funcName
 		message.Args = arg
-
 		message.ChanResult = make(chan interface{})
+
 		if !p.PostRemote(message) {
-			return cerror.Error("error")
+			clog.Warnf("Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
+			return ccode.ActorCallFail
 		}
 
 		result := <-message.ChanResult
 		if result != nil {
 			rsp := result.(*cproto.Response)
 			if rsp == nil {
-				return cerror.Error("error.")
+				clog.Warnf("Response is nil. [targetPath = %s]",
+					target,
+				)
+				return ccode.ActorCallFail
 			}
 
-			if ccode.IsOK(rsp.Code) {
-				return p.app.Serializer().Unmarshal(rsp.Data, reply)
+			if ccode.IsFail(rsp.Code) {
+				return rsp.Code
 			}
 
-			return cerror.Errorf("return code = %d", rsp.Code)
+			if reply != nil {
+				err = p.app.Serializer().Unmarshal(rsp.Data, reply)
+				if err != nil {
+					clog.Warnf("Unmarshal reply error. [targetPath = %s, error = %s]",
+						target,
+						err,
+					)
+					return ccode.ActorUnmarshalError
+				}
+			}
 		}
 	}
 
-	return nil
+	return ccode.OK
 }
 
 // PostRemote 提交远程消息

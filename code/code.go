@@ -9,11 +9,16 @@ const (
 	RPCUnmarshalError     int32 = 21 // rpc data unmarshal error
 	RPCMarshalError       int32 = 22 // rpc data marshal error
 	RPCRemoteExecuteError int32 = 23 // rpc remote method executor error
-	RPCReplyParamsError   int32 = 24 // rpc reply parameter error
-	RPCRouteDecodeError   int32 = 25 // rpc route decode error
-	RPCRouteHashError     int32 = 26 // rpc route hash error
-	RPCNotImplement       int32 = 27 // rpc method not implement
-	RPCHandlerError       int32 = 28 // rpc get handler error
+
+	ActorTargetPathIsNil    int32 = 24 // actor target path is nil
+	ActorFuncNameError      int32 = 25 // actor function name is error
+	ActorConvertPathError   int32 = 26 // convert to path error
+	ActorMarshalError       int32 = 27 // marshal arg error
+	ActorUnmarshalError     int32 = 28 // unmarshal arg error
+	ActorCallFail           int32 = 29 // actor call fail
+	ActorSourceEqualTarget  int32 = 30 // source equal target
+	ActorPublishRemoteError int32 = 31 // actor publish remote error
+
 )
 
 func IsOK(code int32) bool {

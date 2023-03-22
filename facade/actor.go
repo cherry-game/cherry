@@ -13,8 +13,8 @@ type (
 		PostEvent(data IEventData)
 		SetLocalInvoke(invoke InvokeFunc)
 		SetRemoteInvoke(invoke InvokeFunc)
-		Call(source, target, funcName string, arg interface{}) error
-		CallWait(source, target, funcName string, arg interface{}, reply interface{}) error
+		Call(source, target, funcName string, arg interface{}) int32
+		CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32
 	}
 
 	InvokeFunc func(app IApplication, fi *creflect.FuncInfo, m *Message)
@@ -23,8 +23,8 @@ type (
 		App() IApplication
 		ActorID() string
 		Path() *ActorPath
-		Call(targetPath, funcName string, arg interface{}) error
-		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) error
+		Call(targetPath, funcName string, arg interface{}) int32
+		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) int32
 		LastAt() int64
 		Exit()
 	}
