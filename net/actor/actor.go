@@ -360,7 +360,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 	remoteMailbox := newMailbox(RemoteName)
 	thisActor.remoteMail = &remoteMailbox
 
-	event := newEvent()
+	event := newEvent(&thisActor)
 	thisActor.event = &event
 
 	child := newChild(&thisActor)

@@ -6,14 +6,16 @@ import (
 )
 
 type actorEvent struct {
-	queue                         // queue
-	funcMap map[string]IEventFunc // register event func map
+	thisActor *Actor                // parent
+	queue                           // queue
+	funcMap   map[string]IEventFunc // register event func map
 }
 
-func newEvent() actorEvent {
+func newEvent(thisActor *Actor) actorEvent {
 	return actorEvent{
-		queue:   newQueue(),
-		funcMap: make(map[string]IEventFunc),
+		thisActor: thisActor,
+		queue:     newQueue(),
+		funcMap:   make(map[string]IEventFunc),
 	}
 }
 
@@ -33,6 +35,16 @@ func (p *actorEvent) Unregister(name string) {
 func (p *actorEvent) Push(data cfacade.IEventData) {
 	if _, found := p.funcMap[data.Name()]; found {
 		p.queue.Push(data)
+	}
+
+	if p.thisActor.Path().IsChild() {
+		return
+	}
+
+	for _, id := range p.thisActor.child.childActors.Keys() {
+		if childActor, found := p.thisActor.child.childActors.Get(id); found {
+			childActor.event.Push(data)
+		}
 	}
 }
 
@@ -72,4 +84,5 @@ func (p *actorEvent) funcInvoke(data cfacade.IEventData) {
 func (p *actorEvent) onStop() {
 	p.funcMap = nil
 	p.queue.Destroy()
+	p.thisActor = nil
 }
