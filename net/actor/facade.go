@@ -30,13 +30,13 @@ type (
 
 type (
 	ITimer interface {
-		Add(d time.Duration, fn func()) uint64                   // 添加定时器,循环执行
-		AddOnce(d time.Duration, fn func())                      // 添加定时器,执行一次
-		AddFixedHour(hour, minute, second int, fn func()) uint64 // 固定x小时x分x秒,循环执行
-		AddFixedMinute(minute, second int, fn func()) uint64     // 固定x分x秒,循环执行
-		AddSchedule(s ITimerSchedule, f func()) uint64           // 添加自定义调度
-		Remove(id uint64)                                        // 移除定时器
-		RemoveAll()                                              // 移除所有定时器
+		Add(d time.Duration, fn func(), async ...bool) uint64                   // 添加定时器,循环执行
+		AddOnce(d time.Duration, fn func(), async ...bool)                      // 添加定时器,执行一次
+		AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 // 固定x小时x分x秒,循环执行
+		AddFixedMinute(minute, second int, fn func(), async ...bool) uint64     // 固定x分x秒,循环执行
+		AddSchedule(s ITimerSchedule, f func(), async ...bool) uint64           // 添加自定义调度
+		Remove(id uint64)                                                       // 移除定时器
+		RemoveAll()                                                             // 移除所有定时器
 	}
 
 	ITimerSchedule interface {

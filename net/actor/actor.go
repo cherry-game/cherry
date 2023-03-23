@@ -295,7 +295,7 @@ func (p *Actor) Exit() {
 	p.close <- struct{}{}
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("actor exit! path = %s", p.path)
+		clog.Debugf("[exit] actor exit! path = %s", p.path)
 	}
 }
 

@@ -110,7 +110,11 @@ func (tw *TimeWheel) addOrRun(t *Timer) {
 		// Already expired
 		// Like the standard time.AfterFunc (https://golang.org/pkg/time/#AfterFunc),
 		// always execute the timer's task in its own goroutine.
-		go t.task()
+		if t.isAsync {
+			go t.task()
+		} else {
+			t.task()
+		}
 	}
 }
 
@@ -162,19 +166,20 @@ func (tw *TimeWheel) Stop() {
 
 // AfterFunc waits for the duration to elapse and then calls f in its own goroutine.
 // It returns a Timer that can be used to cancel the call using its Stop method.
-func (tw *TimeWheel) AfterFunc(id uint64, d time.Duration, f func()) *Timer {
+func (tw *TimeWheel) AfterFunc(id uint64, d time.Duration, f func(), async ...bool) *Timer {
 	t := &Timer{
 		id:         id,
 		expiration: TimeToMS(time.Now().UTC().Add(d)),
 		task:       f,
+		isAsync:    getAsyncValue(async...),
 	}
 	tw.addOrRun(t)
 
 	return t
 }
 
-func (tw *TimeWheel) AddEveryFunc(id uint64, d time.Duration, f func()) *Timer {
-	return tw.ScheduleFunc(id, &EverySchedule{Interval: d}, f)
+func (tw *TimeWheel) AddEveryFunc(id uint64, d time.Duration, f func(), async ...bool) *Timer {
+	return tw.ScheduleFunc(id, &EverySchedule{Interval: d}, f, async...)
 }
 
 func (tw *TimeWheel) BuildAfterFunc(d time.Duration, f func()) *Timer {
@@ -182,9 +187,9 @@ func (tw *TimeWheel) BuildAfterFunc(d time.Duration, f func()) *Timer {
 	return tw.AfterFunc(id, d, f)
 }
 
-func (tw *TimeWheel) BuildEveryFunc(d time.Duration, f func()) *Timer {
+func (tw *TimeWheel) BuildEveryFunc(d time.Duration, f func(), async ...bool) *Timer {
 	id := NextId()
-	return tw.AddEveryFunc(id, d, f)
+	return tw.AddEveryFunc(id, d, f, async...)
 }
 
 // ScheduleFunc calls f (in its own goroutine) according to the execution
@@ -202,7 +207,7 @@ func (tw *TimeWheel) BuildEveryFunc(d time.Duration, f func()) *Timer {
 // Afterwards, it will ask the next execution time each time f is about to
 // be executed, and f will be called at the next execution time if the time
 // is non-zero.
-func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func()) *Timer {
+func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func(), async ...bool) *Timer {
 	expiration := s.Next(time.Now())
 	if expiration.IsZero() {
 		// No time is scheduled, return nil.
@@ -212,6 +217,7 @@ func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func()) *Timer {
 	t := &Timer{
 		id:         id,
 		expiration: TimeToMS(expiration),
+		isAsync:    getAsyncValue(async...),
 	}
 
 	t.task = func() {
@@ -232,4 +238,11 @@ func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func()) *Timer {
 
 func (tw *TimeWheel) NextId() uint64 {
 	return NextId()
+}
+
+func getAsyncValue(asyncTask ...bool) bool {
+	if len(asyncTask) > 0 {
+		return asyncTask[0]
+	}
+	return false
 }

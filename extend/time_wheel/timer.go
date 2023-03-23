@@ -18,6 +18,7 @@ type Timer struct {
 	// through Timer.Stop() and Bucket.Flush().
 	b       unsafe.Pointer // type: *bucket
 	element *list.Element  // The timer's element.
+	isAsync bool           // async execute task
 }
 
 func (t *Timer) ID() uint64 {

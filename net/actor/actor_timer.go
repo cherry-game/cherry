@@ -36,14 +36,14 @@ func (p *actorTimer) onStop() {
 	p.thisActor = nil
 }
 
-func (p *actorTimer) Add(delay time.Duration, fn func()) uint64 {
+func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 	if delay.Milliseconds() < 1 || fn == nil {
 		clog.Warnf("[ActorTimer] Add parameter error. delay = %+v", delay)
 		return 0
 	}
 
 	newId := globalTimer.NextId()
-	timer := globalTimer.AddEveryFunc(newId, delay, p.callUpdateTimer(newId))
+	timer := globalTimer.AddEveryFunc(newId, delay, p.callUpdateTimer(newId), async...)
 
 	if timer == nil {
 		clog.Warnf("[ActorTimer] Add error. delay = %+v", delay)
@@ -55,14 +55,14 @@ func (p *actorTimer) Add(delay time.Duration, fn func()) uint64 {
 	return newId
 }
 
-func (p *actorTimer) AddOnce(delay time.Duration, fn func()) {
+func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) {
 	if delay.Milliseconds() < 1 || fn == nil {
 		clog.Warnf("[ActorTimer] AddOnce parameter error. delay = %+v", delay)
 		return
 	}
 
 	newId := globalTimer.NextId()
-	timer := globalTimer.AfterFunc(newId, delay, p.callUpdateTimer(newId))
+	timer := globalTimer.AfterFunc(newId, delay, p.callUpdateTimer(newId), async...)
 
 	if timer == nil {
 		clog.Warnf("[ActorTimer] AddOnce error. d = %+v", delay)
@@ -74,27 +74,27 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func()) {
 	return
 }
 
-func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func()) uint64 {
+func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {
 	schedule := &cherryTimeWheel.FixedDateSchedule{
 		Hour:   hour,
 		Minute: minute,
 		Second: second,
 	}
 
-	return p.AddSchedule(schedule, fn)
+	return p.AddSchedule(schedule, fn, async...)
 }
 
-func (p *actorTimer) AddFixedMinute(minute, second int, fn func()) uint64 {
-	return p.AddFixedHour(-1, minute, second, fn)
+func (p *actorTimer) AddFixedMinute(minute, second int, fn func(), async ...bool) uint64 {
+	return p.AddFixedHour(-1, minute, second, fn, async...)
 }
 
-func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func()) uint64 {
+func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func(), async ...bool) uint64 {
 	if s == nil || fn == nil {
 		return 0
 	}
 
 	newId := globalTimer.NextId()
-	timer := globalTimer.ScheduleFunc(newId, s, p.callUpdateTimer(newId))
+	timer := globalTimer.ScheduleFunc(newId, s, p.callUpdateTimer(newId), async...)
 
 	p.addTimerInfo(timer, fn, false)
 
