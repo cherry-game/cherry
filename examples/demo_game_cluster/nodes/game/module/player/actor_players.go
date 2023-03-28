@@ -1,7 +1,6 @@
 package player
 
 import (
-	ccron "github.com/cherry-game/cherry/components/cron"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/internal/event"
 	"github.com/cherry-game/cherry/examples/demo_game_cluster/nodes/game/module/online"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -24,14 +23,14 @@ func (p *ActorPlayers) AliasID() string {
 
 func (p *ActorPlayers) OnInit() {
 	p.childExitTime = time.Minute * 30
-	p.cron()
 
 	// 注册角色登陆事件
 	p.Event().Register(event.PlayerLoginKey, p.onLoginEvent)
 	p.Event().Register(event.PlayerLogoutKey, p.onLogoutEvent)
 	p.Event().Register(event.PlayerCreateKey, p.onPlayerCreateEvent)
-
 	p.Remote().Register("checkChild", p.checkChild)
+
+	p.Timer().Add(1*time.Second, p.everySecondTimer)
 }
 
 func (p *ActorPlayers) OnFindChild(msg *cfacade.Message) (cfacade.IActor, bool) {
@@ -49,11 +48,8 @@ func (p *ActorPlayers) OnFindChild(msg *cfacade.Message) (cfacade.IActor, bool) 
 }
 
 // cron
-func (p *ActorPlayers) cron() {
-	// TODO actor timer实现后替换掉
-	ccron.AddDurationFunc(func() {
-		p.Call(p.PathString(), "checkChild", nil)
-	}, time.Second)
+func (p *ActorPlayers) everySecondTimer() {
+	p.Call(p.PathString(), "checkChild", nil)
 }
 
 func (p *ActorPlayers) checkChild() {

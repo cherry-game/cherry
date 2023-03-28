@@ -41,11 +41,11 @@ func (p *actorEvent) Push(data cfacade.IEventData) {
 		return
 	}
 
-	for _, id := range p.thisActor.child.childActors.Keys() {
-		if childActor, found := p.thisActor.child.childActors.Get(id); found {
+	p.thisActor.Child().Each(func(iActor cfacade.IActor) {
+		if childActor, ok := iActor.(*Actor); ok {
 			childActor.event.Push(data)
 		}
-	}
+	})
 }
 
 func (p *actorEvent) Pop() cfacade.IEventData {

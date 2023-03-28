@@ -29,9 +29,6 @@ func Configure(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *
 func (p *AppBuilder) Startup() {
 	app := p.Application
 
-	app.SetActorSystem(p.actorSystem)
-	app.Register(p.actorSystem)
-
 	if app.NodeMode() == Cluster {
 		discovery := cdiscovery.New()
 		app.SetDiscovery(discovery)
@@ -44,6 +41,9 @@ func (p *AppBuilder) Startup() {
 
 	// Register custom components
 	app.Register(p.components...)
+
+	app.SetActorSystem(p.actorSystem)
+	app.Register(p.actorSystem)
 
 	if app.netParser != nil {
 		for _, connector := range app.netParser.Connectors() {

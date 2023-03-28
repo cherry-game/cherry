@@ -1,31 +1,30 @@
 package cherryActor
 
 import (
-	cherryMap "github.com/cherry-game/cherry/extend/map"
 	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
 	"strings"
+	"sync"
 )
 
 type actorChild struct {
 	thisActor   *Actor
-	childActors *cherryMap.Map[string, *Actor] // key:childActorId, value:*actor
+	childActors *sync.Map // key:childActorId, value:*actor
 }
 
 func newChild(thisActor *Actor) actorChild {
 	return actorChild{
 		thisActor:   thisActor,
-		childActors: cherryMap.NewMap[string, *Actor](true),
+		childActors: &sync.Map{},
 	}
 }
 
 func (p *actorChild) onStop() {
-	for _, id := range p.childActors.Keys() {
-		if childActor, found := p.childActors.Get(id); found {
-			p.childActors.Remove(id)
+	p.childActors.Range(func(key, value any) bool {
+		if childActor, ok := value.(*Actor); ok {
 			childActor.Exit()
 		}
-	}
+		return true
+	})
 
 	//p.childActors = nil
 	p.thisActor = nil
@@ -40,7 +39,7 @@ func (p *actorChild) Create(childID string, handler cfacade.IActorHandler) (cfac
 		return nil, ErrActorIDIsNil
 	}
 
-	if thisActor, found := p.childActors.Get(childID); found {
+	if thisActor, ok := p.Get(childID); ok {
 		return thisActor, nil
 	}
 
@@ -49,28 +48,30 @@ func (p *actorChild) Create(childID string, handler cfacade.IActorHandler) (cfac
 		return nil, err
 	}
 
-	p.childActors.Put(childID, &childActor)
+	p.childActors.Store(childID, &childActor)
 	go childActor.run()
 
 	return &childActor, nil
 }
 
 func (p *actorChild) Get(childID string) (cfacade.IActor, bool) {
-	return p.childActors.Get(childID)
+	if actorValue, ok := p.childActors.Load(childID); ok {
+		actor, found := actorValue.(*Actor)
+		return actor, found
+	}
+
+	return nil, false
 }
 
 func (p *actorChild) Remove(childID string) {
-	_, found := p.childActors.Remove(childID)
-	if !found {
-		clog.Warnf("[Remove] [childID = %s] get child Actor fail. ", childID)
-	}
+	p.childActors.Delete(childID)
 }
 
 func (p *actorChild) Each(fn func(cfacade.IActor)) {
-	for _, id := range p.childActors.Keys() {
-		thisActor, found := p.childActors.Get(id)
-		if found {
-			fn(thisActor)
+	p.childActors.Range(func(key, value any) bool {
+		if actor, found := value.(*Actor); found {
+			fn(actor)
 		}
-	}
+		return true
+	})
 }

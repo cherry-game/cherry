@@ -231,7 +231,7 @@ func (p *Actor) onInit() {
 
 func (p *Actor) onStop() {
 	cutils.Try(func() {
-		p.handler.OnStop()
+		close(p.close)
 
 		if p.path.IsParent() {
 			p.system.removeActor(p.ActorID())
@@ -242,16 +242,16 @@ func (p *Actor) onStop() {
 			}
 		}
 
-		close(p.close)
-
+		p.handler.OnStop()
+		p.timer.onStop()
+		p.event.onStop()
 		p.localMail.onStop()
 		p.remoteMail.onStop()
-		p.event.onStop()
-		p.timer.onStop()
-
 	}, func(errString string) {
 		clog.Error(errString)
 	})
+
+	p.system.wg.Done()
 }
 
 func (p *Actor) State() State {
@@ -324,15 +324,21 @@ func (p *Actor) Timer() ITimer {
 }
 
 func (p *Actor) PostRemote(m *cfacade.Message) {
-	p.remoteMail.Push(m)
+	if p.state == WorkerState {
+		p.remoteMail.Push(m)
+	}
 }
 
 func (p *Actor) PostLocal(m *cfacade.Message) {
-	p.localMail.Push(m)
+	if p.state == WorkerState {
+		p.localMail.Push(m)
+	}
 }
 
 func (p *Actor) PostEvent(data cfacade.IEventData) {
-	p.system.PostEvent(data)
+	if p.state == WorkerState {
+		p.system.PostEvent(data)
+	}
 }
 
 func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System) (Actor, error) {
@@ -377,6 +383,8 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 	if ok {
 		actorLoad.load(thisActor)
 	}
+
+	c.wg.Add(1)
 
 	return thisActor, nil
 }

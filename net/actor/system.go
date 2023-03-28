@@ -14,25 +14,25 @@ import (
 type (
 	// System Actor系统
 	System struct {
-		mutex            sync.RWMutex
 		app              cfacade.IApplication
-		actorMap         map[string]*Actor  // key:actorID, value:*actor
+		actorMap         *sync.Map          // key:actorID, value:*actor
 		actorOrder       []string           // key:actorID
 		localInvokeFunc  cfacade.InvokeFunc // default local func
 		remoteInvokeFunc cfacade.InvokeFunc // default remote func
 		tellTimeout      time.Duration
+		wg               *sync.WaitGroup
 	}
 )
 
 func NewSystem(app cfacade.IApplication) *System {
 	system := &System{
 		app:              app,
-		mutex:            sync.RWMutex{},
-		actorMap:         make(map[string]*Actor, 0),
+		actorMap:         &sync.Map{},
 		actorOrder:       []string{},
 		localInvokeFunc:  InvokeLocalFunc,
 		remoteInvokeFunc: InvokeRemoteFunc,
 		tellTimeout:      3 * time.Second,
+		wg:               &sync.WaitGroup{},
 	}
 
 	return system
@@ -46,20 +46,23 @@ func (p *System) NodeId() string {
 }
 
 func (p *System) Stop() {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
 	// reverse order
 	for i := len(p.actorOrder) - 1; i >= 0; i-- {
 		actorID := p.actorOrder[i]
 
 		cutils.Try(func() {
-			thisActor := p.actorMap[actorID]
-			thisActor.Exit()
+			if thisActor, found := p.GetActor(actorID); found {
+				thisActor.Exit()
+			}
+
 		}, func(err string) {
 			clog.Warnf("[OnStop] - [actorID = %s, err = %s]", actorID, err)
 		})
 	}
+
+	clog.Info("actor system stopping!")
+	p.wg.Wait()
+	clog.Info("actor system stopped!")
 }
 
 func (p *System) SetTellTimeout(d time.Duration) {
@@ -73,18 +76,17 @@ func (p *System) GetIActor(id string) (cfacade.IActor, bool) {
 
 // GetActor 根据ActorID获取*actor
 func (p *System) GetActor(id string) (*Actor, bool) {
-	p.mutex.RLock()
-	defer p.mutex.RUnlock()
+	actorValue, found := p.actorMap.Load(id)
+	if !found {
+		return nil, false
+	}
 
-	actorInstance, found := p.actorMap[id]
-	return actorInstance, found
+	actor, found := actorValue.(*Actor)
+	return actor, found
 }
 
 func (p *System) removeActor(actorID string) {
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
-	delete(p.actorMap, actorID)
+	p.actorMap.Delete(actorID)
 }
 
 // CreateActor 创建Actor
@@ -97,15 +99,12 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 		return actor, nil
 	}
 
-	p.mutex.Lock()
-	defer p.mutex.Unlock()
-
 	thisActor, err := newActor(id, "", handler, p)
 	if err != nil {
 		return nil, err
 	}
 
-	p.actorMap[id] = &thisActor             // add to map
+	p.actorMap.Store(id, &thisActor)        // add to map
 	p.actorOrder = append(p.actorOrder, id) // record actor create order
 	go thisActor.run()                      // new actor is running!
 
@@ -354,9 +353,13 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 		return
 	}
 
-	for _, thisActor := range p.actorMap {
-		thisActor.event.Push(data)
-	}
+	p.actorMap.Range(func(key, value any) bool {
+		if thisActor, found := value.(*Actor); found {
+			thisActor.event.Push(data)
+		}
+
+		return true
+	})
 }
 
 func (p *System) SetLocalInvoke(fn cfacade.InvokeFunc) {
