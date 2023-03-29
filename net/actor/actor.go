@@ -102,7 +102,7 @@ func (p *Actor) processLocal() {
 
 	next, invoke := p.handler.OnLocalReceived(m)
 	if invoke {
-		invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
+		p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 	}
 
 	if !next {
@@ -111,7 +111,7 @@ func (p *Actor) processLocal() {
 
 	if m.TargetPath().IsChild() {
 		if p.path.IsChild() {
-			invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
+			p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 		} else {
 			if childActor, foundChild := p.getChildActor(m); foundChild {
 				childActor.localMail.Push(m)
@@ -120,11 +120,11 @@ func (p *Actor) processLocal() {
 			}
 		}
 	} else {
-		invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
+		p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 	}
 }
 
-func invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
+func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
 	funcInfo, found := mailbox.funcMap[m.FuncName]
 	if !found {
 		clog.Warnf("[%s] Function not found. [source = %s, target = %s -> %s]",
@@ -137,9 +137,33 @@ func invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFun
 		return
 	}
 
+	arrivalTime := m.PostTime - m.BuildTime
+	if arrivalTime > p.system.arrivalTimeOut {
+		clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, arrival = %dms]",
+			mailbox.name,
+			m.Source,
+			m.Target,
+			m.FuncName,
+			arrivalTime,
+		)
+	}
+
+	now := time.Now().UnixMilli()
+
 	defer func() {
+		executionTime := time.Now().UnixMilli() - now
+		if executionTime > p.system.executionTimeout {
+			clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, execution = %dms]",
+				mailbox.name,
+				m.Source,
+				m.Target,
+				m.FuncName,
+				executionTime,
+			)
+		}
+
 		if rev := recover(); rev != nil {
-			clog.Errorf("[%s] Function invoke error. [source = %s, target = %s -> %s, type = %v]",
+			clog.Errorf("[%s] Invoke error. [source = %s, target = %s->%s, type = %v]",
 				mailbox.name,
 				m.Source,
 				m.Target,
@@ -163,7 +187,7 @@ func (p *Actor) processRemote() {
 
 	next, invoke := p.handler.OnRemoteReceived(m)
 	if invoke {
-		invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
 	}
 
 	if !next {
@@ -172,7 +196,7 @@ func (p *Actor) processRemote() {
 
 	if m.TargetPath().IsChild() {
 		if p.path.IsChild() {
-			invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+			p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
 		} else {
 			if childActor, foundChild := p.getChildActor(m); foundChild {
 				childActor.remoteMail.Push(m)
@@ -181,7 +205,7 @@ func (p *Actor) processRemote() {
 			}
 		}
 	} else {
-		invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
 	}
 }
 

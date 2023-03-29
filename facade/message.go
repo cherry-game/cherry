@@ -7,10 +7,13 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"strings"
 	"sync"
+	"time"
 )
 
 type (
 	Message struct {
+		BuildTime    int64            // message build time(ms)
+		PostTime     int64            // post to actor time(ms)
 		Source       string           // 来源actor path
 		Target       string           // 目标actor path
 		targetPath   *ActorPath       // 目标actor path对象
@@ -45,7 +48,9 @@ var (
 )
 
 func GetMessage() *Message {
-	return messagePool.Get().(*Message)
+	msg := messagePool.Get().(*Message)
+	msg.BuildTime = time.Now().UnixMilli()
+	return msg
 }
 
 func (p *Message) Recycle() {
@@ -58,6 +63,8 @@ func (p *Message) Recycle() {
 	p.ClusterReply = nil
 	p.IsCluster = false
 	p.ChanResult = nil
+	p.BuildTime = 0
+	p.PostTime = 0
 	messagePool.Put(p)
 }
 

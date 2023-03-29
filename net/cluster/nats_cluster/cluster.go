@@ -89,6 +89,7 @@ func (p *Cluster) localProcess() {
 		}
 
 		message := cfacade.GetMessage()
+		message.BuildTime = packet.BuildTime
 		message.Source = packet.SourcePath
 		message.Target = packet.TargetPath
 		message.FuncName = packet.FuncName
@@ -135,6 +136,7 @@ func (p *Cluster) remoteProcess() {
 		}
 
 		message := cfacade.GetMessage()
+		message.BuildTime = packet.BuildTime
 		message.Source = packet.SourcePath
 		message.Target = packet.TargetPath
 		message.FuncName = packet.FuncName

@@ -29,11 +29,12 @@ message Response {
 }
 
 message ClusterPacket {
-  string sourcePath = 1;
-  string targetPath = 2;
-  string funcName = 3;
-  bytes argBytes = 4;
-  Session session = 5;
+  int64  buildTime = 1;
+  string sourcePath = 2;
+  string targetPath = 3;
+  string funcName = 4;
+  bytes argBytes = 5;
+  Session session = 6;
 }
 
 message Session {
@@ -42,7 +43,6 @@ message Session {
   string agentPath = 3;           // frontend actor agent path
   string ip = 4;                  // ip address
   uint32 mid = 5;                 // message id build by client
-  int64 packetTime = 6;           // packet data time
   map<string, string> data = 7;   // extend data
 }
 

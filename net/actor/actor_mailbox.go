@@ -4,6 +4,7 @@ import (
 	creflect "github.com/cherry-game/cherry/extend/reflect"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	"time"
 )
 
 type mailbox struct {
@@ -62,6 +63,7 @@ func (p *mailbox) Pop() *cfacade.Message {
 
 func (p *mailbox) Push(m *cfacade.Message) {
 	if m != nil {
+		m.PostTime = time.Now().UnixMilli()
 		p.queue.Push(m)
 	}
 }

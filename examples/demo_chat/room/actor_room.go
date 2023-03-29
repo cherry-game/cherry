@@ -113,9 +113,6 @@ func (p *actorRoom) syncMessage(session *cproto.Session, req *protocol.SyncMessa
 		})
 	}
 
-	dt := time.Now().UnixNano() - session.PacketTime
-	clog.Debugf("write log.  dt= %d(nano second), message = %+v", dt, req)
-
 	// 测试往log节点写日志
 	req.PacketTime = time.Now().UnixNano()
 	rsp := &protocol.WriteResponse{}

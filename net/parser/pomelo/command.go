@@ -210,7 +210,6 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessag
 
 func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {
 	session := agent.session.Copy()
-	session.PacketTime = time.Now().UnixNano() // nano second
 	session.Mid = uint32(msg.ID)
 	return session
 }

@@ -16,11 +16,12 @@ type (
 	System struct {
 		app              cfacade.IApplication
 		actorMap         *sync.Map          // key:actorID, value:*actor
-		actorOrder       []string           // key:actorID
 		localInvokeFunc  cfacade.InvokeFunc // default local func
 		remoteInvokeFunc cfacade.InvokeFunc // default remote func
-		tellTimeout      time.Duration
 		wg               *sync.WaitGroup
+		tellTimeout      time.Duration
+		arrivalTimeOut   int64 // message到达超时(毫秒)
+		executionTimeout int64 // 消息执行超时(毫秒)
 	}
 )
 
@@ -28,11 +29,12 @@ func NewSystem(app cfacade.IApplication) *System {
 	system := &System{
 		app:              app,
 		actorMap:         &sync.Map{},
-		actorOrder:       []string{},
 		localInvokeFunc:  InvokeLocalFunc,
 		remoteInvokeFunc: InvokeRemoteFunc,
-		tellTimeout:      3 * time.Second,
 		wg:               &sync.WaitGroup{},
+		tellTimeout:      3 * time.Second,
+		arrivalTimeOut:   100,
+		executionTimeout: 100,
 	}
 
 	return system
@@ -46,19 +48,17 @@ func (p *System) NodeId() string {
 }
 
 func (p *System) Stop() {
-	// reverse order
-	for i := len(p.actorOrder) - 1; i >= 0; i-- {
-		actorID := p.actorOrder[i]
-
-		cutils.Try(func() {
-			if thisActor, found := p.GetActor(actorID); found {
-				thisActor.Exit()
-			}
-
-		}, func(err string) {
-			clog.Warnf("[OnStop] - [actorID = %s, err = %s]", actorID, err)
-		})
-	}
+	p.actorMap.Range(func(key, value any) bool {
+		actor, ok := value.(*Actor)
+		if ok {
+			cutils.Try(func() {
+				actor.Exit()
+			}, func(err string) {
+				clog.Warnf("[OnStop] - [actorID = %s, err = %s]", actor.path, err)
+			})
+		}
+		return true
+	})
 
 	clog.Info("actor system stopping!")
 	p.wg.Wait()
@@ -104,9 +104,8 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 		return nil, err
 	}
 
-	p.actorMap.Store(id, &thisActor)        // add to map
-	p.actorOrder = append(p.actorOrder, id) // record actor create order
-	go thisActor.run()                      // new actor is running!
+	p.actorMap.Store(id, &thisActor) // add to map
+	go thisActor.run()               // new actor is running!
 
 	return &thisActor, nil
 }
@@ -371,5 +370,17 @@ func (p *System) SetLocalInvoke(fn cfacade.InvokeFunc) {
 func (p *System) SetRemoteInvoke(fn cfacade.InvokeFunc) {
 	if fn != nil {
 		p.remoteInvokeFunc = fn
+	}
+}
+
+func (p *System) SetArrivalTimeout(t int64) {
+	if t > 1 {
+		p.arrivalTimeOut = t
+	}
+}
+
+func (p *System) SetExecutionTimeout(t int64) {
+	if t > 1 {
+		p.executionTimeout = t
 	}
 }

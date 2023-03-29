@@ -3,6 +3,7 @@ package cherryProto
 import (
 	"fmt"
 	"sync"
+	"time"
 )
 
 var (
@@ -14,11 +15,18 @@ var (
 )
 
 func GetClusterPacket() *ClusterPacket {
-	return clusterPacketPool.Get().(*ClusterPacket)
+	pkg := clusterPacketPool.Get().(*ClusterPacket)
+	pkg.BuildTime = time.Now().UnixMilli()
+	return pkg
 }
 
 func (m *ClusterPacket) Recycle() {
-	m.Reset()
+	m.BuildTime = 0
+	m.SourcePath = ""
+	m.TargetPath = ""
+	m.FuncName = ""
+	m.ArgBytes = nil
+	m.Session = nil
 	clusterPacketPool.Put(m)
 }
 
