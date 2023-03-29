@@ -25,6 +25,8 @@ type (
 		Path() *ActorPath
 		Call(targetPath, funcName string, arg interface{}) int32
 		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) int32
+		PostRemote(m *Message)
+		PostLocal(m *Message)
 		LastAt() int64
 		Exit()
 	}
