@@ -36,17 +36,19 @@ type (
 	State int
 
 	Actor struct {
-		system     *System               // actor system
-		path       *cfacade.ActorPath    // actor path
-		state      State                 // actor state
-		close      chan struct{}         // close flag
-		handler    cfacade.IActorHandler // actor handler
-		localMail  *mailbox              // local message mailbox
-		remoteMail *mailbox              // remote message mailbox
-		event      *actorEvent           // event
-		child      *actorChild           // child actor
-		timer      *actorTimer           // timer
-		lastAt     int64                 // last process time
+		system           *System               // actor system
+		path             *cfacade.ActorPath    // actor path
+		state            State                 // actor state
+		close            chan struct{}         // close flag
+		handler          cfacade.IActorHandler // actor handler
+		localMail        *mailbox              // local message mailbox
+		remoteMail       *mailbox              // remote message mailbox
+		event            *actorEvent           // event
+		child            *actorChild           // child actor
+		timer            *actorTimer           // timer
+		lastAt           int64                 // last process time
+		arrivalElapsed   int64                 // arrival elapsed for message
+		executionElapsed int64                 // execution elapsed for message
 	}
 )
 
@@ -137,28 +139,28 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 		return
 	}
 
-	arrivalTime := m.PostTime - m.BuildTime
-	if arrivalTime > p.system.arrivalTimeOut {
+	p.arrivalElapsed = m.PostTime - m.BuildTime
+	if p.arrivalElapsed > p.system.arrivalTimeOut {
 		clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, arrival = %dms]",
 			mailbox.name,
 			m.Source,
 			m.Target,
 			m.FuncName,
-			arrivalTime,
+			p.arrivalElapsed,
 		)
 	}
 
 	now := time.Now().UnixMilli()
 
 	defer func() {
-		executionTime := time.Now().UnixMilli() - now
-		if executionTime > p.system.executionTimeout {
+		p.executionElapsed = time.Now().UnixMilli() - now
+		if p.executionElapsed > p.system.executionTimeout {
 			clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, execution = %dms]",
 				mailbox.name,
 				m.Source,
 				m.Target,
 				m.FuncName,
-				executionTime,
+				p.executionElapsed,
 			)
 		}
 

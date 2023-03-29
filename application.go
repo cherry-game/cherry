@@ -6,6 +6,7 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	cactor "github.com/cherry-game/cherry/net/actor"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"os"
@@ -29,12 +30,12 @@ type (
 		startTime    ctime.CherryTime     // application start time
 		running      int32                // is running
 		dieChan      chan bool            // wait for end application
-		components   []cfacade.IComponent // all components
 		onShutdownFn []func()             // on shutdown execute functions
+		components   []cfacade.IComponent // all components
 		serializer   cfacade.ISerializer  // serializer
 		discovery    cfacade.IDiscovery   // discovery component
 		cluster      cfacade.ICluster     // cluster component
-		actorSystem  cfacade.IActorSystem // actor system
+		actorSystem  *cactor.Component    // actor system
 		netParser    cfacade.INetParser   // net packet parser
 	}
 )
@@ -53,13 +54,14 @@ func NewApp(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *App
 	clog.Info(cconst.GetLOGO())
 
 	app := &Application{
-		INode:      node,
-		serializer: cserializer.NewProtobuf(),
-		isFrontend: isFrontend,
-		nodeMode:   mode,
-		startTime:  ctime.Now(),
-		running:    0,
-		dieChan:    make(chan bool),
+		INode:       node,
+		serializer:  cserializer.NewProtobuf(),
+		isFrontend:  isFrontend,
+		nodeMode:    mode,
+		startTime:   ctime.Now(),
+		running:     0,
+		dieChan:     make(chan bool),
+		actorSystem: cactor.New(),
 	}
 
 	return app
@@ -156,6 +158,16 @@ func (a *Application) Startup() {
 	defer func() {
 		clog.Flush()
 	}()
+
+	// register actor system
+	a.Register(a.actorSystem)
+
+	// add connector component
+	if a.netParser != nil {
+		for _, connector := range a.netParser.Connectors() {
+			a.Register(connector)
+		}
+	}
 
 	clog.Info("-------------------------------------------------")
 	clog.Infof("[nodeId      = %s] application is starting...", a.NodeId())
@@ -304,14 +316,10 @@ func (a *Application) SetCluster(cluster cfacade.ICluster) {
 	a.cluster = cluster
 }
 
-func (a *Application) SetActorSystem(actorSystem cfacade.IActorSystem) {
-	if a.Running() || actorSystem == nil {
+func (a *Application) SetNetParser(netParser cfacade.INetParser) {
+	if a.Running() || netParser == nil {
 		return
 	}
 
-	a.actorSystem = actorSystem
-}
-
-func (a *Application) SetNetParser(netParser cfacade.INetParser) {
 	a.netParser = netParser
 }

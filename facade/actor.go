@@ -2,6 +2,7 @@ package cherryFacade
 
 import (
 	creflect "github.com/cherry-game/cherry/extend/reflect"
+	"time"
 )
 
 type (
@@ -11,10 +12,13 @@ type (
 		PostRemote(m *Message) bool
 		PostLocal(m *Message) bool
 		PostEvent(data IEventData)
-		SetLocalInvoke(invoke InvokeFunc)
-		SetRemoteInvoke(invoke InvokeFunc)
 		Call(source, target, funcName string, arg interface{}) int32
 		CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32
+		SetLocalInvoke(invoke InvokeFunc)
+		SetRemoteInvoke(invoke InvokeFunc)
+		SetCallTimeout(d time.Duration)
+		SetArrivalTimeout(t int64)
+		SetExecutionTimeout(t int64)
 	}
 
 	InvokeFunc func(app IApplication, fi *creflect.FuncInfo, m *Message)

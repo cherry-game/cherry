@@ -18,21 +18,20 @@ type (
 		actorMap         *sync.Map          // key:actorID, value:*actor
 		localInvokeFunc  cfacade.InvokeFunc // default local func
 		remoteInvokeFunc cfacade.InvokeFunc // default remote func
-		wg               *sync.WaitGroup
-		tellTimeout      time.Duration
-		arrivalTimeOut   int64 // message到达超时(毫秒)
-		executionTimeout int64 // 消息执行超时(毫秒)
+		wg               *sync.WaitGroup    // wait group
+		callTimeout      time.Duration      // call调用超时
+		arrivalTimeOut   int64              // message到达超时(毫秒)
+		executionTimeout int64              // 消息执行超时(毫秒)
 	}
 )
 
-func NewSystem(app cfacade.IApplication) *System {
+func NewSystem() *System {
 	system := &System{
-		app:              app,
 		actorMap:         &sync.Map{},
 		localInvokeFunc:  InvokeLocalFunc,
 		remoteInvokeFunc: InvokeRemoteFunc,
 		wg:               &sync.WaitGroup{},
-		tellTimeout:      3 * time.Second,
+		callTimeout:      3 * time.Second,
 		arrivalTimeOut:   100,
 		executionTimeout: 100,
 	}
@@ -40,10 +39,15 @@ func NewSystem(app cfacade.IApplication) *System {
 	return system
 }
 
+func (p *System) SetApp(app cfacade.IApplication) {
+	p.app = app
+}
+
 func (p *System) NodeId() string {
 	if p.app == nil {
 		return ""
 	}
+	
 	return p.app.NodeId()
 }
 
@@ -63,10 +67,6 @@ func (p *System) Stop() {
 	clog.Info("actor system stopping!")
 	p.wg.Wait()
 	clog.Info("actor system stopped!")
-}
-
-func (p *System) SetTellTimeout(d time.Duration) {
-	p.tellTimeout = d
 }
 
 // GetIActor 根据ActorID获取IActor
@@ -245,7 +245,7 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 			clusterPacket.ArgBytes = argsBytes
 		}
 
-		rsp := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.tellTimeout)
+		rsp := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.callTimeout)
 		if ccode.IsFail(rsp.Code) {
 			return rsp.Code
 		}
@@ -371,6 +371,10 @@ func (p *System) SetRemoteInvoke(fn cfacade.InvokeFunc) {
 	if fn != nil {
 		p.remoteInvokeFunc = fn
 	}
+}
+
+func (p *System) SetCallTimeout(d time.Duration) {
+	p.callTimeout = d
 }
 
 func (p *System) SetArrivalTimeout(t int64) {

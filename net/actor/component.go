@@ -13,7 +13,9 @@ type Component struct {
 }
 
 func New() *Component {
-	return &Component{}
+	return &Component{
+		System: NewSystem(),
+	}
 }
 
 func (c *Component) Name() string {
@@ -21,7 +23,7 @@ func (c *Component) Name() string {
 }
 
 func (c *Component) Init() {
-	c.System = NewSystem(c.App())
+	c.System.SetApp(c.App())
 }
 
 func (c *Component) OnAfterInit() {
