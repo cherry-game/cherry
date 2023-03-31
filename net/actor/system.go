@@ -47,7 +47,7 @@ func (p *System) NodeId() string {
 	if p.app == nil {
 		return ""
 	}
-	
+
 	return p.app.NodeId()
 }
 
@@ -312,7 +312,9 @@ func (p *System) PostRemote(m *cfacade.Message) bool {
 	}
 
 	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		targetActor.remoteMail.Push(m)
+		if targetActor.state == WorkerState {
+			targetActor.PostRemote(m)
+		}
 		return true
 	}
 
@@ -332,7 +334,9 @@ func (p *System) PostLocal(m *cfacade.Message) bool {
 	}
 
 	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		targetActor.localMail.Push(m)
+		if targetActor.state == WorkerState {
+			targetActor.PostLocal(m)
+		}
 		return true
 	}
 
@@ -354,9 +358,10 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 
 	p.actorMap.Range(func(key, value any) bool {
 		if thisActor, found := value.(*Actor); found {
-			thisActor.event.Push(data)
+			if thisActor.state == WorkerState {
+				thisActor.event.Push(data)
+			}
 		}
-
 		return true
 	})
 }

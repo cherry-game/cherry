@@ -116,7 +116,7 @@ func (p *Actor) processLocal() {
 			p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 		} else {
 			if childActor, foundChild := p.getChildActor(m); foundChild {
-				childActor.localMail.Push(m)
+				childActor.PostLocal(m)
 			} else {
 				clog.Warnf("Child actor not found. path = %s", m.Target)
 			}
@@ -124,6 +124,48 @@ func (p *Actor) processLocal() {
 	} else {
 		p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 	}
+}
+
+func (p *Actor) processRemote() {
+	m := p.remoteMail.Pop()
+	if m == nil {
+		return
+	}
+
+	p.lastAt = time.Now().Unix()
+
+	next, invoke := p.handler.OnRemoteReceived(m)
+	if invoke {
+		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+	}
+
+	if !next {
+		return
+	}
+
+	if m.TargetPath().IsChild() {
+		if p.path.IsChild() {
+			p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+		} else {
+			if childActor, foundChild := p.getChildActor(m); foundChild {
+				childActor.PostRemote(m)
+			} else {
+				clog.Warnf("Child actor not found. path = %s", m.Target)
+			}
+		}
+	} else {
+		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
+	}
+}
+
+func (p *Actor) processEvent() {
+	eventData := p.event.Pop()
+	if eventData == nil {
+		return
+	}
+
+	p.lastAt = time.Now().Unix()
+	p.event.funcInvoke(eventData)
 }
 
 func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
@@ -179,48 +221,6 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 	fn(app, funcInfo, m)
 }
 
-func (p *Actor) processRemote() {
-	m := p.remoteMail.Pop()
-	if m == nil {
-		return
-	}
-
-	p.lastAt = time.Now().Unix()
-
-	next, invoke := p.handler.OnRemoteReceived(m)
-	if invoke {
-		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
-	}
-
-	if !next {
-		return
-	}
-
-	if m.TargetPath().IsChild() {
-		if p.path.IsChild() {
-			p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
-		} else {
-			if childActor, foundChild := p.getChildActor(m); foundChild {
-				childActor.remoteMail.Push(m)
-			} else {
-				clog.Warnf("Child actor not found. path = %s", m.Target)
-			}
-		}
-	} else {
-		p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
-	}
-}
-
-func (p *Actor) processEvent() {
-	eventData := p.event.Pop()
-	if eventData == nil {
-		return
-	}
-
-	p.lastAt = time.Now().Unix()
-	p.event.funcInvoke(eventData)
-}
-
 func (p *Actor) getChildActor(m *cfacade.Message) (*Actor, bool) {
 	// 如果当前actor为子actor,则终止本次消息处理
 	if p.path.IsChild() {
@@ -251,8 +251,8 @@ func (p *Actor) onInit() {
 		clog.Debugf("[onInit] actor path = %s", p.path)
 	}
 
-	p.handler.OnInit()
 	p.state = WorkerState
+	p.handler.OnInit()
 }
 
 func (p *Actor) onStop() {
@@ -350,21 +350,15 @@ func (p *Actor) Timer() ITimer {
 }
 
 func (p *Actor) PostRemote(m *cfacade.Message) {
-	if p.state == WorkerState {
-		p.remoteMail.Push(m)
-	}
+	p.remoteMail.Push(m)
 }
 
 func (p *Actor) PostLocal(m *cfacade.Message) {
-	if p.state == WorkerState {
-		p.localMail.Push(m)
-	}
+	p.localMail.Push(m)
 }
 
 func (p *Actor) PostEvent(data cfacade.IEventData) {
-	if p.state == WorkerState {
-		p.system.PostEvent(data)
-	}
+	p.system.PostEvent(data)
 }
 
 func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System) (Actor, error) {

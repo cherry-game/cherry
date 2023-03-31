@@ -12,7 +12,7 @@ type testActor struct {
 }
 
 func TestActorSystem(t *testing.T) {
-	actorSystem := NewSystem(nil)
+	actorSystem := NewSystem()
 
 	ta := &testActor{}
 	actorSystem.CreateActor("aaa", ta)
