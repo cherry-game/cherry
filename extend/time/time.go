@@ -125,7 +125,7 @@ func CreateFromTime(hour int, minute int, second int) CherryTime {
 func ParseByDuration(duration string) (time.Duration, error) {
 	td, err := time.ParseDuration(duration)
 	if err != nil {
-		err = cerr.Errorf("invalid duration %d", duration)
+		err = cerr.Errorf("invalid duration %s", duration)
 	}
 	return td, err
 }
