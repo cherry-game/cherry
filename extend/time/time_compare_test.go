@@ -135,6 +135,12 @@ func TestCherryTime_IsYesterday(t *testing.T) {
 	t.Log(fmt.Sprintf("result = %v", now.IsYesterday()))
 }
 
+func TestCherryTime_IsYesterday1(t *testing.T) {
+	now := Now()
+	now.SubDay()
+	t.Log(fmt.Sprintf("result = %v", now.IsYesterday()))
+}
+
 func TestCherryTime_IsToday(t *testing.T) {
 	now := Now()
 	t.Log(fmt.Sprintf("result = %v", now.IsToday()))

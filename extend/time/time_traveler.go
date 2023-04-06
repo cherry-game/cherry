@@ -221,19 +221,18 @@ func (c *CherryTime) SubWeek() {
 }
 
 // AddDays N天后
-func (c CherryTime) AddDays(days int) CherryTime {
+func (c *CherryTime) AddDays(days int) {
 	c.Time = c.Time.AddDate(0, 0, days)
-	return c
 }
 
 // AddDay 1天后
-func (c CherryTime) AddDay() {
+func (c *CherryTime) AddDay() {
 	c.AddDays(1)
 }
 
 // SubDays N天前
-func (c CherryTime) SubDays(days int) CherryTime {
-	return c.AddDays(-days)
+func (c *CherryTime) SubDays(days int) {
+	c.AddDays(-days)
 }
 
 // SubDay 1天前
