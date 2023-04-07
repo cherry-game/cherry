@@ -183,11 +183,13 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 
 	p.arrivalElapsed = m.PostTime - m.BuildTime
 	if p.arrivalElapsed > p.system.arrivalTimeOut {
-		clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, arrival = %dms]",
+		clog.Warnf("[%s] Invoke timeout.[path = %s -> %s -> %s, postTime = %d, buildTime = %d, arrival = %dms]",
 			mailbox.name,
 			m.Source,
 			m.Target,
 			m.FuncName,
+			m.PostTime,
+			m.BuildTime,
 			p.arrivalElapsed,
 		)
 	}
@@ -247,10 +249,6 @@ func (p *Actor) getChildActor(m *cfacade.Message) (*Actor, bool) {
 }
 
 func (p *Actor) onInit() {
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[onInit] actor path = %s", p.path)
-	}
-
 	p.state = WorkerState
 	p.handler.OnInit()
 }
