@@ -18,3 +18,7 @@ func NewPlayerCreate(playerId int64, playerName string, gender int32) PlayerCrea
 func (PlayerCreate) Name() string {
 	return PlayerCreateKey
 }
+
+func (p PlayerCreate) UniqueId() int64 {
+	return p.PlayerId
+}

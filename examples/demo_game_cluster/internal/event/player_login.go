@@ -19,3 +19,7 @@ func NewPlayerLogin(actorId string, playerId int64) PlayerLogin {
 func (PlayerLogin) Name() string {
 	return PlayerLoginKey
 }
+
+func (p PlayerLogin) UniqueId() int64 {
+	return p.PlayerId
+}

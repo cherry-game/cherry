@@ -55,6 +55,7 @@ type (
 
 type (
 	IEventData interface {
-		Name() string // 事件名
+		Name() string    // 事件名
+		UniqueId() int64 // 唯一id
 	}
 )
