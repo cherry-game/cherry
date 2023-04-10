@@ -2,6 +2,7 @@
 package cherryTimeWheel
 
 import (
+	cutils "github.com/cherry-game/cherry/extend/utils"
 	clog "github.com/cherry-game/cherry/logger"
 	"sync/atomic"
 	"time"
@@ -229,7 +230,9 @@ func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func(), async ...boo
 		}
 
 		// Actually execute the task.
-		f()
+		cutils.Try(f, func(errString string) {
+			clog.Warn(errString)
+		})
 	}
 
 	tw.addOrRun(t)
