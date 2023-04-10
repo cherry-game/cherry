@@ -36,12 +36,13 @@ const (
 
 	WeeksPerLongYear = 53 // 每长年53周
 
-	DateTimeFormat      = "2006-01-02 15:04:05"
-	DateFormat          = "2006-01-02"
-	TimeFormat          = "15:04:05"
-	ShortDateTimeFormat = "20060102150405"
-	ShortDateFormat     = "20060102"
-	ShortTimeFormat     = "150405"
+	DateTimeMillisecondFormat = "2006-01-02 15:04:05.000"
+	DateTimeFormat            = "2006-01-02 15:04:05"
+	DateFormat                = "2006-01-02"
+	TimeFormat                = "15:04:05"
+	ShortDateTimeFormat       = "20060102150405"
+	ShortDateFormat           = "20060102"
+	ShortTimeFormat           = "150405"
 )
 
 type CherryTime struct {

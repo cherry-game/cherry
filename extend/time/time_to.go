@@ -30,6 +30,11 @@ func (c CherryTime) ToNanosecond() int64 {
 	return c.UnixNano()
 }
 
+// ToDateMillisecondFormat 2023-04-10 12:26:57.420
+func (c CherryTime) ToDateMillisecondFormat() string {
+	return c.Format(DateTimeMillisecondFormat)
+}
+
 // ToDateTimeFormat 2006-01-02 15:04:05
 func (c CherryTime) ToDateTimeFormat() string {
 	return c.Format(DateTimeFormat)
@@ -45,7 +50,7 @@ func (c CherryTime) ToTimeFormat() string {
 	return c.Format(TimeFormat)
 }
 
-//ToShortDateTimeFormat 20060102150405
+// ToShortDateTimeFormat 20060102150405
 func (c CherryTime) ToShortDateTimeFormat() string {
 	return c.Format(ShortDateTimeFormat)
 }
