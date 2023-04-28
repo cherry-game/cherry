@@ -73,7 +73,7 @@ func (p *Robot) GetToken(url string, pid, userName, password string) error {
 func (p *Robot) UserLogin(serverId int32) error {
 	route := "gate.user.login"
 
-	p.Debugf("[%s] [UserLogin] request ServerId = %d", p.TagName, serverId)
+	p.Debugf("[%s] [UserLogin] request ServerID = %d", p.TagName, serverId)
 
 	msg, err := p.Request(route, &pb.LoginRequest{
 		ServerId: serverId,
