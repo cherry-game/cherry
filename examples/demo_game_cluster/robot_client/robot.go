@@ -124,7 +124,7 @@ func (p *Robot) PlayerSelect() error {
 	p.PlayerId = rsp.List[0].PlayerId
 	p.PlayerName = rsp.List[0].PlayerName
 
-	p.Debugf("[%s] [PlayerSelect] response PlayerId = %d,PlayerName = %s", p.TagName, p.PlayerId, p.PlayerName)
+	p.Debugf("[%s] [PlayerSelect] response PlayerID = %d,PlayerName = %s", p.TagName, p.PlayerId, p.PlayerName)
 
 	return nil
 }
@@ -158,7 +158,7 @@ func (p *Robot) ActorCreate() error {
 	p.PlayerId = rsp.Player.PlayerId
 	p.PlayerName = rsp.Player.PlayerName
 
-	p.Debugf("[%s] [ActorCreate] PlayerId = %d,ActorName = %s", p.TagName, p.PlayerId, p.PlayerName)
+	p.Debugf("[%s] [ActorCreate] PlayerID = %d,ActorName = %s", p.TagName, p.PlayerId, p.PlayerName)
 
 	return nil
 }
@@ -181,7 +181,7 @@ func (p *Robot) ActorEnter() error {
 		return err
 	}
 
-	p.Debugf("[%s] [ActorEnter] response PlayerId = %d,ActorName = %s", p.TagName, p.PlayerId, p.PlayerName)
+	p.Debugf("[%s] [ActorEnter] response PlayerID = %d,ActorName = %s", p.TagName, p.PlayerId, p.PlayerName)
 	return nil
 }
 
