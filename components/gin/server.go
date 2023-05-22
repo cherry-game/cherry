@@ -56,6 +56,8 @@ func NewHttpServer(address string, opts ...OptionFunc) *HttpServer {
 		Handler: httpServer.Engine,
 	}
 
+	httpServer.server.Handler = http.AllowQuerySemicolons(httpServer.server.Handler)
+
 	httpServer.Options = defaultOptions()
 	for _, opt := range opts {
 		opt(&httpServer.Options)
