@@ -31,7 +31,6 @@ func (*WSConnector) Name() string {
 }
 
 func (w *WSConnector) OnAfterInit() {
-	go w.Start()
 }
 
 func (w *WSConnector) OnStop() {

@@ -59,6 +59,7 @@ func (p *actor) Load(app cfacade.IApplication) {
 
 	for _, connector := range p.connectors {
 		connector.OnConnect(p.defaultOnConnectFunc)
+		go connector.Start() // start connector!
 	}
 }
 
