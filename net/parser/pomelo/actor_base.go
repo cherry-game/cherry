@@ -67,7 +67,7 @@ func Push(actor cfacade.IActor, session *cproto.Session, route string, v interfa
 
 	data, err := actor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Push] Marshal error. v = %+v", v)
+		clog.Warnf("[Push] Marshal error. route =%s, v = %+v", route, v)
 		return
 	}
 
