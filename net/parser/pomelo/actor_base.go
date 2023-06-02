@@ -83,7 +83,7 @@ func Push(actor cfacade.IActor, session *cproto.Session, route string, v interfa
 func Kick(actor cfacade.IActor, session *cproto.Session, reason interface{}, close bool) {
 	data, err := actor.App().Serializer().Marshal(reason)
 	if err != nil {
-		clog.Warnf("[Push] Marshal error. reason = %+v", reason)
+		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
 		return
 	}
 
