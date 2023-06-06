@@ -8,7 +8,6 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap/zapcore"
-	"math/rand"
 	"time"
 )
 
@@ -165,13 +164,13 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 		return
 	}
 
-	nodeID, found := GetRandNodeID(agent, route)
+	member, found := agent.Discovery().Random(route.NodeType())
 	if !found {
 		return
 	}
 
-	targetPath := cfacade.NewPath(nodeID, route.HandleName())
-	ClusterLocalDataRoute(agent, &session, route, msg, nodeID, targetPath)
+	targetPath := cfacade.NewPath(member.GetNodeId(), route.HandleName())
+	ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
 }
 
 func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
@@ -212,25 +211,4 @@ func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {
 	session := agent.session.Copy()
 	session.Mid = uint32(msg.ID)
 	return session
-}
-
-func GetRandNodeID(agent *Agent, route *pmessage.Route) (string, bool) {
-	memberList := agent.Discovery().ListByType(route.NodeType())
-	if len(memberList) < 1 {
-		clog.Warnf("[sid = %s,uid = %d] Find node fail. [route = %s]",
-			agent.SID(),
-			agent.UID(),
-			route.String(),
-		)
-		return "", false
-	}
-
-	var member cfacade.IMember
-	if len(memberList) == 1 {
-		member = memberList[0]
-	} else {
-		member = memberList[rand.Intn(len(memberList))]
-	}
-
-	return member.GetNodeId(), true
 }

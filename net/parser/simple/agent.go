@@ -1,4 +1,4 @@
-package pomelo
+package simple
 
 import (
 	"fmt"
@@ -6,8 +6,6 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	pomeloMessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
-	pomeloPacket "github.com/cherry-game/cherry/net/parser/pomelo/packet"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"go.uber.org/zap/zapcore"
 	"net"
@@ -16,10 +14,8 @@ import (
 )
 
 const (
-	AgentInit    int32 = 0
-	AgentWaitAck int32 = 1
-	AgentWorking int32 = 2
-	AgentClosed  int32 = 3
+	AgentInit   int32 = 0
+	AgentClosed int32 = 3
 )
 
 type (
@@ -36,11 +32,8 @@ type (
 	}
 
 	pendingMessage struct {
-		typ     pomeloMessage.Type // message type
-		route   string             // message route(push)
-		mid     uint               // response message id(response)
-		payload interface{}        // payload
-		err     bool               // if it's an error
+		mid     uint32
+		payload interface{}
 	}
 
 	OnCloseFunc func(*Agent)
@@ -53,8 +46,8 @@ func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) 
 		state:        AgentInit,
 		session:      session,
 		chDie:        make(chan struct{}),
-		chPending:    make(chan *pendingMessage, cmd.writeBacklog),
-		chWrite:      make(chan []byte, cmd.writeBacklog),
+		chPending:    make(chan *pendingMessage, writeBacklog),
+		chWrite:      make(chan []byte, writeBacklog),
 		lastAt:       0,
 		onCloseFunc:  nil,
 	}
@@ -142,23 +135,17 @@ func (a *Agent) readChan() {
 	}()
 
 	for {
-		packets, isBreak, err := pomeloPacket.Read(a.conn)
+		msg, isBreak, err := ReadMessage(a.conn)
 		if isBreak || err != nil {
 			return
 		}
 
-		if len(packets) < 1 {
-			continue
-		}
-
-		for _, packet := range packets {
-			a.processPacket(packet)
-		}
+		a.processPacket(&msg)
 	}
 }
 
 func (a *Agent) writeChan() {
-	ticker := time.NewTicker(cmd.heartbeatTime)
+	ticker := time.NewTicker(heartbeatTime)
 	defer func() {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Debugf("[sid = %s,uid = %d] Agent write chan exit.", a.SID(), a.UID())
@@ -177,7 +164,7 @@ func (a *Agent) writeChan() {
 			}
 		case <-ticker.C:
 			{
-				deadline := time.Now().Add(-cmd.heartbeatTime).Unix()
+				deadline := time.Now().Add(-heartbeatTime).Unix()
 				if a.lastAt < deadline {
 					if clog.PrintLevel(zapcore.DebugLevel) {
 						clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
@@ -236,21 +223,21 @@ func (a *Agent) write(bytes []byte) {
 	}
 }
 
-func (a *Agent) processPacket(packet *pomeloPacket.Packet) {
-	process, found := cmd.onPacketFuncMap[packet.Type()]
+func (a *Agent) processPacket(msg *Message) {
+	nodeRoute, found := GetNodeRoute(msg.MID)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
-			clog.Warnf("[sid = %s,uid = %d] Packet type not found, close connect! [packet = %+v]",
+			clog.Warnf("[sid = %s,uid = %d] Route not found, close connect! [message = %+v]",
 				a.SID(),
 				a.UID(),
-				packet,
+				msg,
 			)
 		}
 		a.Close()
-		return
 	}
 
-	process(a, packet)
+	onDataRouteFunc(a, msg, nodeRoute)
+
 	// update last time
 	a.SetLastAt()
 }
@@ -264,159 +251,68 @@ func (a *Agent) RemoteAddr() string {
 }
 
 func (p *pendingMessage) String() string {
-	return fmt.Sprintf("typ = %d, route = %s, mid = %d, payload = %v", p.typ, p.route, p.mid, p.payload)
+	return fmt.Sprintf("mid = %d, payload = %v", p.mid, p.payload)
 }
 
-func (a *Agent) processPending(data *pendingMessage) {
-	payload, err := a.Serializer().Marshal(data.payload)
+func (a *Agent) processPending(pending *pendingMessage) {
+	data, err := a.Serializer().Marshal(pending.payload)
 	if err != nil {
 		clog.Warnf("[sid = %s,uid = %d] Payload marshal error. [data = %s]",
 			a.SID(),
 			a.UID(),
-			data.String(),
+			pending.String(),
 		)
-		return
-	}
-
-	// construct message and encode
-	m := &pomeloMessage.Message{
-		Type:  data.typ,
-		ID:    data.mid,
-		Route: data.route,
-		Data:  payload,
-		Error: data.err,
-	}
-
-	// encode message
-	em, err := pomeloMessage.Encode(m)
-	if err != nil {
-		clog.Warn(err)
 		return
 	}
 
 	// encode packet
-	pkg, err := pomeloPacket.Encode(pomeloPacket.Data, em)
+	pkg, err := pack(pending.mid, data)
 	if err != nil {
 		clog.Warn(err)
 		return
 	}
+
 	a.SendRaw(pkg)
 }
 
-func (a *Agent) sendPending(typ pomeloMessage.Type, route string, mid uint32, v interface{}, isError bool) {
+func (a *Agent) sendPending(mid uint32, payload interface{}) {
 	if a.state == AgentClosed {
-		clog.Warnf("[sid = %s,uid = %d] Session is closed. [typ = %v, route = %s, mid = %d, val = %+v, err = %v]",
+		clog.Warnf("[sid = %s,uid = %d] Session is closed. [mid = %d, payload = %+v]",
 			a.SID(),
 			a.UID(),
-			typ,
-			route,
 			mid,
-			v,
-			isError,
+			payload,
 		)
 		return
 	}
 
-	if len(a.chPending) >= cmd.writeBacklog {
-		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [typ = %v, route = %s, mid = %d, val = %+v, err = %v]",
+	if len(a.chPending) >= writeBacklog {
+		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [mid = %d, payload = %+v]",
 			a.SID(),
 			a.UID(),
-			typ,
-			route,
 			mid,
-			v,
-			isError,
+			payload,
 		)
 		return
 	}
 
 	pending := &pendingMessage{
-		typ:     typ,
-		mid:     uint(mid),
-		route:   route,
-		payload: v,
-		err:     isError,
+		mid:     mid,
+		payload: payload,
 	}
 
 	a.chPending <- pending
 }
 
-func (a *Agent) Response(session *cproto.Session, v interface{}, isError ...bool) {
-	a.ResponseMID(session.Mid, v, isError...)
-}
-
-func (a *Agent) ResponseCode(session *cproto.Session, statusCode int32, isError ...bool) {
-	rsp := &cproto.Response{
-		Code: statusCode,
-	}
-	a.ResponseMID(session.Mid, rsp, isError...)
-}
-
-func (a *Agent) ResponseMID(mid uint32, v interface{}, isError ...bool) {
-	isErr := false
-	if len(isError) > 0 {
-		isErr = isError[0]
-	}
-
-	a.sendPending(pomeloMessage.Response, "", mid, v, isErr)
+func (a *Agent) Response(mid uint32, v interface{}) {
+	a.sendPending(mid, v)
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Response ok. [mid = %d, isError = %v]",
+		clog.Debugf("[sid = %s,uid = %d] Response ok. [mid = %d, val = %+v]",
 			a.SID(),
 			a.UID(),
 			mid,
-			isErr,
+			v,
 		)
-	}
-}
-
-func (a *Agent) Push(route string, val interface{}) {
-	a.sendPending(pomeloMessage.Push, route, 0, val, false)
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Push ok. [route = %s]",
-			a.SID(),
-			a.UID(),
-			route,
-		)
-	}
-}
-
-func (a *Agent) Kick(reason interface{}, close bool) {
-	bytes, err := a.Serializer().Marshal(reason)
-	if err != nil {
-		clog.Warnf("[sid = %s,uid = %d] Kick marshal fail. [reason = {%+v}, err = %s]",
-			a.SID(),
-			a.UID(),
-			reason,
-			err,
-		)
-	}
-
-	pkg, err := pomeloPacket.Encode(pomeloPacket.Kick, bytes)
-	if err != nil {
-		clog.Warnf("[sid = %s,uid = %d] Kick packet encode error.[reason = %+v, err = %s]",
-			a.SID(),
-			a.UID(),
-			reason,
-			err,
-		)
-		return
-	}
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Kick ok. [reason = %+v, close = %v]",
-			a.SID(),
-			a.UID(),
-			reason,
-			close,
-		)
-	}
-
-	// 不进入pending chan，直接踢了
-	a.write(pkg)
-
-	if close {
-		a.Close()
 	}
 }
 

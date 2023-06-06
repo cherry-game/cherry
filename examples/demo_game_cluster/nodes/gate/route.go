@@ -34,7 +34,7 @@ var (
 // 1.(建立连接)客户端建立连接，服务端对应创建一个agent用于处理玩家消息,actorID == sid
 // 2.(用户登录)客户端进行帐号登录验证，通过uid绑定当前sid
 // 3.(角色登录)客户端通过'beforeLoginRoutes'中的协议完成角色登录
-func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Message) {
+func onPomeloDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Message) {
 	// agent没有"用户登录",且请求不是第一条协议，则踢掉agent，断开连接
 	if !agent.Session().IsBind() && msg.Route != firstRouteName {
 		agent.Kick(notLoginRsp, true)
