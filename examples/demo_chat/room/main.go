@@ -90,7 +90,7 @@ func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Messa
 
 	// session未绑定uid，踢下线
 	if !session.IsBind() {
-		agent.ResponseCode(agent.Session(), cherryCode.SessionUIDNotBind)
+		agent.ResponseCode(agent.Session(), cherryCode.SessionUIDNotBind, true)
 		return
 	}
 

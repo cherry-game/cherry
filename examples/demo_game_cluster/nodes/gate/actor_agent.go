@@ -62,14 +62,14 @@ func (p *ActorAgent) login(session *cproto.Session, req *pb.LoginRequest) {
 	// 验证pid是否配置
 	sdkRow := data.SdkConfig.Get(userToken.PID)
 	if sdkRow == nil {
-		agent.ResponseCode(session, code.PIDError)
+		agent.ResponseCode(session, code.PIDError, true)
 		return
 	}
 
 	// 根据token带来的sdk参数，从中心节点获取uid
 	uid, errCode := rpcCenter.GetUID(p.App(), sdkRow.SdkId, userToken.PID, userToken.OpenID)
 	if uid == 0 || code.IsFail(errCode) {
-		agent.ResponseCode(session, code.AccountBindFail)
+		agent.ResponseCode(session, code.AccountBindFail, true)
 		return
 	}
 
@@ -77,7 +77,7 @@ func (p *ActorAgent) login(session *cproto.Session, req *pb.LoginRequest) {
 
 	if err := agent.Bind(uid); err != nil {
 		clog.Warn(err)
-		agent.ResponseCode(session, code.AccountBindFail)
+		agent.ResponseCode(session, code.AccountBindFail, true)
 		return
 	}
 
