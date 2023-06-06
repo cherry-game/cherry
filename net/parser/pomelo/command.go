@@ -1,6 +1,7 @@
 package pomelo
 
 import (
+	"a-game/internal/code"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -170,7 +171,10 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	}
 
 	targetPath := cfacade.NewPath(member.GetNodeId(), route.HandleName())
-	ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
+	err := ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
+	if err != nil {
+		agent.ResponseCode(&session, code.NodeRequestError)
+	}
 }
 
 func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
@@ -184,7 +188,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route
 	agent.ActorSystem().PostLocal(message)
 }
 
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeId, targetPath string) {
+func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeID, targetPath string) error {
 	clusterPacket := cproto.GetClusterPacket()
 	clusterPacket.SourcePath = session.AgentPath
 	clusterPacket.TargetPath = targetPath
@@ -192,19 +196,7 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessag
 	clusterPacket.Session = session   // agent session
 	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
 
-	err := agent.Cluster().PublishLocal(nodeId, clusterPacket)
-	if err != nil {
-		if clog.PrintLevel(zapcore.DebugLevel) {
-			clog.Warnf("[sid = %s,uid = %d] Publish local fail. [nodeId = %s, target = %s, funcName = %s, error = %s]",
-				agent.SID(),
-				agent.UID(),
-				nodeId,
-				clusterPacket.TargetPath,
-				clusterPacket.FuncName,
-				err,
-			)
-		}
-	}
+	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
 }
 
 func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {

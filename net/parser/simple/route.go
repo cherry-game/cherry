@@ -4,7 +4,6 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -75,7 +74,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRou
 	agent.ActorSystem().PostLocal(message)
 }
 
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) {
+func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) error {
 	clusterPacket := cproto.GetClusterPacket()
 	clusterPacket.SourcePath = session.AgentPath
 	clusterPacket.TargetPath = targetPath
@@ -83,17 +82,5 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, 
 	clusterPacket.Session = session   // agent session
 	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
 
-	err := agent.Cluster().PublishLocal(nodeID, clusterPacket)
-	if err != nil {
-		if clog.PrintLevel(zapcore.DebugLevel) {
-			clog.Warnf("[sid = %s,uid = %d] Publish local fail. [nodeID = %s, target = %s, funcName = %s, error = %s]",
-				agent.SID(),
-				agent.UID(),
-				nodeID,
-				clusterPacket.TargetPath,
-				clusterPacket.FuncName,
-				err,
-			)
-		}
-	}
+	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
 }
