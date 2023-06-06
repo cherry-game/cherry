@@ -1,7 +1,6 @@
 package pomelo
 
 import (
-	cherryCode "github.com/cherry-game/cherry/code"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -171,10 +170,7 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	}
 
 	targetPath := cfacade.NewPath(member.GetNodeId(), route.HandleName())
-	err := ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
-	if err != nil {
-		agent.ResponseCode(&session, cherryCode.NodeRequestError)
-	}
+	ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
 }
 
 func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
