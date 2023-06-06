@@ -12,6 +12,7 @@ type (
 		Name() string                                                 // 发现服务名称
 		List() []IMember                                              // 获取成员列表
 		ListByType(nodeType string, filterNodeId ...string) []IMember // 根据节点类型获取列表
+		Random(nodeType string) (IMember, bool)                       // 根据节点类型随机一个
 		GetType(nodeId string) (nodeType string, err error)           // 根据节点id获取类型
 		GetMember(nodeId string) (member IMember, found bool)         // 获取成员
 		AddMember(member IMember)                                     // 添加成员

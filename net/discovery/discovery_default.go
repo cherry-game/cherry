@@ -7,6 +7,7 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
+	"math/rand"
 	"sync"
 )
 
@@ -79,6 +80,21 @@ func (n *DiscoveryDefault) ListByType(nodeType string, filterNodeId ...string) [
 		}
 	}
 	return list
+}
+
+func (n *DiscoveryDefault) Random(nodeType string) (cfacade.IMember, bool) {
+	memberList := n.ListByType(nodeType)
+	memberLen := len(memberList)
+
+	if memberLen < 1 {
+		return nil, false
+	}
+
+	if memberLen == 1 {
+		return memberList[0], true
+	}
+
+	return memberList[rand.Intn(len(memberList))], true
 }
 
 func (n *DiscoveryDefault) GetType(nodeId string) (nodeType string, err error) {
