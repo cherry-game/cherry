@@ -208,13 +208,6 @@ func (p *Cluster) PublishRemote(nodeId string, request *cproto.ClusterPacket) er
 	}
 
 	err = p.Publish(subject, bytes)
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[PublishRemote] ok. [nodeId = %s, %s]",
-			nodeId,
-			request.PrintLog(),
-		)
-	}
-
 	return err
 }
 
