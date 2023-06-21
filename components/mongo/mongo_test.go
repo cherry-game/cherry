@@ -2,11 +2,17 @@ package cherryMongo
 
 import (
 	"context"
+	"fmt"
 	clog "github.com/cherry-game/cherry/logger"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"testing"
-	"time"
 )
+
+type Student struct {
+	Name string
+	Age  int
+}
 
 func TestConnect(t *testing.T) {
 	clog.Info("test connect mongodb")
@@ -22,10 +28,25 @@ func TestConnect(t *testing.T) {
 
 	collection := mdb.Collection("numbers")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
+	student := &Student{
+		Name: "aaa222",
+		Age:  111,
+	}
 
-	res, err := collection.InsertOne(ctx, bson.D{{"name", "pi"}, {"value", 3.14159}})
-	id := res.InsertedID
-	clog.Infof("id = %v, err = %v", id, err)
+	res, err := collection.InsertOne(context.Background(), student)
+	insertID := res.InsertedID
+	clog.Infof("id = %v, err = %v", insertID, err)
+
+	//id, _ := primitive.ObjectIDFromHex("649160b6c637f5773cc1e818")
+	id, ok := insertID.(primitive.ObjectID)
+	if !ok {
+		return
+	}
+
+	findFilter := bson.M{"_id": id}
+	findResult := collection.FindOne(context.Background(), findFilter)
+
+	findStudent := Student{}
+	findResult.Decode(&findStudent)
+	fmt.Println(findStudent)
 }
