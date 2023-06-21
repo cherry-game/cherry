@@ -41,6 +41,7 @@ func (p *ETCD) Name() string {
 }
 
 func (p *ETCD) Load(app cfacade.IApplication) {
+	p.DiscoveryDefault.PreInit()
 	p.app = app
 	p.ttl = 10
 
@@ -204,9 +205,7 @@ func (p *ETCD) addMember(data []byte) {
 		return
 	}
 
-	if _, ok := p.GetMember(member.NodeId); ok == false {
-		p.AddMember(member)
-	}
+	p.AddMember(member)
 }
 
 func (p *ETCD) removeMember(kv *mvccpb.KeyValue) {

@@ -16,9 +16,13 @@ import (
 // 该类型发现服务仅用于开发测试使用，直接读取profile.json->node配置
 type DiscoveryDefault struct {
 	sync.RWMutex
-	memberList       []cfacade.IMember // key:nodeId,value:Member
+	memberMap        map[string]cfacade.IMember // key:nodeId,value:Member
 	onAddListener    []cfacade.MemberListener
 	onRemoveListener []cfacade.MemberListener
+}
+
+func (n *DiscoveryDefault) PreInit() {
+	n.memberMap = map[string]cfacade.IMember{}
 }
 
 func (n *DiscoveryDefault) Load(_ cfacade.IApplication) {
@@ -57,7 +61,7 @@ func (n *DiscoveryDefault) Load(_ cfacade.IApplication) {
 				member.Settings[key] = settings.Get(key).ToString()
 			}
 
-			n.memberList = append(n.memberList, member)
+			n.memberMap[member.NodeId] = member
 		}
 	}
 }
@@ -66,19 +70,21 @@ func (n *DiscoveryDefault) Name() string {
 	return "default"
 }
 
-func (n *DiscoveryDefault) List() []cfacade.IMember {
-	return n.memberList
+func (n *DiscoveryDefault) Map() map[string]cfacade.IMember {
+	return n.memberMap
 }
 
 func (n *DiscoveryDefault) ListByType(nodeType string, filterNodeId ...string) []cfacade.IMember {
 	var list []cfacade.IMember
-	for _, member := range n.memberList {
+
+	for _, member := range n.memberMap {
 		if member.GetNodeType() == nodeType {
 			if _, ok := cslice.StringIn(member.GetNodeId(), filterNodeId); ok == false {
 				list = append(list, member)
 			}
 		}
 	}
+
 	return list
 }
 
@@ -106,13 +112,12 @@ func (n *DiscoveryDefault) GetType(nodeId string) (nodeType string, err error) {
 }
 
 func (n *DiscoveryDefault) GetMember(nodeId string) (cfacade.IMember, bool) {
-	for _, member := range n.memberList {
-		if member.GetNodeId() == nodeId {
-			return member, true
-		}
+	if nodeId == "" {
+		return nil, false
 	}
 
-	return nil, false
+	member, found := n.memberMap[nodeId]
+	return member, found
 }
 
 func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
@@ -128,12 +133,7 @@ func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
 		return
 	}
 
-	n.memberList = append(n.memberList, &cproto.Member{
-		NodeId:   member.GetNodeId(),
-		NodeType: member.GetNodeType(),
-		Address:  member.GetAddress(),
-		Settings: member.GetSettings(),
-	})
+	n.memberMap[member.GetNodeId()] = member
 
 	for _, listener := range n.onAddListener {
 		listener(member)
@@ -146,24 +146,16 @@ func (n *DiscoveryDefault) RemoveMember(nodeId string) {
 	defer n.Unlock()
 	n.Lock()
 
-	if nodeId == "" {
+	member, found := n.GetMember(nodeId)
+	if !found {
 		return
 	}
 
-	var member cfacade.IMember
-	for i := 0; i < len(n.memberList); i++ {
-		member = n.memberList[i]
+	delete(n.memberMap, member.GetNodeId())
+	clog.Debugf("remove member. [member = %s]", member)
 
-		if member.GetNodeId() == nodeId {
-			n.memberList = append(n.memberList[:i], n.memberList[i+1:]...)
-			clog.Debugf("remove member. [member = %v]", member)
-
-			for _, listener := range n.onRemoveListener {
-				listener(member)
-			}
-
-			break
-		}
+	for _, listener := range n.onRemoveListener {
+		listener(member)
 	}
 }
 

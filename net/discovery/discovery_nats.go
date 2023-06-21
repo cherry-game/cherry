@@ -22,20 +22,55 @@ type DiscoveryNATS struct {
 	DiscoveryDefault
 	app               cfacade.IApplication
 	natsConn          *cnats.Conn
+	thisMember        cfacade.IMember
+	thisMemberBytes   []byte
 	masterMember      cfacade.IMember
 	registerSubject   string
 	unregisterSubject string
 	addSubject        string
+	checkSubject      string
 }
 
 func (m *DiscoveryNATS) Name() string {
 	return "nats"
 }
 
+func (m *DiscoveryNATS) isMaster() bool {
+	return m.app.NodeId() == m.masterMember.GetNodeId()
+}
+
+func (m *DiscoveryNATS) isClient() bool {
+	return m.app.NodeId() != m.masterMember.GetNodeId()
+}
+
+func (m *DiscoveryNATS) buildSubject(subject string) string {
+	return fmt.Sprintf(subject, m.masterMember.GetNodeId())
+}
+
 func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
+	m.DiscoveryDefault.PreInit()
 	m.app = app
 	m.natsConn = cnats.New()
 	m.natsConn.Connect()
+	m.loadMember()
+	m.init()
+}
+
+func (m *DiscoveryNATS) loadMember() {
+	m.thisMember = &cproto.Member{
+		NodeId:   m.app.NodeId(),
+		NodeType: m.app.NodeType(),
+		Address:  m.app.RpcAddress(),
+		Settings: make(map[string]string),
+	}
+
+	memberBytes, err := m.app.Serializer().Marshal(m.thisMember)
+	if err != nil {
+		clog.Warnf("err = %s", err)
+		return
+	}
+
+	m.thisMemberBytes = memberBytes
 
 	//get nats config
 	config := cprofile.GetConfig("cluster").GetConfig(m.Name())
@@ -61,23 +96,13 @@ func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
 		Address:  masterNode.RpcAddress(),
 		Settings: make(map[string]string),
 	}
-
-	m.init()
-}
-
-func (m *DiscoveryNATS) isMaster() bool {
-	return m.app.NodeId() == m.masterMember.GetNodeId()
-}
-
-func (m *DiscoveryNATS) isClient() bool {
-	return m.app.NodeId() != m.masterMember.GetNodeId()
 }
 
 func (m *DiscoveryNATS) init() {
-	masterNodeId := m.masterMember.GetNodeId()
-	m.registerSubject = fmt.Sprintf("cherry.discovery.%s.register", masterNodeId)
-	m.unregisterSubject = fmt.Sprintf("cherry.discovery.%s.unregister", masterNodeId)
-	m.addSubject = fmt.Sprintf("cherry.discovery.%s.addMember", masterNodeId)
+	m.registerSubject = m.buildSubject("cherry.discovery.%s.register")
+	m.unregisterSubject = m.buildSubject("cherry.discovery.%s.unregister")
+	m.addSubject = m.buildSubject("cherry.discovery.%s.addMember")
+	m.checkSubject = m.buildSubject("cherry.discovery.%s.check")
 
 	m.subscribe(m.unregisterSubject, func(msg *nats.Msg) {
 		unregisterMember := &cproto.Member{}
@@ -126,22 +151,18 @@ func (m *DiscoveryNATS) serverInit() {
 		m.AddMember(newMember)
 
 		// response member list
-		rspMemberList := &cproto.MemberList{}
-		for _, member := range m.memberList {
+		memberList := &cproto.MemberList{}
+		for _, member := range m.memberMap {
 			if member.GetNodeId() == newMember.GetNodeId() {
 				continue
 			}
 
-			if member.GetNodeId() == m.app.NodeId() {
-				continue
-			}
-
 			if protoMember, ok := member.(*cproto.Member); ok {
-				rspMemberList.List = append(rspMemberList.List, protoMember)
+				memberList.List = append(memberList.List, protoMember)
 			}
 		}
 
-		rspData, err := m.app.Serializer().Marshal(rspMemberList)
+		rspData, err := m.app.Serializer().Marshal(memberList)
 		if err != nil {
 			clog.Warnf("marshal fail. err = %s", err)
 			return
@@ -161,23 +182,15 @@ func (m *DiscoveryNATS) serverInit() {
 			return
 		}
 	})
+
+	// subscribe check message
+	m.subscribe(m.checkSubject, func(msg *nats.Msg) {
+		msg.Respond(nil)
+	})
 }
 
 func (m *DiscoveryNATS) clientInit() {
 	if m.isClient() == false {
-		return
-	}
-
-	registerMember := &cproto.Member{
-		NodeId:   m.app.NodeId(),
-		NodeType: m.app.NodeType(),
-		Address:  m.app.RpcAddress(),
-		Settings: make(map[string]string),
-	}
-
-	bytesData, err := m.app.Serializer().Marshal(registerMember)
-	if err != nil {
-		clog.Warnf("err = %s", err)
 		return
 	}
 
@@ -190,68 +203,65 @@ func (m *DiscoveryNATS) clientInit() {
 			return
 		}
 
-		if _, ok := m.GetMember(addMember.NodeId); ok == false {
+		if _, ok := m.GetMember(addMember.NodeId); !ok {
 			m.AddMember(addMember)
 		}
 	})
 
+	go m.checkMaster()
+}
+
+func (m *DiscoveryNATS) checkMaster() {
 	for {
-		// register current node to master
-		rsp, err := m.natsConn.Request(m.registerSubject, bytesData)
-		if err != nil {
-			clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
-				m.masterMember.GetNodeId(),
-				m.natsConn.Address(),
-				err,
-			)
-			time.Sleep(m.natsConn.ReconnectDelay())
-			continue
+		_, found := m.GetMember(m.masterMember.GetNodeId())
+		if !found {
+			m.registerToMaster()
 		}
 
-		clog.Infof("register node to [master = %s]. [member = %s]",
+		time.Sleep(m.natsConn.ReconnectDelay())
+	}
+}
+
+func (m *DiscoveryNATS) registerToMaster() {
+	// register current node to master
+	rsp, err := m.natsConn.Request(m.registerSubject, m.thisMemberBytes)
+	if err != nil {
+		clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
 			m.masterMember.GetNodeId(),
-			registerMember,
+			m.natsConn.Address(),
+			err,
 		)
+		return
+	}
 
-		memberList := cproto.MemberList{}
-		err = m.app.Serializer().Unmarshal(rsp.Data, &memberList)
-		if err != nil {
-			clog.Warnf("err = %s", err)
-			time.Sleep(m.natsConn.ReconnectDelay())
-			continue
-		}
+	clog.Infof("register node to [master = %s]. [member = %s]",
+		m.masterMember.GetNodeId(),
+		m.thisMember,
+	)
 
-		for _, member := range memberList.GetList() {
-			m.AddMember(member)
-		}
+	memberList := cproto.MemberList{}
+	err = m.app.Serializer().Unmarshal(rsp.Data, &memberList)
+	if err != nil {
+		clog.Warnf("err = %s", err)
+		return
+	}
 
-		break
+	for _, member := range memberList.GetList() {
+		m.AddMember(member)
 	}
 }
 
 func (m *DiscoveryNATS) Stop() {
-	if m.isClient() {
-		thisMember := &cproto.Member{
-			NodeId: m.app.NodeId(),
-		}
-
-		bytesData, err := m.app.Serializer().Marshal(thisMember)
-		if err != nil {
-			clog.Warnf("marshal fail. err = %s", err)
-			return
-		}
-
-		err = m.natsConn.Publish(m.unregisterSubject, bytesData)
-		if err != nil {
-			clog.Warnf("publish fail. err = %s", err)
-			return
-		}
-
-		clog.Debugf("[nodeId = %s] unregister node to [master = %s]",
-			m.app.NodeId(),
-			m.masterMember.GetNodeId(),
-		)
+	err := m.natsConn.Publish(m.unregisterSubject, m.thisMemberBytes)
+	if err != nil {
+		clog.Warnf("publish fail. err = %s", err)
+		return
 	}
+
+	clog.Debugf("[nodeId = %s] unregister node to [master = %s]",
+		m.app.NodeId(),
+		m.masterMember.GetNodeId(),
+	)
 
 	m.natsConn.Close()
 }
