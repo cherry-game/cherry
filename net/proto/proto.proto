@@ -65,3 +65,10 @@ message PomeloKick {
   bytes reason = 3;
   bool close = 4;
 }
+
+message PomeloBroadcastPush {
+  repeated string sidList = 1; // broadcast the sid list
+  bool allUID = 2;             // broadcast all uid
+  string route = 3;            // route
+  bytes data = 4;              // data
+}

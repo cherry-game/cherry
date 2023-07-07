@@ -43,6 +43,7 @@ func (p *actor) OnInit() {
 	p.Remote().Register(ResponseFuncName, p.response)
 	p.Remote().Register(PushFuncName, p.push)
 	p.Remote().Register(KickFuncName, p.kick)
+	p.Remote().Register(BroadcastName, p.broadcast)
 }
 
 func (p *actor) Load(app cfacade.IApplication) {
@@ -161,5 +162,21 @@ func (p *actor) kick(rsp *cproto.PomeloKick) {
 
 	if found {
 		agent.Kick(rsp.Reason, rsp.Close)
+	}
+}
+
+func (p *actor) broadcast(rsp *cproto.PomeloBroadcastPush) {
+	if rsp.AllUID {
+		ForeachAgent(func(agent *Agent) {
+			if agent.IsBind() {
+				agent.Push(rsp.Route, rsp.Data)
+			}
+		})
+	} else {
+		for _, sid := range rsp.SidList {
+			if agent, found := GetAgent(sid); found {
+				agent.Push(rsp.Route, rsp.Data)
+			}
+		}
 	}
 }

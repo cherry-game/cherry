@@ -102,6 +102,10 @@ func (a *Agent) Bind(uid cfacade.UID) error {
 	return BindUID(a.SID(), uid)
 }
 
+func (a *Agent) IsBind() bool {
+	return a.session.Uid > 0
+}
+
 func (a *Agent) Unbind() {
 	Unbind(a.SID())
 }

@@ -11,6 +11,7 @@ const (
 	ResponseFuncName = "response"
 	PushFuncName     = "push"
 	KickFuncName     = "kick"
+	BroadcastName    = "broadcast"
 )
 
 type ActorBase struct {
@@ -18,22 +19,26 @@ type ActorBase struct {
 }
 
 func (p *ActorBase) Response(session *cproto.Session, v interface{}) {
-	Response(p, session, v)
+	Response(p, session.AgentPath, session.Sid, session.Mid, v)
 }
 
 func (p *ActorBase) ResponseCode(session *cproto.Session, statusCode int32) {
-	ResponseCode(p, session, statusCode)
+	ResponseCode(p, session.AgentPath, session.Sid, session.Mid, statusCode)
 }
 
 func (p *ActorBase) Push(session *cproto.Session, route string, v interface{}) {
-	Push(p, session, route, v)
+	Push(p, session.AgentPath, session.Sid, route, v)
 }
 
 func (p *ActorBase) Kick(session *cproto.Session, reason interface{}, close bool) {
-	Kick(p, session, reason, close)
+	Kick(p, session.AgentPath, session.Sid, reason, close)
 }
 
-func Response(actor cfacade.IActor, session *cproto.Session, v interface{}) {
+func (p *ActorBase) Broadcast(agentPath string, sidList []string, allUID bool, route string, v interface{}) {
+	Broadcast(p, agentPath, sidList, allUID, route, v)
+}
+
+func Response(actor cfacade.IActor, agentPath, sid string, mid uint32, v interface{}) {
 	data, err := actor.App().Serializer().Marshal(v)
 	if err != nil {
 		clog.Warnf("[Response] Marshal error. v = %+v", v)
@@ -41,25 +46,25 @@ func Response(actor cfacade.IActor, session *cproto.Session, v interface{}) {
 	}
 
 	rsp := &cproto.PomeloResponse{
-		Sid:  session.Sid,
-		Mid:  session.Mid,
+		Sid:  sid,
+		Mid:  mid,
 		Data: data,
 	}
 
-	actor.Call(session.AgentPath, ResponseFuncName, rsp)
+	actor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-func ResponseCode(actor cfacade.IActor, session *cproto.Session, statusCode int32) {
+func ResponseCode(actor cfacade.IActor, agentPath, sid string, mid uint32, statusCode int32) {
 	rsp := &cproto.PomeloResponse{
-		Sid:  session.Sid,
-		Mid:  session.Mid,
+		Sid:  sid,
+		Mid:  mid,
 		Code: statusCode,
 	}
 
-	actor.Call(session.AgentPath, ResponseFuncName, rsp)
+	actor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-func Push(actor cfacade.IActor, session *cproto.Session, route string, v interface{}) {
+func Push(actor cfacade.IActor, agentPath, sid, route string, v interface{}) {
 	if route == "" {
 		clog.Warn("[Push] route value error.")
 		return
@@ -72,15 +77,15 @@ func Push(actor cfacade.IActor, session *cproto.Session, route string, v interfa
 	}
 
 	rsp := &cproto.PomeloPush{
-		Sid:   session.Sid,
+		Sid:   sid,
 		Route: route,
 		Data:  data,
 	}
 
-	actor.Call(session.AgentPath, PushFuncName, rsp)
+	actor.Call(agentPath, PushFuncName, rsp)
 }
 
-func Kick(actor cfacade.IActor, session *cproto.Session, reason interface{}, close bool) {
+func Kick(actor cfacade.IActor, agentPath, sid string, reason interface{}, close bool) {
 	data, err := actor.App().Serializer().Marshal(reason)
 	if err != nil {
 		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
@@ -88,10 +93,37 @@ func Kick(actor cfacade.IActor, session *cproto.Session, reason interface{}, clo
 	}
 
 	rsp := &cproto.PomeloKick{
-		Sid:    session.Sid,
+		Sid:    sid,
 		Reason: data,
 		Close:  close,
 	}
 
-	actor.Call(session.AgentPath, KickFuncName, rsp)
+	actor.Call(agentPath, KickFuncName, rsp)
+}
+
+func Broadcast(actor cfacade.IActor, agentPath string, sidList []string, allUID bool, route string, v interface{}) {
+	if !allUID && len(sidList) < 1 {
+		clog.Warn("[Broadcast] sidList value error.")
+		return
+	}
+
+	if route == "" {
+		clog.Warn("[Broadcast] route value error.")
+		return
+	}
+
+	data, err := actor.App().Serializer().Marshal(v)
+	if err != nil {
+		clog.Warnf("[Broadcast] Marshal error. route =%s, v = %+v", route, v)
+		return
+	}
+
+	rsp := &cproto.PomeloBroadcastPush{
+		SidList: sidList,
+		AllUID:  allUID,
+		Route:   route,
+		Data:    data,
+	}
+
+	actor.Call(agentPath, BroadcastName, rsp)
 }
