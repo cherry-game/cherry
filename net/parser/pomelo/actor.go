@@ -173,8 +173,8 @@ func (p *actor) broadcast(rsp *cproto.PomeloBroadcastPush) {
 			}
 		})
 	} else {
-		for _, sid := range rsp.SidList {
-			if agent, found := GetAgent(sid); found {
+		for _, uid := range rsp.UidList {
+			if agent, found := GetAgentWithUID(uid); found {
 				agent.Push(rsp.Route, rsp.Data)
 			}
 		}

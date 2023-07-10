@@ -34,8 +34,8 @@ func (p *ActorBase) Kick(session *cproto.Session, reason interface{}, close bool
 	Kick(p, session.AgentPath, session.Sid, reason, close)
 }
 
-func (p *ActorBase) Broadcast(agentPath string, sidList []string, allUID bool, route string, v interface{}) {
-	Broadcast(p, agentPath, sidList, allUID, route, v)
+func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, data []byte) {
+	Broadcast(p, agentPath, uidList, allUID, route, data)
 }
 
 func Response(actor cfacade.IActor, agentPath, sid string, mid uint32, v interface{}) {
@@ -101,9 +101,9 @@ func Kick(actor cfacade.IActor, agentPath, sid string, reason interface{}, close
 	actor.Call(agentPath, KickFuncName, rsp)
 }
 
-func Broadcast(actor cfacade.IActor, agentPath string, sidList []string, allUID bool, route string, v interface{}) {
-	if !allUID && len(sidList) < 1 {
-		clog.Warn("[Broadcast] sidList value error.")
+func Broadcast(actor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, data []byte) {
+	if !allUID && len(uidList) < 1 {
+		clog.Warn("[Broadcast] uidList value error.")
 		return
 	}
 
@@ -112,14 +112,8 @@ func Broadcast(actor cfacade.IActor, agentPath string, sidList []string, allUID 
 		return
 	}
 
-	data, err := actor.App().Serializer().Marshal(v)
-	if err != nil {
-		clog.Warnf("[Broadcast] Marshal error. route =%s, v = %+v", route, v)
-		return
-	}
-
 	rsp := &cproto.PomeloBroadcastPush{
-		SidList: sidList,
+		UidList: uidList,
 		AllUID:  allUID,
 		Route:   route,
 		Data:    data,

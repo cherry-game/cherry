@@ -1,7 +1,6 @@
 package cherryActor
 
 import (
-	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 )
 
@@ -44,14 +43,18 @@ func (*Base) OnFindChild(_ *cfacade.Message) (cfacade.IActor, bool) {
 	return nil, false
 }
 
-func (p *Base) NewPath(actorID interface{}) string {
-	return cfacade.NewPath(p.path.NodeID, cstring.ToString(actorID))
+func (p *Base) NewPath(nodeID, actorID interface{}) string {
+	return cfacade.NewPath(nodeID, actorID)
+}
+
+func (p *Base) NewNodePath(actorID interface{}) string {
+	return cfacade.NewPath(p.path.NodeID, actorID)
 }
 
 func (p *Base) NewChildPath(actorID, childID interface{}) string {
-	return cfacade.NewChildPath(p.path.NodeID, cstring.ToString(actorID), cstring.ToString(childID))
+	return cfacade.NewChildPath(p.path.NodeID, actorID, childID)
 }
 
 func (p *Base) NewMyChildPath(childID interface{}) string {
-	return cfacade.NewChildPath(p.path.NodeID, p.path.ActorID, cstring.ToString(childID))
+	return cfacade.NewChildPath(p.path.NodeID, p.path.ActorID, childID)
 }

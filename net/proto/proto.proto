@@ -67,7 +67,7 @@ message PomeloKick {
 }
 
 message PomeloBroadcastPush {
-  repeated string sidList = 1; // broadcast the sid list
+  repeated int64 uidList = 1;  // broadcast the uid list
   bool allUID = 2;             // broadcast all uid
   string route = 3;            // route
   bytes data = 4;              // data
