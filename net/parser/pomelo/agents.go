@@ -62,7 +62,7 @@ func Unbind(sid cfacade.SID) {
 	sidCount := len(sidAgentMap)
 	uidCount := len(uidMap)
 	if sidCount == 0 || uidCount == 0 {
-		clog.Infof("Unbind agent sid = %s, sidCount = %d, uidCount = %d", sid, sidCount, uidCount)
+		clog.Infof("Unbind agent. sid = %s, sidCount = %d, uidCount = %d", sid, sidCount, uidCount)
 	}
 }
 
