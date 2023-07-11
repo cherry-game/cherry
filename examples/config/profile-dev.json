@@ -26,9 +26,9 @@
         "address": ":10860",
         "__settings__": {
           "maintain_state": 2,
-          "db_id_list": [
-            "center_db_1"
-          ],
+          "db_id_list": {
+            "center_db_id": "center_db_1"
+          },
           "ref_logger": "game_log"
         }
       }

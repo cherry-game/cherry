@@ -45,9 +45,9 @@
         "node_id": "gc-gate-1",
         "address": ":10010",
         "__settings__": {
-          "db_id_list": [
-            "game_db_1"
-          ],
+          "db_id_list" : {
+            "game_db_id": "game_db_1"
+          },
           "ref_logger": "gate_log"
         },
         "enable": true
@@ -67,9 +67,9 @@
       {
         "node_id": "10001",
         "__settings__": {
-          "db_id_list": [
-            "game_db_1"
-          ],
+          "db_id_list" : {
+            "game_db_id": "game_db_1"
+          },
           "ref_logger": "game_log"
         },
         "enable": true

@@ -34,7 +34,8 @@ func (p *ActorDB) OnInit() {
 	}
 
 	// 获取 db_id = "center_db_1" 的配置
-	p.centerDB = gorm.GetDb("center_db_1")
+	centerDbID := p.App().Settings().GetConfig("db_id_list").GetString("center_db_id")
+	p.centerDB = gorm.GetDb(centerDbID)
 	if p.centerDB == nil {
 		clog.Panic("center_db_1 not found")
 	}

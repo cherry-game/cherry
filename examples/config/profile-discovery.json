@@ -34,9 +34,9 @@
         "address": ":10010",
         "__settings__": {
           "maintain_state": 2,
-          "db_id_list": [
-            "game_db_1"
-          ],
+          "db_id_list" : {
+            "game_db_id": "game_db_1"
+          },
           "ref_logger": "game_log"
         },
         "enable": true
@@ -46,9 +46,9 @@
         "address": ":10020",
         "__settings__": {
           "maintain_state": 2,
-          "db_id_list": [
-            "game_db_1"
-          ],
+          "db_id_list" : {
+            "game_db_id": "game_db_1"
+          },
           "ref_logger": "game_log"
         },
         "enable": true

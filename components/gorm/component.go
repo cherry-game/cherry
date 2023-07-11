@@ -76,7 +76,7 @@ func (s *Component) Init() {
 
 	dbConfig := cprofile.GetConfig("db")
 	if dbConfig.LastError() != nil {
-		panic("`db` property not exists in profile file.")
+		clog.Panic("`db` property not exists in profile file.")
 	}
 
 	for _, groupId := range dbConfig.Keys() {
@@ -87,19 +87,18 @@ func (s *Component) Init() {
 			item := dbGroup.GetConfig(i)
 			mysqlConfig := parseMysqlConfig(groupId, item)
 
-			for j := 0; j < dbIdList.Size(); j++ {
-				dbId := dbIdList.Get(j).ToString()
-				if mysqlConfig.Id != dbId {
+			for _, key := range dbIdList.Keys() {
+				if dbIdList.Get(key).ToString() != mysqlConfig.Id {
 					continue
 				}
 
-				if mysqlConfig.Enable == false {
-					panic(fmt.Sprintf("[dbName = %s] is disabled!", mysqlConfig.DbName))
+				if !mysqlConfig.Enable {
+					clog.Panicf("[dbName = %s] is disabled!", mysqlConfig.DbName)
 				}
 
 				db, err := s.createORM(mysqlConfig)
 				if err != nil {
-					panic(fmt.Sprintf("[dbName = %s] create orm fail. error = %s", mysqlConfig.DbName, err))
+					clog.Panicf("[dbName = %s] create orm fail. error = %s", mysqlConfig.DbName, err)
 				}
 
 				s.ormMap[groupId][mysqlConfig.Id] = db
