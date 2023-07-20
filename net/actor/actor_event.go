@@ -66,13 +66,17 @@ func (p *actorEvent) Pop() cfacade.IEventData {
 func (p *actorEvent) funcInvoke(data cfacade.IEventData) {
 	fn, found := p.funcMap[data.Name()]
 	if !found {
-		clog.Warnf("Event not found. data = %+v", data)
+		clog.Warnf("[%s] Event not found. [data = %+v]",
+			p.thisActor.Path(),
+			data,
+		)
 		return
 	}
 
 	defer func() {
 		if rev := recover(); rev != nil {
 			clog.Errorf("[%s] Event invoke error. [data = %+v]",
+				p.thisActor.Path(),
 				data,
 			)
 		}
