@@ -6,16 +6,16 @@ import (
 )
 
 type actorEvent struct {
-	thisActor *Actor                // parent
-	queue                           // queue
-	funcMap   map[string]IEventFunc // register event func map
+	thisActor *Actor                  // parent
+	queue                             // queue
+	funcMap   map[string][]IEventFunc // register event func map
 }
 
 func newEvent(thisActor *Actor) actorEvent {
 	return actorEvent{
 		thisActor: thisActor,
 		queue:     newQueue(),
-		funcMap:   make(map[string]IEventFunc),
+		funcMap:   make(map[string][]IEventFunc),
 	}
 }
 
@@ -23,7 +23,9 @@ func newEvent(thisActor *Actor) actorEvent {
 // name 事件名
 // fn 接收事件处理的函数
 func (p *actorEvent) Register(name string, fn IEventFunc) {
-	p.funcMap[name] = fn
+	funcList := p.funcMap[name]
+	funcList = append(funcList, fn)
+	p.funcMap[name] = funcList
 }
 
 // Unregister 注销事件
@@ -64,7 +66,7 @@ func (p *actorEvent) Pop() cfacade.IEventData {
 }
 
 func (p *actorEvent) funcInvoke(data cfacade.IEventData) {
-	fn, found := p.funcMap[data.Name()]
+	funcList, found := p.funcMap[data.Name()]
 	if !found {
 		clog.Warnf("[%s] Event not found. [data = %+v]",
 			p.thisActor.Path(),
@@ -82,7 +84,9 @@ func (p *actorEvent) funcInvoke(data cfacade.IEventData) {
 		}
 	}()
 
-	fn(data)
+	for _, eventFunc := range funcList {
+		eventFunc(data)
+	}
 }
 
 func (p *actorEvent) onStop() {
