@@ -28,6 +28,12 @@ func (p *actorEvent) Register(name string, fn IEventFunc) {
 	p.funcMap[name] = funcList
 }
 
+func (p *actorEvent) Registers(names []string, fn IEventFunc) {
+	for _, name := range names {
+		p.Register(name, fn)
+	}
+}
+
 // Unregister 注销事件
 // name 事件名
 func (p *actorEvent) Unregister(name string) {

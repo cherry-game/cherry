@@ -14,8 +14,9 @@ type (
 
 type (
 	IEvent interface {
-		Register(name string, fn IEventFunc) // 注册事件
-		Unregister(name string)              // 注销事件
+		Register(name string, fn IEventFunc)     // 注册事件
+		Registers(names []string, fn IEventFunc) // 注册多个事件
+		Unregister(name string)                  // 注销事件
 	}
 
 	IEventFunc func(cfacade.IEventData) // 接收事件数据时的处理函数
