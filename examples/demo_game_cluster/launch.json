@@ -1,0 +1,70 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "gc-master",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}\\examples\\demo_game_cluster\\nodes\\main.go",
+            "console" :"integratedTerminal",
+            "args": [
+                "master",
+                "--path=../examples/config/profile-gc.json",
+                "--node=gc-master"
+            ]
+        },
+        {
+            "name": "gc-center",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}\\examples\\demo_game_cluster\\nodes\\main.go",
+            "console" :"integratedTerminal",
+            "args": [
+                "center",
+                "--path=../examples/config/profile-gc.json",
+                "--node=gc-center"
+            ]
+        },
+        {
+            "name": "gc-web-1",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}\\examples\\demo_game_cluster\\nodes\\main.go",
+            "console" :"integratedTerminal",
+            "args": [
+                "web",
+                "--path=../examples/config/profile-gc.json",
+                "--node=gc-web-1"
+            ]
+        },
+        {
+            "name": "gc-gate-1",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}\\examples\\demo_game_cluster\\nodes\\main.go",
+            "console" :"integratedTerminal",
+            "args": [
+                "gate",
+                "--path=../examples/config/profile-gc.json",
+                "--node=gc-gate-1"
+            ]
+        },
+        {
+            "name": "gc-game-10001",
+            "type": "go",
+            "request": "launch",
+            "mode": "debug",
+            "program": "${workspaceFolder}\\examples\\demo_game_cluster\\nodes\\main.go",
+            "console" :"integratedTerminal",
+            "args": [
+                "game",
+                "--path=../examples/config/profile-gc.json",
+                "--node=10001"
+            ]
+        }
+    ]
+}

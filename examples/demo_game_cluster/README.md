@@ -44,9 +44,8 @@
 #### 0x02 启动参数配置
 
 > 找到`exmaples/game_cluster/nodes/main.go`，所有节点都从`main.go`启动 <br />
-> 点击`func main() {`左边的绿色三角形，选择`Debug ...`运行本函数。从`terminal`窗口查看，显示需要传入参数 <br />
-> 点击 `Edit Configurations...` 找到`Program arguments:`选项进行参数设置并保存  <br />
-> 所有节点的启动按照该步骤配置，并按以下操作进行不同的参数配置
+> 以下操作的启动参数配置以`goland`开发工具为例 <br />
+> 附:`vs code`启动参数配置 [launch.json](launch.json) <br />
 
 #### 0x03 启动master节点
 
