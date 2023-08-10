@@ -160,14 +160,27 @@ func Pad(slice []interface{}, size int, val interface{}) []interface{} {
 	return slice
 }
 
-// Unique cleans repeated values in slice.
-func Unique(slice []interface{}) (uniqueSlice []interface{}) {
-	for _, v := range slice {
-		if !InInterface(v, uniqueSlice) {
-			uniqueSlice = append(uniqueSlice, v)
+func Uniques[T comparable](slices ...[]T) []T {
+	keys := map[T]struct{}{}
+
+	for _, slice := range slices {
+		for _, s := range slice {
+			keys[s] = struct{}{}
 		}
 	}
-	return
+
+	var uniqueSlice []T
+
+	for t := range keys {
+		uniqueSlice = append(uniqueSlice, t)
+	}
+
+	return uniqueSlice
+}
+
+// Unique cleans repeated values in slice.
+func Unique[T comparable](slice ...T) []T {
+	return Uniques[T](slice)
 }
 
 // Shuffle shuffles a slice.
