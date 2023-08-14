@@ -87,7 +87,7 @@ func (p *ActorPlayers) onLoginEvent(e cfacade.IEventData) {
 
 // onLoginEvent 玩家登出事件处理
 func (p *ActorPlayers) onLogoutEvent(e cfacade.IEventData) {
-	evt, ok := e.(event.PlayerLogout)
+	evt, ok := e.(*event.PlayerLogout)
 	if !ok {
 		return
 	}

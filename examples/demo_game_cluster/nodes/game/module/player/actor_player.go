@@ -45,8 +45,8 @@ func (p *actorPlayer) sessionClose() {
 	p.isOnline = false
 	p.Exit()
 
-	evt := event.NewPlayerLogout(p.ActorID(), p.playerId)
-	p.PostEvent(evt)
+	logoutEvent := event.NewPlayerLogout(p.ActorID(), p.playerId)
+	p.PostEvent(&logoutEvent)
 }
 
 // playerSelect 玩家查询角色列表
@@ -159,7 +159,8 @@ func (p *actorPlayer) playerEnter(session *cproto.Session, req *pb.Int64) {
 	p.Response(session, response)
 
 	// 角色登录事件
-	p.PostEvent(event.NewPlayerLogin(p.ActorID(), playerId))
+	loginEvent := event.NewPlayerLogin(p.ActorID(), playerId)
+	p.PostEvent(&loginEvent)
 }
 
 func buildPBPlayer(playerTable *db.PlayerTable) pb.Player {
