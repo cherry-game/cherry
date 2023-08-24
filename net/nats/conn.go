@@ -1,16 +1,10 @@
 package cherryNats
 
 import (
-	clog "github.com/cherry-game/cherry/logger"
-	cprofile "github.com/cherry-game/cherry/profile"
-	"github.com/nats-io/nats.go"
 	"time"
-)
 
-var (
-	_conn = &Conn{
-		running: false,
-	}
+	clog "github.com/cherry-game/cherry/logger"
+	"github.com/nats-io/nats.go"
 )
 
 type (
@@ -32,37 +26,15 @@ type (
 )
 
 func New(opts ...OptionFunc) *Conn {
-	if _conn.running {
-		return _conn
-	}
+	conn := &Conn{}
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
-			opt(&_conn.options)
+			opt(&conn.options)
 		}
-	} else {
-		_conn.loadFromConfig()
 	}
 
-	return _conn
-}
-
-func (p *Conn) loadFromConfig() {
-	config := cprofile.GetConfig("cluster").GetConfig("nats")
-	if config.LastError() != nil {
-		panic("cluster->nats config not found.")
-	}
-
-	p.address = config.GetString("address")
-	p.maxReconnects = config.GetInt("max_reconnects")
-	p.reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
-	p.requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
-	p.user = config.GetString("user")
-	p.password = config.GetString("password")
-
-	if p.address == "" {
-		panic("address is empty!")
-	}
+	return conn
 }
 
 func (p *Conn) Connect() {

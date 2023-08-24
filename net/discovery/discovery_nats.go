@@ -2,13 +2,14 @@ package cherryDiscovery
 
 import (
 	"fmt"
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/nats-io/nats.go"
-	"time"
 )
 
 // DiscoveryNATS master节点模式(master为单节点)
@@ -21,7 +22,6 @@ import (
 type DiscoveryNATS struct {
 	DiscoveryDefault
 	app               cfacade.IApplication
-	natsConn          *cnats.Conn
 	thisMember        cfacade.IMember
 	thisMemberBytes   []byte
 	masterMember      cfacade.IMember
@@ -50,8 +50,6 @@ func (m *DiscoveryNATS) buildSubject(subject string) string {
 func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
 	m.DiscoveryDefault.PreInit()
 	m.app = app
-	m.natsConn = cnats.New()
-	m.natsConn.Connect()
 	m.loadMember()
 	m.init()
 }
@@ -127,7 +125,7 @@ func (m *DiscoveryNATS) init() {
 }
 
 func (m *DiscoveryNATS) serverInit() {
-	if m.isMaster() == false {
+	if !m.isMaster() {
 		return
 	}
 
@@ -176,7 +174,7 @@ func (m *DiscoveryNATS) serverInit() {
 		}
 
 		// publish addMember new node
-		err = m.natsConn.Publish(m.addSubject, msg.Data)
+		err = cnats.Get().Publish(m.addSubject, msg.Data)
 		if err != nil {
 			clog.Warnf("publish fail. err = %s", err)
 			return
@@ -190,7 +188,7 @@ func (m *DiscoveryNATS) serverInit() {
 }
 
 func (m *DiscoveryNATS) clientInit() {
-	if m.isClient() == false {
+	if !m.isClient() {
 		return
 	}
 
@@ -218,17 +216,17 @@ func (m *DiscoveryNATS) checkMaster() {
 			m.registerToMaster()
 		}
 
-		time.Sleep(m.natsConn.ReconnectDelay())
+		time.Sleep(cnats.Get().ReconnectDelay())
 	}
 }
 
 func (m *DiscoveryNATS) registerToMaster() {
 	// register current node to master
-	rsp, err := m.natsConn.Request(m.registerSubject, m.thisMemberBytes)
+	rsp, err := cnats.Get().Request(m.registerSubject, m.thisMemberBytes)
 	if err != nil {
 		clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
 			m.masterMember.GetNodeId(),
-			m.natsConn.Address(),
+			cnats.Get().Address(),
 			err,
 		)
 		return
@@ -252,7 +250,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 }
 
 func (m *DiscoveryNATS) Stop() {
-	err := m.natsConn.Publish(m.unregisterSubject, m.thisMemberBytes)
+	err := cnats.Get().Publish(m.unregisterSubject, m.thisMemberBytes)
 	if err != nil {
 		clog.Warnf("publish fail. err = %s", err)
 		return
@@ -262,12 +260,10 @@ func (m *DiscoveryNATS) Stop() {
 		m.app.NodeId(),
 		m.masterMember.GetNodeId(),
 	)
-
-	m.natsConn.Close()
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
-	_, err := m.natsConn.Subscribe(subject, cb)
+	_, err := cnats.Get().Subscribe(subject, cb)
 	if err != nil {
 		clog.Warnf("subscribe fail. err = %s", err)
 		return

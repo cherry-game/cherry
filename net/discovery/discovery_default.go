@@ -1,14 +1,15 @@
 package cherryDiscovery
 
 import (
+	"math/rand"
+	"sync"
+
 	cerr "github.com/cherry-game/cherry/error"
 	cslice "github.com/cherry-game/cherry/extend/slice"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"math/rand"
-	"sync"
 )
 
 // DiscoveryDefault 默认方式，通过读取profile文件的节点信息
@@ -79,7 +80,7 @@ func (n *DiscoveryDefault) ListByType(nodeType string, filterNodeId ...string) [
 
 	for _, member := range n.memberMap {
 		if member.GetNodeType() == nodeType {
-			if _, ok := cslice.StringIn(member.GetNodeId(), filterNodeId); ok == false {
+			if _, ok := cslice.StringIn(member.GetNodeId(), filterNodeId); !ok {
 				list = append(list, member)
 			}
 		}
@@ -105,7 +106,7 @@ func (n *DiscoveryDefault) Random(nodeType string) (cfacade.IMember, bool) {
 
 func (n *DiscoveryDefault) GetType(nodeId string) (nodeType string, err error) {
 	member, found := n.GetMember(nodeId)
-	if found == false {
+	if !found {
 		return "", cerr.Errorf("nodeId = %s not found.", nodeId)
 	}
 	return member.GetNodeType(), nil

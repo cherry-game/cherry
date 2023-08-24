@@ -26,13 +26,13 @@ func (p *AppBuilder) Startup() {
 	app := p.Application
 
 	if app.NodeMode() == Cluster {
-		discovery := cdiscovery.New()
-		app.SetDiscovery(discovery)
-		app.Register(discovery)
-
 		cluster := ccluster.New()
 		app.SetCluster(cluster)
 		app.Register(cluster)
+
+		discovery := cdiscovery.New()
+		app.SetDiscovery(discovery)
+		app.Register(discovery)
 	}
 
 	// Register custom components

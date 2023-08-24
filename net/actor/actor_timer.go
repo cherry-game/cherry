@@ -1,10 +1,11 @@
 package cherryActor
 
 import (
+	"time"
+
 	cherryTimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	clog "github.com/cherry-game/cherry/logger"
-	"time"
 )
 
 const (
@@ -70,8 +71,6 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) {
 	}
 
 	p.addTimerInfo(timer, fn, true)
-
-	return
 }
 
 func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {

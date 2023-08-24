@@ -1,22 +1,23 @@
 package cherryNatsCluster
 
 import (
+	"time"
+
 	ccode "github.com/cherry-game/cherry/code"
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
-	"time"
 )
 
 type (
 	Cluster struct {
 		app        cfacade.IApplication
-		natsConn   *cnats.Conn
 		bufferSize int
 		local      *natsSubject
 		remote     *natsSubject
@@ -28,7 +29,6 @@ type (
 func New(app cfacade.IApplication, options ...OptionFunc) cfacade.ICluster {
 	cluster := &Cluster{
 		app:        app,
-		natsConn:   cnats.New(),
 		bufferSize: 1024,
 	}
 
@@ -36,14 +36,29 @@ func New(app cfacade.IApplication, options ...OptionFunc) cfacade.ICluster {
 		option(cluster)
 	}
 
-	cluster.local = newNatsSubject(getLocalSubject(app.NodeType(), app.NodeId()), cluster.bufferSize)
-	cluster.remote = newNatsSubject(getRemoteSubject(app.NodeType(), app.NodeId()), cluster.bufferSize)
+	cluster.loadNats()
+
+	localSubject := getLocalSubject(app.NodeType(), app.NodeId())
+	cluster.local = newNatsSubject(localSubject, cluster.bufferSize)
+
+	remoteSubject := getRemoteSubject(app.NodeType(), app.NodeId())
+	cluster.remote = newNatsSubject(remoteSubject, cluster.bufferSize)
 
 	return cluster
 }
 
+func (p *Cluster) loadNats() {
+	natsConfig := cprofile.GetConfig("cluster").GetConfig("nats")
+	if natsConfig.LastError() != nil {
+		panic("cluster->nats config not found.")
+	}
+
+	natsConn := cnats.NewFromConfig(natsConfig)
+	cnats.SetInstance(natsConn)
+}
+
 func (p *Cluster) Init() {
-	p.natsConn.Connect()
+	cnats.Get().Connect()
 
 	go p.localProcess()
 	go p.remoteProcess()
@@ -55,12 +70,14 @@ func (p *Cluster) Stop() {
 	p.local.stop()
 	p.remote.stop()
 
+	cnats.Get().Close()
+
 	clog.Info("nats cluster execute OnStop().")
 }
 
 func (p *Cluster) localProcess() {
 	var err error
-	p.local.subscription, err = p.natsConn.ChanSubscribe(p.local.subject, p.local.ch)
+	p.local.subscription, err = cnats.Get().ChanSubscribe(p.local.subject, p.local.ch)
 	if err != nil {
 		clog.Errorf("[localProcess] Subscribe fail. [subject = %s, err = %s]", p.local.subject, err)
 		return
@@ -107,7 +124,7 @@ func (p *Cluster) localProcess() {
 
 func (p *Cluster) remoteProcess() {
 	var err error
-	p.remote.subscription, err = p.natsConn.ChanSubscribe(p.remote.subject, p.remote.ch)
+	p.remote.subscription, err = cnats.Get().ChanSubscribe(p.remote.subject, p.remote.ch)
 	if err != nil {
 		clog.Errorf("[remoteProcess] Subscribe fail. [subject = %s, err = %s]", p.remote.subject, err)
 		return
@@ -240,7 +257,7 @@ func (p *Cluster) RequestRemote(nodeId string, request *cproto.ClusterPacket, ti
 	}
 
 	subject := getRemoteSubject(nodeType, nodeId)
-	natsMsg, err := p.natsConn.Request(subject, msg, timeout...)
+	natsMsg, err := cnats.Get().Request(subject, msg, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, %s, err = %v]",
 			nodeId,
@@ -268,11 +285,11 @@ func (p *Cluster) RequestRemote(nodeId string, request *cproto.ClusterPacket, ti
 }
 
 func (p *Cluster) Publish(subject string, data []byte) error {
-	if p.app.Running() == false {
+	if !p.app.Running() {
 		return cerr.ClusterRPCClientIsStop
 	}
 
-	return p.natsConn.Publish(subject, data)
+	return cnats.Get().Publish(subject, data)
 }
 
 func WithBufferSize(size int) OptionFunc {

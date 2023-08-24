@@ -37,7 +37,7 @@ func (p *Component) Init() {
 	}
 
 	discovery, found := discoveryMap[mode]
-	if discovery == nil || found == false {
+	if discovery == nil || !found {
 		clog.Errorf("mode = %s property not found in discovery config.", mode)
 		return
 	}

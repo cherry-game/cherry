@@ -1,12 +1,13 @@
 package cherryActor
 
 import (
+	"strings"
+	"time"
+
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	"go.uber.org/zap/zapcore"
-	"strings"
-	"time"
 )
 
 /**
@@ -168,11 +169,11 @@ func (p *Actor) processEvent() {
 	p.event.funcInvoke(eventData)
 }
 
-func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
-	funcInfo, found := mailbox.funcMap[m.FuncName]
+func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
+	funcInfo, found := mb.funcMap[m.FuncName]
 	if !found {
 		clog.Warnf("[%s] Function not found. [source = %s, target = %s -> %s]",
-			mailbox.name,
+			mb.name,
 			m.Source,
 			m.Target,
 			m.FuncName,
@@ -184,7 +185,7 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 	p.arrivalElapsed = m.PostTime - m.BuildTime
 	if p.arrivalElapsed > p.system.arrivalTimeOut {
 		clog.Warnf("[%s] Invoke timeout.[path = %s -> %s -> %s, postTime = %d, buildTime = %d, arrival = %dms]",
-			mailbox.name,
+			mb.name,
 			m.Source,
 			m.Target,
 			m.FuncName,
@@ -200,7 +201,7 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 		p.executionElapsed = time.Now().UnixMilli() - now
 		if p.executionElapsed > p.system.executionTimeout {
 			clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, execution = %dms]",
-				mailbox.name,
+				mb.name,
 				m.Source,
 				m.Target,
 				m.FuncName,
@@ -210,7 +211,7 @@ func (p *Actor) invokeFunc(mailbox *mailbox, app cfacade.IApplication, fn cfacad
 
 		if rev := recover(); rev != nil {
 			clog.Errorf("[%s] Invoke error. [source = %s, target = %s->%s, type = %v]",
-				mailbox.name,
+				mb.name,
 				m.Source,
 				m.Target,
 				m.FuncName,
@@ -319,7 +320,7 @@ func (p *Actor) Exit() {
 	p.close <- struct{}{}
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[exit] actor exit! path = %s", p.path)
+		clog.Debugf("[Exit] actor exit! path = %s", p.path)
 	}
 }
 

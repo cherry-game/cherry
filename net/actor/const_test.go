@@ -58,10 +58,7 @@ func TestActorIDValidate(t *testing.T) {
 	}
 
 	checkActorID := func(id string) bool {
-		if len(id) < 1 {
-			return false
-		}
-		return true
+		return len(id) > 0
 	}
 
 	for _, s := range idList {
@@ -70,8 +67,7 @@ func TestActorIDValidate(t *testing.T) {
 }
 
 func TestUint32(t *testing.T) {
-	var id uint32
-	id = 4294967290
+	var id uint32 = 4294967290
 
 	for i := 0; i < 20; i++ {
 		atomic.AddUint32(&id, 1)

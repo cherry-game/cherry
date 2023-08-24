@@ -1,6 +1,8 @@
 package cherryActor
 
 import (
+	"reflect"
+
 	ccode "github.com/cherry-game/cherry/code"
 	cerror "github.com/cherry-game/cherry/error"
 	creflect "github.com/cherry-game/cherry/extend/reflect"
@@ -9,7 +11,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/gogo/protobuf/proto"
-	"reflect"
 )
 
 func InvokeLocalFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) {
@@ -92,8 +93,7 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 		)
 	}
 
-	var argValue interface{}
-	argValue = reflect.New(fi.InArgs[index].Elem()).Interface()
+	argValue := reflect.New(fi.InArgs[index].Elem()).Interface()
 	err := app.Serializer().Unmarshal(argBytes, argValue)
 	if err != nil {
 		return cerror.Errorf("Encode args unmarshal error.[source = %s, target = %s -> %s, funcType = %v]",
