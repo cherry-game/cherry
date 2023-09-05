@@ -1,1 +1,1 @@
-protoc --gogo_out=plugins=grpc:./ --gogo_opt=paths=source_relative base_type.proto
+protoc --go_out=plugins=grpc:./ --go_opt=paths=source_relative base_type.proto

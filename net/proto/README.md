@@ -1,1 +1,1 @@
-go install github.com/gogo/protobuf/protoc-gen-gogo
+go install github.com/golang/protobuf/protoc-gen-go@latest
