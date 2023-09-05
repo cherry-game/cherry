@@ -1,6 +1,7 @@
 package cherryNatsCluster
 
 import (
+	"google.golang.org/protobuf/proto"
 	"time"
 
 	ccode "github.com/cherry-game/cherry/code"
@@ -10,7 +11,6 @@ import (
 	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
 	"go.uber.org/zap/zapcore"
 )

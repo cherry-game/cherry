@@ -2,7 +2,7 @@ package cherrySerializer
 
 import (
 	cerr "github.com/cherry-game/cherry/error"
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 // Protobuf implements the serialize.Protobuf interface

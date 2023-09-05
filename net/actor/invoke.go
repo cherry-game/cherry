@@ -1,6 +1,7 @@
 package cherryActor
 
 import (
+	"google.golang.org/protobuf/proto"
 	"reflect"
 
 	ccode "github.com/cherry-game/cherry/code"
@@ -10,7 +11,6 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"github.com/gogo/protobuf/proto"
 )
 
 func InvokeLocalFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) {

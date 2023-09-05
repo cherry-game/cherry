@@ -3,7 +3,6 @@ module github.com/cherry-game/cherry
 go 1.18
 
 require (
-	github.com/gogo/protobuf v1.3.2
 	github.com/gorilla/websocket v1.5.0
 	github.com/json-iterator/go v1.1.12
 	github.com/lestrrat-go/strftime v1.0.6

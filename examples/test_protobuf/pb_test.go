@@ -2,7 +2,7 @@ package test_protobuf
 
 import (
 	"fmt"
-	"github.com/gogo/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"testing"
 )
 
