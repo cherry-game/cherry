@@ -14,58 +14,58 @@ func NewSession(sid, agentPath string) Session {
 	return session
 }
 
-func (m *Session) IsBind() bool {
-	return m.Uid > 0
+func (x *Session) IsBind() bool {
+	return x.Uid > 0
 }
 
-func (m *Session) ActorPath() string {
-	return m.AgentPath + cconst.DOT + m.Sid
+func (x *Session) ActorPath() string {
+	return x.AgentPath + cconst.DOT + x.Sid
 }
 
-func (m *Session) Add(key string, value interface{}) {
-	m.Data[key] = cstring.ToString(value)
+func (x *Session) Add(key string, value interface{}) {
+	x.Data[key] = cstring.ToString(value)
 }
 
-func (m *Session) Remove(key string) {
-	delete(m.Data, key)
+func (x *Session) Remove(key string) {
+	delete(x.Data, key)
 }
 
-func (m *Session) Set(key string, value string) {
+func (x *Session) Set(key string, value string) {
 	if key == "" || value == "" {
 		return
 	}
 
-	m.Data[key] = value
+	x.Data[key] = value
 }
 
-func (m *Session) ImportAll(data map[string]string) {
+func (x *Session) ImportAll(data map[string]string) {
 	for k, v := range data {
-		m.Set(k, v)
+		x.Set(k, v)
 	}
 }
 
-func (m *Session) Contains(key string) bool {
-	_, found := m.Data[key]
+func (x *Session) Contains(key string) bool {
+	_, found := x.Data[key]
 	return found
 }
 
-func (m *Session) Restore(data map[string]string) {
-	m.Clear()
+func (x *Session) Restore(data map[string]string) {
+	x.Clear()
 
 	for k, v := range data {
-		m.Set(k, v)
+		x.Set(k, v)
 	}
 }
 
 // Clear releases all settings related to current sc
-func (m *Session) Clear() {
-	for k := range m.Data {
-		delete(m.Data, k)
+func (x *Session) Clear() {
+	for k := range x.Data {
+		delete(x.Data, k)
 	}
 }
 
-func (m *Session) GetUint(key string) uint {
-	v, ok := m.Data[key]
+func (x *Session) GetUint(key string) uint {
+	v, ok := x.Data[key]
 	if !ok {
 		return 0
 	}
@@ -77,8 +77,8 @@ func (m *Session) GetUint(key string) uint {
 	return value
 }
 
-func (m *Session) GetInt(key string) int {
-	v, ok := m.Data[key]
+func (x *Session) GetInt(key string) int {
+	v, ok := x.Data[key]
 	if !ok {
 		return 0
 	}
@@ -91,8 +91,8 @@ func (m *Session) GetInt(key string) int {
 }
 
 // GetInt32 returns the value associated with the key as a int32.
-func (m *Session) GetInt32(key string) int32 {
-	v, ok := m.Data[key]
+func (x *Session) GetInt32(key string) int32 {
+	v, ok := x.Data[key]
 	if !ok {
 		return 0
 	}
@@ -105,8 +105,8 @@ func (m *Session) GetInt32(key string) int32 {
 }
 
 // GetInt64 returns the value associated with the key as a int64.
-func (m *Session) GetInt64(key string) int64 {
-	v, ok := m.Data[key]
+func (x *Session) GetInt64(key string) int64 {
+	v, ok := x.Data[key]
 	if !ok {
 		return 0
 	}
@@ -119,8 +119,8 @@ func (m *Session) GetInt64(key string) int64 {
 }
 
 // GetString returns the value associated with the key as a string.
-func (m *Session) GetString(key string) string {
-	v, ok := m.Data[key]
+func (x *Session) GetString(key string) string {
+	v, ok := x.Data[key]
 	if !ok {
 		return ""
 	}
@@ -128,11 +128,11 @@ func (m *Session) GetString(key string) string {
 	return v
 }
 
-func (m *Session) Copy() Session {
-	session := NewSession(m.Sid, m.AgentPath)
-	session.Uid = m.Uid
-	session.Ip = m.Ip
-	for k, v := range m.Data {
+func (x *Session) Copy() Session {
+	session := NewSession(x.Sid, x.AgentPath)
+	session.Uid = x.Uid
+	session.Ip = x.Ip
+	for k, v := range x.Data {
 		session.Set(k, v)
 	}
 	return session

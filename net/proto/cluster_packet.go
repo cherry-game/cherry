@@ -20,22 +20,22 @@ func GetClusterPacket() *ClusterPacket {
 	return pkg
 }
 
-func (m *ClusterPacket) Recycle() {
-	m.BuildTime = 0
-	m.SourcePath = ""
-	m.TargetPath = ""
-	m.FuncName = ""
-	m.ArgBytes = nil
-	m.Session = nil
-	clusterPacketPool.Put(m)
+func (x *ClusterPacket) Recycle() {
+	x.BuildTime = 0
+	x.SourcePath = ""
+	x.TargetPath = ""
+	x.FuncName = ""
+	x.ArgBytes = nil
+	x.Session = nil
+	clusterPacketPool.Put(x)
 }
 
-func (m *ClusterPacket) PrintLog() string {
+func (x *ClusterPacket) PrintLog() string {
 	return fmt.Sprintf("source = %s, target = %s, funcName = %s, bytesLen = %d, session = %v",
-		m.SourcePath,
-		m.TargetPath,
-		m.FuncName,
-		len(m.ArgBytes),
-		m.Session,
+		x.SourcePath,
+		x.TargetPath,
+		x.FuncName,
+		len(x.ArgBytes),
+		x.Session,
 	)
 }
