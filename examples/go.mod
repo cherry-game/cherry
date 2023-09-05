@@ -13,6 +13,7 @@ require (
 	github.com/spf13/cast v1.4.1
 	github.com/urfave/cli/v2 v2.3.0
 	go.uber.org/zap v1.23.0
+	google.golang.org/protobuf v1.28.0
 	gorm.io/gorm v1.23.8
 )
 
@@ -50,6 +51,5 @@ require (
 	golang.org/x/sys v0.2.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/time v0.0.0-20220922220347-f3bd1da661af // indirect
-	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
