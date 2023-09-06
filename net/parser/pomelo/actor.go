@@ -1,6 +1,9 @@
 package pomelo
 
 import (
+	"net"
+	"time"
+
 	ccode "github.com/cherry-game/cherry/code"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -10,8 +13,6 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"github.com/nats-io/nuid"
 	"go.uber.org/zap/zapcore"
-	"net"
-	"time"
 )
 
 type (
@@ -74,9 +75,13 @@ func (p *actor) Connectors() []cfacade.IConnector {
 
 // defaultOnConnectFunc 创建新连接时，通过当前agentActor创建child agent actor
 func (p *actor) defaultOnConnectFunc(conn net.Conn) {
-	sid := nuid.Next()
-	session := cproto.NewSession(sid, p.Path().String())
-	agent := NewAgent(p.App(), conn, &session)
+	session := &cproto.Session{
+		Sid:       nuid.Next(),
+		AgentPath: p.Path().String(),
+		Data:      map[string]string{},
+	}
+
+	agent := NewAgent(p.App(), conn, session)
 
 	if p.onNewAgentFunc != nil {
 		p.onNewAgentFunc(&agent)

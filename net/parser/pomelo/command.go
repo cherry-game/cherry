@@ -1,6 +1,8 @@
 package pomelo
 
 import (
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -8,7 +10,6 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap/zapcore"
-	"time"
 )
 
 type (
@@ -151,7 +152,7 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	// current node
 	if agent.NodeType() == route.NodeType() {
 		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
-		LocalDataRoute(agent, &session, route, msg, targetPath)
+		LocalDataRoute(agent, session, route, msg, targetPath)
 		return
 	}
 
@@ -170,7 +171,7 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	}
 
 	targetPath := cfacade.NewPath(member.GetNodeId(), route.HandleName())
-	ClusterLocalDataRoute(agent, &session, route, msg, member.GetNodeId(), targetPath)
+	ClusterLocalDataRoute(agent, session, route, msg, member.GetNodeId(), targetPath)
 }
 
 func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
@@ -195,8 +196,7 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessag
 	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
 }
 
-func BuildSession(agent *Agent, msg *pmessage.Message) cproto.Session {
-	session := agent.session.Copy()
-	session.Mid = uint32(msg.ID)
-	return session
+func BuildSession(agent *Agent, msg *pmessage.Message) *cproto.Session {
+	agent.session.Mid = uint32(msg.ID)
+	return agent.session
 }

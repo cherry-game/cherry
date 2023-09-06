@@ -2,6 +2,10 @@ package pomelo
 
 import (
 	"fmt"
+	"net"
+	"sync/atomic"
+	"time"
+
 	cnet "github.com/cherry-game/cherry/extend/net"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -10,9 +14,6 @@ import (
 	pomeloPacket "github.com/cherry-game/cherry/net/parser/pomelo/packet"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	"go.uber.org/zap/zapcore"
-	"net"
-	"sync/atomic"
-	"time"
 )
 
 const (
@@ -80,10 +81,7 @@ func (a *Agent) State() int32 {
 
 func (a *Agent) SetState(state int32) bool {
 	oldValue := atomic.SwapInt32(&a.state, state)
-	if oldValue == state {
-		return false
-	}
-	return true
+	return oldValue != state
 }
 
 func (a *Agent) Session() *cproto.Session {

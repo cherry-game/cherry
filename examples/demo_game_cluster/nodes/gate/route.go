@@ -35,18 +35,19 @@ var (
 // 2.(用户登录)客户端进行帐号登录验证，通过uid绑定当前sid
 // 3.(角色登录)客户端通过'beforeLoginRoutes'中的协议完成角色登录
 func onPomeloDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Message) {
+	session := pomelo.BuildSession(agent, msg)
+
 	// agent没有"用户登录",且请求不是第一条协议，则踢掉agent，断开连接
-	if !agent.Session().IsBind() && msg.Route != firstRouteName {
+	if !session.IsBind() && msg.Route != firstRouteName {
 		agent.Kick(notLoginRsp, true)
 		return
 	}
 
-	session := pomelo.BuildSession(agent, msg)
 	if agent.NodeType() == route.NodeType() {
 		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
-		pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
+		pomelo.LocalDataRoute(agent, session, route, msg, targetPath)
 	} else {
-		gameNodeRoute(agent, &session, route, msg)
+		gameNodeRoute(agent, session, route, msg)
 	}
 }
 

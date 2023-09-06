@@ -84,18 +84,18 @@ func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Messa
 
 	if msg.Route == "room.room.login" {
 		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
-		pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
+		pomelo.LocalDataRoute(agent, session, route, msg, targetPath)
 		return
 	}
 
 	// session未绑定uid，踢下线
 	if !session.IsBind() {
-		agent.ResponseCode(agent.Session(), cherryCode.SessionUIDNotBind, true)
+		agent.ResponseCode(session, cherryCode.SessionUIDNotBind, true)
 		return
 	}
 
 	targetPath := cfacade.NewPath(agent.NodeId(), route.HandleName())
-	pomelo.LocalDataRoute(agent, &session, route, msg, targetPath)
+	pomelo.LocalDataRoute(agent, session, route, msg, targetPath)
 }
 
 // 为了省事，构造一个http server用于部署我们的客户端h5静态文件

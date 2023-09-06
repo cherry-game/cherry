@@ -2,8 +2,9 @@ package cherryProto
 
 import (
 	"fmt"
-	"google.golang.org/protobuf/proto"
 	"testing"
+
+	"google.golang.org/protobuf/proto"
 )
 
 func TestMarshal(t *testing.T) {

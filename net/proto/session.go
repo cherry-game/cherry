@@ -5,15 +5,6 @@ import (
 	cstring "github.com/cherry-game/cherry/extend/string"
 )
 
-func NewSession(sid, agentPath string) Session {
-	session := Session{
-		Sid:       sid,
-		AgentPath: agentPath,
-		Data:      map[string]string{},
-	}
-	return session
-}
-
 func (x *Session) IsBind() bool {
 	return x.Uid > 0
 }
@@ -126,14 +117,4 @@ func (x *Session) GetString(key string) string {
 	}
 
 	return v
-}
-
-func (x *Session) Copy() Session {
-	session := NewSession(x.Sid, x.AgentPath)
-	session.Uid = x.Uid
-	session.Ip = x.Ip
-	for k, v := range x.Data {
-		session.Set(k, v)
-	}
-	return session
 }

@@ -1,14 +1,10 @@
 package simple
 
 import (
-	"github.com/cherry-game/cherry"
+	"fmt"
 	"testing"
 )
 
 func TestSimpleParser(t *testing.T) {
-
-}
-
-func initParser(app *cherry.AppBuilder) {
-
+	fmt.Println("hello")
 }

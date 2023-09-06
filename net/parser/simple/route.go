@@ -35,13 +35,13 @@ func GetNodeRoute(mid uint32) (*NodeRoute, bool) {
 }
 
 func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
-	session := agent.session.Copy()
+	session := agent.session
 	session.Mid = msg.MID
 
 	// current node
 	if agent.NodeType() == route.NodeType {
 		targetPath := cfacade.NewChildPath(agent.NodeId(), route.ActorID, session.Sid)
-		LocalDataRoute(agent, &session, msg, route, targetPath)
+		LocalDataRoute(agent, session, msg, route, targetPath)
 		return
 	}
 
@@ -60,7 +60,7 @@ func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
 	}
 
 	targetPath := cfacade.NewPath(member.GetNodeId(), route.ActorID)
-	ClusterLocalDataRoute(agent, &session, msg, route, member.GetNodeId(), targetPath)
+	ClusterLocalDataRoute(agent, session, msg, route, member.GetNodeId(), targetPath)
 }
 
 func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, targetPath string) {
