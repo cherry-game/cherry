@@ -28,7 +28,7 @@ func (p *codeConfig) Init() {
 
 func (p *codeConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 	list, ok := maps.([]interface{})
-	if ok == false {
+	if !ok {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
@@ -60,16 +60,16 @@ func (p *codeConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 func (p *codeConfig) OnAfterLoad(_ bool) {
 }
 
-func (p *codeConfig) Get(code int32) *codeRow {
-	val, found := p.maps[code]
-	if found == false {
+func (p *codeConfig) Get(c int32) *codeRow {
+	val, found := p.maps[c]
+	if !found {
 		return nil
 	}
 	return val
 }
 
-func (p *codeConfig) GetMessage(code int32) string {
-	if val, found := p.maps[code]; found {
+func (p *codeConfig) GetMessage(c int32) string {
+	if val, found := p.maps[c]; found {
 		return val.Message
 	}
 	return ""

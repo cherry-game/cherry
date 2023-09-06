@@ -1,8 +1,9 @@
 package db
 
 import (
-	"github.com/goburrow/cache"
 	"time"
+
+	"github.com/goburrow/cache"
 )
 
 var (

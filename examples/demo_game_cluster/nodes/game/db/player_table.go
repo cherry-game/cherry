@@ -114,7 +114,7 @@ func GetPlayerIds(playerIds []int64) []int64 {
 // GetPlayerName 获取玩家角色名
 func GetPlayerName(playerId int64) string {
 	playerTable, found := GetPlayerTable(playerId)
-	if found == false {
+	if !found {
 		return ""
 	}
 

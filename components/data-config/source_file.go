@@ -1,13 +1,14 @@
 package cherryDataConfig
 
 import (
+	"os"
+	"time"
+
 	cerr "github.com/cherry-game/cherry/error"
-	"github.com/cherry-game/cherry/extend/file"
+	cherryFile "github.com/cherry-game/cherry/extend/file"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
-	"os"
-	"time"
 )
 
 type (
@@ -48,7 +49,7 @@ func (f *SourceFile) Init(_ IDataConfig) {
 	go f.newWatcher()
 }
 
-func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
+func (f *SourceFile) ReadBytes(configName string) ([]byte, error) {
 	if configName == "" {
 		return nil, cerr.Error("configName is empty.")
 	}
@@ -62,7 +63,7 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 		return nil, cerr.Errorf("path is dir. fullPath = %s", fullPath)
 	}
 
-	data, err = os.ReadFile(fullPath)
+	data, err := os.ReadFile(fullPath)
 	if err != nil {
 		return nil, cerr.Errorf("read file err. err = %v, path = %s", err, fullPath)
 	}
@@ -71,7 +72,7 @@ func (f *SourceFile) ReadBytes(configName string) (data []byte, error error) {
 		return nil, cerr.Errorf("configName = %s data is err.", configName)
 	}
 
-	return data, nil
+	return data, err
 }
 
 func (f *SourceFile) OnChange(fn ConfigChangeFn) {

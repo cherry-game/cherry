@@ -2,11 +2,12 @@
 package cherryTimeWheel
 
 import (
-	cutils "github.com/cherry-game/cherry/extend/utils"
-	clog "github.com/cherry-game/cherry/logger"
 	"sync/atomic"
 	"time"
 	"unsafe"
+
+	cutils "github.com/cherry-game/cherry/extend/utils"
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 // TimeWheel is an implementation of Hierarchical Timing Wheels.

@@ -2,15 +2,15 @@ package cherryConnector
 
 import (
 	"fmt"
-	clog "github.com/cherry-game/cherry/logger"
 	"net"
 	"sync"
 	"testing"
+
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 // websocket client http://www.websocket-test.com/
 func TestNewWSConnector(t *testing.T) {
-
 	wg := &sync.WaitGroup{}
 	wg.Add(1)
 

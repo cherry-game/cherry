@@ -3,9 +3,10 @@ package pomeloPacket
 import (
 	"bytes"
 	"fmt"
-	cerr "github.com/cherry-game/cherry/error"
 	"io"
 	"net"
+
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 type (

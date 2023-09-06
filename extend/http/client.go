@@ -3,12 +3,13 @@ package cherryHttp
 import (
 	"bytes"
 	"encoding/json"
-	clog "github.com/cherry-game/cherry/logger"
 	"io"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 var (
@@ -18,15 +19,15 @@ var (
 	DefaultTimeout = 5 * time.Second
 )
 
-func GET(url string, values ...map[string]string) ([]byte, *http.Response, error) {
+func GET(httpURL string, values ...map[string]string) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	if len(values) > 0 {
 		rst := ToUrlValues(values[0])
-		url = AddParams(url, rst)
+		httpURL = AddParams(httpURL, rst)
 	}
 
-	rsp, err := client.Get(url)
+	rsp, err := client.Get(httpURL)
 	if err != nil {
 		return nil, rsp, err
 	}
@@ -34,23 +35,23 @@ func GET(url string, values ...map[string]string) ([]byte, *http.Response, error
 	defer func(body io.ReadCloser) {
 		e := body.Close()
 		if e != nil {
-			clog.Warnf("HTTP GET [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP GET [url = %s], error = %s", httpURL, e)
 		}
 	}(rsp.Body)
 
-	bytes, err := io.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}
 
-	return bytes, rsp, nil
+	return bodyBytes, rsp, nil
 }
 
-func POST(url string, values map[string]string) ([]byte, *http.Response, error) {
+func POST(httpURL string, values map[string]string) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	rst := ToUrlValues(values)
-	rsp, err := client.Post(url, postContentType, strings.NewReader(rst.Encode()))
+	rsp, err := client.Post(httpURL, postContentType, strings.NewReader(rst.Encode()))
 	if err != nil {
 		return nil, rsp, err
 	}
@@ -58,19 +59,19 @@ func POST(url string, values map[string]string) ([]byte, *http.Response, error) 
 	defer func(body io.ReadCloser) {
 		e := body.Close()
 		if e != nil {
-			clog.Warnf("HTTP POST [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP POST [url = %s], error = %s", httpURL, e)
 		}
 	}(rsp.Body)
 
-	bytes, err := io.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}
 
-	return bytes, rsp, nil
+	return bodyBytes, rsp, nil
 }
 
-func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
+func PostJSON(httpURL string, values interface{}) ([]byte, *http.Response, error) {
 	client := http.Client{Timeout: DefaultTimeout}
 
 	jsonBytes, err := json.Marshal(values)
@@ -78,7 +79,7 @@ func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
 		return nil, nil, err
 	}
 
-	rsp, err := client.Post(url, jsonContentType, bytes.NewBuffer(jsonBytes))
+	rsp, err := client.Post(httpURL, jsonContentType, bytes.NewBuffer(jsonBytes))
 	if err != nil {
 		return nil, rsp, err
 	}
@@ -86,34 +87,34 @@ func PostJSON(url string, values interface{}) ([]byte, *http.Response, error) {
 	defer func(body io.ReadCloser) {
 		e := body.Close()
 		if e != nil {
-			clog.Warnf("HTTP PostJSON [url = %s], error = %s", url, e)
+			clog.Warnf("HTTP PostJSON [url = %s], error = %s", httpURL, e)
 		}
 	}(rsp.Body)
 
-	bytes, err := io.ReadAll(rsp.Body)
+	bodyBytes, err := io.ReadAll(rsp.Body)
 	if err != nil {
 		return nil, rsp, err
 	}
 
-	return bytes, rsp, nil
+	return bodyBytes, rsp, nil
 }
 
-func AddParams(url string, params url.Values) string {
+func AddParams(httpURL string, params url.Values) string {
 	if len(params) == 0 {
-		return url
+		return httpURL
 	}
 
-	if !strings.Contains(url, "?") {
-		url += "?"
+	if !strings.Contains(httpURL, "?") {
+		httpURL += "?"
 	}
 
-	if strings.HasSuffix(url, "?") || strings.HasSuffix(url, "&") {
-		url += params.Encode()
+	if strings.HasSuffix(httpURL, "?") || strings.HasSuffix(httpURL, "&") {
+		httpURL += params.Encode()
 	} else {
-		url += "&" + params.Encode()
+		httpURL += "&" + params.Encode()
 	}
 
-	return url
+	return httpURL
 }
 
 func ToUrlValues(values map[string]string) url.Values {

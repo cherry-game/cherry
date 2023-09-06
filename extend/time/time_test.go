@@ -1,7 +1,6 @@
 package cherryTime
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -11,7 +10,7 @@ func TestCherryTime_Now(t *testing.T) {
 	AddOffsetTime(-60)
 
 	now1 := Now()
-	t.Log(fmt.Sprintf("now = %s, now-offset = %s\n", now.ToDateTimeFormat(), now1.ToDateTimeFormat()))
+	t.Logf("now = %s, now-offset = %s\n", now.ToDateTimeFormat(), now1.ToDateTimeFormat())
 }
 
 func TestCherryTime_Yesterday(t *testing.T) {

@@ -1,10 +1,11 @@
 package cherryConnector
 
 import (
-	clog "github.com/cherry-game/cherry/logger"
 	"net"
 	"sync"
 	"testing"
+
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 func TestNewTCPConnector(t *testing.T) {

@@ -56,17 +56,14 @@ func TestQueuePop(t *testing.T) {
 		postNum := 100
 
 		for {
-			select {
-			case <-postTicker.C:
-				{
-					for i := 0; i < postNum; i++ {
-						v := q.Pop()
-						if v == nil {
-							break
-						}
-						fmt.Println(v)
-					}
+			<-postTicker.C
+
+			for i := 0; i < postNum; i++ {
+				v := q.Pop()
+				if v == nil {
+					break
 				}
+				fmt.Println(v)
 			}
 		}
 	}()

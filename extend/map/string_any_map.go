@@ -3,9 +3,10 @@ package cherryMap
 
 import (
 	"encoding/json"
-	cutils "github.com/cherry-game/cherry/extend/utils"
 	"sync"
 	"unsafe"
+
+	cutils "github.com/cherry-game/cherry/extend/utils"
 )
 
 type StringAnyMap struct {
@@ -141,7 +142,7 @@ func (m *StringAnyMap) Search(key string) (value interface{}, found bool) {
 func (m *StringAnyMap) Get(key string) (value interface{}) {
 	m.mu.RLock()
 	if m.data != nil {
-		value, _ = m.data[key]
+		value = m.data[key]
 	}
 	m.mu.RUnlock()
 	return

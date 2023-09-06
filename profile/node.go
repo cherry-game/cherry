@@ -2,6 +2,7 @@ package cherryProfile
 
 import (
 	"fmt"
+
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 )
@@ -63,7 +64,7 @@ func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
 		for i := 0; i < typeJson.Size(); i++ {
 			item := typeJson.GetConfig(i)
 
-			if findNodeId(nodeId, item.GetConfig("node_id")) == false {
+			if !findNodeId(nodeId, item.GetConfig("node_id")) {
 				continue
 			}
 

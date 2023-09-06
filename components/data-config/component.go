@@ -1,11 +1,12 @@
 package cherryDataConfig
 
 import (
+	"sync"
+
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"sync"
 )
 
 const (

@@ -3,9 +3,10 @@ package simple
 import (
 	"bytes"
 	"encoding/binary"
-	cerr "github.com/cherry-game/cherry/error"
 	"io"
 	"net"
+
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 var (

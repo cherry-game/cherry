@@ -1,10 +1,11 @@
 package pomelo
 
 import (
+	"sync"
+
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	"sync"
 )
 
 var (
@@ -33,7 +34,7 @@ func BindUID(sid cfacade.SID, uid cfacade.UID) error {
 	defer lock.Unlock()
 
 	agent, found := sidAgentMap[sid]
-	if found == false {
+	if !found {
 		return cerr.Errorf("[sid = %s] does not exist.", sid)
 	}
 
@@ -52,7 +53,7 @@ func Unbind(sid cfacade.SID) {
 	defer lock.Unlock()
 
 	agent, found := sidAgentMap[sid]
-	if found == false {
+	if !found {
 		return
 	}
 

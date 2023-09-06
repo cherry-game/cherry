@@ -1,8 +1,9 @@
 package cherryFacade
 
 import (
-	cproto "github.com/cherry-game/cherry/net/proto"
 	"time"
+
+	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
 type (

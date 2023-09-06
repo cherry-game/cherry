@@ -383,7 +383,7 @@ func (a *Agent) Push(route string, val interface{}) {
 	}
 }
 
-func (a *Agent) Kick(reason interface{}, close bool) {
+func (a *Agent) Kick(reason interface{}, closed bool) {
 	bytes, err := a.Serializer().Marshal(reason)
 	if err != nil {
 		clog.Warnf("[sid = %s,uid = %d] Kick marshal fail. [reason = {%+v}, err = %s]",
@@ -410,14 +410,14 @@ func (a *Agent) Kick(reason interface{}, close bool) {
 			a.SID(),
 			a.UID(),
 			reason,
-			close,
+			closed,
 		)
 	}
 
 	// 不进入pending chan，直接踢了
 	a.write(pkg)
 
-	if close {
+	if closed {
 		a.Close()
 	}
 }

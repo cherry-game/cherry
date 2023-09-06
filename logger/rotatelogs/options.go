@@ -1,8 +1,9 @@
 package rotatelogs
 
 import (
-	"github.com/cherry-game/cherry/logger/rotatelogs/internal/option"
 	"time"
+
+	"github.com/cherry-game/cherry/logger/rotatelogs/internal/option"
 )
 
 const (

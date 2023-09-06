@@ -46,9 +46,9 @@ func (pq *priorityQueue) Push(x interface{}) {
 		*pq = npq
 	}
 	*pq = (*pq)[0 : n+1]
-	item := x.(*item)
-	item.Index = n
-	(*pq)[n] = item
+	value := x.(*item)
+	value.Index = n
+	(*pq)[n] = value
 }
 
 func (pq *priorityQueue) Pop() interface{} {
@@ -59,25 +59,25 @@ func (pq *priorityQueue) Pop() interface{} {
 		copy(npq, *pq)
 		*pq = npq
 	}
-	item := (*pq)[n-1]
-	item.Index = -1
+	value := (*pq)[n-1]
+	value.Index = -1
 	*pq = (*pq)[0 : n-1]
 
-	return item
+	return value
 }
 
-func (pq *priorityQueue) PeekAndShift(max int64) (*item, int64) {
+func (pq *priorityQueue) PeekAndShift(maxValue int64) (*item, int64) {
 	if pq.Len() == 0 {
 		return nil, 0
 	}
 
-	item := (*pq)[0]
-	if item.Priority > max {
-		return nil, item.Priority - max
+	value := (*pq)[0]
+	if value.Priority > maxValue {
+		return nil, value.Priority - maxValue
 	}
 	heap.Remove(pq, 0)
 
-	return item, 0
+	return value, 0
 }
 
 // The end of PriorityQueue implementation.
@@ -104,11 +104,11 @@ func NewDelayQueue(size int) *DelayQueue {
 
 // Offer inserts the element into the current queue.
 func (dq *DelayQueue) Offer(elem interface{}, expiration int64) {
-	item := &item{Value: elem, Priority: expiration}
+	value := &item{Value: elem, Priority: expiration}
 
 	dq.mu.Lock()
-	heap.Push(&dq.pq, item)
-	index := item.Index
+	heap.Push(&dq.pq, value)
+	index := value.Index
 	dq.mu.Unlock()
 
 	if index == 0 {
@@ -126,8 +126,8 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 		now := nowF()
 
 		dq.mu.Lock()
-		item, delta := dq.pq.PeekAndShift(now)
-		if item == nil {
+		value, delta := dq.pq.PeekAndShift(now)
+		if value == nil {
 			// No items left or at least one item is pending.
 
 			// We must ensure the atomicity of the whole operation, which is
@@ -137,7 +137,7 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 		}
 		dq.mu.Unlock()
 
-		if item == nil {
+		if value == nil {
 			if delta == 0 {
 				// No items left.
 				select {
@@ -170,7 +170,7 @@ func (dq *DelayQueue) Poll(exitC chan struct{}, nowF func() int64) {
 		}
 
 		select {
-		case dq.C <- item.Value:
+		case dq.C <- value.Value:
 			// The expired element has been sent out successfully.
 		case <-exitC:
 			goto exit

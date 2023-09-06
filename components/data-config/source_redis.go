@@ -101,7 +101,7 @@ func (r *SourceRedis) newSubscribe() {
 	}
 }
 
-func (r *SourceRedis) ReadBytes(configName string) (data []byte, error error) {
+func (r *SourceRedis) ReadBytes(configName string) ([]byte, error) {
 	if configName == "" {
 		return nil, cerr.Error("configName is empty.")
 	}

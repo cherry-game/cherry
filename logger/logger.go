@@ -284,8 +284,5 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 }
 
 func PrintLevel(level zapcore.Level) bool {
-	if level >= printLevel {
-		return true
-	}
-	return false
+	return level >= printLevel
 }

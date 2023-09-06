@@ -222,8 +222,8 @@ func (a *Application) Startup() {
 	// set application is running
 	atomic.AddInt32(&a.running, 1)
 
-	sg := make(chan os.Signal)
-	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGKILL, syscall.SIGTERM)
+	sg := make(chan os.Signal, 1)
+	signal.Notify(sg, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM)
 
 	select {
 	case <-a.dieChan:

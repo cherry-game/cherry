@@ -2,6 +2,8 @@ package cherryGORM
 
 import (
 	"fmt"
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
@@ -9,7 +11,6 @@ import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"time"
 )
 
 const (
@@ -163,7 +164,7 @@ func (s *Component) GetDb(id string) *gorm.DB {
 
 func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*gorm.DB, bool) {
 	dbGroup, found := s.GetDbMap(groupId)
-	if found == false {
+	if !found {
 		clog.Warnf("groupId = %s not found.", groupId)
 		return nil, false
 	}

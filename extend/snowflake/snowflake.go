@@ -7,10 +7,11 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	cerr "github.com/cherry-game/cherry/error"
 	"strconv"
 	"sync"
 	"time"
+
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 var (
@@ -152,10 +153,7 @@ func (n *Node) Generate() ID {
 
 	n.time = now
 
-	r := ID((now)<<n.timeShift |
-		(n.node << n.nodeShift) |
-		(n.step),
-	)
+	r := ID(now<<n.timeShift | (n.node << n.nodeShift) | n.step)
 
 	n.mu.Unlock()
 	return r

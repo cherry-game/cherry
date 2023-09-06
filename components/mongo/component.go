@@ -3,13 +3,14 @@ package cherryMongo
 import (
 	"context"
 	"fmt"
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/mongo/readpref"
-	"time"
 )
 
 const (
@@ -70,7 +71,7 @@ func (s *Component) Init() {
 					continue
 				}
 
-				if enable == false {
+				if !enable {
 					panic(fmt.Sprintf("[dbName = %s] is disabled!", dbName))
 				}
 
@@ -129,7 +130,7 @@ func (s *Component) GetDb(id string) *mongo.Database {
 
 func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*mongo.Database, bool) {
 	dbGroup, found := s.GetDbMap(groupId)
-	if found == false {
+	if !found {
 		clog.Warnf("groupId = %s not found.", groupId)
 		return nil, false
 	}

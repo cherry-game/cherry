@@ -1,8 +1,9 @@
 package pomeloClient
 
 import (
-	cmsg "github.com/cherry-game/cherry/net/parser/pomelo/message"
 	"time"
+
+	cmsg "github.com/cherry-game/cherry/net/parser/pomelo/message"
 )
 
 type (

@@ -15,8 +15,8 @@ func (p *ActorBase) Response(session *cproto.Session, mid uint32, v interface{})
 	Response(p, session, mid, v)
 }
 
-func Response(actor cfacade.IActor, session *cproto.Session, mid uint32, v interface{}) {
-	data, err := actor.App().Serializer().Marshal(v)
+func Response(iActor cfacade.IActor, session *cproto.Session, mid uint32, v interface{}) {
+	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
 		clog.Warnf("[Response] Marshal error. v = %+v", v)
 		return
@@ -28,5 +28,5 @@ func Response(actor cfacade.IActor, session *cproto.Session, mid uint32, v inter
 		Data: data,
 	}
 
-	actor.Call(session.AgentPath, ResponseFuncName, rsp)
+	iActor.Call(session.AgentPath, ResponseFuncName, rsp)
 }

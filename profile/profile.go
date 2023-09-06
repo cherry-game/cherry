@@ -1,12 +1,13 @@
 package cherryProfile
 
 import (
+	"path/filepath"
+
 	cerror "github.com/cherry-game/cherry/error"
 	cfile "github.com/cherry-game/cherry/extend/file"
 	cjson "github.com/cherry-game/cherry/extend/json"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
-	"path/filepath"
 )
 
 var (

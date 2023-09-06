@@ -1,14 +1,15 @@
 package cherryFile
 
 import (
-	cerr "github.com/cherry-game/cherry/error"
-	cslice "github.com/cherry-game/cherry/extend/slice"
 	"os"
 	"path"
 	"path/filepath"
 	"runtime"
 	"sort"
 	"strings"
+
+	cerr "github.com/cherry-game/cherry/error"
+	cslice "github.com/cherry-game/cherry/extend/slice"
 )
 
 func JudgeFile(filePath string) (string, bool) {
@@ -27,7 +28,7 @@ func JudgeFile(filePath string) (string, bool) {
 	}
 
 	newPath, found := JudgePath(p)
-	if found == false {
+	if !found {
 		return "", false
 	}
 
@@ -67,8 +68,8 @@ func JudgePath(filePath string) (string, bool) {
 	return "", false
 }
 
-func IsDir(path string) bool {
-	info, err := os.Stat(path)
+func IsDir(dirPath string) bool {
+	info, err := os.Stat(dirPath)
 	if err == nil && info.IsDir() {
 		return true
 	}
@@ -77,7 +78,7 @@ func IsDir(path string) bool {
 
 func IsFile(fullPath string) bool {
 	info, err := os.Stat(fullPath)
-	if err == nil && info.IsDir() == false {
+	if err == nil && !info.IsDir() {
 		return true
 	}
 	return false
@@ -150,8 +151,8 @@ func JoinPath(elem ...string) (string, error) {
 	return filePath, nil
 }
 
-func CheckPath(path string) error {
-	_, err := os.Stat(path)
+func CheckPath(filePath string) error {
+	_, err := os.Stat(filePath)
 	if err == nil {
 		return nil
 	}
@@ -161,13 +162,11 @@ func CheckPath(path string) error {
 
 func GetFileName(filePath string, removeExt bool) string {
 	fileName := path.Base(filePath)
-	if removeExt == false {
+	if !removeExt {
 		return fileName
 	}
 
-	var suffix string
-	suffix = path.Ext(fileName)
-
+	suffix := path.Ext(fileName)
 	return strings.TrimSuffix(fileName, suffix)
 }
 
@@ -175,7 +174,7 @@ func WalkFiles(rootPath string, fileSuffix string) []string {
 	var files []string
 
 	rootPath, found := JudgePath(rootPath)
-	if found == false {
+	if !found {
 		return files
 	}
 
@@ -196,7 +195,7 @@ func ReadDir(rootPath string, filePrefix, fileSuffix string) ([]string, error) {
 	var files []string
 
 	rootPath, found := JudgePath(rootPath)
-	if found == false {
+	if !found {
 		return files, cerr.Errorf("path = %s, file not found.", rootPath)
 	}
 

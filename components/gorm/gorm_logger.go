@@ -1,8 +1,9 @@
 package cherryGORM
 
 import (
-	clog "github.com/cherry-game/cherry/logger"
 	"strings"
+
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 type gormLogger struct {

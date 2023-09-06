@@ -2,9 +2,10 @@ package cherryConnector
 
 import (
 	"crypto/tls"
+	"net"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	"net"
 )
 
 type (

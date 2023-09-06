@@ -2,22 +2,23 @@ package pomeloClient
 
 import (
 	"crypto/tls"
-	cerr "github.com/cherry-game/cherry/error"
-	ccompress "github.com/cherry-game/cherry/extend/compress"
-	clog "github.com/cherry-game/cherry/logger"
-	cconnector "github.com/cherry-game/cherry/net/connector"
-	"github.com/cherry-game/cherry/net/parser/pomelo/message"
-	"github.com/cherry-game/cherry/net/parser/pomelo/packet"
-	cproto "github.com/cherry-game/cherry/net/proto"
-	cserializer "github.com/cherry-game/cherry/net/serializer"
-	"github.com/gorilla/websocket"
-	jsoniter "github.com/json-iterator/go"
 	"net"
 	"net/url"
 	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
+
+	cerr "github.com/cherry-game/cherry/error"
+	ccompress "github.com/cherry-game/cherry/extend/compress"
+	clog "github.com/cherry-game/cherry/logger"
+	cconnector "github.com/cherry-game/cherry/net/connector"
+	pomeloMessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
+	pomeloPacket "github.com/cherry-game/cherry/net/parser/pomelo/packet"
+	cproto "github.com/cherry-game/cherry/net/proto"
+	cserializer "github.com/cherry-game/cherry/net/serializer"
+	"github.com/gorilla/websocket"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type (

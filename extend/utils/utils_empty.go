@@ -12,49 +12,49 @@ func IsEmpty(value interface{}) bool {
 	}
 	// It firstly checks the variable as common types using assertion to enhance the performance,
 	// and then using reflection.
-	switch value := value.(type) {
+	switch val := value.(type) {
 	case int:
-		return value == 0
+		return val == 0
 	case int8:
-		return value == 0
+		return val == 0
 	case int16:
-		return value == 0
+		return val == 0
 	case int32:
-		return value == 0
+		return val == 0
 	case int64:
-		return value == 0
+		return val == 0
 	case uint:
-		return value == 0
+		return val == 0
 	case uint8:
-		return value == 0
+		return val == 0
 	case uint16:
-		return value == 0
+		return val == 0
 	case uint32:
-		return value == 0
+		return val == 0
 	case uint64:
-		return value == 0
+		return val == 0
 	case float32:
-		return value == 0
+		return val == 0
 	case float64:
-		return value == 0
+		return val == 0
 	case bool:
-		return value == false
+		return !val
 	case string:
-		return value == ""
+		return val == ""
 	case []byte:
-		return len(value) == 0
+		return len(val) == 0
 	case []rune:
-		return len(value) == 0
+		return len(val) == 0
 	case []int:
-		return len(value) == 0
+		return len(val) == 0
 	case []string:
-		return len(value) == 0
+		return len(val) == 0
 	case []float32:
-		return len(value) == 0
+		return len(val) == 0
 	case []float64:
-		return len(value) == 0
+		return len(val) == 0
 	case map[string]interface{}:
-		return len(value) == 0
+		return len(val) == 0
 	default:
 		// Finally using reflect.
 		var rv reflect.Value

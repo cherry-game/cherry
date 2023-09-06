@@ -1,7 +1,6 @@
 package cherryTime
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -10,7 +9,7 @@ func TestCherryTime_DiffInYears(t *testing.T) {
 	ct2 := CreateFromDate(2022, 2, 1)
 
 	years := ct1.DiffInYears(ct2)
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInYearsWithAbs(t *testing.T) {
@@ -19,7 +18,7 @@ func TestCherryTime_DiffInYearsWithAbs(t *testing.T) {
 
 	years := ct1.DiffInYearsWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInMonths(t *testing.T) {
@@ -28,7 +27,7 @@ func TestCherryTime_DiffInMonths(t *testing.T) {
 
 	years := ct1.DiffInMonths(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInMonthsWithAbs(t *testing.T) {
@@ -37,7 +36,7 @@ func TestCherryTime_DiffInMonthsWithAbs(t *testing.T) {
 
 	years := ct1.DiffInMonthsWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInWeeks(t *testing.T) {
@@ -46,7 +45,7 @@ func TestCherryTime_DiffInWeeks(t *testing.T) {
 
 	years := ct1.DiffInWeeks(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInWeeksWithAbs(t *testing.T) {
@@ -55,7 +54,7 @@ func TestCherryTime_DiffInWeeksWithAbs(t *testing.T) {
 
 	years := ct1.DiffInWeeksWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInDays(t *testing.T) {
@@ -64,7 +63,7 @@ func TestCherryTime_DiffInDays(t *testing.T) {
 
 	years := ct1.DiffInDays(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInDaysWithAbs(t *testing.T) {
@@ -73,7 +72,7 @@ func TestCherryTime_DiffInDaysWithAbs(t *testing.T) {
 
 	years := ct1.DiffInDaysWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInHours(t *testing.T) {
@@ -82,7 +81,7 @@ func TestCherryTime_DiffInHours(t *testing.T) {
 
 	years := ct1.DiffInHours(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInHoursWithAbs(t *testing.T) {
@@ -91,7 +90,7 @@ func TestCherryTime_DiffInHoursWithAbs(t *testing.T) {
 
 	years := ct1.DiffInHoursWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInSeconds(t *testing.T) {
@@ -100,7 +99,7 @@ func TestCherryTime_DiffInSeconds(t *testing.T) {
 
 	years := ct1.DiffInSeconds(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }
 
 func TestCherryTime_DiffInSecondsWithAbs(t *testing.T) {
@@ -109,5 +108,5 @@ func TestCherryTime_DiffInSecondsWithAbs(t *testing.T) {
 
 	years := ct1.DiffInSecondsWithAbs(ct2)
 
-	t.Log(fmt.Sprintf("result = %v", years))
+	t.Logf("result = %v", years)
 }

@@ -1,10 +1,11 @@
 package cherryCron
 
 import (
-	ctime "github.com/cherry-game/cherry/extend/time"
-	clog "github.com/cherry-game/cherry/logger"
 	"testing"
 	"time"
+
+	ctime "github.com/cherry-game/cherry/extend/time"
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 func TestAddEveryDayFunc(t *testing.T) {

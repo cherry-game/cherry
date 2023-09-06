@@ -8,7 +8,7 @@ func (c *CherryTime) SetTimezone(timezone string) error {
 		return err
 	}
 
-	c.In(loc)
+	c.Time = c.Time.In(loc)
 	return nil
 }
 

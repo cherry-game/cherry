@@ -1,8 +1,9 @@
 package cherryActor
 
 import (
-	"google.golang.org/protobuf/proto"
 	"reflect"
+
+	"google.golang.org/protobuf/proto"
 
 	ccode "github.com/cherry-game/cherry/code"
 	cerror "github.com/cherry-game/cherry/error"
@@ -33,8 +34,13 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 	if m.IsCluster {
 		cutils.Try(func() {
 			rets := fi.Value.Call(values)
-			rsp := retValue(app.Serializer(), rets)
-			retResponse(m.ClusterReply, &rsp)
+			rspCode, rspData := retValue(app.Serializer(), rets)
+
+			retResponse(m.ClusterReply, &cproto.Response{
+				Code: rspCode,
+				Data: rspData,
+			})
+
 		}, func(errString string) {
 			clog.Warn(errString)
 			retResponse(m.ClusterReply, &cproto.Response{
@@ -47,8 +53,11 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 				fi.Value.Call(values)
 			} else {
 				rets := fi.Value.Call(values)
-				rsp := retValue(app.Serializer(), rets)
-				m.ChanResult <- &rsp
+				rspCode, rspData := retValue(app.Serializer(), rets)
+				m.ChanResult <- &cproto.Response{
+					Code: rspCode,
+					Data: rspData,
+				}
 			}
 		}, func(errString string) {
 			if m.ChanResult != nil {
@@ -109,37 +118,38 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 	return nil
 }
 
-func retValue(serializer cfacade.ISerializer, rets []reflect.Value) cproto.Response {
-	rsp := cproto.Response{
-		Code: ccode.OK,
-	}
+func retValue(serializer cfacade.ISerializer, rets []reflect.Value) (int32, []byte) {
+	var (
+		retsLen = len(rets)
+		rspCode = ccode.OK
+		rspData []byte
+	)
 
-	retsLen := len(rets)
 	if retsLen == 1 {
 		if val := rets[0].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
-				rsp.Code = c
+				rspCode = c
 			}
 		}
 	} else if retsLen == 2 {
 		if !rets[0].IsNil() {
 			data, err := serializer.Marshal(rets[0].Interface())
 			if err != nil {
-				rsp.Code = ccode.RPCRemoteExecuteError
+				rspCode = ccode.RPCRemoteExecuteError
 				clog.Warn(err)
 			} else {
-				rsp.Data = data
+				rspData = data
 			}
 		}
 
 		if val := rets[1].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
-				rsp.Code = c
+				rspCode = c
 			}
 		}
 	}
 
-	return rsp
+	return rspCode, rspData
 }
 
 func retResponse(reply cfacade.IRespond, rsp *cproto.Response) {

@@ -2,12 +2,13 @@ package cherryGin
 
 import (
 	"context"
+	"net/http"
+	"time"
+
 	cfile "github.com/cherry-game/cherry/extend/file"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	"github.com/gin-gonic/gin"
-	"net/http"
-	"time"
 )
 
 type (
@@ -87,9 +88,7 @@ func (p *HttpServer) SetIApplication(app cfacade.IApplication) {
 }
 
 func (p *HttpServer) Register(controllers ...IController) *HttpServer {
-	for _, controller := range controllers {
-		p.controllers = append(p.controllers, controller)
-	}
+	p.controllers = append(p.controllers, controllers...)
 	return p
 }
 

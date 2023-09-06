@@ -1,8 +1,9 @@
 package cherryReflect
 
 import (
-	cerr "github.com/cherry-game/cherry/error"
 	"reflect"
+
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 var (

@@ -2,9 +2,10 @@ package cherryGOB
 
 import (
 	"fmt"
-	cproto "github.com/cherry-game/cherry/net/proto"
 	"reflect"
 	"testing"
+
+	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
 func TestPB(t *testing.T) {

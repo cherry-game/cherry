@@ -1,8 +1,9 @@
 package cherryActor
 
 import (
-	ctimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
 	"time"
+
+	ctimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
 )
 
 var (

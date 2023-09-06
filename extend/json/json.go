@@ -1,8 +1,9 @@
 package cherryJson
 
 import (
-	jsoniter "github.com/json-iterator/go"
 	"os"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 func ToJson(i interface{}) string {

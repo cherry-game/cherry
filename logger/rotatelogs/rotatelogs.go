@@ -6,8 +6,6 @@ package rotatelogs
 
 import (
 	"fmt"
-	cerror "github.com/cherry-game/cherry/error"
-	"github.com/lestrrat-go/strftime"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,6 +13,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	cerror "github.com/cherry-game/cherry/error"
+	"github.com/lestrrat-go/strftime"
 )
 
 func (c clockFn) Now() time.Time {

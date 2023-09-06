@@ -11,5 +11,4 @@ func TestBase64Decode(t *testing.T) {
 	val, err := Base64Decode(token)
 	fmt.Println(val)
 	fmt.Println(err)
-
 }

@@ -1,11 +1,12 @@
 package cherryGin
 
 import (
+	"io"
+	"net/http"
+
 	cslice "github.com/cherry-game/cherry/extend/slice"
 	cstring "github.com/cherry-game/cherry/extend/string"
 	"github.com/gin-gonic/gin"
-	"io"
-	"net/http"
 )
 
 const (
@@ -38,7 +39,7 @@ func (g *Context) GetParams(checkPost ...bool) map[string]string {
 		maps[param.Key] = param.Value
 	}
 
-	if len(checkPost) > 0 && checkPost[0] == true {
+	if len(checkPost) > 0 && checkPost[0] {
 		err := g.Request.ParseForm()
 		if err != nil {
 			return maps
@@ -52,17 +53,11 @@ func (g *Context) GetParams(checkPost ...bool) map[string]string {
 }
 
 func (g *Context) IsPost() bool {
-	if g.Context.Request.Method == http.MethodPost {
-		return true
-	}
-	return false
+	return g.Context.Request.Method == http.MethodPost
 }
 
 func (g *Context) IsGet() bool {
-	if g.Context.Request.Method == http.MethodGet {
-		return true
-	}
-	return false
+	return g.Context.Request.Method == http.MethodGet
 }
 
 func (g *Context) GetBool(name string, defaultValue bool, checkPost ...bool) bool {
@@ -126,7 +121,7 @@ func (g *Context) GetString(name, defaultValue string, checkPost ...bool) string
 		return value
 	}
 
-	if len(checkPost) > 0 && checkPost[0] == true {
+	if len(checkPost) > 0 && checkPost[0] {
 		return g.PostString(name, defaultValue)
 	}
 	return defaultValue

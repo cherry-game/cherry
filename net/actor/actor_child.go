@@ -1,9 +1,10 @@
 package cherryActor
 
 import (
-	cfacade "github.com/cherry-game/cherry/facade"
 	"strings"
 	"sync"
+
+	cfacade "github.com/cherry-game/cherry/facade"
 )
 
 type actorChild struct {

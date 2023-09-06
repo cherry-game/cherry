@@ -85,23 +85,23 @@ func ToString(value interface{}) string {
 		return ret
 	}
 
-	switch value.(type) {
+	switch t := value.(type) {
 	case string:
-		ret = value.(string)
+		ret = t
 	case int:
-		ret = strconv.Itoa(value.(int))
+		ret = strconv.Itoa(t)
 	case int32:
-		ret = strconv.Itoa(int(value.(int32)))
+		ret = strconv.Itoa(int(t))
 	case int64:
-		ret = strconv.FormatInt(value.(int64), 10)
+		ret = strconv.FormatInt(t, 10)
 	case uint:
-		ret = strconv.Itoa(int(value.(uint)))
+		ret = strconv.Itoa(int(t))
 	case uint32:
-		ret = strconv.Itoa(int(value.(uint32)))
+		ret = strconv.Itoa(int(t))
 	case uint64:
-		ret = strconv.Itoa(int(value.(uint64)))
+		ret = strconv.Itoa(int(t))
 	default:
-		v, _ := json.Marshal(value)
+		v, _ := json.Marshal(t)
 		ret = string(v)
 	}
 

@@ -1,8 +1,9 @@
 package cherryNatsCluster
 
 import (
-	"google.golang.org/protobuf/proto"
 	"time"
+
+	"google.golang.org/protobuf/proto"
 
 	ccode "github.com/cherry-game/cherry/code"
 	cerr "github.com/cherry-game/cherry/error"

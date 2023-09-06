@@ -2,12 +2,13 @@
 package cherrySlice
 
 import (
-	cstring "github.com/cherry-game/cherry/extend/string"
-	cutils "github.com/cherry-game/cherry/extend/utils"
 	"math/rand"
 	"reflect"
 	"strings"
 	"time"
+
+	cstring "github.com/cherry-game/cherry/extend/string"
+	cutils "github.com/cherry-game/cherry/extend/utils"
 )
 
 func Int32In(v int32, sl []int32) (int, bool) {
@@ -54,16 +55,17 @@ func InInterface(v interface{}, sl []interface{}) bool {
 }
 
 // RandList generate an int slice from min to max.
-func RandList(min, max int) []int {
-	if max < min {
-		min, max = max, min
+func RandList(minValue, maxValue int) []int {
+	if maxValue < minValue {
+		minValue, maxValue = maxValue, minValue
 	}
-	length := max - min + 1
+
+	length := maxValue - minValue + 1
 	t0 := time.Now()
 	rand.Seed(int64(t0.Nanosecond()))
 	list := rand.Perm(length)
 	for index := range list {
-		list[index] += min
+		list[index] += minValue
 	}
 	return list
 }

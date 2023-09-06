@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"hash/crc32"
-	"reflect"
 	"strconv"
 	"sync/atomic"
 	"testing"
@@ -399,7 +398,8 @@ func TestUnmarshalJSON(t *testing.T) {
 	for _, tc := range tt {
 		var id ID
 		err := id.UnmarshalJSON([]byte(tc.json))
-		if !reflect.DeepEqual(err, tc.expectedErr) {
+
+		if err != tc.expectedErr {
 			t.Fatalf("Expected to get error '%s' decoding JSON, but got '%s'", tc.expectedErr, err)
 		}
 

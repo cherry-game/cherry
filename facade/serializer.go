@@ -1,6 +1,6 @@
 package cherryFacade
 
-//ISerializer 消息序列化
+// ISerializer 消息序列化
 type ISerializer interface {
 	Marshal(interface{}) ([]byte, error) // 编码
 	Unmarshal([]byte, interface{}) error // 解码

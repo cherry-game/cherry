@@ -105,7 +105,7 @@ func (p *Map[K, V]) Values() []V {
 func (p *Map[K, V]) Clear() {
 	if p.safe {
 		p.mutex.Lock()
-		p.mutex.Unlock()
+		defer p.mutex.Unlock()
 	}
 
 	p.m = make(map[K]V)

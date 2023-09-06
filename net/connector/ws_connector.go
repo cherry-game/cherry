@@ -1,12 +1,13 @@
 package cherryConnector
 
 import (
-	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
-	"github.com/gorilla/websocket"
 	"io"
 	"net/http"
 	"time"
+
+	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
+	"github.com/gorilla/websocket"
 )
 
 type (

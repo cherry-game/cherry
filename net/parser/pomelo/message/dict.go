@@ -1,8 +1,9 @@
 package pomeloMessage
 
 import (
-	clog "github.com/cherry-game/cherry/logger"
 	"strings"
+
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 var (
@@ -34,8 +35,6 @@ func SetDictionary(dict map[string]uint16) {
 		routes[r] = code
 		codes[code] = r
 	}
-
-	return
 }
 
 // GetDictionary gets the routes map which is used to compress route.

@@ -3,6 +3,9 @@ package cherryETCD
 import (
 	"context"
 	"fmt"
+	"strings"
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cdiscovery "github.com/cherry-game/cherry/net/discovery"
@@ -10,10 +13,8 @@ import (
 	cprofile "github.com/cherry-game/cherry/profile"
 	jsoniter "github.com/json-iterator/go"
 	"go.etcd.io/etcd/api/v3/mvccpb"
-	"go.etcd.io/etcd/client/v3"
+	clientv3 "go.etcd.io/etcd/client/v3"
 	"go.etcd.io/etcd/client/v3/namespace"
-	"strings"
-	"time"
 )
 
 var (

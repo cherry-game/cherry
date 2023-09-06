@@ -2,9 +2,10 @@
 package cherryTime
 
 import (
-	cerr "github.com/cherry-game/cherry/error"
 	"strconv"
 	"time"
+
+	cerr "github.com/cherry-game/cherry/error"
 )
 
 const (
@@ -84,7 +85,8 @@ func Tomorrow() CherryTime {
 
 // CreateFromTimestamp 从时间戳创建 Carbon 实例
 func CreateFromTimestamp(timestamp int64) CherryTime {
-	ts := timestamp
+	var ts int64
+
 	switch len(strconv.FormatInt(timestamp, 10)) {
 	case 10:
 		ts = timestamp

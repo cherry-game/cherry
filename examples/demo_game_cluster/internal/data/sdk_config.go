@@ -1,19 +1,19 @@
 package data
 
 import (
-	"github.com/cherry-game/cherry/error"
+	cherryError "github.com/cherry-game/cherry/error"
 	cstring "github.com/cherry-game/cherry/extend/string"
-	"github.com/cherry-game/cherry/logger"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 )
 
 type (
 	SdkRow struct {
-		SdkId        int32             `json:"sdkId"`           // sdk id
-		CallbackName string            `json:"callbackName"`    // 支付回调名称路由使用
-		Salt         string            `json:"salt" json:"-"`   // !禁止JSON输出
-		Params       map[string]string `json:"params" json:"-"` // !禁止JSON输出
-		PIDList      []int32           `json:"pidList"`         // sdk包id列表(一个sdk可以输出多个安装包)
-		Desc         string            `json:"desc"`            // 描述
+		SdkId        int32             `json:"sdkId"`        // sdk id
+		CallbackName string            `json:"callbackName"` // 支付回调名称路由使用
+		Salt         string            `json:"-"`            // !禁止JSON输出
+		Params       map[string]string `json:"-"`            // !禁止JSON输出
+		PIDList      []int32           `json:"pidList"`      // sdk包id列表(一个sdk可以输出多个安装包)
+		Desc         string            `json:"desc"`         // 描述
 	}
 
 	// sdk平台参数
@@ -31,7 +31,7 @@ func (p *sdkConfig) Init() {
 
 func (p *sdkConfig) OnLoad(maps interface{}, _ bool) (int, error) {
 	list, ok := maps.([]interface{})
-	if ok == false {
+	if !ok {
 		return 0, cherryError.Error("maps convert to []interface{} error.")
 	}
 
@@ -95,7 +95,7 @@ func (p *SdkRow) LoginURL() string {
 
 func (p *SdkRow) GetString(key string) string {
 	v, found := p.Params[key]
-	if found == false {
+	if !found {
 		return ""
 	}
 	return v
@@ -103,7 +103,7 @@ func (p *SdkRow) GetString(key string) string {
 
 func (p *SdkRow) GetInt(key string) int {
 	v, found := p.Params[key]
-	if found == false {
+	if !found {
 		return 0
 	}
 
