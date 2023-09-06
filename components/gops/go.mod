@@ -4,7 +4,7 @@ go 1.18
 
 require (
 	github.com/cherry-game/cherry v1.3.4
-	github.com/google/gops v0.3.26
+	github.com/google/gops v0.3.28
 )
 
 require (
@@ -16,7 +16,7 @@ require (
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/sys v0.11.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
 
