@@ -1,12 +1,12 @@
 package main
 
 import (
-	"github.com/cherry-game/cherry/logger"
+	cherryLogger "github.com/cherry-game/cherry/logger"
 )
 
 func main() {
 	config := &cherryLogger.Config{
-		Level:           "debug",
+		LogLevel:        "debug",
 		StackLevel:      "error",
 		EnableWriteFile: false,
 		EnableConsole:   true,
