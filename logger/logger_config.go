@@ -2,15 +2,16 @@ package cherryLogger
 
 import (
 	"fmt"
-	cfacade "github.com/cherry-game/cherry/facade"
-	"go.uber.org/zap/zapcore"
 	"strings"
 	"time"
+
+	cfacade "github.com/cherry-game/cherry/facade"
+	"go.uber.org/zap/zapcore"
 )
 
 type (
 	Config struct {
-		Level           string `json:"level"`             // 输出日志等级
+		LogLevel        string `json:"level"`             // 输出日志等级
 		StackLevel      string `json:"stack_level"`       // 堆栈输出日志等级
 		EnableConsole   bool   `json:"enable_console"`    // 是否控制台输出
 		EnableWriteFile bool   `json:"enable_write_file"` // 是否输出文件(必需配置FilePath)
@@ -27,7 +28,7 @@ type (
 
 func defaultConsoleConfig() *Config {
 	config := &Config{
-		Level:           "debug",
+		LogLevel:        "debug",
 		StackLevel:      "error",
 		EnableConsole:   true,
 		EnableWriteFile: false,
@@ -46,7 +47,7 @@ func defaultConsoleConfig() *Config {
 func NewConfig(jsonConfig cfacade.ProfileJSON) *Config {
 	config := &Config{}
 
-	config.Level = jsonConfig.GetString("level", "debug")
+	config.LogLevel = jsonConfig.GetString("level", "debug")
 	config.StackLevel = jsonConfig.GetString("stack_level", "error")
 	config.EnableConsole = jsonConfig.GetBool("enable_console", true)
 	config.EnableWriteFile = jsonConfig.GetBool("enable_write_file", false)
@@ -55,9 +56,9 @@ func NewConfig(jsonConfig cfacade.ProfileJSON) *Config {
 	config.PrintCaller = jsonConfig.GetBool("print_caller", true)
 	config.RotationTime = jsonConfig.GetInt("rotation_time", 86400)
 
-	defaultFileLinkPath := fmt.Sprintf("logs/%s.log", config.Level)
+	defaultFileLinkPath := fmt.Sprintf("logs/%s.log", config.LogLevel)
 	config.FileLinkPath = jsonConfig.GetString("file_link_path", defaultFileLinkPath)
-	defaultFilePath := fmt.Sprintf("logs/%s_%s", config.Level, "%Y%m%d%H%M.log")
+	defaultFilePath := fmt.Sprintf("logs/%s_%s", config.LogLevel, "%Y%m%d%H%M.log")
 	config.FilePathFormat = jsonConfig.GetString("file_path_format", defaultFilePath)
 	config.IncludeStdout = jsonConfig.GetBool("include_stdout", false)
 	config.IncludeStderr = jsonConfig.GetBool("include_stderr", false)

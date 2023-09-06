@@ -2,14 +2,15 @@ package cherryLogger
 
 import (
 	"fmt"
+	"os"
+	"sync"
+	"time"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	"github.com/cherry-game/cherry/logger/rotatelogs"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"os"
-	"sync"
-	"time"
 )
 
 var (
@@ -145,7 +146,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
 		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
-		zap.NewAtomicLevelAt(GetLevel(config.Level)),
+		zap.NewAtomicLevelAt(GetLevel(config.LogLevel)),
 	)
 
 	cherryLogger := &CherryLogger{
@@ -239,7 +240,8 @@ func Fatalf(template string, args ...interface{}) {
 // pairs are treated as they are in With.
 //
 // When debug-level logging is disabled, this is much faster than
-//  s.With(keysAndValues).Debug(msg)
+//
+//	s.With(keysAndValues).Debug(msg)
 func Debugw(msg string, keysAndValues ...interface{}) {
 	DefaultLogger.Debugw(msg, keysAndValues...)
 }

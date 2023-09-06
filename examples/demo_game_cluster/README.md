@@ -44,8 +44,7 @@
 #### 0x02 启动参数配置
 
 > 找到`exmaples/game_cluster/nodes/main.go`，所有节点都从`main.go`启动 <br />
-> 以下操作的启动参数配置以`goland`开发工具为例 <br />
-> 附:`vs code`启动参数配置 [launch.json](launch.json) <br />
+> 启动参数请参考[launch.json](launch.json)文件 <br />
 
 #### 0x03 启动master节点
 
@@ -53,39 +52,39 @@
 > 正式环境也可配置为etcd方式提供发现服务 <br />
 > 相关的代码在`examples/game_cluster/master/`目录
 
-- 操作步骤:
-    - 在`Program arguments:`选项填入参数:`master --path=./examples/config/profile-gc.json --node=gc-master`
+- 启动参数:
+    - `master --path=./examples/config/profile-gc.json --node=gc-master`
 
 #### 0x04 启动center节点
 
 > center节点目前主要用于处理帐号相关的业务或全局唯一的业务
 
-- 操作步骤:
-    - 在`Program arguments:`选项填入参数:`center --path=./examples/config/profile-gc.json --node=gc-center`
+- 启动参数:
+    - `center --path=./examples/config/profile-gc.json --node=gc-center`
 
 #### 0x05 启动web节点
 
 > web节点主要对外提供一些http的接口，可横向扩展，多节点部署 <br />
 > 目前用于开发者帐号注册、区服列表、sdk登陆/支付回调、验证token生成等业务
 
-- 操作步骤:
-  - 在`Program arguments:`选项填入参数:`web --path=./examples/config/profile-gc.json --node=gc-web-1`
+- 启动参数:
+  - `web --path=./examples/config/profile-gc.json --node=gc-web-1`
 
 #### 0x06 启动gate节点
 
 > gate节点为游戏对外网关，可横向扩展，多节点部署 <br />
 > 主要用于管理客户端的连接、消息路由与转发
 
-- 操作步骤:
-    - 在`Program arguments:`选项填入参数:`gate --path=./examples/config/profile-gc.json --node=gc-gate-1`
+- 启动参数:
+    - `gate --path=./examples/config/profile-gc.json --node=gc-gate-1`
 
 #### 0x07 启动game节点
 
 > game节点为具体的游戏逻辑业务，根据业务需求可多节点部署 <br />
 > 在分服的游戏中可提供游戏内的各种逻辑实现
 
-- 操作步骤:
-    - 在`Program arguments:`选项填入参数:`game --path=./examples/config/profile-gc.json --node=10001`
+- 启动参数:
+    - `game --path=./examples/config/profile-gc.json --node=10001`
 
 ### 测试
 

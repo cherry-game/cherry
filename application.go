@@ -1,6 +1,11 @@
 package cherry
 
 import (
+	"os"
+	"os/signal"
+	"sync/atomic"
+	"syscall"
+
 	cconst "github.com/cherry-game/cherry/const"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
@@ -9,10 +14,6 @@ import (
 	cactor "github.com/cherry-game/cherry/net/actor"
 	cserializer "github.com/cherry-game/cherry/net/serializer"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"os"
-	"os/signal"
-	"sync/atomic"
-	"syscall"
 )
 
 const (
@@ -179,7 +180,7 @@ func (a *Application) Startup() {
 	clog.Infof("[env         = %s]", cprofile.Env())
 	clog.Infof("[debug       = %v]", cprofile.Debug())
 	clog.Infof("[printLevel  = %s]", cprofile.PrintLevel())
-	clog.Infof("[logLevel    = %s]", clog.DefaultLogger.Level)
+	clog.Infof("[logLevel    = %s]", clog.DefaultLogger.LogLevel)
 	clog.Infof("[stackLevel  = %s]", clog.DefaultLogger.StackLevel)
 	clog.Infof("[writeFile   = %v]", clog.DefaultLogger.EnableWriteFile)
 	clog.Infof("[serializer  = %s]", a.serializer.Name())
