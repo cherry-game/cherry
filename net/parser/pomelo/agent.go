@@ -116,6 +116,15 @@ func (a *Agent) SendRaw(bytes []byte) {
 	a.chWrite <- bytes
 }
 
+func (a *Agent) SendPacket(typ pomeloPacket.Type, data []byte) {
+	pkg, err := pomeloPacket.Encode(typ, data)
+	if err != nil {
+		clog.Warn(err)
+		return
+	}
+	a.SendRaw(pkg)
+}
+
 func (a *Agent) Close() {
 	if a.SetState(AgentClosed) {
 		select {
@@ -297,12 +306,7 @@ func (a *Agent) processPending(data *pendingMessage) {
 	}
 
 	// encode packet
-	pkg, err := pomeloPacket.Encode(pomeloPacket.Data, em)
-	if err != nil {
-		clog.Warn(err)
-		return
-	}
-	a.SendRaw(pkg)
+	a.SendPacket(pomeloPacket.Data, em)
 }
 
 func (a *Agent) sendPending(typ pomeloMessage.Type, route string, mid uint32, v interface{}, isError bool) {
@@ -406,7 +410,7 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 	}
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Kick ok. [reason = %+v, close = %v]",
+		clog.Debugf("[sid = %s,uid = %d] Kick ok. [reason = %+v, closed = %v]",
 			a.SID(),
 			a.UID(),
 			reason,

@@ -7,7 +7,6 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
 	ppacket "github.com/cherry-game/cherry/net/parser/pomelo/packet"
-	cproto "github.com/cherry-game/cherry/net/proto"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap/zapcore"
 )
@@ -27,6 +26,12 @@ type (
 	DataRouteFunc func(agent *Agent, route *pmessage.Route, msg *pmessage.Message)
 )
 
+const (
+	DataHeartbeat  = "heartbeat"
+	DataDict       = "dict"
+	DataSerializer = "serializer"
+)
+
 var (
 	cmd = Command{
 		writeBacklog:    64,
@@ -40,39 +45,68 @@ var (
 )
 
 func (p *Command) init(app cfacade.IApplication) {
-	p.sysData["heartbeat"] = p.heartbeatTime.Seconds()
-	p.sysData["dict"] = pmessage.GetDictionary()
-	p.sysData["serializer"] = app.Serializer().Name()
+	p.setData(DataHeartbeat, p.heartbeatTime.Seconds())
+	p.setData(DataDict, pmessage.GetDictionary())
+	p.setData(DataSerializer, app.Serializer().Name())
 
-	handShakeData := map[string]interface{}{
+	p.setHandshakeBytes()
+	p.setHeartbeatBytes()
+
+	p.setOnPacketFunc()
+
+}
+
+func (p *Command) setData(name string, value interface{}) {
+	if _, found := p.sysData[name]; !found {
+		p.sysData[name] = value
+	}
+}
+
+func (p *Command) setHandshakeBytes() {
+	handshakeData := map[string]interface{}{
 		"code": 200,
 		"sys":  p.sysData,
 	}
 
-	clog.Infof("[initCommand] Handshake data = %v", handShakeData)
-
-	handShakeJsonData, err := jsoniter.Marshal(handShakeData)
+	handshakeBytes, err := jsoniter.Marshal(handshakeData)
 	if err != nil {
 		clog.Error(err)
 		return
 	}
 
-	p.handshakeBytes, err = ppacket.Encode(ppacket.Handshake, handShakeJsonData)
+	p.handshakeBytes, err = ppacket.Encode(ppacket.Handshake, handshakeBytes)
 	if err != nil {
 		clog.Error(err)
 		return
 	}
 
-	p.heartbeatBytes, err = ppacket.Encode(ppacket.Heartbeat, nil)
+	clog.Infof("[initCommand] handshake data = %v", handshakeData)
+}
+
+func (p *Command) setHeartbeatBytes() {
+	heartbeatBytes, err := ppacket.Encode(ppacket.Heartbeat, nil)
 	if err != nil {
 		clog.Error(err)
 		return
 	}
 
-	p.onPacketFuncMap[ppacket.Handshake] = handshakeCommand
-	p.onPacketFuncMap[ppacket.HandshakeAck] = handshakeACKCommand
-	p.onPacketFuncMap[ppacket.Heartbeat] = heartbeatCommand
-	p.onPacketFuncMap[ppacket.Data] = dataCommand
+	p.heartbeatBytes = heartbeatBytes
+}
+
+func (p *Command) setOnPacketFunc() {
+	packetFuncMaps := map[ppacket.Type]PacketFunc{
+		ppacket.Handshake:    handshakeCommand,
+		ppacket.HandshakeAck: handshakeACKCommand,
+		ppacket.Heartbeat:    heartbeatCommand,
+		ppacket.Data:         dataCommand,
+	}
+
+	for name, packetFunc := range packetFuncMaps {
+		_, found := p.onPacketFuncMap[name]
+		if !found {
+			p.onPacketFuncMap[name] = packetFunc
+		}
+	}
 }
 
 func handshakeCommand(agent *Agent, _ *ppacket.Packet) {
@@ -143,60 +177,4 @@ func dataCommand(agent *Agent, pkg *ppacket.Packet) {
 	}
 
 	cmd.onDataRouteFunc(agent, route, &msg)
-}
-
-// DefaultDataRoute 默认的消息路由
-func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message) {
-	session := BuildSession(agent, msg)
-
-	// current node
-	if agent.NodeType() == route.NodeType() {
-		targetPath := cfacade.NewChildPath(agent.NodeId(), route.HandleName(), session.Sid)
-		LocalDataRoute(agent, session, route, msg, targetPath)
-		return
-	}
-
-	if !session.IsBind() {
-		clog.Warnf("[sid = %s,uid = %d] Session is not bind with UID. failed to forward message.[route = %s]",
-			agent.SID(),
-			agent.UID(),
-			msg.Route,
-		)
-		return
-	}
-
-	member, found := agent.Discovery().Random(route.NodeType())
-	if !found {
-		return
-	}
-
-	targetPath := cfacade.NewPath(member.GetNodeId(), route.HandleName())
-	ClusterLocalDataRoute(agent, session, route, msg, member.GetNodeId(), targetPath)
-}
-
-func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, targetPath string) {
-	message := cfacade.GetMessage()
-	message.Source = session.AgentPath
-	message.Target = targetPath
-	message.FuncName = route.Method()
-	message.Session = session
-	message.Args = msg.Data
-
-	agent.ActorSystem().PostLocal(message)
-}
-
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeID, targetPath string) error {
-	clusterPacket := cproto.GetClusterPacket()
-	clusterPacket.SourcePath = session.AgentPath
-	clusterPacket.TargetPath = targetPath
-	clusterPacket.FuncName = route.Method()
-	clusterPacket.Session = session   // agent session
-	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
-
-	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
-}
-
-func BuildSession(agent *Agent, msg *pmessage.Message) *cproto.Session {
-	agent.session.Mid = uint32(msg.ID)
-	return agent.session
 }
