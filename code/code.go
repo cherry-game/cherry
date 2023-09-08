@@ -10,7 +10,7 @@ const (
 	RPCMarshalError       int32 = 22 // rpc data marshal error
 	RPCRemoteExecuteError int32 = 23 // rpc remote method executor error
 
-	ActorTargetPathIsNil    int32 = 24 // actor target path is nil
+	ActorPathIsNil          int32 = 24 // actor target path is nil
 	ActorFuncNameError      int32 = 25 // actor function name is error
 	ActorConvertPathError   int32 = 26 // convert to path error
 	ActorMarshalError       int32 = 27 // marshal arg error
@@ -18,6 +18,7 @@ const (
 	ActorCallFail           int32 = 29 // actor call fail
 	ActorSourceEqualTarget  int32 = 30 // source equal target
 	ActorPublishRemoteError int32 = 31 // actor publish remote error
+	ActorChildIDNotFound    int32 = 32 // actor child id not found
 
 )
 

@@ -15,6 +15,11 @@ import (
 )
 
 func InvokeLocalFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) {
+	if app == nil {
+		clog.Errorf("[InvokeLocalFunc] app is nil. [message = %+v]", m)
+		return
+	}
+
 	EncodeLocalArgs(app, fi, m)
 
 	values := make([]reflect.Value, 2)
@@ -24,6 +29,11 @@ func InvokeLocalFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade
 }
 
 func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) {
+	if app == nil {
+		clog.Errorf("[InvokeRemoteFunc] app is nil. [message = %+v]", m)
+		return
+	}
+
 	EncodeRemoteArgs(app, fi, m)
 
 	values := make([]reflect.Value, fi.InArgsLen)

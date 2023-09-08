@@ -86,6 +86,15 @@ func (p *System) GetActor(id string) (*Actor, bool) {
 	return actor, found
 }
 
+func (p *System) GetChildActor(actorID, childID string) (*Actor, bool) {
+	parentActor, found := p.GetActor(actorID)
+	if !found {
+		return nil, found
+	}
+
+	return parentActor.child.GetActor(childID)
+}
+
 func (p *System) removeActor(actorID string) {
 	p.actorMap.Delete(actorID)
 }
@@ -114,16 +123,16 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 // Call 发送远程消息(不回复)
 func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 	if target == "" {
-		clog.Warnf("Target path error. [source = %s, target = %s, funcName = %s]",
+		clog.Warnf("[Call] Target path is nil. [source = %s, target = %s, funcName = %s]",
 			source,
 			target,
 			funcName,
 		)
-		return ccode.ActorTargetPathIsNil
+		return ccode.ActorPathIsNil
 	}
 
 	if len(funcName) < 1 {
-		clog.Warnf("FuncName error. [source = %s, target = %s, funcName = %s]",
+		clog.Warnf("[Call] FuncName error. [source = %s, target = %s, funcName = %s]",
 			source,
 			target,
 			funcName,
@@ -133,7 +142,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 
 	targetPath, err := cfacade.ToActorPath(target)
 	if err != nil {
-		clog.Warnf("ToActorPath error. [source = %s, target = %s, funcName = %s, err = %v]",
+		clog.Warnf("[Call] Target path error. [source = %s, target = %s, funcName = %s, err = %v]",
 			source,
 			target,
 			funcName,
@@ -151,7 +160,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 		if arg != nil {
 			argsBytes, err := p.app.Serializer().Marshal(arg)
 			if err != nil {
-				clog.Warnf("Marshal error. [targetPath = %s, error = %s]",
+				clog.Warnf("[Call] Marshal arg error. [targetPath = %s, error = %s]",
 					target,
 					err,
 				)
@@ -162,7 +171,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 
 		err = p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
 		if err != nil {
-			clog.Warnf("Publish remote error. [source = %s, target = %s, funcName = %s, err = %v]",
+			clog.Warnf("[Call] Publish remote fail. [source = %s, target = %s, funcName = %s, err = %v]",
 				source,
 				target,
 				funcName,
@@ -171,7 +180,6 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 			return ccode.ActorPublishRemoteError
 		}
 	} else {
-
 		remoteMsg := cfacade.GetMessage()
 		remoteMsg.Source = source
 		remoteMsg.Target = target
@@ -179,7 +187,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 		remoteMsg.Args = arg
 
 		if !p.PostRemote(remoteMsg) {
-			clog.Warnf("Call error. [source = %s, target = %s, funcName = %s]", source, target, funcName)
+			clog.Warnf("[Call] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
 			return ccode.ActorCallFail
 		}
 	}
@@ -189,27 +197,20 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 
 // CallWait 发送远程消息(等待回复)
 func (p *System) CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32 {
-	if target == "" {
-		clog.Warnf("Target path error. [source = %s, target = %s, funcName = %s]",
+	sourcePath, err := cfacade.ToActorPath(source)
+	if err != nil {
+		clog.Warnf("[CallWait] Source path error. [source = %s, target = %s, funcName = %s, err = %v]",
 			source,
 			target,
 			funcName,
+			err,
 		)
-		return ccode.ActorTargetPathIsNil
-	}
-
-	if len(funcName) < 1 {
-		clog.Warnf("FuncName error. [source = %s, target = %s, funcName = %s]",
-			source,
-			target,
-			funcName,
-		)
-		return ccode.ActorFuncNameError
+		return ccode.ActorConvertPathError
 	}
 
 	targetPath, err := cfacade.ToActorPath(target)
 	if err != nil {
-		clog.Warnf("ToActorPath error. [source = %s, target = %s, funcName = %s, err = %v]",
+		clog.Warnf("[CallWait] Target path error. [source = %s, target = %s, funcName = %s, err = %v]",
 			source,
 			target,
 			funcName,
@@ -219,7 +220,7 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 	}
 
 	if source == target {
-		clog.Warnf("source == target. [source = %s, target = %s, funcName = %s]",
+		clog.Warnf("[CallWait] Source path is equal target. [source = %s, target = %s, funcName = %s]",
 			source,
 			target,
 			funcName,
@@ -227,20 +228,23 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		return ccode.ActorSourceEqualTarget
 	}
 
+	if len(funcName) < 1 {
+		clog.Warnf("[CallWait] FuncName error. [source = %s, target = %s, funcName = %s]",
+			source,
+			target,
+			funcName,
+		)
+		return ccode.ActorFuncNameError
+	}
+
 	// forward to remote actor
-	if targetPath.NodeID != "" && targetPath.NodeID != p.NodeId() {
-		clusterPacket := cproto.GetClusterPacket()
-		clusterPacket.SourcePath = source
-		clusterPacket.TargetPath = target
-		clusterPacket.FuncName = funcName
+	if targetPath.NodeID != "" && targetPath.NodeID != sourcePath.NodeID {
+		clusterPacket := cproto.BuildClusterPacket(source, target, funcName)
 
 		if arg != nil {
 			argsBytes, err := p.app.Serializer().Marshal(arg)
 			if err != nil {
-				clog.Warnf("Marshal error. [targetPath = %s, error = %s]",
-					target,
-					err,
-				)
+				clog.Warnf("[CallWait] Marshal arg error. [targetPath = %s, error = %s]", target, err)
 				return ccode.ActorMarshalError
 			}
 			clusterPacket.ArgBytes = argsBytes
@@ -252,34 +256,41 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		}
 
 		if reply != nil {
-			err = p.app.Serializer().Unmarshal(rsp.Data, reply)
-			if err != nil {
-				clog.Warnf("Marshal reply error. [targetPath = %s, error = %s]",
-					target,
-					err,
-				)
+			if err = p.app.Serializer().Unmarshal(rsp.Data, reply); err != nil {
+				clog.Warnf("[CallWait] Marshal reply error. [targetPath = %s, error = %s]", target, err)
 				return ccode.ActorMarshalError
 			}
 		}
 
 	} else {
-		message := cfacade.GetMessage()
-		message.Source = source
-		message.Target = target
-		message.FuncName = funcName
-		message.Args = arg
-		message.ChanResult = make(chan interface{})
+		message := cfacade.BuildMessage(source, target, funcName, arg)
 
-		if !p.PostRemote(message) {
-			clog.Warnf("Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
-			return ccode.ActorCallFail
+		var result interface{}
+
+		if sourcePath.ActorID == targetPath.ActorID {
+			if sourcePath.ChildID == targetPath.ChildID {
+				return ccode.ActorSourceEqualTarget
+			}
+
+			childActor, found := p.GetChildActor(targetPath.ActorID, targetPath.ChildID)
+			if !found {
+				return ccode.ActorChildIDNotFound
+			}
+
+			childActor.PostRemote(message)
+			result = <-message.ChanResult
+		} else {
+			if !p.PostRemote(message) {
+				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
+				return ccode.ActorCallFail
+			}
+			result = <-message.ChanResult
 		}
 
-		result := <-message.ChanResult
 		if result != nil {
 			rsp := result.(*cproto.Response)
 			if rsp == nil {
-				clog.Warnf("Response is nil. [targetPath = %s]",
+				clog.Warnf("[CallWait] Response is nil. [targetPath = %s]",
 					target,
 				)
 				return ccode.ActorCallFail
@@ -292,7 +303,7 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 			if reply != nil {
 				err = p.app.Serializer().Unmarshal(rsp.Data, reply)
 				if err != nil {
-					clog.Warnf("Unmarshal reply error. [targetPath = %s, error = %s]",
+					clog.Warnf("[CallWait] Unmarshal reply error. [targetPath = %s, error = %s]",
 						target,
 						err,
 					)

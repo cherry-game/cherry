@@ -56,6 +56,10 @@ func (p *actorChild) Create(childID string, handler cfacade.IActorHandler) (cfac
 }
 
 func (p *actorChild) Get(childID string) (cfacade.IActor, bool) {
+	return p.GetActor(childID)
+}
+
+func (p *actorChild) GetActor(childID string) (*Actor, bool) {
 	if actorValue, ok := p.childActors.Load(childID); ok {
 		actor, found := actorValue.(*Actor)
 		return actor, found

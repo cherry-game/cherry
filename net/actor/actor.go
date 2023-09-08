@@ -116,7 +116,7 @@ func (p *Actor) processLocal() {
 		if p.path.IsChild() {
 			p.invokeFunc(p.localMail, p.App(), p.system.localInvokeFunc, m)
 		} else {
-			if childActor, foundChild := p.getChildActor(m); foundChild {
+			if childActor, foundChild := p.findChildActor(m); foundChild {
 				childActor.PostLocal(m)
 			} else {
 				clog.Warnf("Child actor not found. path = %s", m.Target)
@@ -148,7 +148,7 @@ func (p *Actor) processRemote() {
 		if p.path.IsChild() {
 			p.invokeFunc(p.remoteMail, p.App(), p.system.remoteInvokeFunc, m)
 		} else {
-			if childActor, foundChild := p.getChildActor(m); foundChild {
+			if childActor, foundChild := p.findChildActor(m); foundChild {
 				childActor.PostRemote(m)
 			} else {
 				clog.Warnf("Child actor not found. path = %s", m.Target)
@@ -224,10 +224,10 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 	fn(app, funcInfo, m)
 }
 
-func (p *Actor) getChildActor(m *cfacade.Message) (*Actor, bool) {
+func (p *Actor) findChildActor(m *cfacade.Message) (*Actor, bool) {
 	// 如果当前actor为子actor,则终止本次消息处理
 	if p.path.IsChild() {
-		clog.Warnf("[getChildActor] Child actor cannot be created again。",
+		clog.Warnf("[findChildActor] Child actor cannot be created again。",
 			m.Target,
 			m.FuncName,
 		)

@@ -20,6 +20,14 @@ func GetClusterPacket() *ClusterPacket {
 	return pkg
 }
 
+func BuildClusterPacket(source, target, funcName string) *ClusterPacket {
+	clusterPacket := GetClusterPacket()
+	clusterPacket.SourcePath = source
+	clusterPacket.TargetPath = target
+	clusterPacket.FuncName = funcName
+	return clusterPacket
+}
+
 func (x *ClusterPacket) Recycle() {
 	x.BuildTime = 0
 	x.SourcePath = ""

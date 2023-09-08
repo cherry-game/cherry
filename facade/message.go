@@ -54,6 +54,17 @@ func GetMessage() *Message {
 	return msg
 }
 
+func BuildMessage(source, target, funcName string, arg interface{}) *Message {
+	message := GetMessage()
+	message.Source = source
+	message.Target = target
+	message.FuncName = funcName
+	message.Args = arg
+	message.ChanResult = make(chan interface{})
+
+	return message
+}
+
 func (p *Message) Recycle() {
 	p.Source = ""
 	p.Target = ""
