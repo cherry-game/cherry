@@ -25,6 +25,10 @@ const (
 	getUID             = "getUID"
 )
 
+const (
+	sourcePath = ".system"
+)
+
 // Ping 访问center节点，确认center已启动
 func Ping(app cfacade.IApplication) bool {
 	nodeId := GetCenterNodeID(app)
@@ -34,7 +38,7 @@ func Ping(app cfacade.IApplication) bool {
 
 	rsp := &pb.Bool{}
 	targetPath := nodeId + opsActor
-	errCode := app.ActorSystem().CallWait("", targetPath, ping, nil, rsp)
+	errCode := app.ActorSystem().CallWait(sourcePath, targetPath, ping, nil, rsp)
 	if code.IsFail(errCode) {
 		return false
 	}
@@ -52,7 +56,7 @@ func RegisterDevAccount(app cfacade.IApplication, accountName, password, ip stri
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int32{}
-	errCode := app.ActorSystem().CallWait("", targetPath, registerDevAccount, req, rsp)
+	errCode := app.ActorSystem().CallWait(sourcePath, targetPath, registerDevAccount, req, rsp)
 	if code.IsFail(errCode) {
 		clog.Warnf("[RegisterDevAccount] accountName = %s, errCode = %v", accountName, errCode)
 		return errCode
@@ -70,7 +74,7 @@ func GetDevAccount(app cfacade.IApplication, accountName, password string) int64
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int64{}
-	errCode := app.ActorSystem().CallWait("", targetPath, getDevAccount, req, rsp)
+	errCode := app.ActorSystem().CallWait(sourcePath, targetPath, getDevAccount, req, rsp)
 	if code.IsFail(errCode) {
 		clog.Warnf("[GetDevAccount] accountName = %s, errCode = %v", accountName, errCode)
 		return 0
@@ -89,7 +93,7 @@ func GetUID(app cfacade.IApplication, sdkId, pid int32, openId string) (cfacade.
 
 	targetPath := GetTargetPath(app, accountActor)
 	rsp := &pb.Int64{}
-	errCode := app.ActorSystem().CallWait("", targetPath, getUID, req, rsp)
+	errCode := app.ActorSystem().CallWait(sourcePath, targetPath, getUID, req, rsp)
 	if code.IsFail(errCode) {
 		clog.Warnf("[GetUID] errCode = %v", errCode)
 		return 0, errCode
