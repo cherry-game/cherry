@@ -28,7 +28,7 @@
 
 #### 0x00 打开项目
 
-> 打开项目源码，找到`examples/game_cluster`目录
+> 打开项目源码，找到`examples/demo_game_cluster`目录
 
 #### 0x01 启动nats server
 
@@ -43,14 +43,14 @@
 
 #### 0x02 启动参数配置
 
-> 找到`exmaples/game_cluster/nodes/main.go`，所有节点都从`main.go`启动 <br />
+> 找到`exmaples/demo_game_cluster/nodes/main.go`，所有节点都从`main.go`启动 <br />
 > 启动参数请参考[launch.json](launch.json)文件 <br />
 
 #### 0x03 启动master节点
 
 > master节点主要用于实现最基础的发现服务,基于nats构建 <br />
 > 正式环境也可配置为etcd方式提供发现服务 <br />
-> 相关的代码在`examples/game_cluster/master/`目录
+> 相关的代码在`examples/demo_game_cluster/master/`目录
 
 - 启动参数:
     - `master --path=./examples/config/profile-gc.json --node=gc-master`
@@ -93,7 +93,7 @@
 
 #### 启动压测机器人
 
-- 找到`examples/game_cluster/robot_client/main.go` 文件,并执行
+- 找到`examples/demo_game_cluster/robot_client/main.go` 文件,并执行
 - 机器人执行逻辑为：`注册帐号`，`登陆获取token`、`连接网关`、`用户登录游戏服`、`查看角色`、`创建角色`、`进入角色`
 - 默认设定为创建1000个帐号，可自行调整`maxRobotNum`参数进行测试
 - 执行完成后，从game节点的`Console`可以查看到`onlineCount = 10000`字样，表示1万帐号已经进入游戏
