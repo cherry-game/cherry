@@ -56,10 +56,10 @@ func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 	return newId
 }
 
-func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) {
+func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint64 {
 	if delay.Milliseconds() < 1 || fn == nil {
 		clog.Warnf("[ActorTimer] AddOnce parameter error. delay = %+v", delay)
-		return
+		return 0
 	}
 
 	newId := globalTimer.NextId()
@@ -67,10 +67,12 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) {
 
 	if timer == nil {
 		clog.Warnf("[ActorTimer] AddOnce error. d = %+v", delay)
-		return
+		return 0
 	}
 
 	p.addTimerInfo(timer, fn, true)
+
+	return newId
 }
 
 func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {
