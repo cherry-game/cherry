@@ -409,6 +409,14 @@ func TestUnmarshalJSON(t *testing.T) {
 	}
 }
 
+func TestDefaultNode(t *testing.T) {
+	InitDefaultNode("0")
+
+	for i := 0; i < 10; i++ {
+		fmt.Println(NextId())
+	}
+}
+
 // ****************************************************************************
 // Benchmark Methods
 
