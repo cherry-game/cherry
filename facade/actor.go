@@ -43,7 +43,6 @@ type (
 		OnLocalReceived(m *Message) (bool, bool)  // 当Actor接收local消息时触发该函数
 		OnRemoteReceived(m *Message) (bool, bool) // 当Actor接收remote消息时执行的函数
 		OnFindChild(m *Message) (IActor, bool)    // 当actor查找子Actor时触发该函数
-		Exit()                                    // 执行Actor退出
 	}
 
 	IActorChild interface {

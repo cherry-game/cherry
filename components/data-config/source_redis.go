@@ -40,7 +40,7 @@ func (r *SourceRedis) Name() string {
 func (r *SourceRedis) Init(_ IDataConfig) {
 	//read data_config->file node
 	dataConfig := cprofile.GetConfig("data_config").GetConfig(r.Name())
-	if dataConfig.Marshal(&r.redisConfig) != nil {
+	if dataConfig.Unmarshal(&r.redisConfig) != nil {
 		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", r.Name(), cprofile.Name())
 		return
 	}

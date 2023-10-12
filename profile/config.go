@@ -97,7 +97,7 @@ func (p *Config) GetDuration(path interface{}, defaultVal ...time.Duration) time
 	return time.Duration(result.ToInt64())
 }
 
-func (p *Config) Marshal(value interface{}) error {
+func (p *Config) Unmarshal(value interface{}) error {
 	if p.LastError() != nil {
 		return p.LastError()
 	}

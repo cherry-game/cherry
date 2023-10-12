@@ -45,6 +45,6 @@ type (
 		GetInt32(path interface{}, defaultVal ...int32) int32
 		GetInt64(path interface{}, defaultVal ...int64) int64
 		GetDuration(path interface{}, defaultVal ...time.Duration) time.Duration
-		Marshal(ptrVal interface{}) error
+		Unmarshal(ptrVal interface{}) error
 	}
 )
