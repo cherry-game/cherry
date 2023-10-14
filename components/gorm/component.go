@@ -7,7 +7,6 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
-	mysqlDriver "github.com/go-sql-driver/mysql"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -106,10 +105,6 @@ func (s *Component) Init() {
 				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", mysqlConfig.GroupId, mysqlConfig.Id)
 			}
 		}
-	}
-
-	if err := mysqlDriver.SetLogger(clog.DefaultLogger); err != nil {
-		clog.Warnf("mysql driver setLogger error = %v", err)
 	}
 }
 
