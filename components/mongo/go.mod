@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/mongo
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.7
+	github.com/cherry-game/cherry v1.3.8
 	go.mongodb.org/mongo-driver v1.12.1
 )
 
