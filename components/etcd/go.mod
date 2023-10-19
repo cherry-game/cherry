@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/etcd
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.8
+	github.com/cherry-game/cherry v1.3.9
 	github.com/json-iterator/go v1.1.12
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
@@ -17,7 +17,7 @@ require (
 	github.com/klauspost/compress v1.17.0 // indirect
 	github.com/lestrrat-go/strftime v1.0.6 // indirect
 	github.com/minio/highwayhash v1.0.2 // indirect
-	github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
 	github.com/modern-go/reflect2 v1.0.2 // indirect
 	github.com/nats-io/jwt/v2 v2.5.2 // indirect
 	github.com/nats-io/nats.go v1.30.2 // indirect
@@ -37,4 +37,4 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 )
 
-replace github.com/cherry-game/cherry => ../../../cherry
+replace github.com/cherry-game/cherry => ../../
