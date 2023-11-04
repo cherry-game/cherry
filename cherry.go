@@ -22,6 +22,15 @@ func Configure(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *
 	return appBuilder
 }
 
+func ConfigureNode(node cfacade.INode, isFrontend bool, mode NodeMode) *AppBuilder {
+	appBuilder := &AppBuilder{
+		Application: NewAppNode(node, isFrontend, mode),
+		components:  make([]cfacade.IComponent, 0),
+	}
+
+	return appBuilder
+}
+
 func (p *AppBuilder) Startup() {
 	app := p.Application
 
