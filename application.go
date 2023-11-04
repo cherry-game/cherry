@@ -48,6 +48,10 @@ func NewApp(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *App
 		panic(err)
 	}
 
+	return NewAppNode(node, isFrontend, mode)
+}
+
+func NewAppNode(node cfacade.INode, isFrontend bool, mode NodeMode) *Application {
 	// set logger
 	clog.SetNodeLogger(node)
 
