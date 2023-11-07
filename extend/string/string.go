@@ -44,8 +44,12 @@ func ToUint(value string, def ...uint) (uint, bool) {
 	return uint(val), true
 }
 
-func ToInt(value string, def ...int) (int, bool) {
+func ToUintD(value string, def ...uint) uint {
+	val, _ := ToUint(value, def...)
+	return val
+}
 
+func ToInt(value string, def ...int) (int, bool) {
 	val, err := strconv.Atoi(value)
 	if err != nil {
 		if len(def) > 0 {
@@ -54,6 +58,11 @@ func ToInt(value string, def ...int) (int, bool) {
 		return 0, false
 	}
 	return val, true
+}
+
+func ToIntD(value string, def ...int) int {
+	val, _ := ToInt(value, def...)
+	return val
 }
 
 func ToInt32(value string, def ...int32) (int32, bool) {
@@ -67,6 +76,11 @@ func ToInt32(value string, def ...int32) (int32, bool) {
 	return int32(val), true
 }
 
+func ToInt32D(value string, def ...int32) int32 {
+	val, _ := ToInt32(value, def...)
+	return val
+}
+
 func ToInt64(value string, def ...int64) (int64, bool) {
 	val, err := strconv.ParseInt(value, 10, 64)
 	if err != nil {
@@ -76,6 +90,11 @@ func ToInt64(value string, def ...int64) (int64, bool) {
 		return 0, false
 	}
 	return val, true
+}
+
+func ToInt64D(value string, def ...int64) int64 {
+	val, _ := ToInt64(value, def...)
+	return val
 }
 
 func ToString(value interface{}) string {
