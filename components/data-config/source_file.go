@@ -54,11 +54,6 @@ func (f *SourceFile) Init(_ IDataConfig) {
 
 	// new watcher
 	go f.newWatcher()
-
-	err = f.watcher.Start(time.Duration(f.ReloadTime) * time.Millisecond)
-	if err != nil {
-		clog.Panic(err)
-	}
 }
 
 func (f *SourceFile) ReadBytes(configName string) ([]byte, error) {
@@ -120,6 +115,11 @@ func (f *SourceFile) newWatcher() {
 			}
 		}
 	}()
+
+	err := f.watcher.Start(time.Duration(f.ReloadTime) * time.Millisecond)
+	if err != nil {
+		clog.Panic(err)
+	}
 }
 
 func (f *SourceFile) Stop() {
