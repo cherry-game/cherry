@@ -1,29 +1,28 @@
 package cherryDataConfig
 
 import (
-	"os"
-	"time"
-
 	cerr "github.com/cherry-game/cherry/error"
-	cherryFile "github.com/cherry-game/cherry/extend/file"
+	cfile "github.com/cherry-game/cherry/extend/file"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
+	"os"
+	"time"
 )
 
 type (
 	// SourceFile 本地读取数据配置文件
 	SourceFile struct {
 		fileConfig
-		watcher  *watcher.Watcher
-		changeFn ConfigChangeFn
+		watcher     *watcher.Watcher
+		changeFn    ConfigChangeFn
+		monitorPath string
 	}
 
 	fileConfig struct {
-		FilePath    string `json:"file_path"`   // 配置文件路径
-		ExtName     string `json:"ext_name"`    // 文件扩展名
-		ReloadTime  int64  `json:"reload_time"` // 定时重载扫描(毫秒)
-		MonitorPath string `json:"-"`           // 监控路径
+		FilePath   string `json:"file_path"`   // 配置文件路径
+		ExtName    string `json:"ext_name"`    // 文件扩展名
+		ReloadTime int64  `json:"reload_time"` // 定时重载扫描(毫秒)
 	}
 )
 
@@ -32,44 +31,53 @@ func (f *SourceFile) Name() string {
 }
 
 func (f *SourceFile) Init(_ IDataConfig) {
-	//read data_config->file node
-	dataConfig := cprofile.GetConfig("data_config").GetConfig(f.Name())
-	if dataConfig.Unmarshal(&f.fileConfig) != nil {
-		clog.Warnf("[data_config]->[%s] node in `%s` file not found.", f.Name(), cprofile.Name())
+	err := f.unmarshalFileConfig()
+	if err != nil {
+		clog.Panicf("Unmarshal fileConfig fail. err = %v", err)
 		return
 	}
 
-	err := f.check()
+	f.watcher = watcher.New()
+	f.watcher.FilterOps(watcher.Write)
+
+	f.monitorPath, err = cfile.JoinPath(cprofile.Path(), f.FilePath)
 	if err != nil {
-		clog.Warn(err)
+		clog.Panicf("[name = %s] join path fail. err = %v.", f.Name(), err)
+		return
+	}
+
+	err = f.watcher.Add(f.monitorPath)
+	if err != nil {
+		clog.Panicf("New watcher error. path=%s, err = %v", f.monitorPath, err)
 		return
 	}
 
 	// new watcher
 	go f.newWatcher()
+
+	err = f.watcher.Start(time.Duration(f.ReloadTime) * time.Millisecond)
+	if err != nil {
+		clog.Panic(err)
+	}
 }
 
 func (f *SourceFile) ReadBytes(configName string) ([]byte, error) {
 	if configName == "" {
-		return nil, cerr.Error("configName is empty.")
+		return nil, cerr.Error("Config name is empty.")
 	}
 
-	fullPath, err := cherryFile.JoinPath(f.MonitorPath, configName+f.ExtName)
+	fullPath, err := cfile.JoinPath(f.monitorPath, configName+f.ExtName)
 	if err != nil {
-		return nil, cerr.Errorf("file not found. err = %v", err)
-	}
-
-	if cherryFile.IsDir(fullPath) {
-		return nil, cerr.Errorf("path is dir. fullPath = %s", fullPath)
+		return nil, cerr.Errorf("Config file not found. err = %v", err)
 	}
 
 	data, err := os.ReadFile(fullPath)
 	if err != nil {
-		return nil, cerr.Errorf("read file err. err = %v, path = %s", err, fullPath)
+		return nil, cerr.Errorf("Read file error. [path = %s, err = %v]", fullPath, err)
 	}
 
 	if len(data) < 1 {
-		return nil, cerr.Errorf("configName = %s data is err.", configName)
+		return nil, cerr.Errorf("Data is empty. [configName = %s]", configName)
 	}
 
 	return data, err
@@ -80,16 +88,6 @@ func (f *SourceFile) OnChange(fn ConfigChangeFn) {
 }
 
 func (f *SourceFile) newWatcher() {
-	f.watcher = watcher.New()
-	f.watcher.SetMaxEvents(1)
-	f.watcher.FilterOps(watcher.Write)
-
-	if err := f.watcher.Add(f.MonitorPath); err != nil {
-		clog.Warn("new watcher error. path=%s, err=%v", f.MonitorPath, err)
-		return
-	}
-
-	//new goroutine
 	go func() {
 		for {
 			select {
@@ -99,12 +97,12 @@ func (f *SourceFile) newWatcher() {
 						return
 					}
 
-					configName := cherryFile.GetFileName(ev.FileInfo.Name(), true)
-					clog.Infof("[name = %s] trigger file change.", configName)
+					configName := cfile.GetFileName(ev.FileInfo.Name(), true)
+					clog.Infof("Trigger file change. [name = %s]", configName)
 
 					data, err := f.ReadBytes(configName)
 					if err != nil {
-						clog.Warn("[name = %s] read data error = %s", configName, err)
+						clog.Warn("Read data fail. [name = %s, err = %s]", configName, err)
 						return
 					}
 
@@ -122,10 +120,6 @@ func (f *SourceFile) newWatcher() {
 			}
 		}
 	}()
-
-	if err := f.watcher.Start(time.Millisecond * time.Duration(f.ReloadTime)); err != nil {
-		clog.Warn(err)
-	}
 }
 
 func (f *SourceFile) Stop() {
@@ -133,28 +127,31 @@ func (f *SourceFile) Stop() {
 		return
 	}
 
-	err := f.watcher.Remove(f.MonitorPath)
-	clog.Warnf("remote watcher [path = %s, err = %v]", f.MonitorPath, err)
-	//f.watcher.Closed <- struct{}{}
+	err := f.watcher.Remove(f.monitorPath)
+	clog.Infof("Remote watcher [path = %s, err = %v]", f.monitorPath, err)
+
+	f.watcher.Close()
 }
 
-func (f *fileConfig) check() error {
-	if len(f.ExtName) < 1 {
-		f.ExtName = ".json"
+func (f *SourceFile) unmarshalFileConfig() error {
+	//read data_config->file node
+	dataConfig := cprofile.GetConfig("data_config").GetConfig(f.Name())
+
+	err := dataConfig.Unmarshal(&f.fileConfig)
+	if err != nil {
+		return err
 	}
 
 	if f.ReloadTime < 1 {
 		f.ReloadTime = 3000
 	}
 
-	if len(f.FilePath) < 1 {
-		f.FilePath = "data/"
+	if len(f.ExtName) < 1 {
+		f.ExtName = ".json"
 	}
 
-	var err error
-	f.MonitorPath, err = cherryFile.JoinPath(cprofile.Path(), f.FilePath)
-	if err != nil {
-		return err
+	if len(f.FilePath) < 1 {
+		f.FilePath = "data/"
 	}
 
 	return nil
