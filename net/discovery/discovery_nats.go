@@ -150,15 +150,15 @@ func (m *DiscoveryNATS) serverInit() {
 
 		// response member list
 		memberList := &cproto.MemberList{}
-		for _, member := range m.memberMap {
-			if member.GetNodeId() == newMember.GetNodeId() {
-				continue
-			}
 
-			if protoMember, ok := member.(*cproto.Member); ok {
+		m.memberMap.Range(func(key, value any) bool {
+			protoMember := value.(*cproto.Member)
+			if protoMember.NodeId != newMember.NodeId {
 				memberList.List = append(memberList.List, protoMember)
 			}
-		}
+
+			return true
+		})
 
 		rspData, err := m.app.Serializer().Marshal(memberList)
 		if err != nil {

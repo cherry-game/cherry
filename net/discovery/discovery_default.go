@@ -6,6 +6,7 @@ import (
 
 	cerr "github.com/cherry-game/cherry/error"
 	cslice "github.com/cherry-game/cherry/extend/slice"
+	cherryString "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
@@ -16,14 +17,13 @@ import (
 //
 // 该类型发现服务仅用于开发测试使用，直接读取profile.json->node配置
 type DiscoveryDefault struct {
-	sync.RWMutex
-	memberMap        map[string]cfacade.IMember // key:nodeId,value:Member
+	memberMap        sync.Map // key:nodeId,value:cfacade.IMember
 	onAddListener    []cfacade.MemberListener
 	onRemoveListener []cfacade.MemberListener
 }
 
 func (n *DiscoveryDefault) PreInit() {
-	n.memberMap = map[string]cfacade.IMember{}
+	n.memberMap = sync.Map{}
 }
 
 func (n *DiscoveryDefault) Load(_ cfacade.IApplication) {
@@ -62,7 +62,7 @@ func (n *DiscoveryDefault) Load(_ cfacade.IApplication) {
 				member.Settings[key] = settings.Get(key).ToString()
 			}
 
-			n.memberMap[member.NodeId] = member
+			n.memberMap.Store(member.NodeId, member)
 		}
 	}
 }
@@ -72,21 +72,33 @@ func (n *DiscoveryDefault) Name() string {
 }
 
 func (n *DiscoveryDefault) Map() map[string]cfacade.IMember {
-	return n.memberMap
+	memberMap := map[string]cfacade.IMember{}
+
+	n.memberMap.Range(func(key, value any) bool {
+		nodeId := cherryString.ToString(key)
+		member := value.(cfacade.IMember)
+		memberMap[nodeId] = member
+		return true
+	})
+
+	return memberMap
 }
 
 func (n *DiscoveryDefault) ListByType(nodeType string, filterNodeId ...string) []cfacade.IMember {
-	var list []cfacade.IMember
+	var memberList []cfacade.IMember
 
-	for _, member := range n.memberMap {
+	n.memberMap.Range(func(key, value any) bool {
+		member := value.(cfacade.IMember)
 		if member.GetNodeType() == nodeType {
 			if _, ok := cslice.StringIn(member.GetNodeId(), filterNodeId); !ok {
-				list = append(list, member)
+				memberList = append(memberList, member)
 			}
 		}
-	}
 
-	return list
+		return true
+	})
+
+	return memberList
 }
 
 func (n *DiscoveryDefault) Random(nodeType string) (cfacade.IMember, bool) {
@@ -117,15 +129,17 @@ func (n *DiscoveryDefault) GetMember(nodeId string) (cfacade.IMember, bool) {
 		return nil, false
 	}
 
-	member, found := n.memberMap[nodeId]
-	return member, found
+	value, found := n.memberMap.Load(nodeId)
+	if !found {
+		return nil, false
+	}
+
+	return value.(cfacade.IMember), found
 }
 
 func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
-	defer n.Unlock()
-	n.Lock()
-
-	if _, found := n.GetMember(member.GetNodeId()); found {
+	_, loaded := n.memberMap.LoadOrStore(member.GetNodeId(), member)
+	if loaded {
 		clog.Warnf("duplicate nodeId. [nodeType = %s], [nodeId = %s], [address = %s]",
 			member.GetNodeType(),
 			member.GetNodeId(),
@@ -133,8 +147,6 @@ func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
 		)
 		return
 	}
-
-	n.memberMap[member.GetNodeId()] = member
 
 	for _, listener := range n.onAddListener {
 		listener(member)
@@ -144,19 +156,14 @@ func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
 }
 
 func (n *DiscoveryDefault) RemoveMember(nodeId string) {
-	defer n.Unlock()
-	n.Lock()
+	value, loaded := n.memberMap.LoadAndDelete(nodeId)
+	if loaded {
+		member := value.(cfacade.IMember)
+		clog.Debugf("remove member. [member = %s]", member)
 
-	member, found := n.GetMember(nodeId)
-	if !found {
-		return
-	}
-
-	delete(n.memberMap, member.GetNodeId())
-	clog.Debugf("remove member. [member = %s]", member)
-
-	for _, listener := range n.onRemoveListener {
-		listener(member)
+		for _, listener := range n.onRemoveListener {
+			listener(member)
+		}
 	}
 }
 
