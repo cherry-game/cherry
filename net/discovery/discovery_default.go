@@ -6,7 +6,6 @@ import (
 
 	cerr "github.com/cherry-game/cherry/error"
 	cslice "github.com/cherry-game/cherry/extend/slice"
-	cherryString "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
@@ -75,9 +74,9 @@ func (n *DiscoveryDefault) Map() map[string]cfacade.IMember {
 	memberMap := map[string]cfacade.IMember{}
 
 	n.memberMap.Range(func(key, value any) bool {
-		nodeId := cherryString.ToString(key)
-		member := value.(cfacade.IMember)
-		memberMap[nodeId] = member
+		if member, ok := value.(cfacade.IMember); ok {
+			memberMap[member.GetNodeId()] = member
+		}
 		return true
 	})
 
