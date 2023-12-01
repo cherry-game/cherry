@@ -89,7 +89,7 @@ func (f *SourceFile) newWatcher() {
 			case ev := <-f.watcher.Event:
 				{
 					if ev.IsDir() {
-						return
+						continue
 					}
 
 					configName := cfile.GetFileName(ev.FileInfo.Name(), true)
