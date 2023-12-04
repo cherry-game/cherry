@@ -8,6 +8,7 @@ import (
 	"github.com/radovskyb/watcher"
 	"os"
 	"time"
+	"regexp"
 )
 
 type (
@@ -39,6 +40,13 @@ func (f *SourceFile) Init(_ IDataConfig) {
 
 	f.watcher = watcher.New()
 	f.watcher.FilterOps(watcher.Write)
+	var regexpFilter * regexp.Regexp
+	regexpFilter,err = regexp.Compile(`.*\`+f.ExtName+`$`)
+	if err != nil {
+		clog.Panicf("AddFilterHook extName fail. err = %v", err)
+		return
+	}
+	f.watcher.AddFilterHook(watcher.RegexFilterHook(regexpFilter, false))
 
 	f.monitorPath, err = cfile.JoinPath(cprofile.Path(), f.FilePath)
 	if err != nil {
@@ -89,7 +97,7 @@ func (f *SourceFile) newWatcher() {
 			case ev := <-f.watcher.Event:
 				{
 					if ev.IsDir() {
-						return
+						continue
 					}
 
 					configName := cfile.GetFileName(ev.FileInfo.Name(), true)
