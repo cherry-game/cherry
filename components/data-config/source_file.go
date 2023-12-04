@@ -1,14 +1,15 @@
 package cherryDataConfig
 
 import (
+	"os"
+	"regexp"
+	"time"
+
 	cerr "github.com/cherry-game/cherry/error"
 	cfile "github.com/cherry-game/cherry/extend/file"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/radovskyb/watcher"
-	"os"
-	"time"
-	"regexp"
 )
 
 type (
@@ -40,8 +41,8 @@ func (f *SourceFile) Init(_ IDataConfig) {
 
 	f.watcher = watcher.New()
 	f.watcher.FilterOps(watcher.Write)
-	var regexpFilter * regexp.Regexp
-	regexpFilter,err = regexp.Compile(`.*\`+f.ExtName+`$`)
+	var regexpFilter *regexp.Regexp
+	regexpFilter, err = regexp.Compile(`.*\` + f.ExtName + `$`)
 	if err != nil {
 		clog.Panicf("AddFilterHook extName fail. err = %v", err)
 		return
@@ -106,7 +107,7 @@ func (f *SourceFile) newWatcher() {
 					data, err := f.ReadBytes(configName)
 					if err != nil {
 						clog.Warn("Read data fail. [name = %s, err = %s]", configName, err)
-						return
+						continue
 					}
 
 					if f.changeFn != nil {
@@ -116,7 +117,7 @@ func (f *SourceFile) newWatcher() {
 			case err := <-f.watcher.Error:
 				{
 					clog.Error(err)
-					return
+					continue
 				}
 			case <-f.watcher.Closed:
 				return
