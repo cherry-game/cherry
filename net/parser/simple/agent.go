@@ -232,6 +232,7 @@ func (a *Agent) processPacket(msg *Message) {
 			)
 		}
 		a.Close()
+		return
 	}
 
 	onDataRouteFunc(a, msg, nodeRoute)
