@@ -93,6 +93,30 @@ func (a *Agent) Bind(uid cfacade.UID) error {
 	return BindUID(a.SID(), uid)
 }
 
+func (a *Agent) IsBind() bool {
+	return a.session.Uid > 0
+}
+
+func UnbindUID(sid cfacade.SID) {
+	lock.Lock()
+	defer lock.Unlock()
+	agent, found := sidAgentMap[sid]
+	if !found {
+		return
+	}
+	if agent.IsBind() {
+		oldCount := len(uidMap)
+
+		delete(uidMap, agent.UID())
+
+		agent.session.Uid = 0
+		newCount := len(uidMap)
+		if oldCount == newCount {
+			clog.Infof("Unbind agent UID = %d", agent.UID())
+		}
+	}
+}
+
 func (a *Agent) Unbind() {
 	Unbind(a.SID())
 }
