@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/data-config
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.9
+	github.com/cherry-game/cherry v1.3.12
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/json-iterator/go v1.1.12
 	github.com/radovskyb/watcher v1.0.7

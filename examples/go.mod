@@ -4,12 +4,12 @@ go 1.18
 
 require (
 	github.com/ahmetb/go-linq/v3 v3.2.0
-	github.com/cherry-game/cherry v1.3.9
-	github.com/cherry-game/cherry/components/cron v1.3.9
-	github.com/cherry-game/cherry/components/data-config v1.3.9
-	github.com/cherry-game/cherry/components/gin v1.3.9
-	github.com/cherry-game/cherry/components/gops v1.3.9
-	github.com/cherry-game/cherry/components/gorm v1.3.9
+	github.com/cherry-game/cherry v1.3.12
+	github.com/cherry-game/cherry/components/cron v1.3.12
+	github.com/cherry-game/cherry/components/data-config v1.3.12
+	github.com/cherry-game/cherry/components/gin v1.3.12
+	github.com/cherry-game/cherry/components/gops v1.3.12
+	github.com/cherry-game/cherry/components/gorm v1.3.12
 	github.com/gin-gonic/gin v1.9.1
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/goburrow/cache v0.1.4
