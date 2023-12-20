@@ -1,45 +1,45 @@
 #!/bin/bash
 
-echo "[GIT] ------------------------------------------------------"
+echo "[TAG] ------------------------------------------------------"
 
 # shellcheck disable=SC2162
-read -p "[GIT] enter new tag:" number
+read -p "[TAG] enter new tag(eg. 1.3.12):" number
 
 echo ""
 
 
-echo "[GIT ${number}] cherry"
+echo "[TAG ${number}] cherry"
 git tag -a "${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/cron"
-git tag -a "components/cron/${number}" -m "auto tag"
+echo "[TAG ${number}] components/cron"
+git tag -a "components/cron/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/data-config"
-git tag -a "components/data-config/${number}" -m "auto tag"
+echo "[TAG ${number}] components/data-config"
+git tag -a "components/data-config/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/etcd"
-git tag -a "components/etcd/${number}" -m "auto tag"
+echo "[TAG ${number}] components/etcd"
+git tag -a "components/etcd/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/gin"
-git tag -a "components/gin/${number}" -m "auto tag"
+echo "[TAG ${number}] components/gin"
+git tag -a "components/gin/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/gops"
-git tag -a "components/gops/${number}" -m "auto tag"
+echo "[TAG ${number}] components/gops"
+git tag -a "components/gops/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/gorm"
-git tag -a "components/gorm/${number}" -m "auto tag"
+echo "[TAG ${number}] components/gorm"
+git tag -a "components/gorm/v${number}" -m "auto tag"
 
 
-echo "[GIT ${number}] components/mongo"
-git tag -a "components/mongo/${number}" -m "auto tag"
+echo "[TAG ${number}] components/mongo"
+git tag -a "components/mongo/v${number}" -m "auto tag"
 
-echo "[GIT ${number}] examples"
-git tag -a "examples/${number}" -m "auto tag"
+echo "[TAG ${number}] examples"
+git tag -a "examples/v${number}" -m "auto tag"
 
-echo "[GIT] ------------------------------------------------------"
+echo "[TAG] ------------------------------------------------------"
