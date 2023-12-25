@@ -52,10 +52,10 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 			})
 
 		}, func(errString string) {
-			clog.Warnf("[InvokeRemoteFunc] invoke error. [message = %+v, err = %s]", m, errString)
 			retResponse(m.ClusterReply, &cproto.Response{
 				Code: ccode.RPCRemoteExecuteError,
 			})
+			clog.Errorf("[InvokeRemoteFunc] invoke error. [message = %+v, err = %s]", m, errString)
 		})
 	} else {
 		cutils.Try(func() {
