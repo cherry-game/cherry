@@ -180,6 +180,8 @@ func (a *Agent) writeChan() {
 		a.Close()
 	}()
 
+	var lastAt, deadline int64
+
 	for {
 		select {
 		case <-a.chDie:
@@ -188,8 +190,9 @@ func (a *Agent) writeChan() {
 			}
 		case <-ticker.C:
 			{
-				deadline := time.Now().Add(-cmd.heartbeatTime).Unix()
-				if a.lastAt < deadline {
+				lastAt = atomic.LoadInt64(&a.lastAt)
+				deadline = time.Now().Add(-cmd.heartbeatTime).Unix()
+				if lastAt < deadline {
 					if clog.PrintLevel(zapcore.DebugLevel) {
 						clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
 					}
