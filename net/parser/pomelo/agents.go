@@ -60,6 +60,8 @@ func Unbind(sid cfacade.SID) {
 	delete(sidAgentMap, sid)
 	delete(uidMap, agent.UID())
 
+	agent.session.Uid = 0
+
 	sidCount := len(sidAgentMap)
 	uidCount := len(uidMap)
 	if sidCount == 0 || uidCount == 0 {
