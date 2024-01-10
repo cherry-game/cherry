@@ -20,6 +20,7 @@ type (
 	Cluster struct {
 		app        cfacade.IApplication
 		bufferSize int
+		prefix     string
 		local      *natsSubject
 		remote     *natsSubject
 	}
@@ -37,18 +38,12 @@ func New(app cfacade.IApplication, options ...OptionFunc) cfacade.ICluster {
 		option(cluster)
 	}
 
-	cluster.loadNats()
-
-	localSubject := getLocalSubject(app.NodeType(), app.NodeId())
-	cluster.local = newNatsSubject(localSubject, cluster.bufferSize)
-
-	remoteSubject := getRemoteSubject(app.NodeType(), app.NodeId())
-	cluster.remote = newNatsSubject(remoteSubject, cluster.bufferSize)
+	cluster.loadConfig()
 
 	return cluster
 }
 
-func (p *Cluster) loadNats() {
+func (p *Cluster) loadConfig() {
 	natsConfig := cprofile.GetConfig("cluster").GetConfig("nats")
 	if natsConfig.LastError() != nil {
 		panic("cluster->nats config not found.")
@@ -56,6 +51,14 @@ func (p *Cluster) loadNats() {
 
 	natsConn := cnats.NewFromConfig(natsConfig)
 	cnats.SetInstance(natsConn)
+
+	p.prefix = natsConfig.GetString("prefix", "node")
+
+	localSubject := getLocalSubject(p.prefix, p.app.NodeType(), p.app.NodeId())
+	p.local = newNatsSubject(localSubject, p.bufferSize)
+
+	remoteSubject := getRemoteSubject(p.prefix, p.app.NodeType(), p.app.NodeId())
+	p.remote = newNatsSubject(remoteSubject, p.bufferSize)
 }
 
 func (p *Cluster) Init() {
@@ -187,7 +190,7 @@ func (p *Cluster) PublishLocal(nodeId string, request *cproto.ClusterPacket) err
 		return err
 	}
 
-	subject := getLocalSubject(nodeType, nodeId)
+	subject := getLocalSubject(p.prefix, nodeType, nodeId)
 	bytes, err := proto.Marshal(request)
 	if err != nil {
 		return err
@@ -218,7 +221,7 @@ func (p *Cluster) PublishRemote(nodeId string, request *cproto.ClusterPacket) er
 		return err
 	}
 
-	subject := getRemoteSubject(nodeType, nodeId)
+	subject := getRemoteSubject(p.prefix, nodeType, nodeId)
 	bytes, err := proto.Marshal(request)
 	if err != nil {
 		clog.Warn(err)
@@ -257,7 +260,7 @@ func (p *Cluster) RequestRemote(nodeId string, request *cproto.ClusterPacket, ti
 		return rsp
 	}
 
-	subject := getRemoteSubject(nodeType, nodeId)
+	subject := getRemoteSubject(p.prefix, nodeType, nodeId)
 	natsMsg, err := cnats.Get().Request(subject, msg, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] nats request fail. [nodeId = %s, %s, err = %v]",

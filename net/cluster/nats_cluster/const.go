@@ -5,16 +5,16 @@ import (
 )
 
 const (
-	remoteSubjectFormat = "cherry.node.remote.%s.%s" // nodeType.nodeId
-	localSubjectFormat  = "cherry.node.local.%s.%s"  // nodeType.nodeId
+	remoteSubjectFormat = "cherry.%s.remote.%s.%s" // nodeType.nodeId
+	localSubjectFormat  = "cherry.%s.local.%s.%s"  // nodeType.nodeId
 )
 
 // getLocalSubject local message nats chan
-func getLocalSubject(nodeType string, nodeId string) string {
-	return fmt.Sprintf(localSubjectFormat, nodeType, nodeId)
+func getLocalSubject(prefix, nodeType, nodeId string) string {
+	return fmt.Sprintf(localSubjectFormat, prefix, nodeType, nodeId)
 }
 
 // getRemoteSubject remote message nats chan
-func getRemoteSubject(nodeType string, nodeId string) string {
-	return fmt.Sprintf(remoteSubjectFormat, nodeType, nodeId)
+func getRemoteSubject(prefix, nodeType, nodeId string) string {
+	return fmt.Sprintf(remoteSubjectFormat, prefix, nodeType, nodeId)
 }
