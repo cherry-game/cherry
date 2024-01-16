@@ -21,6 +21,7 @@ type (
 		agentActorID   string
 		connectors     []cfacade.IConnector
 		onNewAgentFunc OnNewAgentFunc
+		onInitFunc     func()
 	}
 
 	OnNewAgentFunc func(newAgent *Agent)
@@ -34,6 +35,7 @@ func NewActor(agentActorID string) *actor {
 	parser := &actor{
 		agentActorID: agentActorID,
 		connectors:   make([]cfacade.IConnector, 0),
+		onInitFunc:   nil,
 	}
 
 	return parser
@@ -45,6 +47,14 @@ func (p *actor) OnInit() {
 	p.Remote().Register(PushFuncName, p.push)
 	p.Remote().Register(KickFuncName, p.kick)
 	p.Remote().Register(BroadcastName, p.broadcast)
+
+	if p.onInitFunc != nil {
+		p.onInitFunc()
+	}
+}
+
+func (p *actor) SetOnInitFunc(fn func()) {
+	p.onInitFunc = fn
 }
 
 func (p *actor) Load(app cfacade.IApplication) {

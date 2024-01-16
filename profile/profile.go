@@ -43,7 +43,7 @@ func PrintLevel() string {
 
 func Init(filePath, nodeId string) (cfacade.INode, error) {
 	if filePath == "" {
-		return nil, cerror.Error("Profile file path is nil.")
+		return nil, cerror.Error("File path is nil.")
 	}
 
 	if nodeId == "" {
