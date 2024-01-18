@@ -34,8 +34,8 @@ func (p *ActorBase) Kick(session *cproto.Session, reason interface{}, closed boo
 	Kick(p, session.AgentPath, session.Sid, reason, closed)
 }
 
-func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, data []byte) {
-	Broadcast(p, agentPath, uidList, allUID, route, data)
+func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
+	Broadcast(p, agentPath, uidList, allUID, route, v)
 }
 
 func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v interface{}) {
@@ -101,7 +101,7 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason interface{}, clos
 	iActor.Call(agentPath, KickFuncName, rsp)
 }
 
-func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, data []byte) {
+func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
 	if !allUID && len(uidList) < 1 {
 		clog.Warn("[Broadcast] uidList value error.")
 		return
@@ -109,6 +109,12 @@ func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID 
 
 	if route == "" {
 		clog.Warn("[Broadcast] route value error.")
+		return
+	}
+
+	data, err := iActor.App().Serializer().Marshal(v)
+	if err != nil {
+		clog.Warnf("[Kick] Marshal error. v = %+v", v)
 		return
 	}
 
