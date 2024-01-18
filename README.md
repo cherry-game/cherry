@@ -18,13 +18,12 @@
 
 
 # 讨论与交流
-
 - [QQ群讨论: 191651647 ](https://jq.qq.com/?_wv=1027&k=vdIddlK0)
+
 
 # 教程
 
 ### 多节点精简版聊天室(❤推荐)
-
 - 实现网页客户端，构建http server
 - 选择websocket作为连接器
 - 选择json做为通信格式
@@ -34,7 +33,6 @@
 - [示例代码跳转](examples/demo_chat)
 
 ### 多节点分布式游戏示例(❤强烈推荐)
-
 - 选择h5搭建一个客户端
 - 搭建web服节点
 - 搭建网关服节点
@@ -47,47 +45,14 @@
 # 核心功能
 
 ### 组件管理
-
 - 基于组件的方式组合功能，方便统一管理生命周期
 - 可根据需求自定义组件，并注册到框架，灵活扩展
 - 可配置`cluster mode`和`standalone mode`
 
 ### 环境配置
-
 - 可配置多个环境的参数，方便切换
 - 所有系统参数、组件参数都基于profile文件配置，方便扩展
 - 可根据业务需求自由的拆分或组装多个profile子文件，精简配置,拒绝冗余
-
-### 日志
-
-- 基于`uber zap`封装，性能良好
-- 可配置多文件进行日志输出
-- 基于`rotatelogs`处理切割日志
-
-### 消息&路由
-
-- 实现pomelo网络数据包结构 & simple网络数据包结构
-- 包解码&编码
-- 消息路由
-- 消息序列化(自带json/protobuf)
-- 事件
-
-### 连接器
-
-- tcp
-- websocket
-- http server
-- http client
-- kcp(未实现，以后作为组件集成)
-
-### 集群&注册发现
-
-- 三种发现服务实现方式:
-    - 开发用，直接读取本地的节点配置文件
-    - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
-    - 线上用，基于etcd封装，实现集群方式的发现服务
-- 基于nats.io实现的RPC调用，默认提供同步/异步的调用方式
-
 
 ### actor模型
 - 每个Actor独立运行在一个goroutine中，所有的逻辑都是串行处理
@@ -99,15 +64,36 @@
 - Actor可以创建多个子Actor(ChildActor)，子Actor的消息由父Actor进行路由转发
 - 通过cluster集群组件、discovery发现服务组件，进行跨节点的actor通信
 
+### 集群&注册发现
+- 三种发现服务实现方式:
+    - 开发用，直接读取本地的节点配置文件
+    - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
+    - 线上用，基于etcd封装，实现集群方式的发现服务
+- 基于nats.io实现的RPC调用，默认提供同步/异步的调用方式
+
+### 连接器
+- tcp
+- websocket
+- http server
+- http client
+- kcp(未实现，以后作为组件集成)
+
+### 消息&路由
+- 实现pomelo网络数据包结构 & simple网络数据包结构
+- 包解码&编码
+- 消息路由
+- 消息序列化(自带json/protobuf)
+- 事件
+
+### 日志
+- 基于`uber zap`封装，性能良好
+- 可配置多文件进行日志输出
+- 基于`rotatelogs`处理切割日志
+
+
 # 扩展组件
 
-### [cron组件](components/cron)
-
-- 基于`github.com/robfig/cron/v3`进行封装成组件
-- 性能良好
-
 ### [data-config组件](components/data-config)
-
 - 策划配表读取管理组件
 - 可基于本地配置文件的方式加载
 - 可基于redis数据的方式加载
@@ -118,11 +104,9 @@
 - 可根据`go-linq`进行数据集合的条件查询
 
 ### [etcd组件](components/etcd)
-
 - 基于`etcd`组件进行封装，节点集群和注册发现
 
 ### [gin组件](components/gin)
-
 - 集成`gin`组件，实现http server功能
 - 自定义`controller`，增加`PreInit()`、`Init()`、`Stop()`初始周期的管理
 - 增加几个常用的`middleware`组件
@@ -133,20 +117,22 @@
 - 封装了GET/POST方式获取各种数据类型的函数
 
 ### [gorm组件](components/gorm)
-
 - 集成`gorm`组件，实现mysql的数据库访问
 - 支持多个mysql数据库配置和管理
 
 ### [mongo组件](components/mongo)
-
 - 集成`mongo-driver`驱动
 - 支持多个mongodb数据库配置和管理
 
-### 待开放组件
+### [cron组件](components/cron)
+- 基于`github.com/robfig/cron/v3`进行封装成组件
+- 性能良好
 
+### 待开放组件
 - db队列
 - gopher-lua脚本
 - 限流组件
+
 
 # 游戏客户端SDK
 
