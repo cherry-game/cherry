@@ -10,11 +10,11 @@ func Error(text string) error {
 }
 
 func Errorf(format string, a ...interface{}) error {
-	return fmt.Errorf(format, a...)
+	return errors.New(fmt.Sprintf(format, a...))
 }
 
 func Wrap(err error, text string) error {
-	return fmt.Errorf("err:%v, text:%s", err, text)
+	return Errorf("err:%v, text:%s", err, text)
 }
 
 func Wrapf(err error, format string, a ...interface{}) error {

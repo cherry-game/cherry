@@ -3,6 +3,7 @@ package cherryLogger
 import (
 	"fmt"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -14,11 +15,12 @@ import (
 )
 
 var (
-	rw            sync.RWMutex             // mutex
-	DefaultLogger *CherryLogger            // 默认日志对象(控制台输出)
-	loggers       map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodeId        string                   // current node id
-	printLevel    zapcore.Level            // cherry log print level
+	rw             sync.RWMutex             // mutex
+	DefaultLogger  *CherryLogger            // 默认日志对象(控制台输出)
+	loggers        map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
+	nodeId         string                   // current node id
+	printLevel     zapcore.Level            // cherry log print level
+	fileNameVarMap = map[string]string{}    // 日志输出文件名自定义变量
 )
 
 func init() {
@@ -37,14 +39,21 @@ func (c *CherryLogger) Print(v ...interface{}) {
 
 func SetNodeLogger(node cfacade.INode) {
 	nodeId = node.NodeId()
-	refLogger := node.Settings().Get("ref_logger").ToString()
-	if refLogger == "" {
-		DefaultLogger.Infof("refLogger config not found, used default console logger.")
+	refLoggerName := node.Settings().Get("ref_logger").ToString()
+	if refLoggerName == "" {
+		DefaultLogger.Infof("RefLoggerName not found, used default console logger.")
 		return
 	}
 
-	DefaultLogger = NewLogger(refLogger, zap.AddCallerSkip(1))
+	SetFileNameVar("nodeId", node.NodeId())     // %nodeId
+	SetFileNameVar("nodeType", node.NodeType()) // %nodeTyp
+
+	DefaultLogger = NewLogger(refLoggerName, zap.AddCallerSkip(1))
 	printLevel = GetLevel(cprofile.PrintLevel())
+}
+
+func SetFileNameVar(key, value string) {
+	fileNameVarMap[key] = value
 }
 
 func Flush() {
@@ -67,17 +76,11 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 		return logger
 	}
 
-	loggerConfig := cprofile.GetConfig("logger")
-	if loggerConfig.LastError() != nil {
-		panic(loggerConfig.LastError())
+	config, err := NewConfigWithName(refLoggerName)
+	if err != nil {
+		Panicf("New Config fail. err = %v", err)
 	}
 
-	jsonConfig := loggerConfig.GetConfig(refLoggerName)
-	if jsonConfig.LastError() != nil {
-		panic(fmt.Sprintf("ref_logger = %s not found. error = %v", refLoggerName, jsonConfig.LastError()))
-	}
-
-	config := NewConfig(jsonConfig)
 	logger := NewConfigLogger(config, opts...)
 	loggers[refLoggerName] = logger
 
@@ -85,6 +88,13 @@ func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
 }
 
 func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
+	if config.EnableWriteFile {
+		for key, value := range fileNameVarMap {
+			config.FileLinkPath = strings.ReplaceAll(config.FileLinkPath, "%"+key, value)
+			config.FilePathFormat = strings.ReplaceAll(config.FilePathFormat, "%"+key, value)
+		}
+	}
+
 	encoderConfig := zapcore.EncoderConfig{
 		TimeKey:        "ts",
 		LevelKey:       "level",
@@ -285,4 +295,23 @@ func Fatalw(msg string, keysAndValues ...interface{}) {
 
 func PrintLevel(level zapcore.Level) bool {
 	return level >= printLevel
+}
+
+func GetLevel(level string) zapcore.Level {
+	switch strings.ToLower(level) {
+	case "debug":
+		return zapcore.DebugLevel
+	case "info":
+		return zapcore.InfoLevel
+	case "warn":
+		return zapcore.WarnLevel
+	case "error":
+		return zapcore.ErrorLevel
+	case "panic":
+		return zapcore.PanicLevel
+	case "fatal":
+		return zapcore.FatalLevel
+	default:
+		return zapcore.DebugLevel
+	}
 }

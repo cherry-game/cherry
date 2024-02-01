@@ -2,7 +2,7 @@ package cherryLogger
 
 import (
 	"fmt"
-	"strings"
+	cprofile "github.com/cherry-game/cherry/profile"
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -36,57 +36,61 @@ func defaultConsoleConfig() *Config {
 		TimeFormat:      "15:04:05.000", //2006-01-02 15:04:05.000
 		PrintCaller:     true,
 		RotationTime:    86400,
-		FileLinkPath:    "logs/log.log",
-		FilePathFormat:  "logs/log_%Y%m%d%H%M.log",
+		FileLinkPath:    "logs/debug.log",
+		FilePathFormat:  "logs/debug_%Y%m%d%H%M.log",
 		IncludeStdout:   false,
 		IncludeStderr:   false,
 	}
 	return config
 }
 
-func NewConfig(jsonConfig cfacade.ProfileJSON) *Config {
-	config := &Config{}
+func NewConfig(jsonConfig cfacade.ProfileJSON) (*Config, error) {
+	config := &Config{
+		LogLevel:        jsonConfig.GetString("level", "debug"),
+		StackLevel:      jsonConfig.GetString("stack_level", "error"),
+		EnableConsole:   jsonConfig.GetBool("enable_console", true),
+		EnableWriteFile: jsonConfig.GetBool("enable_write_file", false),
+		MaxAge:          jsonConfig.GetInt("max_age", 7),
+		TimeFormat:      jsonConfig.GetString("time_format", "15:04:05.000"),
+		PrintCaller:     jsonConfig.GetBool("print_caller", true),
+		RotationTime:    jsonConfig.GetInt("rotation_time", 86400),
+		FileLinkPath:    jsonConfig.GetString("file_link_path", ""),
+		FilePathFormat:  jsonConfig.GetString("file_path_format", ""),
+		IncludeStdout:   jsonConfig.GetBool("include_stdout", false),
+		IncludeStderr:   jsonConfig.GetBool("include_stderr", false),
+	}
 
-	config.LogLevel = jsonConfig.GetString("level", "debug")
-	config.StackLevel = jsonConfig.GetString("stack_level", "error")
-	config.EnableConsole = jsonConfig.GetBool("enable_console", true)
-	config.EnableWriteFile = jsonConfig.GetBool("enable_write_file", false)
-	config.MaxAge = jsonConfig.GetInt("max_age", 7)
-	config.TimeFormat = jsonConfig.GetString("time_format", "15:04:05.000")
-	config.PrintCaller = jsonConfig.GetBool("print_caller", true)
-	config.RotationTime = jsonConfig.GetInt("rotation_time", 86400)
+	if config.EnableWriteFile {
+		if config.FileLinkPath == "" {
+			defaultValue := fmt.Sprintf("logs/%s.log", config.LogLevel)
+			config.FileLinkPath = jsonConfig.GetString("file_link_path", defaultValue)
+		}
 
-	defaultFileLinkPath := fmt.Sprintf("logs/%s.log", config.LogLevel)
-	config.FileLinkPath = jsonConfig.GetString("file_link_path", defaultFileLinkPath)
-	defaultFilePath := fmt.Sprintf("logs/%s_%s", config.LogLevel, "%Y%m%d%H%M.log")
-	config.FilePathFormat = jsonConfig.GetString("file_path_format", defaultFilePath)
-	config.IncludeStdout = jsonConfig.GetBool("include_stdout", false)
-	config.IncludeStderr = jsonConfig.GetBool("include_stderr", false)
+		if config.FilePathFormat == "" {
+			defaultValue := fmt.Sprintf("logs/%s_%s.log", config.LogLevel, "%Y%m%d%H%M")
+			config.FilePathFormat = jsonConfig.GetString("file_path_format", defaultValue)
+		}
+	}
 
-	return config
+	return config, nil
+}
+
+func NewConfigWithName(refLoggerName string) (*Config, error) {
+	loggerConfig := cprofile.GetConfig("logger")
+	if loggerConfig.LastError() != nil {
+		return nil, loggerConfig.LastError()
+	}
+
+	jsonConfig := loggerConfig.GetConfig(refLoggerName)
+	if jsonConfig.LastError() != nil {
+		return nil, jsonConfig.LastError()
+	}
+
+	return NewConfig(jsonConfig)
 }
 
 func (c *Config) TimeEncoder() zapcore.TimeEncoder {
 	return func(time time.Time, encoder zapcore.PrimitiveArrayEncoder) {
 		encoder.AppendString(time.Format(c.TimeFormat))
-	}
-}
-
-func GetLevel(level string) zapcore.Level {
-	switch strings.ToLower(level) {
-	case "debug":
-		return zapcore.DebugLevel
-	case "info":
-		return zapcore.InfoLevel
-	case "warn":
-		return zapcore.WarnLevel
-	case "error":
-		return zapcore.ErrorLevel
-	case "panic":
-		return zapcore.PanicLevel
-	case "fatal":
-		return zapcore.FatalLevel
-	default:
-		return zapcore.DebugLevel
 	}
 }
