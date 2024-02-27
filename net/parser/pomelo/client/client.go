@@ -58,7 +58,7 @@ func New(opts ...Option) *Client {
 		closeChan:     make(chan struct{}),
 		actionChan:    make(chan ActionFn, 128),
 		handshakeData: &HandshakeData{},
-		chWrite:       make(chan []byte),
+		chWrite:       make(chan []byte, 64),
 	}
 
 	for _, opt := range opts {
