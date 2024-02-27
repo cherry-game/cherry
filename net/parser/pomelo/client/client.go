@@ -34,6 +34,7 @@ type (
 		closeChan     chan struct{}  // 关闭chan
 		actionChan    chan ActionFn  // 动作执行队列
 		handshakeData *HandshakeData // handshake data
+		chWrite       chan []byte
 	}
 
 	ActionFn    func() error
@@ -57,6 +58,7 @@ func New(opts ...Option) *Client {
 		closeChan:     make(chan struct{}),
 		actionChan:    make(chan ActionFn, 128),
 		handshakeData: &HandshakeData{},
+		chWrite:       make(chan []byte, 64),
 	}
 
 	for _, opt := range opts {
@@ -299,6 +301,13 @@ func (p *Client) handleData() {
 					return
 				}
 			}
+		case bytes := <-p.chWrite:
+			{
+				if _, err := p.conn.Write(bytes); err != nil {
+					clog.Warnf("[%s] write packet fail. %s", p.TagName, err.Error())
+					return
+				}
+			}
 		case <-p.closeChan:
 			return
 		}
@@ -376,7 +385,7 @@ func (p *Client) Send(msgType pomeloMessage.Type, route string, val interface{})
 		return 0, err
 	}
 
-	_, err = p.conn.Write(bytes)
+	p.chWrite <- bytes
 	return m.ID, err
 }
 
