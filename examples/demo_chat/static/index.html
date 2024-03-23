@@ -34,7 +34,7 @@
             var inputMsg = $("#inputMsg").val();
 
             pomelo.notify('room.room.syncMessage', {
-                name: nickname,
+                name: $("#nickname").val(),
                 content: inputMsg
             });
 
