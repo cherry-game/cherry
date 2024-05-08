@@ -9,31 +9,32 @@ import (
 )
 
 const (
-	YearsPerMillennium         = 1000                  // 每千年1000年
-	YearsPerCentury            = 100                   // 每世纪100年
-	YearsPerDecade             = 10                    // 每十年10年
-	QuartersPerYear            = 4                     // 每年4季度
-	MonthsPerYear              = 12                    // 每年12月
-	MonthsPerQuarter           = 3                     // 每季度3月
-	WeeksPerNormalYear         = 52                    // 每常规年52周
-	weeksPerLongYear           = 53                    // 每长年53周
-	WeeksPerMonth              = 4                     // 每月4周
-	DaysPerLeapYear            = 366                   // 每闰年366天
-	DaysPerNormalYear          = 365                   // 每常规年365天
-	DaysPerWeek                = 7                     // 每周7天
-	HoursPerWeek               = 168                   // 每周168小时
-	HoursPerDay                = 24                    // 每天24小时
-	MinutesPerDay              = 1440                  // 每天1440分钟
-	MinutesPerHour             = 60                    // 每小时60分钟
-	SecondsPerWeek             = 604800                // 每周604800秒
-	SecondsPerDay              = 86400                 // 每天86400秒
-	SecondsPerHour             = 3600                  // 每小时3600秒
-	SecondsPerMinute           = 60                    // 每分钟60秒
-	MillisecondsPerSecond      = 1000                  // 每秒1000毫秒
-	MillisecondsPerDay         = 1000 * SecondsPerDay  // 每天86400000毫秒
-	MillisecondsPerHour        = 1000 * SecondsPerHour // 每小时3600000毫秒
-	MicrosecondsPerMillisecond = 1000                  // 每毫秒1000微秒
-	MicrosecondsPerSecond      = 1000000               // 每秒1000000微秒
+	YearsPerMillennium         = 1000     // 每千年1000年
+	YearsPerCentury            = 100      // 每世纪100年
+	YearsPerDecade             = 10       // 每十年10年
+	QuartersPerYear            = 4        // 每年4季度
+	MonthsPerYear              = 12       // 每年12月
+	MonthsPerQuarter           = 3        // 每季度3月
+	WeeksPerNormalYear         = 52       // 每常规年52周
+	weeksPerLongYear           = 53       // 每长年53周
+	WeeksPerMonth              = 4        // 每月4周
+	DaysPerLeapYear            = 366      // 每闰年366天
+	DaysPerNormalYear          = 365      // 每常规年365天
+	DaysPerWeek                = 7        // 每周7天
+	HoursPerWeek               = 168      // 每周168小时
+	HoursPerDay                = 24       // 每天24小时
+	MinutesPerDay              = 1440     // 每天1440分钟
+	MinutesPerHour             = 60       // 每小时60分钟
+	SecondsPerWeek             = 604800   // 每周604800秒
+	SecondsPerDay              = 86400    // 每天86400秒
+	SecondsPerHour             = 3600     // 每小时3600秒
+	SecondsPerMinute           = 60       // 每分钟60秒
+	MillisecondsPerSecond      = 1000     // 每秒1000毫秒
+	MillisecondsPerMinute      = 60000    // 每分钟60000毫秒
+	MillisecondsPerDay         = 86400000 // 每天86400000毫秒
+	MillisecondsPerHour        = 3600000  // 每小时3600000毫秒
+	MicrosecondsPerMillisecond = 1000     // 每毫秒1000微秒
+	MicrosecondsPerSecond      = 1000000  // 每秒1000000微秒
 
 	WeeksPerLongYear = 53 // 每长年53周
 
