@@ -71,7 +71,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRou
 	message.Session = session
 	message.Args = msg.Data
 
-	agent.ActorSystem().PostLocal(message)
+	agent.ActorSystem().PostLocal(&message)
 }
 
 func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) error {

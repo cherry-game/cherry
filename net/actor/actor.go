@@ -178,7 +178,6 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 			m.Target,
 			m.FuncName,
 		)
-		m.Recycle()
 		return
 	}
 
@@ -218,7 +217,6 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 				funcInfo.InArgs,
 			)
 		}
-		m.Recycle()
 	}()
 
 	fn(app, funcInfo, m)

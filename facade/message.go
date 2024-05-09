@@ -2,7 +2,6 @@ package cherryFacade
 
 import (
 	"strings"
-	"sync"
 	"time"
 
 	cconst "github.com/cherry-game/cherry/const"
@@ -40,45 +39,37 @@ type (
 	}
 )
 
-var (
-	messagePool = &sync.Pool{
-		New: func() interface{} {
-			return new(Message)
-		},
-	}
-)
+//var (
+//	messagePool = &sync.Pool{
+//		New: func() interface{} {
+//			return new(Message)
+//		},
+//	}
+//)
 
-func GetMessage() *Message {
-	msg := messagePool.Get().(*Message)
-	msg.BuildTime = time.Now().UnixMilli()
+func GetMessage() Message {
+	msg := Message{
+		BuildTime: time.Now().UnixMilli(),
+	}
+
 	return msg
 }
 
-func BuildMessage(source, target, funcName string, arg interface{}) *Message {
-	message := GetMessage()
-	message.Source = source
-	message.Target = target
-	message.FuncName = funcName
-	message.Args = arg
-	message.ChanResult = make(chan interface{})
-
-	return message
-}
-
-func (p *Message) Recycle() {
-	p.Source = ""
-	p.Target = ""
-	p.targetPath = nil
-	p.FuncName = ""
-	p.Args = nil
-	p.Err = nil
-	p.ClusterReply = nil
-	p.IsCluster = false
-	p.ChanResult = nil
-	p.BuildTime = 0
-	p.PostTime = 0
-	messagePool.Put(p)
-}
+//func (p *Message) Recycle() {
+//	p.BuildTime = 0
+//	p.PostTime = 0
+//	p.Source = ""
+//	p.Target = ""
+//	p.targetPath = nil
+//	p.FuncName = "_"
+//	p.Session = nil
+//	p.Args = nil
+//	p.Err = nil
+//	p.ClusterReply = nil
+//	p.ChanResult = nil
+//	p.IsCluster = false
+//	messagePool.Put(p)
+//}
 
 func (p *Message) TargetPath() *ActorPath {
 	if p.targetPath == nil {

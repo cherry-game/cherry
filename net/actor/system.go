@@ -186,7 +186,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 		remoteMsg.FuncName = funcName
 		remoteMsg.Args = arg
 
-		if !p.PostRemote(remoteMsg) {
+		if !p.PostRemote(&remoteMsg) {
 			clog.Warnf("[Call] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
 			return ccode.ActorCallFail
 		}
@@ -263,7 +263,11 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		}
 
 	} else {
-		message := cfacade.BuildMessage(source, target, funcName, arg)
+		message := cfacade.GetMessage()
+		message.Source = source
+		message.Target = target
+		message.FuncName = funcName
+		message.Args = arg
 
 		var result interface{}
 
@@ -277,10 +281,10 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 				return ccode.ActorChildIDNotFound
 			}
 
-			childActor.PostRemote(message)
+			childActor.PostRemote(&message)
 			result = <-message.ChanResult
 		} else {
-			if !p.PostRemote(message) {
+			if !p.PostRemote(&message) {
 				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
 				return ccode.ActorCallFail
 			}

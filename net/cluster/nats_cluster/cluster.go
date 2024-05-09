@@ -118,7 +118,7 @@ func (p *Cluster) localProcess() {
 		message.Session = packet.Session
 		message.Args = packet.ArgBytes
 
-		p.app.ActorSystem().PostLocal(message)
+		p.app.ActorSystem().PostLocal(&message)
 	}
 
 	for msg := range p.local.ch {
@@ -170,7 +170,7 @@ func (p *Cluster) remoteProcess() {
 			message.ClusterReply = natsMsg
 		}
 
-		p.app.ActorSystem().PostRemote(message)
+		p.app.ActorSystem().PostRemote(&message)
 	}
 
 	for msg := range p.remote.ch {
