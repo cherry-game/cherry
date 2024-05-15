@@ -225,7 +225,7 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 func (p *Actor) findChildActor(m *cfacade.Message) (*Actor, bool) {
 	// 如果当前actor为子actor,则终止本次消息处理
 	if p.path.IsChild() {
-		clog.Warnf("[findChildActor] Child actor cannot be created again。",
+		clog.Warnf("[findChildActor] Child actor cannot be created again。[target = %s->%s]",
 			m.Target,
 			m.FuncName,
 		)

@@ -268,6 +268,7 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		message.Target = target
 		message.FuncName = funcName
 		message.Args = arg
+		message.ChanResult = make(chan interface{})
 
 		var result interface{}
 
