@@ -306,6 +306,13 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 			}
 
 			if reply != nil {
+				if rsp.Data == nil {
+					clog.Warnf("[CallWait] rsp.Data is nil. [targetPath = %s, error = %s]",
+						target,
+						err,
+					)
+				}
+
 				err = p.app.Serializer().Unmarshal(rsp.Data, reply)
 				if err != nil {
 					clog.Warnf("[CallWait] Unmarshal reply error. [targetPath = %s, error = %s]",
