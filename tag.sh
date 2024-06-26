@@ -9,7 +9,7 @@ echo ""
 
 
 echo "[TAG ${number}] cherry"
-git tag -a "${number}" -m "auto tag"
+git tag -a "v${number}" -m "auto tag"
 
 
 echo "[TAG ${number}] components/cron"
