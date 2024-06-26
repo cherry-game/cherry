@@ -13,8 +13,8 @@ import (
 )
 
 const (
-	Name          = "gorm_component"
-	connectFormat = "%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local"
+	Name = "gorm_component"
+	dsn  = "%s:%s@(%s)/%s?charset=utf8&parseTime=True&loc=Local"
 )
 
 type (
@@ -35,6 +35,7 @@ type (
 		MaxIdleConnect int
 		MaxOpenConnect int
 		LogMode        bool
+		DSN            string
 	}
 
 	// HashDb hash by group id
@@ -55,6 +56,7 @@ func parseMysqlConfig(groupId string, item cfacade.ProfileJSON) *mySqlConfig {
 	return &mySqlConfig{
 		GroupId:        groupId,
 		Id:             item.GetString("db_id"),
+		DSN:            item.GetString("dsn", ""),
 		DbName:         item.GetString("db_name"),
 		Host:           item.GetString("host"),
 		UserName:       item.GetString("user_name"),
@@ -109,9 +111,7 @@ func (s *Component) Init() {
 }
 
 func (s *Component) createORM(cfg *mySqlConfig) (*gorm.DB, error) {
-	dsn := fmt.Sprintf(connectFormat, cfg.UserName, cfg.Password, cfg.Host, cfg.DbName)
-
-	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(mysql.Open(cfg.GetDSN()), &gorm.Config{
 		Logger: getLogger(),
 	})
 
@@ -172,4 +172,12 @@ func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*gorm.DB, bool) {
 func (s *Component) GetDbMap(groupId string) (map[string]*gorm.DB, bool) {
 	dbGroup, found := s.ormMap[groupId]
 	return dbGroup, found
+}
+
+func (s *mySqlConfig) GetDSN() string {
+	if s.DSN == "" {
+		s.DSN = dsn
+	}
+
+	return fmt.Sprintf(s.DSN, s.UserName, s.Password, s.Host, s.DbName)
 }

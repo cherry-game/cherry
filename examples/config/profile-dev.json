@@ -39,6 +39,7 @@
       {
         "enable": true,
         "db_id": "center_db_1",
+        "dsn" : "",
         "db_name": "dev_center",
         "host": "dev.com",
         "user_name": "dev_user",
@@ -52,6 +53,7 @@
       {
         "enable": true,
         "db_id": "game_db_1",
+        "dsn" : "",
         "db_name": "dev_game",
         "host": "dev.com",
         "user_name": "dev_user",

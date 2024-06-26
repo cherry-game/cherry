@@ -94,15 +94,15 @@ func (d *Component) Init() {
 }
 
 func (d *Component) onLoadConfig(cfg IConfig, data []byte, reload bool) {
-	d.Lock()
-	defer d.Unlock()
-
 	var parseObject interface{}
 	err := d.parser.Unmarshal(data, &parseObject)
 	if err != nil {
 		clog.Warnf("[config = %s] unmarshal error = %v", err, cfg.Name())
 		return
 	}
+
+	d.Lock()
+	defer d.Unlock()
 
 	// load data
 	size, err := cfg.OnLoad(parseObject, reload)
