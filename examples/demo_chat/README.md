@@ -8,6 +8,8 @@
 
 - GO版本 >= 1.17
 
+未使用过 Golang 的开发者，请参考 [环境安装与配置](../../_docs/env-setup.md) 进行准备工作。
+
 ## 操作步骤
 
 ### 克隆
@@ -15,23 +17,37 @@
 - git clone https://github.com/cherry-game/cherry.git
 - 或通过github下面下载源码的方式。点击`code`按钮`Download zip`文件
 
-### 调试
+### 用 GoLand 开发调试 - 推荐
 
-- 推荐使用`GoLand`打开源码
 - 找到`/examples/chat/`目录
-- 启动nats服务`3rd/nat-server/run_nats.bat`
-- 启动master节点`master/main.go`
-- 启动log节点`log/main.go`
-- 启动room节点`room/main.go`
-- 访问`http://127.0.0.1:80`
+- 启动 nats 服务
+  - Windows：`3rd/nat-server/run_nats.bat`
+  - Mac：`nats-server`
+- 启动 master 节点`master/main.go`
+- 启动 log 节点`log/main.go`
+- 启动 room 节点`room/main.go`
+- 访问`http://127.0.0.1:端口号`
+
+### 用 Visual Studio Code 开发调试
+
+- 打开`/examples/chat/`目录。
+- 安装必要的插件和依赖
+- 配置`launch.json`
+- 启动 nats 服务
+  - Windows：`3rd/nat-server/run_nats.bat`
+  - Mac：`nats-server`
+- 启动 `chat-master`
+- 启动 `chat-log`
+- 启动 `chat-room`
+- 访问`http://127.0.0.1:端口`
 
 ### 测试
 
-- 从GoLand的`Console`面板可以看到，启动h5聊天室客户端的地址`http://127.0.0.1:80`
-- 客户端连接服务器的websocket地址为`ws://:34590`
+- 从 GoLand 或者 Visual Sutdio Code 的`Console`面板可以看到，启动 H5 聊天室客户端的地址 `http://127.0.0.1:80`(不一定是 80，以实际端口为准)
+- 客户端连接服务器的 Websocket 地址为`ws://:34590`
 - 打开两个页面，在文本框中输入聊天内容并点击`send`按钮发送，两个页面将会收到聊天内容的广播
 
-### 源码
+### 源码目录说明
 
 - `log` 目录为日志服节点(演示actor收发消息)
 - `master` 发现服务, master节点

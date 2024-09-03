@@ -11,50 +11,62 @@
 - 让开发者更多的关注游戏业务，高效完成功能实现
 - 文档陆续补充中，欢迎加入一起建设框架
 
+新接触 Cherry 的朋友，建议从 [示例](#示例) 开始。
 
-# 新增功能
+## 新增功能
+
 - **新增Actor model实现**
 - **新增simple网络数据包结构(id(4bytes) + dataLen(4bytes) + data(n bytes))**
 
+## 讨论与交流
 
-# 讨论与交流
-- [QQ群讨论: 191651647 ](https://jq.qq.com/?_wv=1027&k=vdIddlK0)
+- [QQ群讨论: 191651647](https://jq.qq.com/?_wv=1027&k=vdIddlK0)
 
-
-# 教程
+## 示例
 
 ### 多节点精简版聊天室(❤推荐)
+
+此示例具备的特性如下：
+
 - 实现网页客户端，构建http server
 - 选择websocket作为连接器
 - 选择json做为通信格式
 - 实现创建房间
 - 实现发送消息
 - 实现广播消息
-- [示例代码跳转](examples/demo_chat)
+
+源码位于 [examples/demo_chat](examples/demo_chat) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_chat/README.md)。
 
 ### 多节点分布式游戏示例(❤强烈推荐)
-- 选择h5搭建一个客户端
-- 搭建web服节点
+
+此示例具备的特性如下：
+
+- 选择 H5 搭建一个客户端
+- 搭建 Web 服节点
 - 搭建网关服节点
 - 搭建中心服节点
 - 搭建游戏服节点
-- 选择master做为发现服务节点
-- 实现部份基础功能(区服列表、多sdk帐号体系、帐号注册、帐号登录、创建角色、角色登录)
-- [示例代码跳转](examples/demo_game_cluster)
+- 选择 master 作为发现服务节点
+- 实现部份基础功能(区服列表、多 SDK 帐号体系、帐号注册、帐号登录、创建角色、角色登录)
 
-# 核心功能
+源码位于 [examples/demo_game_cluster](examples/demo_game_cluster) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_game_cluster/README.md)。
+
+## 核心功能
 
 ### 组件管理
+
 - 基于组件的方式组合功能，方便统一管理生命周期
 - 可根据需求自定义组件，并注册到框架，灵活扩展
 - 可配置`cluster mode`和`standalone mode`
 
 ### 环境配置
+
 - 可配置多个环境的参数，方便切换
 - 所有系统参数、组件参数都基于profile文件配置，方便扩展
 - 可根据业务需求自由的拆分或组装多个profile子文件，精简配置,拒绝冗余
 
-### actor模型
+### Actor 模型
+
 - 每个Actor独立运行在一个goroutine中，所有的逻辑都是串行处理
 - Actor接收三种消息：本地消息(Local)、远程消息(Remote)、事件消息(Event)
   - 三种消息都有自己的队列(Queue)，每个队列依据FIFO原则进行消费
@@ -65,13 +77,15 @@
 - 通过cluster集群组件、discovery发现服务组件，进行跨节点的actor通信
 
 ### 集群&注册发现
+
 - 三种发现服务实现方式:
-    - 开发用，直接读取本地的节点配置文件
-    - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
-    - 线上用，基于etcd封装，实现集群方式的发现服务
+  - 开发用，直接读取本地的节点配置文件
+  - 小规模用，基于nats.io创建一个master节点，实现单节点的发现服务
+  - 线上用，基于etcd封装，实现集群方式的发现服务
 - 基于nats.io实现的RPC调用，默认提供同步/异步的调用方式
 
 ### 连接器
+
 - tcp
 - websocket
 - http server
@@ -79,6 +93,7 @@
 - kcp(未实现，以后作为组件集成)
 
 ### 消息&路由
+
 - 实现pomelo网络数据包结构 & simple网络数据包结构
 - 包解码&编码
 - 消息路由
@@ -86,14 +101,15 @@
 - 事件
 
 ### 日志
+
 - 基于`uber zap`封装，性能良好
 - 可配置多文件进行日志输出
 - 基于`rotatelogs`处理切割日志
 
-
-# 扩展组件
+## 扩展组件
 
 ### [data-config组件](components/data-config)
+
 - 策划配表读取管理组件
 - 可基于本地配置文件的方式加载
 - 可基于redis数据的方式加载
@@ -104,37 +120,42 @@
 - 可根据`go-linq`进行数据集合的条件查询
 
 ### [etcd组件](components/etcd)
+
 - 基于`etcd`组件进行封装，节点集群和注册发现
 
 ### [gin组件](components/gin)
+
 - 集成`gin`组件，实现http server功能
 - 自定义`controller`，增加`PreInit()`、`Init()`、`Stop()`初始周期的管理
 - 增加几个常用的`middleware`组件
-    - gin zap
-    - recover with zap
-    - cors跨域
-    - max connect限流
+  - gin zap
+  - recover with zap
+  - cors跨域
+  - max connect限流
 - 封装了GET/POST方式获取各种数据类型的函数
 
 ### [gorm组件](components/gorm)
+
 - 集成`gorm`组件，实现mysql的数据库访问
 - 支持多个mysql数据库配置和管理
 
 ### [mongo组件](components/mongo)
+
 - 集成`mongo-driver`驱动
 - 支持多个mongodb数据库配置和管理
 
 ### [cron组件](components/cron)
+
 - 基于`github.com/robfig/cron/v3`进行封装成组件
 - 性能良好
 
 ### 待开放组件
+
 - db队列
 - gopher-lua脚本
 - 限流组件
 
-
-# 游戏客户端SDK
+## 游戏客户端SDK
 
 - 通信协议格式
   - 通信协议结构图 [点击查看](_docs/pomelo-protocol.jpg)
@@ -168,11 +189,11 @@
 - 微信
   - [wangsijie / pomelo-weixin-client](https://github.com/wangsijie/pomelo-weixin-client)
 
-# 游戏服务端架构示例(点击看大图)
+## 游戏服务端架构示例(点击看大图)
 
 ![game-server-architecture](_docs/game-server-architecture.jpg)
 
-# 致谢
+## 致谢
 
 - [pomelo](https://github.com/NetEase/pomelo)
 - [pitaya](https://github.com/topfreegames/pitaya)
