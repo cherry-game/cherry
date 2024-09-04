@@ -8,6 +8,8 @@ cherry 使用了 [nats.io](https://nats.io/) 作为消息中间件。
 
 Windows 用户直接前往 [https://nats.io/](https://nats.io/) 下载并安装。
 
+也可以直接使用 `examples/3rd/nats-server/` 目录下的绿色免安装版。
+
 ### Mac
 
 Mac 用户使用 `brew install nats` 进行安装。
@@ -31,7 +33,6 @@ go env -w GOPROXY=https://mirrors.aliyun.com/goproxy/
 ```
 
 可通过 `go env` 命令查看是否设置成功。
-
 
 ## 安装编程环境
 

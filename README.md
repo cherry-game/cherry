@@ -35,7 +35,7 @@
 - 实现发送消息
 - 实现广播消息
 
-源码位于 [examples/demo_chat](examples/demo_chat) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_chat/README.md)。
+源码位于 [examples/demo_chat](examples/demo_chat) 目录，详情请前往 [环境安装、配置、启动文档](examples/demo_chat/README.md)。
 
 ### 多节点分布式游戏示例(❤强烈推荐)
 
@@ -49,7 +49,7 @@
 - 选择 master 作为发现服务节点
 - 实现部份基础功能(区服列表、多 SDK 帐号体系、帐号注册、帐号登录、创建角色、角色登录)
 
-源码位于 [examples/demo_game_cluster](examples/demo_game_cluster) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_game_cluster/README.md)。
+源码位于 [examples/demo_game_cluster](examples/demo_game_cluster) 目录，详情请前往 [环境安装、配置、启动文档](examples/demo_game_cluster/README.md)。
 
 ## 核心功能
 
