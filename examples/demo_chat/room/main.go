@@ -101,7 +101,7 @@ func onDataRoute(agent *pomelo.Agent, route *pmessage.Route, msg *pmessage.Messa
 // 为了省事，构造一个http server用于部署我们的客户端h5静态文件
 func httpServerComponent(app *cherry.AppBuilder) {
 	// 启动后访问 http://127.0.0.1/ 即可
-	httpComp := cherryGin.New("web", "127.0.0.1:80")
+	httpComp := cherryGin.New("web", "127.0.0.1:8081")
 	// http server使用gin组件搭建，这里增加一个RecoveryWithZap中间件
 	httpComp.Use(cherryGin.RecoveryWithZap(true))
 

@@ -56,7 +56,7 @@
     "web": [
       {
         "node_id": "gc-web-1",
-        "address": "127.0.0.1:80",
+        "address": "127.0.0.1:8081",
         "__settings__": {
           "ref_logger": "master_log"
         },
