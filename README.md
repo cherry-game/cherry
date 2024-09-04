@@ -26,7 +26,7 @@
 
 ### 多节点精简版聊天室(❤推荐)
 
-此示例具备的特性如下：
+本示例适合刚接触 Cherry 的朋友用于熟悉 Cherry 架构，具备的特性如下：
 
 - 实现网页客户端，构建http server
 - 选择websocket作为连接器
@@ -35,11 +35,13 @@
 - 实现发送消息
 - 实现广播消息
 
-源码位于 [examples/demo_chat](examples/demo_chat) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_chat/README.md)。
+源码位于 [examples/demo_chat](examples/demo_chat) 目录，详情请前往 [环境安装、配置、启动文档](examples/demo_chat/README.md)。
 
 ### 多节点分布式游戏示例(❤强烈推荐)
 
-此示例具备的特性如下：
+本示例集群适合作为大部分游戏服务端的基础框架，开发者们可在此示例基础上发展出自己的游戏服务端方案。
+
+特性如下：
 
 - 选择 H5 搭建一个客户端
 - 搭建 Web 服节点
@@ -49,7 +51,7 @@
 - 选择 master 作为发现服务节点
 - 实现部份基础功能(区服列表、多 SDK 帐号体系、帐号注册、帐号登录、创建角色、角色登录)
 
-源码位于 [examples/demo_game_cluster](examples/demo_game_cluster) 目录，详情进前前往 [环境安装、配置、启动文档](examples/demo_game_cluster/README.md)。
+源码位于 [examples/demo_game_cluster](examples/demo_game_cluster) 目录，详情请前往 [环境安装、配置、启动文档](examples/demo_game_cluster/README.md)。
 
 ## 核心功能
 
