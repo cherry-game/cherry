@@ -3,7 +3,7 @@
 echo "[TAG] ------------------------------------------------------"
 
 # shellcheck disable=SC2162
-read -p "[TAG] enter new tag(eg. 1.3.12):" number
+read -p "[TAG] enter new tag(eg. 1.3.14):" number
 
 echo ""
 
@@ -38,8 +38,5 @@ git tag -a "components/gorm/v${number}" -m "auto tag"
 
 echo "[TAG ${number}] components/mongo"
 git tag -a "components/mongo/v${number}" -m "auto tag"
-
-echo "[TAG ${number}] examples"
-git tag -a "examples/v${number}" -m "auto tag"
 
 echo "[TAG] ------------------------------------------------------"
