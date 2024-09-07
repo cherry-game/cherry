@@ -1,0 +1,29 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name":"chat-master",
+            "type":"go",
+            "request":"launch",
+            "mode":"debug",
+            "program":"${workspaceFolder}/examples/demo_chat/master",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name":"chat-log",
+            "type":"go",
+            "request":"launch",
+            "mode":"debug",
+            "program":"${workspaceFolder}/examples/demo_chat/log",
+            "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "name":"chat-room",
+            "type":"go",
+            "request":"launch",
+            "mode":"debug",
+            "program":"${workspaceFolder}/examples/demo_chat/room",
+            "internalConsoleOptions": "openOnSessionStart"
+        }
+    ],
+}

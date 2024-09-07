@@ -1,83 +1,46 @@
-# Cherry 环境安装与配置
+# cherry环境配置
 
-## 安装 NATS
+## 安装Go
+任选一种安装方式：
+- 官方安装包 https://golang.google.cn/dl/
+- 国内镜像包 https://studygolang.com/dl
+- brew安装  `brew install go`
+- Go多版本管理工具 https://github.com/voidint/g
 
-cherry 使用了 [nats.io](https://nats.io/) 作为消息中间件。
+设置代理：
+- 在命令行输入 `go env -w GOPROXY=https://goproxy.cn,direct`
 
-### Windows
+> 建议安装1.18+以上的版本 \
+> \
+> 输入命令 `go version` 确认是否安装成功 \
+> \
+> 输入命令 `go env` 查看环境参数
 
-Windows 用户直接前往 [https://nats.io/](https://nats.io/) 下载并安装。
+## 安装nats
+任选一种安装方式：
+- 官方安装指南 https://docs.nats.io/running-a-nats-service/introduction/installation
+- [推荐]docker安装 https://docs.nats.io/running-a-nats-service/introduction/installation#installing-via-docker
+- 安装包下载 https://github.com/nats-io/nats-server/releases
+- brew安装 `brew install nats-server`
+- [推荐]项目附带的windows版本 `examples/3rd/nats-server`
 
-也可以直接使用 `examples/3rd/nats-server/` 目录下的绿色免安装版。
+> 启动后,窗口显示`Listening for client connections on 0.0.0.0:4222` 代表`nats`启动成功，默认监听`4222`端口 \
+> \
+> 正式环境请使用nats集群部署
 
-### Mac
+## 开发工具准备
+优先使用熟悉的开发工具
 
-Mac 用户使用 `brew install nats` 进行安装。
+#### Visual Studio Code
+- 免费、可配置性
+-  安装Go工具集，按信`Shift + CTRL/CMD + P` 输入 `Go: Install/Update Tools`, 勾选所有项，点击确认
+- 点击侧方栏`扩展`进入插件安装：
+  - 输入`Go`，安装`Go Team at Google`发布的插件
+  - 输入`Tooltitude for Go`，安装`Tooltitude Team`发布的插件
+- Debug配置(launch.json)：
+  - 参考[demo_chat] `examples/demo_chat/launch.json`
+  - 参考[demo_game_cluster] `examples/demo_game_cluster/launch.json`
 
-## 安装 Go
-
-前往 [https://golang.google.cn/dl/](https://golang.google.cn/dl/) 安装 Go 语言。
-
-如果是 Mac 用户，可以使用 `brew install go` 进行安装。
-
-安装完成后，使用 `go version` 即可检查是否安装成功，以及查看对应的 Go 版本。
-
-## 设置代理（可选）
-
-`go get` 命令在执行的时候容易出现 `timeout`，通过设置代理可以解决。
-
-在控制台中输入以下脚本可以解决：
-
-```sh
-go env -w GOPROXY=https://mirrors.aliyun.com/goproxy/
-```
-
-可通过 `go env` 命令查看是否设置成功。
-
-## 安装编程环境
-
-### GoLand
-
-推荐使用 [GoLand](https://www.jetbrains.com/go/) 进行项目开发，不管是编程还是调试都非常方便。
-
-### Visual Studio Code
-
-如果想使用 Visual Studio Code 进行开发则需要进行如下配置。
-
-- 1、安装 Go 语言插件：Tooltitude for Go
-- 2、Shift + CTRL/CMD + P -> Go: Install/Update Tools
-- 3、配置项目的 launch.json （具体配置以具体项目为准）
-
-以下为 demo_chat/.vscode/launch.json 的配置：
-
-```
-{
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "name":"chat-master",
-            "type":"go",
-            "request":"launch",
-            "mode":"debug",
-            "program":"${workspaceFolder}/examples/demo_chat/master",
-            "internalConsoleOptions": "openOnSessionStart",
-        },
-        {
-            "name":"chat-log",
-            "type":"go",
-            "request":"launch",
-            "mode":"debug",
-            "program":"${workspaceFolder}/examples/demo_chat/log",
-            "internalConsoleOptions": "openOnSessionStart",
-        },
-        {
-            "name":"chat-room",
-            "type":"go",
-            "request":"launch",
-            "mode":"debug",
-            "program":"${workspaceFolder}/examples/demo_chat/room",
-            "internalConsoleOptions": "openOnSessionStart",
-        }
-    ],
-}
-```
+#### Goland
+- 收费，易用
+- 推荐使用[GoLand](https://www.jetbrains.com/go/) 进行项目开发，不管是编码还是调试都非常方便。
