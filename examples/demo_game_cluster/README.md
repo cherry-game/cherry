@@ -42,8 +42,8 @@
 ### 2、启动参数配置
 
 - 找到`exmaples/demo_game_cluster/nodes/main.go`，所有节点都从`main.go`启动。
-- 启动参数请参考[launch.json](launch.json)文件。
 - `main.go` 会根据参数启动对应的服务。
+- 如果使用`vscode`开发，请复制[launch.json](launch.json)文件到`.vscode`目录。
 
 ### 3、启动 master 节点
 
