@@ -25,5 +25,5 @@
             "program":"${workspaceFolder}/examples/demo_chat/room",
             "internalConsoleOptions": "openOnSessionStart"
         }
-    ],
+    ]
 }
