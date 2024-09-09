@@ -15,9 +15,9 @@
 
 ## 新增功能
 
-- **新增Actor model实现**
+- **新增Actor [model实现](./components/etcd)**
 - **新增simple网络数据包结构(id(4bytes) + dataLen(4bytes) + data(n bytes))**
-- **为保证框架精简，`examples`从仓库迁至 https://github.com/cherry-game/examples**
+- **`examples`示例已从cherry库迁出，新仓库地址: https://github.com/cherry-game/examples)**
 
 ## 讨论与交流
 

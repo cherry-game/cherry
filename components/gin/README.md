@@ -18,4 +18,4 @@ import cherryGIN "github.com/cherry-game/cherry/components/gin"
 ```
 
 ## example
-- [示例代码跳转](../../examples/test_gin)
+- [示例代码跳转](https://github.com/cherry-game/examples/tree/master/test_gin)

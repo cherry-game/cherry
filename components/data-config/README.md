@@ -41,4 +41,4 @@ func RegisterComponent() {
 ```
 
 ## example
-- [示例代码跳转](../../examples/test_data_config)
+- [示例代码跳转](https://github.com/cherry-game/examples/tree/master/test_data_config)
