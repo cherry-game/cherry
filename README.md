@@ -38,7 +38,7 @@
 - 实现发送消息
 - 实现广播消息
 
-开发环境配置请参考[env-setup.md](https://github.com/cherry-game/cherry/blob/master/_docs/env-setup.md)
+请参考[环境安装与配置](https://cherry-game.github.io/guides/install-go.html) 进行准备工作
 源码位于[examples/demo_chat](https://github.com/cherry-game/examples/tree/master/demo_chat)仓库
 
 
@@ -56,7 +56,7 @@
 - 选择 master 作为发现服务节点
 - 实现部份基础功能(区服列表、多 SDK 帐号体系、帐号注册、帐号登录、创建角色、角色登录)
 
-开发环境配置请参考[env-setup.md](https://github.com/cherry-game/cherry/blob/master/_docs/env-setup.md)
+请参考[环境安装与配置](https://cherry-game.github.io/guides/install-go.html) 进行准备工作
 源码位于[examples/demo_cluster](https://github.com/cherry-game/examples/tree/master/demo_cluster)仓库
 
 ## 核心功能
