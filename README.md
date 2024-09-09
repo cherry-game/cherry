@@ -13,11 +13,12 @@
 
 新接触`cherry`的朋友，建议从 [示例](#示例) 开始。
 
-## 新增功能
+## 重新更新
 
-- **新增Actor [model实现](./components/etcd)**
+- **新增Actor model实现**
 - **新增simple网络数据包结构(id(4bytes) + dataLen(4bytes) + data(n bytes))**
-- **`examples`示例已从cherry库迁出，新仓库地址: https://github.com/cherry-game/examples)**
+- **`examples`示例已从cherry库迁出，新仓库地址: https://github.com/cherry-game/examples**
+- **文档地址: https://cherry-game.github.io/** 
 
 ## 讨论与交流
 
