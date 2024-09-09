@@ -13,7 +13,7 @@
 
 新接触`cherry`的朋友，建议从 [示例](#示例) 开始。
 
-## 重新更新
+## 重要更新
 
 - **新增Actor model实现**
 - **新增simple网络数据包结构(id(4bytes) + dataLen(4bytes) + data(n bytes))**
