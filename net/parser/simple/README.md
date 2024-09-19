@@ -12,10 +12,10 @@
 ### 使用方法
 - 在网关节点构建一个simple的网络数据包解析器
 - 通过`simple.AddNodeRoute(mid,&NodeRoute{...})`构造数据包路由策略
-- [示例代码](../../../examples/demo_game_cluster/nodes/gate/gate.go)
+- [示例代码](https://github.com/cherry-game/examples/tree/master/demo_cluster/nodes/gate/gate.go)
 
 ### 示例代码
-```go
+```
 // 构建简单的网络数据包解析器
 func buildSimpleParser(app *cherry.AppBuilder) cfacade.INetParser {
     agentActor := simple.NewActor("user")
