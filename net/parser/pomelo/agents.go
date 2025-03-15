@@ -21,31 +21,38 @@ func BindSID(agent *Agent) {
 	sidAgentMap[agent.SID()] = agent
 }
 
-func BindUID(sid cfacade.SID, uid cfacade.UID) error {
+func Bind(sid cfacade.SID, uid cfacade.UID) (*Agent, error) {
 	if sid == "" {
-		return cerr.Errorf("[sid = %s] less than 1.", sid)
+		return nil, cerr.Errorf("[sid = %s] less than 1.", sid)
 	}
 
 	if uid < 1 {
-		return cerr.Errorf("[uid = %d] less than 1.", uid)
+		return nil, cerr.Errorf("[uid = %d] less than 1.", uid)
 	}
 
 	lock.Lock()
 	defer lock.Unlock()
 
+	// sid不存在，可能在执行该函数前已经断开连接
 	agent, found := sidAgentMap[sid]
 	if !found {
-		return cerr.Errorf("[sid = %s] does not exist.", sid)
+		return nil, cerr.Errorf("[sid = %s] does not exist.", sid)
 	}
 
-	if agent.UID() > 0 && agent.UID() == uid {
-		return cerr.Errorf("[uid = %d] has already bound.", agent.UID())
+	// 查找uid是否有旧的agent
+	var oldAgent *Agent
+	if oldsid, found := uidMap[uid]; found && oldsid != sid {
+		if agent, exists := sidAgentMap[oldsid]; exists {
+			oldAgent = agent
+		}
 	}
 
+	// 绑定uid
 	agent.session.Uid = uid
 	uidMap[uid] = sid
 
-	return nil
+	// 返回旧的agent(可自行处理，比如踢下线)
+	return oldAgent, nil
 }
 
 func Unbind(sid cfacade.SID) {

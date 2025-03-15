@@ -96,8 +96,8 @@ func (a *Agent) SID() cfacade.SID {
 	return a.session.Sid
 }
 
-func (a *Agent) Bind(uid cfacade.UID) error {
-	return BindUID(a.SID(), uid)
+func (a *Agent) Bind(uid cfacade.UID) (*Agent, error) {
+	return Bind(a.SID(), uid)
 }
 
 func (a *Agent) IsBind() bool {
