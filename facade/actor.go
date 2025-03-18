@@ -46,10 +46,12 @@ type (
 	}
 
 	IActorChild interface {
-		Create(id string, handler IActorHandler) (IActor, error) // 创建子Actor
-		Get(id string) (IActor, bool)                            // 获取子Actor
-		Remove(id string)                                        // 称除子Actor
-		Each(fn func(i IActor))                                  // 遍历所有子Actor
+		Create(id string, handler IActorHandler) (IActor, error)                        // 创建子Actor
+		Get(id string) (IActor, bool)                                                   // 获取子Actor
+		Remove(id string)                                                               // 称除子Actor
+		Each(fn func(i IActor))                                                         // 遍历所有子Actor
+		Call(childID, funcName string, arg interface{})                                 // 调用当前子actor的函数
+		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) int32 // 调用当前子actor的函数并等待返回
 	}
 )
 
