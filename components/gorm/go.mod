@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/gorm
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.15
+	github.com/cherry-game/cherry v1.3.16
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
 )
@@ -21,5 +21,3 @@ require (
 	go.uber.org/zap v1.26.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
-
-replace github.com/cherry-game/cherry => ../../

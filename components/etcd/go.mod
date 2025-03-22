@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/etcd
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.15
+	github.com/cherry-game/cherry v1.3.16
 	github.com/json-iterator/go v1.1.12
 	go.etcd.io/etcd/api/v3 v3.5.9
 	go.etcd.io/etcd/client/v3 v3.5.9
@@ -36,5 +36,3 @@ require (
 	google.golang.org/grpc v1.41.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
-
-replace github.com/cherry-game/cherry => ../../

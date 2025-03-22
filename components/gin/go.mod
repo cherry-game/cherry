@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/gin
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.15
+	github.com/cherry-game/cherry v1.3.16
 	github.com/gin-gonic/gin v1.9.1
 )
 
@@ -37,5 +37,3 @@ require (
 	google.golang.org/protobuf v1.31.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/cherry-game/cherry => ../../
