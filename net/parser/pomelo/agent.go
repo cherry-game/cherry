@@ -421,8 +421,8 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 		)
 	}
 
-	// 不进入pending chan，直接踢了
-	a.write(pkg)
+	//a.write(pkg) 新的agent直接对旧的agent write会有并发问题
+	a.SendRaw(pkg)
 
 	if closed {
 		a.Close()
