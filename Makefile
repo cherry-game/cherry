@@ -25,7 +25,6 @@ modtidy:
 	rm -rf  \
 	go.sum \
 	go.work.sum \
-	examples/go.sum \
 	components/cron/go.sum \
 	components/data-config/go.sum \
 	components/etcd/go.sum \
@@ -33,7 +32,6 @@ modtidy:
 	components/gops/go.sum \
 	components/gorm/go.sum \
 	components/mongo/go.sum \
-	examples/go.sum
 
 	go mod tidy
 	cd components/cron/ && go mod tidy && cd ../../
@@ -43,5 +41,4 @@ modtidy:
 	cd components/gops/ && go mod tidy && cd ../../
 	cd components/gorm/ && go mod tidy && cd ../../
 	cd components/mongo/ && go mod tidy && cd ../../
-	cd examples/ && go mod tidy && cd ../../
 
