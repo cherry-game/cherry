@@ -66,14 +66,13 @@ func (s *Component) Init() {
 				timeout = time.Duration(item.GetInt64("timeout", 3)) * time.Second
 			)
 
-			for j := 0; j < mongoIdList.Size(); j++ {
-				dbId := mongoIdList.Get(j).ToString()
-				if id != dbId {
-					continue
-				}
+			if !enable {
+				continue
+			}
 
-				if !enable {
-					panic(fmt.Sprintf("[dbName = %s] is disabled!", dbName))
+			for _, key := range mongoIdList.Keys() {
+				if mongoIdList.Get(key).ToString() != id {
+					continue
 				}
 
 				db, err := CreateDatabase(uri, dbName, timeout)
