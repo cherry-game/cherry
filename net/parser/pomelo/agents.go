@@ -65,7 +65,10 @@ func Unbind(sid cfacade.SID) {
 	}
 
 	delete(sidAgentMap, sid)
-	delete(uidMap, agent.UID())
+	//是否绑定了新的Sid,就不要删除uid了
+	if nowSid, ok := uidMap[agent.UID()]; ok && nowSid == sid {
+		delete(uidMap, agent.UID())
+	}
 
 	sidCount := len(sidAgentMap)
 	uidCount := len(uidMap)
