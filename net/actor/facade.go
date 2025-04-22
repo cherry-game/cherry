@@ -9,7 +9,7 @@ import (
 
 type (
 	IActorLoader interface {
-		load(actor Actor)
+		load(actor *Actor)
 	}
 )
 

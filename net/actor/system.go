@@ -114,10 +114,10 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 		return nil, err
 	}
 
-	p.actorMap.Store(id, &thisActor) // add to map
-	go thisActor.run()               // new actor is running!
+	p.actorMap.Store(id, thisActor) // add to map
+	go thisActor.run()              // new actor is running!
 
-	return &thisActor, nil
+	return thisActor, nil
 }
 
 // Call 发送远程消息(不回复)

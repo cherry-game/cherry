@@ -50,10 +50,10 @@ func (p *actorChild) Create(childID string, handler cfacade.IActorHandler) (cfac
 		return nil, err
 	}
 
-	p.childActors.Store(childID, &childActor)
+	p.childActors.Store(childID, childActor)
 	go childActor.run()
 
-	return &childActor, nil
+	return childActor, nil
 }
 
 func (p *actorChild) Get(childID string) (cfacade.IActor, bool) {

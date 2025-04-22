@@ -5,10 +5,10 @@ import (
 )
 
 type Base struct {
-	Actor
+	*Actor
 }
 
-func (p *Base) load(a Actor) {
+func (p *Base) load(a *Actor) {
 	p.Actor = a
 }
 

@@ -23,7 +23,7 @@ import (
 */
 
 var (
-	_nilActor = Actor{}
+	_nilActor = &Actor{}
 )
 
 var (
@@ -358,7 +358,7 @@ func (p *Actor) PostEvent(data cfacade.IEventData) {
 	p.system.PostEvent(data)
 }
 
-func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System) (Actor, error) {
+func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System) (*Actor, error) {
 	if strings.TrimSpace(actorID) == "" {
 		clog.Error("[newActor] actor id is nil.")
 		return _nilActor, ErrActorIDIsNil
@@ -398,10 +398,10 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 	// spawn load!
 	actorLoad, ok := handler.(IActorLoader)
 	if ok {
-		actorLoad.load(thisActor)
+		actorLoad.load(&thisActor)
 	}
 
 	c.wg.Add(1)
 
-	return thisActor, nil
+	return &thisActor, nil
 }
