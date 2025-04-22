@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"testing"
 
+	"go.mongodb.org/mongo-driver/v2/bson"
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+
 	clog "github.com/cherry-game/cherry/logger"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type Student struct {
-	Name string
-	Age  int
+	ID   int32  `bson:"id,omitempty"`
+	Name string `bson:"name,omitempty"`
+	Age  int    `bson:"age,omitempty"`
 }
 
 func TestConnect(t *testing.T) {
@@ -30,22 +33,30 @@ func TestConnect(t *testing.T) {
 	collection := mdb.Collection("numbers")
 
 	student := &Student{
-		Name: "aaa222",
+		ID:   1,
+		Name: "aaa111",
 		Age:  111,
 	}
 
-	res, err := collection.InsertOne(context.Background(), student)
-	insertID := res.InsertedID
-	clog.Infof("id = %v, err = %v", insertID, err)
-
-	//id, _ := primitive.ObjectIDFromHex("649160b6c637f5773cc1e818")
-	id, ok := insertID.(primitive.ObjectID)
-	if !ok {
-		return
+	uniqueKey := mongo.IndexModel{
+		Keys:    bson.D{{Key: "id", Value: 1}},
+		Options: options.Index().SetUnique(true),
 	}
 
-	findFilter := bson.M{"_id": id}
-	findResult := collection.FindOne(context.Background(), findFilter)
+	_, err = collection.Indexes().CreateOne(context.TODO(), uniqueKey)
+	if err != nil {
+		clog.Warn(err)
+	}
+
+	filter := bson.D{{Key: "id", Value: student.ID}}
+	opts := options.FindOneAndUpdate().SetUpsert(true)
+
+	update := bson.D{{Key: "$set", Value: student}}
+	ret := collection.FindOneAndUpdate(context.TODO(), filter, update, opts)
+	clog.Infof("err = %v", ret.Err())
+
+	//replaceID := ret.UpsertedID.(bson.ObjectID)
+	findResult := collection.FindOne(context.Background(), filter)
 
 	findStudent := Student{}
 	findResult.Decode(&findStudent)

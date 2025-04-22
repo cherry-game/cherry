@@ -5,12 +5,13 @@ import (
 	"fmt"
 	"time"
 
+	"go.mongodb.org/mongo-driver/v2/mongo"
+	"go.mongodb.org/mongo-driver/v2/mongo/options"
+	"go.mongodb.org/mongo-driver/v2/mongo/readpref"
+
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/mongo/readpref"
 )
 
 const (
@@ -102,12 +103,12 @@ func CreateDatabase(uri, dbName string, timeout ...time.Duration) (*mongo.Databa
 	ctx, cancel := context.WithTimeout(context.Background(), tt)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, o)
+	client, err := mongo.Connect(o)
 	if err != nil {
 		return nil, err
 	}
 
-	err = client.Ping(context.Background(), readpref.Primary())
+	err = client.Ping(ctx, readpref.Primary())
 	if err != nil {
 		return nil, err
 	}
