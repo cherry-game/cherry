@@ -71,7 +71,7 @@ func (p *actorEvent) Pop() cfacade.IEventData {
 	return eventData
 }
 
-func (p *actorEvent) funcInvoke(data cfacade.IEventData) {
+func (p *actorEvent) invokeFunc(data cfacade.IEventData) {
 	funcList, found := p.funcMap[data.Name()]
 	if !found {
 		clog.Warnf("[%s] Event not found. [data = %+v]",

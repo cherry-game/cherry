@@ -166,7 +166,7 @@ func (p *Actor) processEvent() {
 	}
 
 	p.lastAt = time.Now().Unix()
-	p.event.funcInvoke(eventData)
+	p.event.invokeFunc(eventData)
 }
 
 func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
