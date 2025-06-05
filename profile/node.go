@@ -9,7 +9,7 @@ import (
 
 // Node node info
 type Node struct {
-	nodeId     string
+	nodeID     string
 	nodeType   string
 	address    string
 	rpcAddress string
@@ -17,8 +17,8 @@ type Node struct {
 	enabled    bool
 }
 
-func (n *Node) NodeId() string {
-	return n.nodeId
+func (n *Node) NodeID() string {
+	return n.nodeID
 }
 
 func (n *Node) NodeType() string {
@@ -41,11 +41,11 @@ func (n *Node) Enabled() bool {
 	return n.enabled
 }
 
-const stringFormat = "nodeId = %s, nodeType = %s, address = %s, rpcAddress = %s, enabled = %v"
+const stringFormat = "nodeID = %s, nodeType = %s, address = %s, rpcAddress = %s, enabled = %v"
 
 func (n *Node) String() string {
 	return fmt.Sprintf(stringFormat,
-		n.nodeId,
+		n.nodeID,
 		n.nodeType,
 		n.address,
 		n.rpcAddress,
@@ -53,7 +53,7 @@ func (n *Node) String() string {
 	)
 }
 
-func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
+func GetNodeWithConfig(config *Config, nodeID string) (cfacade.INode, error) {
 	nodeConfig := config.GetConfig("node")
 	if nodeConfig.LastError() != nil {
 		return nil, cerr.Error("`nodes` property not found in profile file.")
@@ -64,12 +64,12 @@ func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
 		for i := 0; i < typeJson.Size(); i++ {
 			item := typeJson.GetConfig(i)
 
-			if !findNodeId(nodeId, item.GetConfig("node_id")) {
+			if !findNodeID(nodeID, item.GetConfig("node_id")) {
 				continue
 			}
 
 			node := &Node{
-				nodeId:     nodeId,
+				nodeID:     nodeID,
 				nodeType:   nodeType,
 				address:    item.GetString("address"),
 				rpcAddress: item.GetString("rpc_address"),
@@ -81,20 +81,20 @@ func GetNodeWithConfig(config *Config, nodeId string) (cfacade.INode, error) {
 		}
 	}
 
-	return nil, cerr.Errorf("nodeId = %s not found.", nodeId)
+	return nil, cerr.Errorf("nodeID = %s not found.", nodeID)
 }
 
-func LoadNode(nodeId string) (cfacade.INode, error) {
-	return GetNodeWithConfig(cfg.jsonConfig, nodeId)
+func LoadNode(nodeID string) (cfacade.INode, error) {
+	return GetNodeWithConfig(cfg.jsonConfig, nodeID)
 }
 
-func findNodeId(nodeId string, nodeIdJson cfacade.ProfileJSON) bool {
-	if nodeIdJson.ToString() == nodeId {
+func findNodeID(nodeID string, nodeIDJson cfacade.ProfileJSON) bool {
+	if nodeIDJson.ToString() == nodeID {
 		return true
 	}
 
-	for i := 0; i < nodeIdJson.Size(); i++ {
-		if nodeIdJson.GetString(i) == nodeId {
+	for i := 0; i < nodeIDJson.Size(); i++ {
+		if nodeIDJson.GetString(i) == nodeID {
 			return true
 		}
 	}

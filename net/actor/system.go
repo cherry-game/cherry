@@ -44,12 +44,12 @@ func (p *System) SetApp(app cfacade.IApplication) {
 	p.app = app
 }
 
-func (p *System) NodeId() string {
+func (p *System) NodeID() string {
 	if p.app == nil {
 		return ""
 	}
 
-	return p.app.NodeId()
+	return p.app.NodeID()
 }
 
 func (p *System) Stop() {
@@ -151,7 +151,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 		return ccode.ActorConvertPathError
 	}
 
-	if targetPath.NodeID != "" && targetPath.NodeID != p.NodeId() {
+	if targetPath.NodeID != "" && targetPath.NodeID != p.NodeID() {
 		clusterPacket := cproto.GetClusterPacket()
 		clusterPacket.SourcePath = source
 		clusterPacket.TargetPath = target

@@ -75,21 +75,21 @@ func TestRace(t *testing.T) {
 }
 
 func TestAtomicInt64(t *testing.T) {
-	nodeId := "game-123"
-	nodeIdCRC32 := CRC32(nodeId)
+	nodeID := "game-123"
+	nodeIDCRC32 := CRC32(nodeID)
 
-	t.Logf("nodeIdCRC32 : %#v", nodeIdCRC32)
-	t.Logf("nodeIdCRC32 binary : %#v", strconv.FormatInt(int64(nodeIdCRC32), 2))
+	t.Logf("nodeIDCRC32 : %#v", nodeIDCRC32)
+	t.Logf("nodeIDCRC32 binary : %#v", strconv.FormatInt(int64(nodeIDCRC32), 2))
 
-	atomicId := time.Now().Unix()
-	t.Logf("atomicId : %#v", atomicId)
-	t.Logf("atomicId binary : %#v", strconv.FormatInt(atomicId, 2))
+	atomicID := time.Now().Unix()
+	t.Logf("atomicID : %#v", atomicID)
+	t.Logf("atomicID binary : %#v", strconv.FormatInt(atomicID, 2))
 
 	//1100 0000 0001 1100 0110 1111 0010 110
 
 	for i := 0; i < 10; i++ {
-		newId := atomic.AddInt64(&atomicId, 1)
-		t.Logf("newid : %#v", newId)
+		newID := atomic.AddInt64(&atomicID, 1)
+		t.Logf("newid : %#v", newID)
 	}
 }
 
@@ -413,7 +413,7 @@ func TestDefaultNode(t *testing.T) {
 	InitDefaultNode("0")
 
 	for i := 0; i < 10; i++ {
-		fmt.Println(NextId())
+		fmt.Println(NextID())
 	}
 }
 

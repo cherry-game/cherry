@@ -37,7 +37,7 @@ type (
 	}
 
 	IActorHandler interface {
-		AliasID() string                          // actorId
+		AliasID() string                          // actorID
 		OnInit()                                  // 当Actor启动前触发该函数
 		OnStop()                                  // 当Actor停止前触发该函数
 		OnLocalReceived(m *Message) (bool, bool)  // 当Actor接收local消息时触发该函数
@@ -58,6 +58,6 @@ type (
 type (
 	IEventData interface {
 		Name() string    // 事件名
-		UniqueId() int64 // 唯一id
+		UniqueID() int64 // 唯一id
 	}
 )

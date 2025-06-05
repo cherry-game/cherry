@@ -14,7 +14,7 @@ var (
 
 // Message represents a unmarshaled message or a message which to be marshaled
 // message协议的主要作用是封装消息头，包括route和消息类型两部分，
-// 不同的消息类型有着不同的消息头，在消息头里面可能要打入message id(即requestId)和route信息。
+// 不同的消息类型有着不同的消息头，在消息头里面可能要打入message id(即requestID)和route信息。
 // 由于可能会有route压缩，而且对于服务端push的消息，message id为空，对于客户端请求的响应，route为空
 // 消息头分为三部分，flag，message id，route。
 // 如下图所示：

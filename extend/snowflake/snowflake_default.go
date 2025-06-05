@@ -38,6 +38,6 @@ func Next() ID {
 	return defaultNode.Generate()
 }
 
-func NextId() int64 {
+func NextID() int64 {
 	return defaultNode.Generate().Int64()
 }

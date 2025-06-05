@@ -10,7 +10,7 @@ import (
 
 type actorChild struct {
 	thisActor   *Actor
-	childActors *sync.Map // key:childActorId, value:*actor
+	childActors *sync.Map // key:childActorID, value:*actor
 }
 
 func newChild(thisActor *Actor) actorChild {

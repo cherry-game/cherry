@@ -10,7 +10,7 @@ message I32 {
 
 // member data
 message Member {
-  string              nodeId = 1;     // node id
+  string              nodeID = 1;     // node id
   string              nodeType = 2;   // node type
   string              address = 3;    // rpc ip address
   map<string, string> settings = 4;   // node settings data

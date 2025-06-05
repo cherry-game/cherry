@@ -54,15 +54,15 @@ func (p *ETCD) Load(app cfacade.IApplication) {
 
 	p.loadConfig(clusterConfig)
 	p.init()
-	p.getLeaseId()
+	p.getLeaseID()
 	p.register()
 	p.watch()
 
-	clog.Infof("[etcd] init complete! [endpoints = %v] [leaseId = %d]", p.config.Endpoints, p.leaseID)
+	clog.Infof("[etcd] init complete! [endpoints = %v] [leaseID = %d]", p.config.Endpoints, p.leaseID)
 }
 
 func (p *ETCD) OnStop() {
-	key := fmt.Sprintf(registerKeyFormat, p.app.NodeId())
+	key := fmt.Sprintf(registerKeyFormat, p.app.NodeID())
 	_, err := p.cli.Delete(context.Background(), key)
 	clog.Infof("etcd stopping! err = %v", err)
 
@@ -112,7 +112,7 @@ func (p *ETCD) init() {
 	p.cli.Lease = namespace.NewLease(p.cli.Lease, p.prefix)
 }
 
-func (p *ETCD) getLeaseId() {
+func (p *ETCD) getLeaseID() {
 	var err error
 	//设置租约时间
 	resp, err := p.cli.Grant(context.Background(), p.ttl)
@@ -149,7 +149,7 @@ func (p *ETCD) getLeaseId() {
 
 func (p *ETCD) register() {
 	registerMember := &cproto.Member{
-		NodeId:   p.app.NodeId(),
+		NodeID:   p.app.NodeID(),
 		NodeType: p.app.NodeType(),
 		Address:  p.app.RpcAddress(),
 		Settings: make(map[string]string),
@@ -161,7 +161,7 @@ func (p *ETCD) register() {
 		return
 	}
 
-	key := fmt.Sprintf(registerKeyFormat, p.app.NodeId())
+	key := fmt.Sprintf(registerKeyFormat, p.app.NodeID())
 	_, err = p.cli.Put(context.Background(), key, jsonString, clientv3.WithLease(p.leaseID))
 	if err != nil {
 		clog.Fatal(err)
@@ -211,10 +211,10 @@ func (p *ETCD) addMember(data []byte) {
 
 func (p *ETCD) removeMember(kv *mvccpb.KeyValue) {
 	key := string(kv.Key)
-	nodeId := strings.ReplaceAll(key, keyPrefix, "")
-	if nodeId == "" {
-		clog.Warn("remove member nodeId is empty!")
+	nodeID := strings.ReplaceAll(key, keyPrefix, "")
+	if nodeID == "" {
+		clog.Warn("remove member nodeID is empty!")
 	}
 
-	p.RemoveMember(nodeId)
+	p.RemoveMember(nodeID)
 }

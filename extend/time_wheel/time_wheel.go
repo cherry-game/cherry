@@ -185,12 +185,12 @@ func (tw *TimeWheel) AddEveryFunc(id uint64, d time.Duration, f func(), async ..
 }
 
 func (tw *TimeWheel) BuildAfterFunc(d time.Duration, f func()) *Timer {
-	id := NextId()
+	id := NextID()
 	return tw.AfterFunc(id, d, f)
 }
 
 func (tw *TimeWheel) BuildEveryFunc(d time.Duration, f func(), async ...bool) *Timer {
-	id := NextId()
+	id := NextID()
 	return tw.AddEveryFunc(id, d, f, async...)
 }
 
@@ -240,8 +240,8 @@ func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func(), async ...boo
 	return t
 }
 
-func (tw *TimeWheel) NextId() uint64 {
-	return NextId()
+func (tw *TimeWheel) NextID() uint64 {
+	return NextID()
 }
 
 func getAsyncValue(asyncTask ...bool) bool {

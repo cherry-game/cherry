@@ -38,8 +38,8 @@ func (w *waitGroupWrapper) Wrap(cb func()) {
 	}()
 }
 
-var _nextId uint64
+var _nextID uint64
 
-func NextId() uint64 {
-	return atomic.AddUint64(&_nextId, 1)
+func NextID() uint64 {
+	return atomic.AddUint64(&_nextID, 1)
 }

@@ -42,8 +42,8 @@ type (
 )
 
 // NewApp create new application instance
-func NewApp(profileFilePath, nodeId string, isFrontend bool, mode NodeMode) *Application {
-	node, err := cprofile.Init(profileFilePath, nodeId)
+func NewApp(profileFilePath, nodeID string, isFrontend bool, mode NodeMode) *Application {
+	node, err := cprofile.Init(profileFilePath, nodeID)
 	if err != nil {
 		panic(err)
 	}
@@ -175,7 +175,7 @@ func (a *Application) Startup() {
 	}
 
 	clog.Info("-------------------------------------------------")
-	clog.Infof("[nodeId      = %s] application is starting...", a.NodeId())
+	clog.Infof("[nodeID      = %s] application is starting...", a.NodeID())
 	clog.Infof("[nodeType    = %s]", a.NodeType())
 	clog.Infof("[pid         = %d]", os.Getpid())
 	clog.Infof("[startTime   = %s]", a.StartTime())

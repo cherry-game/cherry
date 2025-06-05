@@ -15,7 +15,7 @@ const (
 type (
 	actorTimer struct {
 		thisActor    *Actor
-		timerInfoMap map[uint64]*timerInfo //key:timerId,value:*timerInfo
+		timerInfoMap map[uint64]*timerInfo //key:timerID,value:*timerInfo
 	}
 
 	timerInfo struct {
@@ -43,8 +43,8 @@ func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 		return 0
 	}
 
-	newId := globalTimer.NextId()
-	timer := globalTimer.AddEveryFunc(newId, delay, p.callUpdateTimer(newId), async...)
+	newID := globalTimer.NextID()
+	timer := globalTimer.AddEveryFunc(newID, delay, p.callUpdateTimer(newID), async...)
 
 	if timer == nil {
 		clog.Warnf("[ActorTimer] Add error. delay = %+v", delay)
@@ -53,7 +53,7 @@ func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 
 	p.addTimerInfo(timer, fn, false)
 
-	return newId
+	return newID
 }
 
 func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint64 {
@@ -62,8 +62,8 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint
 		return 0
 	}
 
-	newId := globalTimer.NextId()
-	timer := globalTimer.AfterFunc(newId, delay, p.callUpdateTimer(newId), async...)
+	newID := globalTimer.NextID()
+	timer := globalTimer.AfterFunc(newID, delay, p.callUpdateTimer(newID), async...)
 
 	if timer == nil {
 		clog.Warnf("[ActorTimer] AddOnce error. d = %+v", delay)
@@ -72,7 +72,7 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint
 
 	p.addTimerInfo(timer, fn, true)
 
-	return newId
+	return newID
 }
 
 func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {
@@ -94,12 +94,12 @@ func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func(), async ...bool) uin
 		return 0
 	}
 
-	newId := globalTimer.NextId()
-	timer := globalTimer.ScheduleFunc(newId, s, p.callUpdateTimer(newId), async...)
+	newID := globalTimer.NextID()
+	timer := globalTimer.ScheduleFunc(newID, s, p.callUpdateTimer(newID), async...)
 
 	p.addTimerInfo(timer, fn, false)
 
-	return newId
+	return newID
 }
 
 func (p *actorTimer) Remove(id uint64) {

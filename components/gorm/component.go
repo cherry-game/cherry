@@ -20,14 +20,14 @@ const (
 type (
 	Component struct {
 		cfacade.Component
-		// key:groupId,value:{key:id,value:*gorm.Db}
+		// key:groupID,value:{key:id,value:*gorm.Db}
 		ormMap map[string]map[string]*gorm.DB
 	}
 
 	mySqlConfig struct {
 		Enable         bool
-		GroupId        string
-		Id             string
+		GroupID        string
+		ID             string
 		DbName         string
 		Host           string
 		UserName       string
@@ -52,10 +52,10 @@ func (s *Component) Name() string {
 	return Name
 }
 
-func parseMysqlConfig(groupId string, item cfacade.ProfileJSON) *mySqlConfig {
+func parseMysqlConfig(groupID string, item cfacade.ProfileJSON) *mySqlConfig {
 	return &mySqlConfig{
-		GroupId:        groupId,
-		Id:             item.GetString("db_id"),
+		GroupID:        groupID,
+		ID:             item.GetString("db_id"),
 		DSN:            item.GetString("dsn", ""),
 		DbName:         item.GetString("db_name"),
 		Host:           item.GetString("host"),
@@ -70,9 +70,9 @@ func parseMysqlConfig(groupId string, item cfacade.ProfileJSON) *mySqlConfig {
 
 func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
-	dbIdList := s.App().Settings().Get("db_id_list")
-	if dbIdList.LastError() != nil || dbIdList.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `db_id_list` property not exists.", s.App().NodeId())
+	dbIDList := s.App().Settings().Get("db_id_list")
+	if dbIDList.LastError() != nil || dbIDList.Size() < 1 {
+		clog.Warnf("[nodeID = %s] `db_id_list` property not exists.", s.App().NodeID())
 		return
 	}
 
@@ -81,16 +81,16 @@ func (s *Component) Init() {
 		clog.Panic("`db` property not exists in profile file.")
 	}
 
-	for _, groupId := range dbConfig.Keys() {
-		s.ormMap[groupId] = make(map[string]*gorm.DB)
+	for _, groupID := range dbConfig.Keys() {
+		s.ormMap[groupID] = make(map[string]*gorm.DB)
 
-		dbGroup := dbConfig.GetConfig(groupId)
+		dbGroup := dbConfig.GetConfig(groupID)
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.GetConfig(i)
-			mysqlConfig := parseMysqlConfig(groupId, item)
+			mysqlConfig := parseMysqlConfig(groupID, item)
 
-			for _, key := range dbIdList.Keys() {
-				if dbIdList.Get(key).ToString() != mysqlConfig.Id {
+			for _, key := range dbIDList.Keys() {
+				if dbIDList.Get(key).ToString() != mysqlConfig.ID {
 					continue
 				}
 
@@ -103,8 +103,8 @@ func (s *Component) Init() {
 					clog.Panicf("[dbName = %s] create orm fail. error = %s", mysqlConfig.DbName, err)
 				}
 
-				s.ormMap[groupId][mysqlConfig.Id] = db
-				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", mysqlConfig.GroupId, mysqlConfig.Id)
+				s.ormMap[groupID][mysqlConfig.ID] = db
+				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", mysqlConfig.GroupID, mysqlConfig.ID)
 			}
 		}
 	}
@@ -157,20 +157,20 @@ func (s *Component) GetDb(id string) *gorm.DB {
 	return nil
 }
 
-func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*gorm.DB, bool) {
-	dbGroup, found := s.GetDbMap(groupId)
+func (s *Component) GetHashDb(groupID string, hashFn HashDb) (*gorm.DB, bool) {
+	dbGroup, found := s.GetDbMap(groupID)
 	if !found {
-		clog.Warnf("groupId = %s not found.", groupId)
+		clog.Warnf("groupID = %s not found.", groupID)
 		return nil, false
 	}
 
-	dbId := hashFn(dbGroup)
-	db, found := dbGroup[dbId]
+	dbID := hashFn(dbGroup)
+	db, found := dbGroup[dbID]
 	return db, found
 }
 
-func (s *Component) GetDbMap(groupId string) (map[string]*gorm.DB, bool) {
-	dbGroup, found := s.ormMap[groupId]
+func (s *Component) GetDbMap(groupID string) (map[string]*gorm.DB, bool) {
+	dbGroup, found := s.ormMap[groupID]
 	return dbGroup, found
 }
 

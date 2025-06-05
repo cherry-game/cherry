@@ -41,13 +41,13 @@ func PrintLevel() string {
 	return cfg.printLevel
 }
 
-func Init(filePath, nodeId string) (cfacade.INode, error) {
+func Init(filePath, nodeID string) (cfacade.INode, error) {
 	if filePath == "" {
 		return nil, cerror.Error("File path is nil.")
 	}
 
-	if nodeId == "" {
-		return nil, cerror.Error("NodeId is nil.")
+	if nodeID == "" {
+		return nil, cerror.Error("NodeID is nil.")
 	}
 
 	judgePath, ok := cfile.JudgeFile(filePath)
@@ -61,7 +61,7 @@ func Init(filePath, nodeId string) (cfacade.INode, error) {
 		return nil, cerror.Errorf("Load profile file error. [err = %v]", err)
 	}
 
-	node, err := GetNodeWithConfig(jsonConfig, nodeId)
+	node, err := GetNodeWithConfig(jsonConfig, nodeID)
 	if err != nil {
 		return nil, cerror.Errorf("Failed to get node config from profile file. [err = %v]", err)
 	}

@@ -12,13 +12,13 @@ func TestAddFunc(t *testing.T) {
 	tw.Start()
 	defer tw.Stop()
 
-	id1 := NextId()
+	id1 := NextID()
 	tw.AfterFunc(id1, time.Second, func() {
 		fmt.Println("The timer fires")
 	})
 	fmt.Println(id1)
 
-	id2 := NextId()
+	id2 := NextID()
 	tw.AddEveryFunc(id2, 500*time.Millisecond, func() {
 		log.Println("500 Millisecond")
 	})

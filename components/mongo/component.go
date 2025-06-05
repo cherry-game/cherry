@@ -40,9 +40,9 @@ func (*Component) Name() string {
 
 func (s *Component) Init() {
 	// load only the database contained in the `db_id_list`
-	mongoIdList := s.App().Settings().Get("mongo_id_list")
-	if mongoIdList.LastError() != nil || mongoIdList.Size() < 1 {
-		clog.Warnf("[nodeId = %s] `mongo_id_list` property not exists.", s.App().NodeId())
+	mongoIDList := s.App().Settings().Get("mongo_id_list")
+	if mongoIDList.LastError() != nil || mongoIDList.Size() < 1 {
+		clog.Warnf("[nodeID = %s] `mongo_id_list` property not exists.", s.App().NodeID())
 		return
 	}
 
@@ -51,10 +51,10 @@ func (s *Component) Init() {
 		panic("`mongo` property not exists in profile file.")
 	}
 
-	for _, groupId := range mongoConfig.Keys() {
-		s.dbMap[groupId] = make(map[string]*mongo.Database)
+	for _, groupID := range mongoConfig.Keys() {
+		s.dbMap[groupID] = make(map[string]*mongo.Database)
 
-		dbGroup := mongoConfig.GetConfig(groupId)
+		dbGroup := mongoConfig.GetConfig(groupID)
 		for i := 0; i < dbGroup.Size(); i++ {
 			item := dbGroup.GetConfig(i)
 
@@ -70,8 +70,8 @@ func (s *Component) Init() {
 				continue
 			}
 
-			for _, key := range mongoIdList.Keys() {
-				if mongoIdList.Get(key).ToString() != id {
+			for _, key := range mongoIDList.Keys() {
+				if mongoIDList.Get(key).ToString() != id {
 					continue
 				}
 
@@ -80,8 +80,8 @@ func (s *Component) Init() {
 					panic(fmt.Sprintf("[dbName = %s] create mongodb fail. error = %s", dbName, err))
 				}
 
-				s.dbMap[groupId][id] = db
-				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", groupId, id)
+				s.dbMap[groupID][id] = db
+				clog.Infof("[dbGroup =%s, dbName = %s] is connected.", groupID, id)
 			}
 		}
 	}
@@ -128,19 +128,19 @@ func (s *Component) GetDb(id string) *mongo.Database {
 	return nil
 }
 
-func (s *Component) GetHashDb(groupId string, hashFn HashDb) (*mongo.Database, bool) {
-	dbGroup, found := s.GetDbMap(groupId)
+func (s *Component) GetHashDb(groupID string, hashFn HashDb) (*mongo.Database, bool) {
+	dbGroup, found := s.GetDbMap(groupID)
 	if !found {
-		clog.Warnf("groupId = %s not found.", groupId)
+		clog.Warnf("groupID = %s not found.", groupID)
 		return nil, false
 	}
 
-	dbId := hashFn(dbGroup)
-	db, found := dbGroup[dbId]
+	dbID := hashFn(dbGroup)
+	db, found := dbGroup[dbID]
 	return db, found
 }
 
-func (s *Component) GetDbMap(groupId string) (map[string]*mongo.Database, bool) {
-	dbGroup, found := s.dbMap[groupId]
+func (s *Component) GetDbMap(groupID string) (map[string]*mongo.Database, bool) {
+	dbGroup, found := s.dbMap[groupID]
 	return dbGroup, found
 }

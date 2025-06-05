@@ -366,7 +366,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 
 	thisActor := Actor{
 		path: &cfacade.ActorPath{
-			NodeID:  c.NodeId(),
+			NodeID:  c.NodeID(),
 			ActorID: actorID,
 			ChildID: childID,
 		},

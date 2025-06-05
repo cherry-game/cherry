@@ -36,15 +36,15 @@ func (m *DiscoveryNATS) Name() string {
 }
 
 func (m *DiscoveryNATS) isMaster() bool {
-	return m.app.NodeId() == m.masterMember.GetNodeId()
+	return m.app.NodeID() == m.masterMember.GetNodeID()
 }
 
 func (m *DiscoveryNATS) isClient() bool {
-	return m.app.NodeId() != m.masterMember.GetNodeId()
+	return m.app.NodeID() != m.masterMember.GetNodeID()
 }
 
 func (m *DiscoveryNATS) buildSubject(subject string) string {
-	return fmt.Sprintf(subject, m.masterMember.GetNodeId())
+	return fmt.Sprintf(subject, m.masterMember.GetNodeID())
 }
 
 func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
@@ -56,7 +56,7 @@ func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
 
 func (m *DiscoveryNATS) loadMember() {
 	m.thisMember = &cproto.Member{
-		NodeId:   m.app.NodeId(),
+		NodeID:   m.app.NodeID(),
 		NodeType: m.app.NodeType(),
 		Address:  m.app.RpcAddress(),
 		Settings: make(map[string]string),
@@ -77,19 +77,19 @@ func (m *DiscoveryNATS) loadMember() {
 	}
 
 	// get master node id
-	masterId := config.GetString("master_node_id")
-	if masterId == "" {
+	masterID := config.GetString("master_node_id")
+	if masterID == "" {
 		clog.Fatal("master node id not in config.")
 	}
 
 	// load master node config
-	masterNode, err := cprofile.LoadNode(masterId)
+	masterNode, err := cprofile.LoadNode(masterID)
 	if err != nil {
 		clog.Fatal(err)
 	}
 
 	m.masterMember = &cproto.Member{
-		NodeId:   masterNode.NodeId(),
+		NodeID:   masterNode.NodeID(),
 		NodeType: masterNode.NodeType(),
 		Address:  masterNode.RpcAddress(),
 		Settings: make(map[string]string),
@@ -110,12 +110,12 @@ func (m *DiscoveryNATS) init() {
 			return
 		}
 
-		if unregisterMember.NodeId == m.app.NodeId() {
+		if unregisterMember.NodeID == m.app.NodeID() {
 			return
 		}
 
 		// remove member
-		m.RemoveMember(unregisterMember.NodeId)
+		m.RemoveMember(unregisterMember.NodeID)
 	})
 
 	m.serverInit()
@@ -153,7 +153,7 @@ func (m *DiscoveryNATS) serverInit() {
 
 		m.memberMap.Range(func(key, value any) bool {
 			protoMember := value.(*cproto.Member)
-			if protoMember.NodeId != newMember.NodeId {
+			if protoMember.NodeID != newMember.NodeID {
 				memberList.List = append(memberList.List, protoMember)
 			}
 
@@ -201,7 +201,7 @@ func (m *DiscoveryNATS) clientInit() {
 			return
 		}
 
-		if _, ok := m.GetMember(addMember.NodeId); !ok {
+		if _, ok := m.GetMember(addMember.NodeID); !ok {
 			m.AddMember(addMember)
 		}
 	})
@@ -211,7 +211,7 @@ func (m *DiscoveryNATS) clientInit() {
 
 func (m *DiscoveryNATS) checkMaster() {
 	for {
-		_, found := m.GetMember(m.masterMember.GetNodeId())
+		_, found := m.GetMember(m.masterMember.GetNodeID())
 		if !found {
 			m.registerToMaster()
 		}
@@ -225,7 +225,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 	rsp, err := cnats.Get().Request(m.registerSubject, m.thisMemberBytes)
 	if err != nil {
 		clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
-			m.masterMember.GetNodeId(),
+			m.masterMember.GetNodeID(),
 			cnats.Get().Address(),
 			err,
 		)
@@ -233,7 +233,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 	}
 
 	clog.Infof("register node to [master = %s]. [member = %s]",
-		m.masterMember.GetNodeId(),
+		m.masterMember.GetNodeID(),
 		m.thisMember,
 	)
 
@@ -256,9 +256,9 @@ func (m *DiscoveryNATS) Stop() {
 		return
 	}
 
-	clog.Debugf("[nodeId = %s] unregister node to [master = %s]",
-		m.app.NodeId(),
-		m.masterMember.GetNodeId(),
+	clog.Debugf("[nodeID = %s] unregister node to [master = %s]",
+		m.app.NodeID(),
+		m.masterMember.GetNodeID(),
 	)
 }
 
