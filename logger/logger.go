@@ -45,8 +45,8 @@ func SetNodeLogger(node cfacade.INode) {
 		return
 	}
 
-	SetFileNameVar("nodeID", node.NodeID())     // %nodeID
-	SetFileNameVar("nodeType", node.NodeType()) // %nodeTyp
+	SetFileNameVar("nodeid", node.NodeID())     // %nodeid
+	SetFileNameVar("nodetype", node.NodeType()) // %nodetype
 
 	DefaultLogger = NewLogger(refLoggerName, zap.AddCallerSkip(1))
 	printLevel = GetLevel(cprofile.PrintLevel())
