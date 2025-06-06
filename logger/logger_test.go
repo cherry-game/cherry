@@ -16,6 +16,7 @@ func BenchmarkWrite(b *testing.B) {
 	log1 := NewConfigLogger(config)
 
 	for i := 0; i < b.N; i++ {
-		log1.Debug(ctime.Now().ToDateTimeFormat())
+		now := ctime.Now()
+		log1.Debug(now.ToDateTimeFormat())
 	}
 }
