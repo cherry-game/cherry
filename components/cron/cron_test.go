@@ -10,16 +10,19 @@ import (
 
 func TestAddEveryDayFunc(t *testing.T) {
 	AddEveryDayFunc(func() {
-		clog.Info(ctime.Now().ToDateTimeFormat())
+		now := ctime.Now()
+		clog.Info(now.ToDateTimeFormat())
 	}, 17, 32, 5)
 
 	AddEveryHourFunc(func() {
-		clog.Info(ctime.Now().ToDateTimeFormat())
+		now := ctime.Now()
+		clog.Info(now.ToDateTimeFormat())
 		panic("print panic~~~")
 	}, 5, 5)
 
 	AddDurationFunc(func() {
-		clog.Info(ctime.Now().ToDateTimeFormat())
+		now := ctime.Now()
+		clog.Info(now.ToDateTimeFormat())
 	}, 1*time.Minute)
 
 	Run()
