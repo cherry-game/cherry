@@ -219,8 +219,7 @@ func (a *Application) Startup() {
 	}
 
 	clog.Info("-------------------------------------------------")
-	spendTime := a.startTime.DiffInMillisecond(ctime.Now())
-	clog.Infof("[spend time = %dms] application is running.", spendTime)
+	clog.Infof("[spend time = %dms] application is running.", a.startTime.NowDiffMillisecond())
 	clog.Info("-------------------------------------------------")
 
 	// set application is running

@@ -5,81 +5,101 @@ import (
 )
 
 func TestCherryTime_DaysInYear(t *testing.T) {
-	t.Logf("result = %v", Now().DaysInYear())
+	now := Now()
+	t.Logf("result = %v", now.DaysInYear())
 }
 
 func TestCherryTime_DaysInMonth(t *testing.T) {
-	t.Logf("result = %v", Now().DaysInMonth())
+	now := Now()
+	t.Logf("result = %v", now.DaysInMonth())
 }
 
 func TestCherryTime_MonthOfYear(t *testing.T) {
-	t.Logf("result = %v", Now().MonthOfYear())
+	now := Now()
+	t.Logf("result = %v", now.MonthOfYear())
 }
 
 func TestCherryTime_DayOfYear(t *testing.T) {
-	t.Logf("result = %v", Now().DayOfYear())
+	now := Now()
+	t.Logf("result = %v", now.DayOfYear())
 }
 
 func TestCherryTime_DayOfMonth(t *testing.T) {
-	t.Logf("result = %v", Now().DayOfMonth())
+	now := Now()
+	t.Logf("result = %v", now.DayOfMonth())
 }
 
 func TestCherryTime_DayOfWeek(t *testing.T) {
-	t.Logf("result = %v", Now().DayOfWeek())
+	now := Now()
+	t.Logf("result = %v", now.DayOfWeek())
 }
 
 func TestCherryTime_WeekOfYear(t *testing.T) {
-	t.Logf("result = %v", Now().WeekOfYear())
+	now := Now()
+	t.Logf("result = %v", now.WeekOfYear())
 }
 
 func TestCherryTime_WeekOfMonth(t *testing.T) {
-	t.Logf("result = %v", Now().WeekOfMonth())
+	now := Now()
+	t.Logf("result = %v", now.WeekOfMonth())
 }
 
 func TestCherryTime_Year(t *testing.T) {
-	t.Logf("result = %v", Now().Year())
+	now := Now()
+	t.Logf("result = %v", now.Year())
 }
 
 func TestCherryTime_Quarter(t *testing.T) {
-	t.Logf("result = %v", Now().Quarter())
+	now := Now()
+	t.Logf("result = %v", now.Quarter())
 }
 
 func TestCherryTime_Month(t *testing.T) {
-	t.Logf("result = %v", Now().Month())
+	now := Now()
+	t.Logf("result = %v", now.Month())
 }
 
 func TestCherryTime_Week(t *testing.T) {
-	t.Logf("result = %v", Now().Week())
+	now := Now()
+	t.Logf("result = %v", now.Week())
 }
 
 func TestCherryTime_Day(t *testing.T) {
-	t.Logf("result = %v", Now().Day())
+	now := Now()
+	t.Logf("result = %v", now.Day())
 }
 
 func TestCherryTime_Hour(t *testing.T) {
-	t.Logf("result = %v", Now().Hour())
+	now := Now()
+	t.Logf("result = %v", now.Hour())
 }
 
 func TestCherryTime_Minute(t *testing.T) {
-	t.Logf("result = %v", Now().Minute())
+	now := Now()
+	t.Logf("result = %v", now.Minute())
 }
 
 func TestCherryTime_Second(t *testing.T) {
-	t.Logf("result = %v", Now().Second())
+	now := Now()
+	t.Logf("result = %v", now.Second())
 }
 
 func TestCherryTime_Millisecond(t *testing.T) {
-	t.Logf("result = %v", Now().Millisecond())
+	now := Now()
+	t.Logf("result = %v", now.Millisecond())
 }
 
 func TestCherryTime_Microsecond(t *testing.T) {
-	t.Logf("result = %v", Now().Microsecond())
+	now := Now()
+	t.Logf("result = %v", now.Microsecond())
 }
 
 func TestCherryTime_Nanosecond(t *testing.T) {
-	t.Logf("result = %v", Now().Nanosecond())
+	now := Now()
+	t.Logf("result = %v", now.Nanosecond())
 }
 
 func TestCherryTime_Timezone(t *testing.T) {
-	t.Logf("result = %v", Now().Timezone())
+	now := Now()
+	t.Logf("result = %v", now.Timezone())
 }
