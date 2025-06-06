@@ -17,7 +17,7 @@ var (
 
 func GetClusterPacket() *ClusterPacket {
 	pkg := clusterPacketPool.Get().(*ClusterPacket)
-	pkg.BuildTime = ctime.Now().UnixMilli()
+	pkg.BuildTime = ctime.Now().ToMillisecond()
 	return pkg
 }
 

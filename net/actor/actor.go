@@ -101,7 +101,7 @@ func (p *Actor) processLocal() {
 		return
 	}
 
-	p.lastAt = ctime.Now().Unix()
+	p.lastAt = ctime.Now().ToSecond()
 
 	next, invoke := p.handler.OnLocalReceived(m)
 	if invoke {
@@ -133,7 +133,7 @@ func (p *Actor) processRemote() {
 		return
 	}
 
-	p.lastAt = ctime.Now().Unix()
+	p.lastAt = ctime.Now().ToSecond()
 
 	next, invoke := p.handler.OnRemoteReceived(m)
 	if invoke {
@@ -165,7 +165,7 @@ func (p *Actor) processEvent() {
 		return
 	}
 
-	p.lastAt = ctime.Now().Unix()
+	p.lastAt = ctime.Now().ToSecond()
 	p.event.invokeFunc(eventData)
 }
 
@@ -194,10 +194,10 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 		)
 	}
 
-	now := ctime.Now().UnixMilli()
+	now := ctime.Now().ToMillisecond()
 
 	defer func() {
-		p.executionElapsed = ctime.Now().UnixMilli() - now
+		p.executionElapsed = ctime.Now().ToMillisecond() - now
 		if p.executionElapsed > p.system.executionTimeout {
 			clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, execution = %dms]",
 				mb.name,
@@ -374,7 +374,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,
-		lastAt:  ctime.Now().Unix(),
+		lastAt:  ctime.Now().ToSecond(),
 	}
 
 	localMailbox := newMailbox(LocalName)

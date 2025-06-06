@@ -99,7 +99,7 @@ func (a *Agent) Unbind() {
 }
 
 func (a *Agent) SetLastAt() {
-	atomic.StoreInt64(&a.lastAt, ctime.Now().Unix())
+	atomic.StoreInt64(&a.lastAt, ctime.Now().ToSecond())
 }
 
 func (a *Agent) SendRaw(bytes []byte) {

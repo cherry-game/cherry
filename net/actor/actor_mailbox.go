@@ -63,7 +63,7 @@ func (p *mailbox) Pop() *cfacade.Message {
 
 func (p *mailbox) Push(m *cfacade.Message) {
 	if m != nil {
-		m.PostTime = ctime.Now().UnixMicro()
+		m.PostTime = ctime.Now().ToMillisecond()
 		p.queue.Push(m)
 	}
 }

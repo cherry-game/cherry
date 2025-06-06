@@ -49,7 +49,7 @@ type (
 
 func GetMessage() Message {
 	msg := Message{
-		BuildTime: ctime.Now().UnixMilli(),
+		BuildTime: ctime.Now().ToMillisecond(),
 	}
 
 	return msg
