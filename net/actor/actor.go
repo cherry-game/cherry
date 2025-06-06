@@ -2,8 +2,8 @@ package cherryActor
 
 import (
 	"strings"
-	"time"
 
+	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -47,7 +47,7 @@ type (
 		event            *actorEvent           // event
 		child            *actorChild           // child actor
 		timer            *actorTimer           // timer
-		lastAt           int64                 // last process time
+		lastAt           int64                 // last process time (count of seconds)
 		arrivalElapsed   int64                 // arrival elapsed for message
 		executionElapsed int64                 // execution elapsed for message
 	}
@@ -101,7 +101,7 @@ func (p *Actor) processLocal() {
 		return
 	}
 
-	p.lastAt = time.Now().Unix()
+	p.lastAt = ctime.Now().Unix()
 
 	next, invoke := p.handler.OnLocalReceived(m)
 	if invoke {
@@ -133,7 +133,7 @@ func (p *Actor) processRemote() {
 		return
 	}
 
-	p.lastAt = time.Now().Unix()
+	p.lastAt = ctime.Now().Unix()
 
 	next, invoke := p.handler.OnRemoteReceived(m)
 	if invoke {
@@ -165,7 +165,7 @@ func (p *Actor) processEvent() {
 		return
 	}
 
-	p.lastAt = time.Now().Unix()
+	p.lastAt = ctime.Now().Unix()
 	p.event.invokeFunc(eventData)
 }
 
@@ -194,10 +194,10 @@ func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.Inv
 		)
 	}
 
-	now := time.Now().UnixMilli()
+	now := ctime.Now().UnixMilli()
 
 	defer func() {
-		p.executionElapsed = time.Now().UnixMilli() - now
+		p.executionElapsed = ctime.Now().UnixMilli() - now
 		if p.executionElapsed > p.system.executionTimeout {
 			clog.Warnf("[%s] Invoke timeout.[source = %s, target = %s->%s, execution = %dms]",
 				mb.name,
@@ -374,7 +374,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,
-		lastAt:  time.Now().Unix(),
+		lastAt:  ctime.Now().Unix(),
 	}
 
 	localMailbox := newMailbox(LocalName)

@@ -3,7 +3,8 @@ package cherryProto
 import (
 	"fmt"
 	"sync"
-	"time"
+
+	ctime "github.com/cherry-game/cherry/extend/time"
 )
 
 var (
@@ -16,7 +17,7 @@ var (
 
 func GetClusterPacket() *ClusterPacket {
 	pkg := clusterPacketPool.Get().(*ClusterPacket)
-	pkg.BuildTime = time.Now().UnixMilli()
+	pkg.BuildTime = ctime.Now().UnixMilli()
 	return pkg
 }
 

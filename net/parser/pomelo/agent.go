@@ -7,6 +7,7 @@ import (
 	"time"
 
 	cnet "github.com/cherry-game/cherry/extend/net"
+	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -109,7 +110,7 @@ func (a *Agent) Unbind() {
 }
 
 func (a *Agent) SetLastAt() {
-	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
+	atomic.StoreInt64(&a.lastAt, ctime.Now().Unix())
 }
 
 func (a *Agent) SendRaw(bytes []byte) {

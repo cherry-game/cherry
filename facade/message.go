@@ -2,11 +2,11 @@ package cherryFacade
 
 import (
 	"strings"
-	"time"
 
 	cconst "github.com/cherry-game/cherry/const"
 	cerr "github.com/cherry-game/cherry/error"
 	cstring "github.com/cherry-game/cherry/extend/string"
+	ctime "github.com/cherry-game/cherry/extend/time"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
@@ -49,7 +49,7 @@ type (
 
 func GetMessage() Message {
 	msg := Message{
-		BuildTime: time.Now().UnixMilli(),
+		BuildTime: ctime.Now().UnixMilli(),
 	}
 
 	return msg

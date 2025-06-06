@@ -7,6 +7,7 @@ import (
 	"time"
 
 	cnet "github.com/cherry-game/cherry/extend/net"
+	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -98,7 +99,7 @@ func (a *Agent) Unbind() {
 }
 
 func (a *Agent) SetLastAt() {
-	atomic.StoreInt64(&a.lastAt, time.Now().Unix())
+	atomic.StoreInt64(&a.lastAt, ctime.Now().Unix())
 }
 
 func (a *Agent) SendRaw(bytes []byte) {
@@ -162,7 +163,7 @@ func (a *Agent) writeChan() {
 			}
 		case <-ticker.C:
 			{
-				deadline := time.Now().Add(-heartbeatTime).Unix()
+				deadline := ctime.Now().Add(-heartbeatTime).Unix()
 				if a.lastAt < deadline {
 					if clog.PrintLevel(zapcore.DebugLevel) {
 						clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
