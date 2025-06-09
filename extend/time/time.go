@@ -52,13 +52,14 @@ type CherryTime struct {
 }
 
 func NewTime(tt time.Time, setGlobal bool) CherryTime {
-	ct := CherryTime{
-		Time: tt,
-	}
+	ct := CherryTime{}
 
 	if setGlobal {
 		ct.Time = tt.In(offsetLocation).Add(offsetTime)
+	} else {
+		ct.Time = tt
 	}
+
 	return ct
 }
 

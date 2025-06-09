@@ -191,84 +191,95 @@ func (c CherryTime) Nanosecond() int {
 // ------------------------------------------
 
 // StartOfYear 本年开始时间
-func (c CherryTime) StartOfYear() time.Time {
-	return time.Date(c.Time.Year(), 1, 1, 0, 0, 0, 0, c.Location())
+func (c CherryTime) StartOfYear() CherryTime {
+	t := time.Date(c.Time.Year(), 1, 1, 0, 0, 0, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfYear 本年结束时间
-func (c CherryTime) EndOfYear() time.Time {
-	return time.Date(c.Time.Year(), 12, 31, 23, 59, 59, 0, c.Location())
+func (c CherryTime) EndOfYear() CherryTime {
+	t := time.Date(c.Time.Year(), 12, 31, 23, 59, 59, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // StartOfMonth 本月开始时间
-func (c CherryTime) StartOfMonth() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), 1, 0, 0, 0, 0, c.Location())
+func (c CherryTime) StartOfMonth() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), 1, 0, 0, 0, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfMonth 本月结束时间
-func (c CherryTime) EndOfMonth() time.Time {
+func (c CherryTime) EndOfMonth() CherryTime {
 	t := time.Date(c.Time.Year(), c.Time.Month(), 1, 23, 59, 59, 0, c.Location())
-	return t.AddDate(0, 1, -1)
+	return NewTime(t.AddDate(0, 1, -1), false)
 }
 
 // StartOfWeek 本周开始时间
-func (c CherryTime) StartOfWeek() time.Time {
+func (c CherryTime) StartOfWeek() CherryTime {
 	days := c.Time.Weekday()
 	if days == 0 {
 		days = DaysPerWeek
 	}
 
 	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 0, 0, 0, 0, c.Location())
-	return t.AddDate(0, 0, int(1-days))
+	return NewTime(t.AddDate(0, 0, int(1-days)), false)
 }
 
 // EndOfWeek 本周结束时间
-func (c CherryTime) EndOfWeek() time.Time {
+func (c CherryTime) EndOfWeek() CherryTime {
 	days := c.Time.Weekday()
 	if days == 0 {
 		days = DaysPerWeek
 	}
 
 	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 23, 59, 59, 0, c.Location())
-	return t.AddDate(0, 0, int(DaysPerWeek-days))
+	return NewTime(t.AddDate(0, 0, int(DaysPerWeek-days)), false)
 }
 
 // StartOfDay 本日开始时间
-func (c CherryTime) StartOfDay() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 0, 0, 0, 0, c.Location())
+func (c CherryTime) StartOfDay() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 0, 0, 0, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfDay 本日结束时间
-func (c CherryTime) EndOfDay() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 23, 59, 59, 0, c.Location())
+func (c CherryTime) EndOfDay() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), 23, 59, 59, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // StartOfHour 小时开始时间
-func (c CherryTime) StartOfHour() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), 0, 0, 0, c.Location())
+func (c CherryTime) StartOfHour() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), 0, 0, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfHour 小时结束时间
-func (c CherryTime) EndOfHour() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), 59, 59, 0, c.Location())
+func (c CherryTime) EndOfHour() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), 59, 59, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // StartOfMinute 分钟开始时间
-func (c CherryTime) StartOfMinute() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), 0, 0, c.Location())
+func (c CherryTime) StartOfMinute() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), 0, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfMinute 分钟结束时间
-func (c CherryTime) EndOfMinute() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), 59, 0, c.Location())
+func (c CherryTime) EndOfMinute() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), 59, 0, c.Location())
+	return NewTime(t, false)
 }
 
 // StartOfSecond 秒开始时间
-func (c CherryTime) StartOfSecond() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), c.Time.Second(), 0, c.Location())
+func (c CherryTime) StartOfSecond() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), c.Time.Second(), 0, c.Location())
+	return NewTime(t, false)
 }
 
 // EndOfSecond 秒结束时间
-func (c CherryTime) EndOfSecond() time.Time {
-	return time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), c.Time.Second(), 999999999, c.Location())
+func (c CherryTime) EndOfSecond() CherryTime {
+	t := time.Date(c.Time.Year(), c.Time.Month(), c.Time.Day(), c.Time.Hour(), c.Time.Minute(), c.Time.Second(), 999999999, c.Location())
+	return NewTime(t, false)
 }
