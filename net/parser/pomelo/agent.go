@@ -423,7 +423,7 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 	}
 
 	// 不进入pending chan，直接踢了
-	a.write(pkg)
+	a.SendRaw(pkg)
 
 	if closed {
 		a.Close()
