@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/gorm
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.18
+	github.com/cherry-game/cherry v1.3.19
 	gorm.io/driver/mysql v1.5.2
 	gorm.io/gorm v1.25.5
 )

@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/cron
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.18
+	github.com/cherry-game/cherry v1.3.19
 	github.com/robfig/cron/v3 v3.0.1
 )
 
