@@ -2,6 +2,7 @@ package cherryProfile
 
 import (
 	"fmt"
+	"regexp"
 
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -89,7 +90,12 @@ func LoadNode(nodeID string) (cfacade.INode, error) {
 }
 
 func findNodeID(nodeID string, nodeIDJson cfacade.ProfileJSON) bool {
-	if nodeIDJson.ToString() == nodeID {
+	configNodeID := nodeIDJson.ToString()
+	if configNodeID == nodeID {
+		return true
+	}
+
+	if isRegexNodeID(nodeID, configNodeID) {
 		return true
 	}
 
@@ -100,4 +106,13 @@ func findNodeID(nodeID string, nodeIDJson cfacade.ProfileJSON) bool {
 	}
 
 	return false
+}
+
+func isRegexNodeID(nodeID, regexNodeID string) bool {
+	regex, err := regexp.Compile(regexNodeID)
+	if err != nil {
+		return false
+	}
+
+	return regex.MatchString(nodeID)
 }

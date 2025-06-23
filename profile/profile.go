@@ -104,33 +104,3 @@ func loadFile(filePath, fileName string) (*Config, error) {
 
 	return Wrap(maps), nil
 }
-
-//func judgeNameList(path, name string) ([]string, error) {
-//	var list []string
-//
-//	if name != "" {
-//		fileName := mergeProfileName(name)
-//		list = append(list, fileName)
-//
-//	} else {
-//		// find path
-//		filesPath, err := cfile.ReadDir(path, "profile-", ".json")
-//		if err != nil {
-//			return nil, err
-//		}
-//
-//		if len(filesPath) < 1 {
-//			return nil, cerror.Errorf("[path = %s] profile file not found.", path)
-//		}
-//
-//		for _, fp := range filesPath {
-//			list = append(list, fp)
-//		}
-//	}
-//
-//	return list, nil
-//}
-
-//func mergeProfileName(name string) string {
-//	return fmt.Sprintf("%s%s%s", profilePrefix, name, profileSuffix)
-//}
