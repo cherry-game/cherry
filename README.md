@@ -18,6 +18,7 @@
 - **新增Actor model实现**
 - **新增simple网络数据包结构(id(4bytes) + dataLen(4bytes) + data(n bytes))**
 - **`examples`示例已从cherry库迁出，新仓库地址: https://github.com/cherry-game/examples**
+- **`components`组件库已从cherry库迁出，新仓库地址: https://https://github.com/cherry-game/components/** 
 - **文档地址: https://cherry-game.github.io/** 
 
 ## 讨论与交流
@@ -116,7 +117,7 @@
 
 ## 扩展组件
 
-### [data-config组件](components/data-config)
+### [data-config组件](https://github.com/cherry-game/components/tree/master/data-config)
 
 - 策划配表读取管理组件
 - 可基于本地配置文件的方式加载
@@ -127,11 +128,11 @@
 - 可自定义类型检测
 - 可根据`go-linq`进行数据集合的条件查询
 
-### [etcd组件](components/etcd)
+### [etcd组件](https://github.com/cherry-game/components/tree/master/etcd)
 
 - 基于`etcd`组件进行封装，节点集群和注册发现
 
-### [gin组件](components/gin)
+### [gin组件](https://github.com/cherry-game/components/tree/master/gin)
 
 - 集成`gin`组件，实现http server功能
 - 自定义`controller`，增加`PreInit()`、`Init()`、`Stop()`初始周期的管理
@@ -142,17 +143,17 @@
   - max connect限流
 - 封装了GET/POST方式获取各种数据类型的函数
 
-### [gorm组件](components/gorm)
+### [gorm组件](https://github.com/cherry-game/components/tree/master/gorm)
 
 - 集成`gorm`组件，实现mysql的数据库访问
 - 支持多个mysql数据库配置和管理
 
-### [mongo组件](components/mongo)
+### [mongo组件](https://github.com/cherry-game/components/tree/master/mongo)
 
 - 集成`mongo-driver`驱动
 - 支持多个mongodb数据库配置和管理
 
-### [cron组件](components/cron)
+### [cron组件](https://github.com/cherry-game/components/tree/master/cron)
 
 - 基于`github.com/robfig/cron/v3`进行封装成组件
 - 性能良好
