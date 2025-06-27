@@ -3,6 +3,7 @@ package cherryProfile
 import (
 	"fmt"
 	"regexp"
+	"strings"
 
 	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -109,6 +110,10 @@ func findNodeID(nodeID string, nodeIDJson cfacade.ProfileJSON) bool {
 }
 
 func isRegexNodeID(nodeID, regexNodeID string) bool {
+	if !strings.HasPrefix(regexNodeID, "^") || !strings.HasSuffix(regexNodeID, "$") {
+		return false
+	}
+
 	regex, err := regexp.Compile(regexNodeID)
 	if err != nil {
 		return false
