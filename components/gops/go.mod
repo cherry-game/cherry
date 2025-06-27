@@ -3,7 +3,7 @@ module github.com/cherry-game/cherry/components/gops
 go 1.18
 
 require (
-	github.com/cherry-game/cherry v1.3.20
+	github.com/cherry-game/cherry v1.3.21
 	github.com/google/gops v0.3.28
 )
 
