@@ -22,57 +22,42 @@ func Wrapf(err error, format string, a ...interface{}) error {
 	return Wrap(err, text)
 }
 
-// session
-var (
-	SessionMemberNotFound    = Error("member not found in the group")
-	SessionClosedGroup       = Error("group is closed")
-	SessionDuplication       = Error("session has existed in the current group")
-	SessionNotFoundInContext = Error("session not found in context")
-)
-
 // route
 var (
-	RouteFieldCantEmpty = Error("route field can not be empty")
-	RouteInvalid        = Error("invalid route")
+	RouteFieldCantEmpty = Error("Route field can not be empty")
+	RouteInvalid        = Error("Invalid route")
 )
 
 // packet
 var (
-	PacketWrongType              = Error("wrong packet type")
-	PacketSizeExceed             = Error("codec: packet size exceed")
-	PacketConnectClosed          = Error("client connection closed")
-	PacketInvalidHeader          = Error("invalid header")
-	PacketMsgSmallerThanExpected = Error("received less data than expected, EOF?")
-	PacketHeadFuncNoSet          = Error("head func no set")
+	PacketWrongType              = Error("Wrong packet type")
+	PacketSizeExceed             = Error("Codec: packet size exceed")
+	PacketConnectClosed          = Error("Client connection closed")
+	PacketInvalidHeader          = Error("Invalid header")
+	PacketMsgSmallerThanExpected = Error("Received less data than expected, EOF?")
 )
 
 // message
 var (
-	MessageWrongType     = Error("wrong message type")
-	MessageInvalid       = Error("invalid message")
-	MessageRouteNotFound = Error("route info not found in dictionary")
+	MessageWrongType     = Error("Wrong message type")
+	MessageInvalid       = Error("Invalid message")
+	MessageRouteNotFound = Error("Route info not found in dictionary")
 )
 
 var (
-	ProtobufWrongValueType = Error("convert on wrong type value")
-)
-
-var (
-	DiscoveryMemberListIsEmpty = Error("get member list is empty.")
+	ProtobufWrongValueType = Error("Convert on wrong type value")
 )
 
 // cluster
 var (
-	ClusterRPCClientIsStop = Error("rpc client is stop")
-	ClusterNoImplement     = Error("no implement")
-	NodeTypeIsNil          = Error("node type is nil.")
+	ClusterRPCClientIsStop = Error("RPC client is stop")
 )
 
 var (
-	ActorPathError = Error("actor path is error.")
+	ActorPathError = Error("Actor path is error.")
 )
 
 var (
-	FuncIsNil     = Error("function is nil")
-	FuncTypeError = Error("Is not func type")
+	FuncIsNil     = Error("Func is nil")
+	FuncTypeError = Error("Func type error")
 )
