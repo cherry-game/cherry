@@ -25,6 +25,7 @@ type DiscoveryNATS struct {
 	thisMember        cfacade.IMember
 	thisMemberBytes   []byte
 	masterMember      cfacade.IMember
+	prefix            string
 	registerSubject   string
 	unregisterSubject string
 	addSubject        string
@@ -44,7 +45,7 @@ func (m *DiscoveryNATS) isClient() bool {
 }
 
 func (m *DiscoveryNATS) buildSubject(subject string) string {
-	return fmt.Sprintf(subject, m.masterMember.GetNodeID())
+	return fmt.Sprintf(subject, m.prefix, m.masterMember.GetNodeID())
 }
 
 func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
@@ -76,6 +77,8 @@ func (m *DiscoveryNATS) loadMember() {
 		clog.Fatalf("nats config parameter not found. err = %v", config.LastError())
 	}
 
+	m.prefix = config.GetString("prefix", "node")
+
 	// get master node id
 	masterID := config.GetString("master_node_id")
 	if masterID == "" {
@@ -97,10 +100,10 @@ func (m *DiscoveryNATS) loadMember() {
 }
 
 func (m *DiscoveryNATS) init() {
-	m.registerSubject = m.buildSubject("cherry.discovery.%s.register")
-	m.unregisterSubject = m.buildSubject("cherry.discovery.%s.unregister")
-	m.addSubject = m.buildSubject("cherry.discovery.%s.addMember")
-	m.checkSubject = m.buildSubject("cherry.discovery.%s.check")
+	m.registerSubject = m.buildSubject("cherry.%s.discovery.%s.register")
+	m.unregisterSubject = m.buildSubject("cherry.%s.discovery.%s.unregister")
+	m.addSubject = m.buildSubject("cherry.%s.discovery.%s.addMember")
+	m.checkSubject = m.buildSubject("cherry.%s.discovery.%s.check")
 
 	m.subscribe(m.unregisterSubject, func(msg *nats.Msg) {
 		unregisterMember := &cproto.Member{}
