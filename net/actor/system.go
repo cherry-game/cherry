@@ -380,6 +380,7 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 		return
 	}
 
+	// range root actor
 	p.actorMap.Range(func(key, value any) bool {
 		if thisActor, found := value.(*Actor); found {
 			if thisActor.state == WorkerState {

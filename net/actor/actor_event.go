@@ -5,32 +5,51 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 )
 
-type actorEvent struct {
-	thisActor *Actor                  // parent
-	queue                             // queue
-	funcMap   map[string][]IEventFunc // register event func map
-}
+type (
+	actorEvent struct {
+		thisActor *Actor                    //
+		queue                               // queue
+		funcMap   map[string]*eventFuncList // register event func list
+	}
+
+	eventFuncList struct {
+		list     []IEventFunc
+		isUnique bool
+		uniqueID int64
+	}
+)
 
 func newEvent(thisActor *Actor) actorEvent {
 	return actorEvent{
 		thisActor: thisActor,
 		queue:     newQueue(),
-		funcMap:   make(map[string][]IEventFunc),
+		funcMap:   make(map[string]*eventFuncList),
 	}
 }
 
 // Register 注册事件
-// name 事件名
-// fn 接收事件处理的函数
-func (p *actorEvent) Register(name string, fn IEventFunc) {
-	funcList := p.funcMap[name]
-	funcList = append(funcList, fn)
-	p.funcMap[name] = funcList
+// name     事件名
+// fn       接收事件处理的函数
+// uniqueID match IEventData.UniqueID()
+func (p *actorEvent) Register(name string, fn IEventFunc, uniqueID ...int64) {
+	funcList, found := p.funcMap[name]
+	if !found {
+		funcList = &eventFuncList{}
+		p.funcMap[name] = funcList
+	}
+
+	funcList.list = append(funcList.list, fn)
+
+	// If a unique ID is set, it will be matched when receiving events
+	funcList.isUnique = len(uniqueID) > 0
+	if funcList.isUnique {
+		funcList.uniqueID = uniqueID[0]
+	}
 }
 
-func (p *actorEvent) Registers(names []string, fn IEventFunc) {
+func (p *actorEvent) Registers(names []string, fn IEventFunc, uniqueID ...int64) {
 	for _, name := range names {
-		p.Register(name, fn)
+		p.Register(name, fn, uniqueID...)
 	}
 }
 
@@ -41,8 +60,14 @@ func (p *actorEvent) Unregister(name string) {
 }
 
 func (p *actorEvent) Push(data cfacade.IEventData) {
-	if _, found := p.funcMap[data.Name()]; found {
-		p.queue.Push(data)
+	if funcList, found := p.funcMap[data.Name()]; found {
+		if funcList.isUnique {
+			if funcList.uniqueID == data.UniqueID() {
+				p.queue.Push(data)
+			}
+		} else {
+			p.queue.Push(data)
+		}
 	}
 
 	if p.thisActor.Path().IsChild() {
@@ -90,7 +115,7 @@ func (p *actorEvent) invokeFunc(data cfacade.IEventData) {
 		}
 	}()
 
-	for _, eventFunc := range funcList {
+	for _, eventFunc := range funcList.list {
 		eventFunc(data)
 	}
 }
