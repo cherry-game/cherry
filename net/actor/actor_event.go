@@ -69,16 +69,6 @@ func (p *actorEvent) Push(data cfacade.IEventData) {
 			p.queue.Push(data)
 		}
 	}
-
-	if p.thisActor.Path().IsChild() {
-		return
-	}
-
-	p.thisActor.Child().Each(func(iActor cfacade.IActor) {
-		if childActor, ok := iActor.(*Actor); ok {
-			childActor.event.Push(data)
-		}
-	})
 }
 
 func (p *actorEvent) Pop() cfacade.IEventData {

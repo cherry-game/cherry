@@ -386,6 +386,13 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 			if thisActor.state == WorkerState {
 				thisActor.event.Push(data)
 			}
+
+			// range child actor
+			thisActor.Child().Each(func(iActor cfacade.IActor) {
+				if childActor, ok := iActor.(*Actor); ok {
+					childActor.event.Push(data)
+				}
+			})
 		}
 		return true
 	})
