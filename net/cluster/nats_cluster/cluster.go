@@ -178,20 +178,20 @@ func (p *Cluster) remoteProcess() {
 	}
 }
 
-func (p *Cluster) PublishLocal(nodeID string, request *cproto.ClusterPacket) error {
-	defer request.Recycle()
+func (p *Cluster) PublishLocal(nodeID string, clusterPacket *cproto.ClusterPacket) error {
+	defer clusterPacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishLocal] get node type fail. [nodeID = %s, %s]",
 			nodeID,
-			request.PrintLog(),
+			clusterPacket.PrintLog(),
 		)
 		return err
 	}
 
 	subject := getLocalSubject(p.prefix, nodeType, nodeID)
-	bytes, err := proto.Marshal(request)
+	bytes, err := proto.Marshal(clusterPacket)
 	if err != nil {
 		return err
 	}
@@ -201,28 +201,28 @@ func (p *Cluster) PublishLocal(nodeID string, request *cproto.ClusterPacket) err
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishLocal] [nodeID = %s, %s]",
 			nodeID,
-			request.PrintLog(),
+			clusterPacket.PrintLog(),
 		)
 	}
 
 	return err
 }
 
-func (p *Cluster) PublishRemote(nodeID string, request *cproto.ClusterPacket) error {
-	defer request.Recycle()
+func (p *Cluster) PublishRemote(nodeID string, clusterPacket *cproto.ClusterPacket) error {
+	defer clusterPacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
-			request.PrintLog(),
+			clusterPacket.PrintLog(),
 			err,
 		)
 		return err
 	}
 
 	subject := getRemoteSubject(p.prefix, nodeType, nodeID)
-	bytes, err := proto.Marshal(request)
+	bytes, err := proto.Marshal(clusterPacket)
 	if err != nil {
 		clog.Warn(err)
 		return err
@@ -232,10 +232,9 @@ func (p *Cluster) PublishRemote(nodeID string, request *cproto.ClusterPacket) er
 	return err
 }
 
-func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, timeout ...time.Duration) cproto.Response {
+func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
 	defer request.Recycle()
 
-	rsp := cproto.Response{}
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
@@ -244,8 +243,7 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 			err,
 		)
 
-		rsp.Code = ccode.DiscoveryNotFoundNode
-		return rsp
+		return nil, ccode.DiscoveryNotFoundNode
 	}
 
 	msg, err := proto.Marshal(request)
@@ -256,8 +254,7 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 			err,
 		)
 
-		rsp.Code = ccode.RPCMarshalError
-		return rsp
+		return nil, ccode.RPCMarshalError
 	}
 
 	subject := getRemoteSubject(p.prefix, nodeType, nodeID)
@@ -269,11 +266,11 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 			err,
 		)
 
-		rsp.Code = ccode.RPCNetError
-		return rsp
+		return nil, ccode.RPCNetError
 	}
 
-	if err = proto.Unmarshal(natsMsg.Data, &rsp); err != nil {
+	rsp := &cproto.Response{}
+	if err = proto.Unmarshal(natsMsg.Data, rsp); err != nil {
 		clog.Warnf("[RequestRemote] unmarshal fail. [nodeID = %s, %s, rsp = %v, err = %v]",
 			nodeID,
 			request.PrintLog(),
@@ -281,11 +278,10 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 			err,
 		)
 
-		rsp.Code = ccode.RPCUnmarshalError
-		return rsp
+		return nil, ccode.RPCUnmarshalError
 	}
 
-	return rsp
+	return rsp.Data, rsp.Code
 }
 
 func (p *Cluster) Publish(subject string, data []byte) error {
