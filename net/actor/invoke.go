@@ -44,7 +44,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 	if m.IsCluster {
 		cutils.Try(func() {
 			rets := fi.Value.Call(values)
-			rspCode, rspData := retValue(app.Serializer(), rets)
+			rspData, rspCode := retValue(app.Serializer(), rets)
 
 			retResponse(m.ClusterReply, &cproto.Response{
 				Code: rspCode,
@@ -63,7 +63,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 				fi.Value.Call(values)
 			} else {
 				rets := fi.Value.Call(values)
-				rspCode, rspData := retValue(app.Serializer(), rets)
+				rspData, rspCode := retValue(app.Serializer(), rets)
 				m.ChanResult <- &cproto.Response{
 					Code: rspCode,
 					Data: rspData,
@@ -128,20 +128,21 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 	return nil
 }
 
-func retValue(serializer cfacade.ISerializer, rets []reflect.Value) (int32, []byte) {
+func retValue(serializer cfacade.ISerializer, rets []reflect.Value) ([]byte, int32) {
 	var (
 		retsLen = len(rets)
 		rspCode = ccode.OK
 		rspData []byte
 	)
 
-	if retsLen == 1 {
+	switch retsLen {
+	case 1:
 		if val := rets[0].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
 				rspCode = c
 			}
 		}
-	} else if retsLen == 2 {
+	case 2:
 		if !rets[0].IsNil() {
 			data, err := serializer.Marshal(rets[0].Interface())
 			if err != nil {
@@ -159,7 +160,7 @@ func retValue(serializer cfacade.ISerializer, rets []reflect.Value) (int32, []by
 		}
 	}
 
-	return rspCode, rspData
+	return rspData, rspCode
 }
 
 func retResponse(reply cfacade.IRespond, rsp *cproto.Response) {
