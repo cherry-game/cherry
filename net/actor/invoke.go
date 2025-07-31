@@ -87,7 +87,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 
 func EncodeRemoteArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
 	if m.IsCluster {
-		if fi.InArgsLen == 0 {
+		if fi.InArgsLen == 0 || m.Args == nil {
 			return nil
 		}
 
