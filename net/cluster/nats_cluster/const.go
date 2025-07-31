@@ -5,8 +5,8 @@ import (
 )
 
 const (
-	remoteSubjectFormat = "cherry.%s.remote.%s.%s" // nodeType.nodeID
-	localSubjectFormat  = "cherry.%s.local.%s.%s"  // nodeType.nodeID
+	remoteSubjectFormat = "cherry.%s.remote.%s.%s" // cherry.{prefix}.remote.{nodeType}.{nodeID}
+	localSubjectFormat  = "cherry.%s.local.%s.%s"  // cherry.{prefix}.local.{nodeType}.{nodeID}
 )
 
 // getLocalSubject local message nats chan
