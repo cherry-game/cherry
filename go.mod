@@ -10,7 +10,7 @@ require (
 	github.com/lestrrat-go/strftime v1.0.6
 	github.com/nats-io/nats.go v1.44.0
 	github.com/nats-io/nuid v1.0.1
-	go.uber.org/zap v1.26.0
+	go.uber.org/zap v1.27.0
 	google.golang.org/protobuf v1.31.0
 )
 
