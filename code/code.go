@@ -19,7 +19,7 @@ const (
 	ActorSourceEqualTarget  int32 = 30 // source equal target
 	ActorPublishRemoteError int32 = 31 // actor publish remote error
 	ActorChildIDNotFound    int32 = 32 // actor child id not found
-
+	ActorCallTimeout        int32 = 33 // actor call timeout
 )
 
 func IsOK(code int32) bool {
