@@ -139,7 +139,7 @@ func (*actor) SetOnPacket(typ ppacket.Type, fn PacketFunc) {
 }
 
 func (p *actor) response(rsp *cproto.PomeloResponse) {
-	agent, found := GetAgent(rsp.Sid)
+	agent, found := GetAgentWithSID(rsp.Sid)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Debugf("[response] Not found agent. [rsp = %+v]", rsp)
@@ -158,7 +158,7 @@ func (p *actor) response(rsp *cproto.PomeloResponse) {
 }
 
 func (p *actor) push(rsp *cproto.PomeloPush) {
-	agent, found := GetAgent(rsp.Sid)
+	agent, found := GetAgent(rsp.Sid, rsp.Uid)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Debugf("[push] Not found agent. [rsp = %+v]", rsp)
@@ -170,11 +170,7 @@ func (p *actor) push(rsp *cproto.PomeloPush) {
 }
 
 func (p *actor) kick(rsp *cproto.PomeloKick) {
-	agent, found := GetAgentWithUID(rsp.Uid)
-	if !found {
-		agent, found = GetAgent(rsp.Sid)
-	}
-
+	agent, found := GetAgent(rsp.Sid, rsp.Uid)
 	if found {
 		agent.Kick(rsp.Reason, rsp.Close)
 	}

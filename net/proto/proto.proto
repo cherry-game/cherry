@@ -55,8 +55,9 @@ message PomeloResponse {
 
 message PomeloPush {
   string sid = 1;
-  string route = 2;
-  bytes data = 3;
+  int64 uid = 2;
+  string route = 3;
+  bytes data = 4;
 }
 
 message PomeloKick {

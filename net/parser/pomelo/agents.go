@@ -77,7 +77,7 @@ func Unbind(sid cfacade.SID) {
 	}
 }
 
-func GetAgent(sid cfacade.SID) (*Agent, bool) {
+func GetAgentWithSID(sid cfacade.SID) (*Agent, bool) {
 	lock.Lock()
 	defer lock.Unlock()
 
@@ -100,6 +100,18 @@ func GetAgentWithUID(uid cfacade.UID) (*Agent, bool) {
 
 	agent, found := sidAgentMap[sid]
 	return agent, found
+}
+
+func GetAgent(sid string, uid cfacade.UID) (*Agent, bool) {
+	if sid != "" {
+		return GetAgentWithSID(sid)
+	}
+
+	if uid > 0 {
+		return GetAgentWithUID(uid)
+	}
+
+	return nil, false
 }
 
 func ForeachAgent(fn func(a *Agent)) {
