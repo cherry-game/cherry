@@ -27,7 +27,7 @@ func (p *ActorBase) ResponseCode(session *cproto.Session, statusCode int32) {
 }
 
 func (p *ActorBase) Push(session *cproto.Session, route string, v interface{}) {
-	Push(p, session.AgentPath, session.Sid, route, v)
+	PushWithSID(p, session.AgentPath, session.Sid, route, v)
 }
 
 func (p *ActorBase) Kick(session *cproto.Session, reason interface{}, closed bool) {
@@ -64,7 +64,20 @@ func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, stat
 	iActor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-func Push(iActor cfacade.IActor, agentPath, sid, route string, v interface{}) {
+func PushWithSID(iActor cfacade.IActor, agentPath, sid, route string, v interface{}) {
+	Push(iActor, agentPath, sid, 0, route, v)
+}
+
+func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route string, v interface{}) {
+	Push(iActor, agentPath, "", uid, route, v)
+}
+
+func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route string, v interface{}) {
+	if sid == "" && uid < 1 {
+		clog.Warn("[Push] sid or uid value error.")
+		return
+	}
+
 	if route == "" {
 		clog.Warn("[Push] route value error.")
 		return
@@ -78,6 +91,7 @@ func Push(iActor cfacade.IActor, agentPath, sid, route string, v interface{}) {
 
 	rsp := &cproto.PomeloPush{
 		Sid:   sid,
+		Uid:   uid,
 		Route: route,
 		Data:  data,
 	}
