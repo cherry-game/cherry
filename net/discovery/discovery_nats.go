@@ -219,7 +219,7 @@ func (m *DiscoveryNATS) checkMaster() {
 			m.registerToMaster()
 		}
 
-		time.Sleep(cnats.GetConnect().ReconnectDelay())
+		time.Sleep(cnats.ReconnectDelay())
 	}
 }
 

@@ -5,24 +5,25 @@ import (
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
-	clog "github.com/cherry-game/cherry/logger"
 )
 
 var (
-	connectPool []*Connect // connect pool
-	connectSize uint64     // connect size
-	roundIndex  *uint64    // round-robin index
+	connectPool    []*Connect                      // connect pool
+	connectSize    uint64                          // connect size
+	roundIndex     *uint64       = new(uint64)     // round-robin index
+	reconnectDelay time.Duration = 1 * time.Second // reconnect delay
+	requestTimeout time.Duration = 2 * time.Second // request timeout
 )
 
 func NewConnectPool(config cfacade.ProfileJSON, isConnect bool) {
+	reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
+	requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
+
 	poolSize := config.GetInt("pool_size", 1)
-
-	for i := range poolSize {
+	for i := 1; i <= poolSize; i++ {
 		connectSize += 1
-
-		conn := NewFromConfig(config)
+		conn := NewFromConfig(i, config)
 		connectPool = append(connectPool, conn)
-		clog.Infof("[%d] Add nats client", i)
 	}
 
 	if isConnect {
@@ -47,12 +48,15 @@ func ConnectClose() {
 	}
 }
 
-func NewFromConfig(config cfacade.ProfileJSON) *Connect {
+func ReconnectDelay() time.Duration {
+	return reconnectDelay
+}
+
+func NewFromConfig(index int, config cfacade.ProfileJSON) *Connect {
 	conn := New()
+	conn.index = index
 	conn.address = config.GetString("address")
 	conn.maxReconnects = config.GetInt("max_reconnects")
-	conn.reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
-	conn.requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
 	conn.user = config.GetString("user")
 	conn.password = config.GetString("password")
 

@@ -12,15 +12,14 @@ type (
 		*nats.Conn
 		options
 		running bool
+		index   int
 	}
 
 	options struct {
-		address        string
-		maxReconnects  int
-		reconnectDelay time.Duration
-		requestTimeout time.Duration
-		user           string
-		password       string
+		address       string
+		maxReconnects int
+		user          string
+		password      string
 	}
 	OptionFunc func(o *options)
 )
@@ -45,14 +44,14 @@ func (p *Connect) Connect() {
 	for {
 		conn, err := nats.Connect(p.address, p.natsOptions()...)
 		if err != nil {
-			clog.Warnf("nats connect fail! retrying in 3 seconds. err = %s", err)
+			clog.Warnf("[%d] nats connect fail! retrying in 3 seconds. err = %s", p.index, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
 
 		p.Conn = conn
 		p.running = true
-		clog.Infof("nats is connected! [address = %s]", p.address)
+		clog.Infof("[%d] nats is connected! [address = %s]", p.index, p.address)
 		break
 	}
 }
@@ -61,8 +60,12 @@ func (p *Connect) Close() {
 	if p.running {
 		p.running = false
 		p.Conn.Close()
-		clog.Infof("nats connect execute Close()")
+		clog.Infof("[%d] nats connect execute Close()", p.index)
 	}
+}
+
+func (p *Connect) GetIndex() int {
+	return p.index
 }
 
 func (p *Connect) Request(subj string, data []byte, timeout ...time.Duration) (*nats.Msg, error) {
@@ -70,7 +73,7 @@ func (p *Connect) Request(subj string, data []byte, timeout ...time.Duration) (*
 		return p.Conn.Request(subj, data, timeout[0])
 	}
 
-	return p.Conn.Request(subj, data, p.requestTimeout)
+	return p.Conn.Request(subj, data, requestTimeout)
 }
 
 func (p *Connect) ChanExecute(subject string, msgChan chan *nats.Msg, process func(msg *nats.Msg)) {
@@ -88,8 +91,8 @@ func (p *Connect) ChanExecute(subject string, msgChan chan *nats.Msg, process fu
 func (p *options) natsOptions() []nats.Option {
 	var opts []nats.Option
 
-	if p.reconnectDelay > 0 {
-		opts = append(opts, nats.ReconnectWait(p.reconnectDelay))
+	if reconnectDelay > 0 {
+		opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	}
 
 	if p.maxReconnects > 0 {
@@ -107,7 +110,7 @@ func (p *options) natsOptions() []nats.Option {
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
-		clog.Infof("Nats exiting... %s", p.address)
+		clog.Infof("[%d] Nats exiting... %s", p.address)
 		if nc.LastError() != nil {
 			clog.Infof("error = %v", nc.LastError())
 		}
@@ -136,25 +139,15 @@ func (p *options) MaxReconnects() int {
 	return p.maxReconnects
 }
 
-func (p *options) ReconnectDelay() time.Duration {
-	return p.reconnectDelay
-}
-
-func (p *options) RequestTimeout() time.Duration {
-	return p.requestTimeout
-}
-
 func WithAddress(address string) OptionFunc {
 	return func(opts *options) {
 		opts.address = address
 	}
 }
 
-func WithParams(maxReconnects int, reconnectDelay int, requestTimeout int) OptionFunc {
+func WithParams(maxReconnects int) OptionFunc {
 	return func(opts *options) {
 		opts.maxReconnects = maxReconnects
-		opts.reconnectDelay = time.Duration(reconnectDelay) * time.Second
-		opts.requestTimeout = time.Duration(requestTimeout) * time.Second
 	}
 }
 
