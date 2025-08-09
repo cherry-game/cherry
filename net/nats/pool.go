@@ -5,6 +5,7 @@ import (
 	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
+	clog "github.com/cherry-game/cherry/logger"
 )
 
 var (
@@ -30,6 +31,8 @@ func NewConnectPool(config cfacade.ProfileJSON, isConnect bool) {
 		for _, conn := range connectPool {
 			conn.Connect()
 		}
+
+		clog.Infof("Nats has connected! [poolSize = %d]", poolSize)
 	}
 }
 
@@ -46,6 +49,7 @@ func ConnectClose() {
 	for _, conn := range connectPool {
 		conn.Close()
 	}
+	clog.Infof("Nats connect pool execute Close() [connectSize = %d]", connectSize)
 }
 
 func ReconnectDelay() time.Duration {

@@ -235,7 +235,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 		return
 	}
 
-	clog.Infof("register node to [master = %s]. [member = %s]",
+	clog.Infof("Register node to [master = %s]. [member = %s]",
 		m.masterMember.GetNodeID(),
 		m.thisMember,
 	)

@@ -51,7 +51,6 @@ func (p *Connect) Connect() {
 
 		p.Conn = conn
 		p.running = true
-		clog.Infof("[%d] nats is connected! [address = %s]", p.index, p.address)
 		break
 	}
 }
@@ -60,7 +59,6 @@ func (p *Connect) Close() {
 	if p.running {
 		p.running = false
 		p.Conn.Close()
-		clog.Infof("[%d] nats connect execute Close()", p.index)
 	}
 }
 
@@ -110,7 +108,6 @@ func (p *options) natsOptions() []nats.Option {
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
-		clog.Infof("Nats exiting... %s", p.address)
 		if nc.LastError() != nil {
 			clog.Infof("error = %v", nc.LastError())
 		}
