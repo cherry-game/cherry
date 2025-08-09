@@ -177,7 +177,7 @@ func (m *DiscoveryNATS) serverInit() {
 		}
 
 		// publish addMember new node
-		err = cnats.Get().Publish(m.addSubject, msg.Data)
+		err = cnats.GetConnect().Publish(m.addSubject, msg.Data)
 		if err != nil {
 			clog.Warnf("publish fail. err = %s", err)
 			return
@@ -219,17 +219,17 @@ func (m *DiscoveryNATS) checkMaster() {
 			m.registerToMaster()
 		}
 
-		time.Sleep(cnats.Get().ReconnectDelay())
+		time.Sleep(cnats.GetConnect().ReconnectDelay())
 	}
 }
 
 func (m *DiscoveryNATS) registerToMaster() {
 	// register current node to master
-	rsp, err := cnats.Get().Request(m.registerSubject, m.thisMemberBytes)
+	rsp, err := cnats.GetConnect().Request(m.registerSubject, m.thisMemberBytes)
 	if err != nil {
 		clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
 			m.masterMember.GetNodeID(),
-			cnats.Get().Address(),
+			cnats.GetConnect().Address(),
 			err,
 		)
 		return
@@ -253,7 +253,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 }
 
 func (m *DiscoveryNATS) Stop() {
-	err := cnats.Get().Publish(m.unregisterSubject, m.thisMemberBytes)
+	err := cnats.GetConnect().Publish(m.unregisterSubject, m.thisMemberBytes)
 	if err != nil {
 		clog.Warnf("publish fail. err = %s", err)
 		return
@@ -266,7 +266,7 @@ func (m *DiscoveryNATS) Stop() {
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
-	_, err := cnats.Get().Subscribe(subject, cb)
+	_, err := cnats.GetConnect().Subscribe(subject, cb)
 	if err != nil {
 		clog.Warnf("subscribe fail. err = %s", err)
 		return

@@ -38,19 +38,17 @@ func New(app cfacade.IApplication, options ...OptionFunc) cfacade.ICluster {
 		option(cluster)
 	}
 
-	cluster.loadConfig()
-
 	return cluster
 }
 
-func (p *Cluster) loadConfig() {
+func (p *Cluster) loadNatsConfig() {
 	natsConfig := cprofile.GetConfig("cluster").GetConfig("nats")
 	if natsConfig.LastError() != nil {
 		panic("cluster->nats config not found.")
 	}
 
-	natsConn := cnats.NewFromConfig(natsConfig)
-	cnats.SetInstance(natsConn)
+	// new nats connect pool & connect
+	cnats.NewConnectPool(natsConfig, true)
 
 	p.prefix = natsConfig.GetString("prefix", "node")
 
@@ -62,7 +60,7 @@ func (p *Cluster) loadConfig() {
 }
 
 func (p *Cluster) Init() {
-	cnats.Get().Connect()
+	p.loadNatsConfig()
 
 	go p.localProcess()
 	go p.remoteProcess()
@@ -74,14 +72,14 @@ func (p *Cluster) Stop() {
 	p.local.stop()
 	p.remote.stop()
 
-	cnats.Get().Close()
+	cnats.ConnectClose()
 
 	clog.Info("nats cluster execute OnStop().")
 }
 
 func (p *Cluster) localProcess() {
 	var err error
-	p.local.subscription, err = cnats.Get().ChanSubscribe(p.local.subject, p.local.ch)
+	p.local.subscription, err = cnats.GetConnect().ChanSubscribe(p.local.subject, p.local.ch)
 	if err != nil {
 		clog.Errorf("[localProcess] Subscribe fail. [subject = %s, err = %s]", p.local.subject, err)
 		return
@@ -128,7 +126,7 @@ func (p *Cluster) localProcess() {
 
 func (p *Cluster) remoteProcess() {
 	var err error
-	p.remote.subscription, err = cnats.Get().ChanSubscribe(p.remote.subject, p.remote.ch)
+	p.remote.subscription, err = cnats.GetConnect().ChanSubscribe(p.remote.subject, p.remote.ch)
 	if err != nil {
 		clog.Errorf("[remoteProcess] Subscribe fail. [subject = %s, err = %s]", p.remote.subject, err)
 		return
@@ -258,7 +256,7 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 	}
 
 	subject := getRemoteSubject(p.prefix, nodeType, nodeID)
-	natsMsg, err := cnats.Get().Request(subject, msg, timeout...)
+	natsMsg, err := cnats.GetConnect().Request(subject, msg, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] nats request fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
@@ -289,7 +287,7 @@ func (p *Cluster) Publish(subject string, data []byte) error {
 		return cerr.ClusterRPCClientIsStop
 	}
 
-	return cnats.Get().Publish(subject, data)
+	return cnats.GetConnect().Publish(subject, data)
 }
 
 func WithBufferSize(size int) OptionFunc {

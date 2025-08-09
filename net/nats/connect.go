@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	Conn struct {
+	Connect struct {
 		*nats.Conn
 		options
 		running bool
@@ -25,8 +25,8 @@ type (
 	OptionFunc func(o *options)
 )
 
-func New(opts ...OptionFunc) *Conn {
-	conn := &Conn{}
+func New(opts ...OptionFunc) *Connect {
+	conn := &Connect{}
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
@@ -37,7 +37,7 @@ func New(opts ...OptionFunc) *Conn {
 	return conn
 }
 
-func (p *Conn) Connect() {
+func (p *Connect) Connect() {
 	if p.running {
 		return
 	}
@@ -57,7 +57,7 @@ func (p *Conn) Connect() {
 	}
 }
 
-func (p *Conn) Close() {
+func (p *Connect) Close() {
 	if p.running {
 		p.running = false
 		p.Conn.Close()
@@ -65,7 +65,7 @@ func (p *Conn) Close() {
 	}
 }
 
-func (p *Conn) Request(subj string, data []byte, timeout ...time.Duration) (*nats.Msg, error) {
+func (p *Connect) Request(subj string, data []byte, timeout ...time.Duration) (*nats.Msg, error) {
 	if len(timeout) > 0 && timeout[0] > 0 {
 		return p.Conn.Request(subj, data, timeout[0])
 	}
@@ -73,7 +73,7 @@ func (p *Conn) Request(subj string, data []byte, timeout ...time.Duration) (*nat
 	return p.Conn.Request(subj, data, p.requestTimeout)
 }
 
-func (p *Conn) ChanExecute(subject string, msgChan chan *nats.Msg, process func(msg *nats.Msg)) {
+func (p *Connect) ChanExecute(subject string, msgChan chan *nats.Msg, process func(msg *nats.Msg)) {
 	_, chanErr := p.ChanSubscribe(subject, msgChan)
 	if chanErr != nil {
 		clog.Error("subscribe fail. [subject = %s, err = %s]", subject, chanErr)
