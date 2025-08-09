@@ -110,7 +110,7 @@ func (p *options) natsOptions() []nats.Option {
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
-		clog.Infof("[%d] Nats exiting... %s", p.address)
+		clog.Infof("Nats exiting... %s", p.address)
 		if nc.LastError() != nil {
 			clog.Infof("error = %v", nc.LastError())
 		}
