@@ -10,7 +10,7 @@ func Error(text string) error {
 }
 
 func Errorf(format string, a ...interface{}) error {
-	return errors.New(fmt.Sprintf(format, a...))
+	return Error(fmt.Sprintf(format, a...))
 }
 
 func Wrap(err error, text string) error {
@@ -50,7 +50,8 @@ var (
 
 // cluster
 var (
-	ClusterRPCClientIsStop = Error("RPC client is stop")
+	ClusterClientIsStop   = Error("Cluster client is stop")
+	ClusterRequestTimeout = Error("Request timeout")
 )
 
 var (

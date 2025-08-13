@@ -8,26 +8,23 @@ import (
 	cstring "github.com/cherry-game/cherry/extend/string"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	"github.com/nats-io/nats.go"
 )
 
 type (
 	Message struct {
-		BuildTime    int64            // message build time(ms)
-		PostTime     int64            // post to actor time(ms)
-		Source       string           // 来源actor path
-		Target       string           // 目标actor path
-		targetPath   *ActorPath       // 目标actor path对象
-		FuncName     string           // 请求调用的函数名
-		Session      *cproto.Session  // session of gateway
-		Args         interface{}      // 请求的参数
-		Err          error            // 返回的错误
-		ClusterReply IRespond         // 返回消息的接口
-		IsCluster    bool             // 是否为集群消息
-		ChanResult   chan interface{} //
-	}
-
-	IRespond interface {
-		Respond(data []byte) error
+		BuildTime  int64            // message build time(ms)
+		PostTime   int64            // post to actor time(ms)
+		Source     string           // 来源actor path
+		Target     string           // 目标actor path
+		targetPath *ActorPath       // 目标actor path对象
+		FuncName   string           // 请求调用的函数名
+		Session    *cproto.Session  // session of gateway
+		Args       interface{}      // 请求的参数
+		Header     nats.Header      // nats.Msg Header
+		Reply      string           // nats.Msg reply subject
+		IsCluster  bool             // 是否为集群消息
+		ChanResult chan interface{} //
 	}
 
 	// ActorPath = NodeID . ActorID
@@ -55,6 +52,23 @@ func GetMessage() Message {
 	return msg
 }
 
+func BuildClusterMessage(packet *cproto.ClusterPacket) Message {
+	message := Message{
+		BuildTime: packet.BuildTime,
+		Source:    packet.SourcePath,
+		Target:    packet.TargetPath,
+		FuncName:  packet.FuncName,
+		IsCluster: true,
+		Session:   packet.Session,
+	}
+
+	if packet.ArgBytes != nil {
+		message.Args = packet.ArgBytes
+	}
+
+	return message
+}
+
 //func (p *Message) Recycle() {
 //	p.BuildTime = 0
 //	p.PostTime = 0
@@ -79,7 +93,15 @@ func (p *Message) TargetPath() *ActorPath {
 }
 
 func (p *Message) IsReply() bool {
-	return p.ClusterReply != nil
+	return p.Reply != ""
+}
+
+func (p *Message) Destory() {
+	p.targetPath = nil
+	p.Session = nil
+	p.Args = nil
+	p.Header = nil
+	p.ChanResult = nil
 }
 
 func (p *ActorPath) IsChild() bool {

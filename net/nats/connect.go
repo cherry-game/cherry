@@ -1,18 +1,31 @@
 package cherryNats
 
 import (
+	"fmt"
+	"strconv"
+	"sync"
+	"sync/atomic"
 	"time"
 
+	cerror "github.com/cherry-game/cherry/error"
 	clog "github.com/cherry-game/cherry/logger"
 	"github.com/nats-io/nats.go"
 )
 
+const (
+	REQ_ID = "reqID"
+)
+
 type (
 	Connect struct {
-		*nats.Conn
-		options
-		running bool
-		index   int
+		*nats.Conn                    //
+		options                       //
+		id         int                //
+		seq        uint64             //
+		waiters    sync.Map           // map[string]chan *nats.Msg
+		sub        *nats.Subscription //
+		reply      string             // request reply subject
+		replySub   *nats.Subscription //
 	}
 
 	options struct {
@@ -24,8 +37,11 @@ type (
 	OptionFunc func(o *options)
 )
 
-func New(opts ...OptionFunc) *Connect {
-	conn := &Connect{}
+func NewConnect(id int, replySubject string, opts ...OptionFunc) *Connect {
+	conn := &Connect{
+		id:    id,
+		reply: fmt.Sprintf("%s.%d", replySubject, id),
+	}
 
 	if len(opts) > 0 {
 		for _, opt := range opts {
@@ -37,53 +53,155 @@ func New(opts ...OptionFunc) *Connect {
 }
 
 func (p *Connect) Connect() {
-	if p.running {
+	if p.Conn != nil {
 		return
 	}
 
 	for {
 		conn, err := nats.Connect(p.address, p.natsOptions()...)
 		if err != nil {
-			clog.Warnf("[%d] nats connect fail! retrying in 3 seconds. err = %s", p.index, err)
+			clog.Warnf("[id = %d] Nats connect fail! retrying in 3 seconds. err = %s", p.id, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
-
 		p.Conn = conn
-		p.running = true
+		p.initReplySubscribe()
+		go p.statistics()
 		break
 	}
 }
 
 func (p *Connect) Close() {
-	if p.running {
-		p.running = false
+	if p.IsConnected() {
+		p.sub.Unsubscribe()
+		p.replySub.Unsubscribe()
 		p.Conn.Close()
 	}
 }
 
-func (p *Connect) GetIndex() int {
-	return p.index
-}
+func (p *Connect) statistics() {
+	for {
+		ticker := time.NewTicker(30 * time.Second)
+		for range ticker.C {
+			if p.sub != nil {
+				if dropped, err := p.sub.Dropped(); err != nil {
+					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
+						p.sub.Subject,
+						dropped,
+						err,
+					)
+				}
+			}
 
-func (p *Connect) Request(subj string, data []byte, timeout ...time.Duration) (*nats.Msg, error) {
-	if len(timeout) > 0 && timeout[0] > 0 {
-		return p.Conn.Request(subj, data, timeout[0])
+			if p.replySub != nil {
+				if dropped, err := p.replySub.Dropped(); err != nil {
+					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
+						p.sub.Subject,
+						dropped,
+						err,
+					)
+				}
+			}
+
+			stats := p.Stats()
+			clog.Debugf("[Statistics] InMsgs = %d, OutMsgs = %d, InBytes = %d, OutBytes = %d, Reconnects = %d",
+				stats.InMsgs,
+				stats.OutMsgs,
+				stats.InBytes,
+				stats.OutBytes,
+				stats.Reconnects,
+			)
+		}
 	}
-
-	return p.Conn.Request(subj, data, requestTimeout)
 }
 
-func (p *Connect) ChanExecute(subject string, msgChan chan *nats.Msg, process func(msg *nats.Msg)) {
-	_, chanErr := p.ChanSubscribe(subject, msgChan)
-	if chanErr != nil {
-		clog.Error("subscribe fail. [subject = %s, err = %s]", subject, chanErr)
+func (p *Connect) GetID() int {
+	return p.id
+}
+
+func (p *Connect) initReplySubscribe() {
+	sub, err := p.Subscribe(p.reply, func(msg *nats.Msg) {
+		reqID := msg.Header.Get(REQ_ID)
+		if reqID == "" {
+			clog.Infof("header = %v, subject = %v", msg.Header, msg.Subject)
+			return
+		}
+
+		if chMsg, ok := p.waiters.LoadAndDelete(reqID); ok {
+			ch := chMsg.(chan *nats.Msg)
+			select {
+			case ch <- msg:
+			default:
+			}
+			close(ch)
+		}
+	})
+
+	if err != nil {
+		clog.Warnf(" err = %v", err)
 		return
 	}
 
-	for msg := range msgChan {
-		process(msg)
+	p.replySub = sub
+}
+
+func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
+	timeout := GetTimeout(tod...)
+	natsMsg, err := p.Conn.Request(subject, data, timeout)
+	if err != nil {
+		return nil, err
 	}
+
+	return natsMsg.Data, nil
+}
+
+func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
+	timeout := GetTimeout(tod...)
+
+	reqID := strconv.FormatUint(atomic.AddUint64(&p.seq, 1), 10)
+	ch := make(chan *nats.Msg, 1)
+	p.waiters.Store(reqID, ch)
+
+	// get msg from pool
+	msg := GetMsg()
+	msg.Subject = subject
+	msg.Reply = p.reply
+	msg.Header.Set(REQ_ID, reqID)
+	msg.Data = data
+
+	err := p.PublishMsg(msg)
+
+	// release msg
+	ReleaseMsg(msg)
+
+	if err != nil {
+		p.waiters.Delete(reqID)
+		close(ch)
+		return nil, err
+	}
+
+	select {
+	case resp, ok := <-ch:
+		if !ok || resp == nil {
+			return nil, cerror.ClusterRequestTimeout
+		}
+		return resp.Data, nil
+	case <-time.After(timeout):
+		p.waiters.Delete(reqID)
+		//clog.Warnf("id = %d, reqID = %s", p.id, reqID)
+		close(ch)
+		return nil, cerror.ClusterRequestTimeout
+	}
+}
+
+func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) error {
+	sub, err := p.Conn.QueueSubscribe(subject, queue, cb)
+	if err != nil {
+		return err
+	}
+
+	p.sub = sub
+	return nil
 }
 
 func (p *options) natsOptions() []nats.Option {

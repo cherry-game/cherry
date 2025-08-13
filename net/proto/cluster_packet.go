@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	ctime "github.com/cherry-game/cherry/extend/time"
+	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -19,6 +20,12 @@ func GetClusterPacket() *ClusterPacket {
 	pkg := clusterPacketPool.Get().(*ClusterPacket)
 	pkg.BuildTime = ctime.Now().ToMillisecond()
 	return pkg
+}
+
+func UnmarshalPacket(data []byte) (*ClusterPacket, error) {
+	packet := GetClusterPacket()
+	err := proto.Unmarshal(data, packet)
+	return packet, err
 }
 
 func BuildClusterPacket(source, target, funcName string) *ClusterPacket {

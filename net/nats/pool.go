@@ -16,16 +16,30 @@ var (
 	requestTimeout time.Duration = 2 * time.Second // request timeout
 )
 
-func NewConnectPool(config cfacade.ProfileJSON, isConnect bool) {
+func NewPool(replySubject string, config cfacade.ProfileJSON, isConnect bool) {
 	reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
 	requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
 
+	var (
+		address       = config.GetString("address")
+		user          = config.GetString("user")
+		pwd           = config.GetString("password")
+		maxReconnects = config.GetInt("max_reconnects")
+	)
+
 	poolSize := config.GetInt("pool_size", 1)
-	for i := 1; i <= poolSize; i++ {
-		connectSize += 1
-		conn := NewFromConfig(i, config)
+
+	for id := 1; id <= poolSize; id++ {
+		conn := NewConnect(id, replySubject,
+			WithAddress(address),
+			WithAuth(user, pwd),
+			WithParams(maxReconnects),
+		)
+
 		connectPool = append(connectPool, conn)
 	}
+
+	connectSize = uint64(len(connectPool))
 
 	if isConnect {
 		for _, conn := range connectPool {
@@ -36,7 +50,7 @@ func NewConnectPool(config cfacade.ProfileJSON, isConnect bool) {
 	}
 }
 
-func GetConnectPool() []*Connect {
+func GetPool() []*Connect {
 	return connectPool
 }
 
@@ -56,17 +70,10 @@ func ReconnectDelay() time.Duration {
 	return reconnectDelay
 }
 
-func NewFromConfig(index int, config cfacade.ProfileJSON) *Connect {
-	conn := New()
-	conn.index = index
-	conn.address = config.GetString("address")
-	conn.maxReconnects = config.GetInt("max_reconnects")
-	conn.user = config.GetString("user")
-	conn.password = config.GetString("password")
-
-	if conn.address == "" {
-		panic("address is empty!")
+func GetTimeout(tod ...time.Duration) time.Duration {
+	if len(tod) > 0 {
+		return tod[0]
 	}
 
-	return conn
+	return requestTimeout
 }

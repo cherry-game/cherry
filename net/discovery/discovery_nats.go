@@ -225,11 +225,10 @@ func (m *DiscoveryNATS) checkMaster() {
 
 func (m *DiscoveryNATS) registerToMaster() {
 	// register current node to master
-	rsp, err := cnats.GetConnect().Request(m.registerSubject, m.thisMemberBytes)
+	natsData, err := cnats.GetConnect().Request(m.registerSubject, m.thisMemberBytes)
 	if err != nil {
-		clog.Warnf("register node to [master = %s] fail. [address = %s] [err = %s]",
+		clog.Warnf("register node to [master = %s] fail. [err = %s]",
 			m.masterMember.GetNodeID(),
-			cnats.GetConnect().Address(),
 			err,
 		)
 		return
@@ -241,7 +240,7 @@ func (m *DiscoveryNATS) registerToMaster() {
 	)
 
 	memberList := cproto.MemberList{}
-	err = m.app.Serializer().Unmarshal(rsp.Data, &memberList)
+	err = m.app.Serializer().Unmarshal(natsData, &memberList)
 	if err != nil {
 		clog.Warnf("err = %s", err)
 		return
