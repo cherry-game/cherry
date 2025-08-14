@@ -189,10 +189,6 @@ func (p *Cluster) PublishRemote(nodeID string, clusterPacket *cproto.ClusterPack
 func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
 	defer request.Recycle()
 
-	if !p.app.Running() {
-		return nil, ccode.ActorCallFail
-	}
-
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
