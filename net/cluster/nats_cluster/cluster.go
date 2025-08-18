@@ -12,7 +12,6 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
 	"github.com/nats-io/nats.go"
-	"go.uber.org/zap/zapcore"
 )
 
 type (
@@ -123,58 +122,80 @@ func subscribeWithPool(subject, queue string, cb nats.MsgHandler) {
 	}
 }
 
-func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) error {
+func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) int32 {
 	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
-		clog.Debugf("[PublishLocal] get node type fail. [nodeID = %s, %s]",
-			nodeID,
-			cpacket.PrintLog(),
-		)
-		return err
-	}
-
-	bytes, err := proto.Marshal(cpacket)
-	if err != nil {
-		return err
-	}
-
-	subject := GetLocalSubject(p.prefix, nodeType, nodeID)
-	err = cnats.GetConnect().Publish(subject, bytes)
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[PublishLocal] [nodeID = %s, %s]",
-			nodeID,
-			cpacket.PrintLog(),
-		)
-	}
-
-	return err
-}
-
-func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) error {
-	defer cpacket.Recycle()
-
-	nodeType, err := p.app.Discovery().GetType(nodeID)
-	if err != nil {
-		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
+		clog.Warnf("[PublishLocal] Get node type fail. [nodeID = %s, packet = %s, err = %v]",
 			nodeID,
 			cpacket.PrintLog(),
 			err,
 		)
-		return err
+		return ccode.DiscoveryNotFoundNode
 	}
 
 	bytes, err := proto.Marshal(cpacket)
 	if err != nil {
-		clog.Warn(err)
-		return err
+		clog.Warnf("[PublishLocal] Marshal error. [nodeID = %s, packet = %s, err = %v]",
+			nodeID,
+			cpacket.PrintLog(),
+			err,
+		)
+		return ccode.RPCMarshalError
+	}
+
+	subject := GetLocalSubject(p.prefix, nodeType, nodeID)
+	err = cnats.GetConnect().Publish(subject, bytes)
+	if err != nil {
+		clog.Warnf("[PublishLocal] Nats publish fail. [nodeID = %s, %s, err = %v]",
+			nodeID,
+			cpacket.PrintLog(),
+			err,
+		)
+
+		return ccode.RPCNetError
+	}
+
+	return ccode.OK
+}
+
+func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) int32 {
+	defer cpacket.Recycle()
+
+	nodeType, err := p.app.Discovery().GetType(nodeID)
+	if err != nil {
+		clog.Warnf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
+			nodeID,
+			cpacket.PrintLog(),
+			err,
+		)
+		return ccode.RPCMarshalError
+	}
+
+	bytes, err := proto.Marshal(cpacket)
+	if err != nil {
+		clog.Warnf("[PublishRemote] Marshal error. [nodeID = %s, packet = %s, err = %v]",
+			nodeID,
+			cpacket.PrintLog(),
+			err,
+		)
+		return ccode.RPCMarshalError
 	}
 
 	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
 	err = cnats.GetConnect().Publish(subject, bytes)
-	return err
+	if err != nil {
+		clog.Warnf("[PublishRemote] Nats publish fail. [nodeID = %s, %s, err = %v]",
+			nodeID,
+			cpacket.PrintLog(),
+			err,
+		)
+
+		return ccode.RPCNetError
+	}
+
+	return ccode.OK
 }
 
 func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
@@ -182,7 +203,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
-		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
+		clog.Warnf("[RequestRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
 			cpacket.PrintLog(),
 			err,
@@ -193,7 +214,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 
 	msg, err := proto.Marshal(cpacket)
 	if err != nil {
-		clog.Debugf("[PublishRemote] Marshal fail. [nodeID = %s, %s, err = %v]",
+		clog.Warnf("[RequestRemote] Marshal fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
 			cpacket.PrintLog(),
 			err,
@@ -205,7 +226,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
 	natsData, err := cnats.GetConnect().RequestSync(subject, msg, timeout...)
 	if err != nil {
-		clog.Warnf("[RequestRemote] nats request fail. [nodeID = %s, %s, err = %v]",
+		clog.Warnf("[RequestRemote] Nats request fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
 			cpacket.PrintLog(),
 			err,

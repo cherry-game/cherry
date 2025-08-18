@@ -169,15 +169,15 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 			clusterPacket.ArgBytes = argsBytes
 		}
 
-		err = p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
-		if err != nil {
-			clog.Warnf("[Call] Publish remote fail. [source = %s, target = %s, funcName = %s, err = %v]",
+		errCode := p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
+		if ccode.IsFail(errCode) {
+			clog.Warnf("[Call] Publish remote fail. [source = %s, target = %s, funcName = %s, errCode = %v]",
 				source,
 				target,
 				funcName,
 				err,
 			)
-			return ccode.ActorPublishRemoteError
+			return errCode
 		}
 	} else {
 		remoteMsg := cfacade.GetMessage()

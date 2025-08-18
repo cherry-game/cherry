@@ -74,7 +74,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRou
 	agent.ActorSystem().PostLocal(&message)
 }
 
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) error {
+func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) int32 {
 	clusterPacket := cproto.GetClusterPacket()
 	clusterPacket.SourcePath = session.AgentPath
 	clusterPacket.TargetPath = targetPath

@@ -36,8 +36,8 @@ type (
 type (
 	ICluster interface {
 		Init()                                                                                               // 初始化
-		PublishLocal(nodeID string, packet *cproto.ClusterPacket) error                                      // 发布本地消息
-		PublishRemote(nodeID string, packet *cproto.ClusterPacket) error                                     // 发布远程消息
+		PublishLocal(nodeID string, packet *cproto.ClusterPacket) int32                                      // 发布本地消息
+		PublishRemote(nodeID string, packet *cproto.ClusterPacket) int32                                     // 发布远程消息
 		RequestRemote(nodeID string, packet *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) // 请求远程消息
 		Stop()                                                                                               // 停止
 	}
