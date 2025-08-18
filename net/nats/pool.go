@@ -25,15 +25,16 @@ func NewPool(replySubject string, config cfacade.ProfileJSON, isConnect bool) {
 		user          = config.GetString("user")
 		pwd           = config.GetString("password")
 		maxReconnects = config.GetInt("max_reconnects")
+		poolSize      = config.GetInt("pool_size", 1)
+		isStats       = config.GetBool("is_stats")
 	)
-
-	poolSize := config.GetInt("pool_size", 1)
 
 	for id := 1; id <= poolSize; id++ {
 		conn := NewConnect(id, replySubject,
 			WithAddress(address),
 			WithAuth(user, pwd),
 			WithParams(maxReconnects),
+			WithIsStats(isStats),
 		)
 
 		connectPool = append(connectPool, conn)

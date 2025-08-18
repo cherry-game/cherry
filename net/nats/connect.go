@@ -33,6 +33,7 @@ type (
 		maxReconnects int
 		user          string
 		password      string
+		isStats       bool
 	}
 	OptionFunc func(o *options)
 )
@@ -66,7 +67,11 @@ func (p *Connect) Connect() {
 		}
 		p.Conn = conn
 		p.initReplySubscribe()
-		go p.statistics()
+
+		if p.isStats {
+			go p.statistics()
+		}
+
 		break
 	}
 }
@@ -188,7 +193,7 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 		return resp.Data, nil
 	case <-time.After(timeout):
 		p.waiters.Delete(reqID)
-		//clog.Warnf("id = %d, reqID = %s", p.id, reqID)
+		clog.Warnf("id = %d, reqID = %s", p.id, reqID)
 		close(ch)
 		return nil, cerror.ClusterRequestTimeout
 	}
@@ -270,5 +275,11 @@ func WithAuth(user, password string) OptionFunc {
 	return func(opts *options) {
 		opts.user = user
 		opts.password = password
+	}
+}
+
+func WithIsStats(isStats bool) OptionFunc {
+	return func(opts *options) {
+		opts.isStats = isStats
 	}
 }
