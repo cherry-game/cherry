@@ -6,7 +6,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	ccode "github.com/cherry-game/cherry/code"
-	cerr "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cnats "github.com/cherry-game/cherry/net/nats"
@@ -19,24 +18,16 @@ import (
 type (
 	Cluster struct {
 		app           cfacade.IApplication
-		bufferSize    int
 		prefix        string
 		localSubject  string
 		remoteSubject string
 		replySubject  string
 	}
-
-	OptionFunc func(o *Cluster)
 )
 
-func New(app cfacade.IApplication, options ...OptionFunc) cfacade.ICluster {
+func New(app cfacade.IApplication) cfacade.ICluster {
 	cluster := &Cluster{
-		app:        app,
-		bufferSize: 1024,
-	}
-
-	for _, option := range options {
-		option(cluster)
+		app: app,
 	}
 
 	return cluster
@@ -49,9 +40,9 @@ func (p *Cluster) loadNatsConfig() {
 	}
 
 	p.prefix = natsConfig.GetString("prefix", "node")
-	p.localSubject = getLocalSubject(p.prefix, p.app.NodeType(), p.app.NodeID())
-	p.remoteSubject = getRemoteSubject(p.prefix, p.app.NodeType(), p.app.NodeID())
-	p.replySubject = getReplySubject(p.prefix, p.app.NodeType(), p.app.NodeID())
+	p.localSubject = GetLocalSubject(p.prefix, p.app.NodeType(), p.app.NodeID())
+	p.remoteSubject = GetRemoteSubject(p.prefix, p.app.NodeType(), p.app.NodeID())
+	p.replySubject = GetReplySubject(p.prefix, p.app.NodeType(), p.app.NodeID())
 
 	cnats.NewPool(p.replySubject, natsConfig, true)
 }
@@ -62,13 +53,13 @@ func (p *Cluster) Init() {
 	p.localProcess()
 	p.remoteProcess()
 
-	clog.Info("nats cluster execute OnInit().")
+	clog.Info("Nats cluster execute OnInit().")
 }
 
 func (p *Cluster) Stop() {
 	cnats.ConnectClose()
 
-	clog.Info("nats cluster execute OnStop().")
+	clog.Info("Nats cluster execute OnStop().")
 }
 
 func (p *Cluster) localProcess() {
@@ -89,7 +80,7 @@ func (p *Cluster) localProcess() {
 		p.app.ActorSystem().PostLocal(&message)
 	}
 
-	createConnPool(p.localSubject, "local", process)
+	subscribeWithPool(p.localSubject, LocalType, process)
 }
 
 func (p *Cluster) remoteProcess() {
@@ -116,10 +107,10 @@ func (p *Cluster) remoteProcess() {
 		p.app.ActorSystem().PostRemote(&message)
 	}
 
-	createConnPool(p.remoteSubject, "remote", process)
+	subscribeWithPool(p.remoteSubject, RemoteType, process)
 }
 
-func createConnPool(subject, queue string, cb nats.MsgHandler) {
+func subscribeWithPool(subject, queue string, cb nats.MsgHandler) {
 	for _, conn := range cnats.GetPool() {
 		if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
 			clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
@@ -132,91 +123,91 @@ func createConnPool(subject, queue string, cb nats.MsgHandler) {
 	}
 }
 
-func (p *Cluster) PublishLocal(nodeID string, clusterPacket *cproto.ClusterPacket) error {
-	defer clusterPacket.Recycle()
+func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) error {
+	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishLocal] get node type fail. [nodeID = %s, %s]",
 			nodeID,
-			clusterPacket.PrintLog(),
+			cpacket.PrintLog(),
 		)
 		return err
 	}
 
-	subject := getLocalSubject(p.prefix, nodeType, nodeID)
-	bytes, err := proto.Marshal(clusterPacket)
+	bytes, err := proto.Marshal(cpacket)
 	if err != nil {
 		return err
 	}
 
-	err = p.Publish(subject, bytes)
+	subject := GetLocalSubject(p.prefix, nodeType, nodeID)
+	err = cnats.GetConnect().Publish(subject, bytes)
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[PublishLocal] [nodeID = %s, %s]",
 			nodeID,
-			clusterPacket.PrintLog(),
+			cpacket.PrintLog(),
 		)
 	}
 
 	return err
 }
 
-func (p *Cluster) PublishRemote(nodeID string, clusterPacket *cproto.ClusterPacket) error {
-	defer clusterPacket.Recycle()
+func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) error {
+	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
-			clusterPacket.PrintLog(),
+			cpacket.PrintLog(),
 			err,
 		)
 		return err
 	}
 
-	subject := getRemoteSubject(p.prefix, nodeType, nodeID)
-	bytes, err := proto.Marshal(clusterPacket)
+	bytes, err := proto.Marshal(cpacket)
 	if err != nil {
 		clog.Warn(err)
 		return err
 	}
 
-	err = p.Publish(subject, bytes)
+	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
+	err = cnats.GetConnect().Publish(subject, bytes)
 	return err
 }
 
-func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
-	defer request.Recycle()
+func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
+	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Get node type fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
-			request.PrintLog(),
+			cpacket.PrintLog(),
 			err,
 		)
 
 		return nil, ccode.DiscoveryNotFoundNode
 	}
 
-	msg, err := proto.Marshal(request)
+	msg, err := proto.Marshal(cpacket)
 	if err != nil {
 		clog.Debugf("[PublishRemote] Marshal fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
-			request.PrintLog(),
+			cpacket.PrintLog(),
 			err,
 		)
 
 		return nil, ccode.RPCMarshalError
 	}
 
-	subject := getRemoteSubject(p.prefix, nodeType, nodeID)
+	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
 	natsData, err := cnats.GetConnect().RequestSync(subject, msg, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] nats request fail. [nodeID = %s, %s, err = %v]",
 			nodeID,
-			request.PrintLog(),
+			cpacket.PrintLog(),
 			err,
 		)
 
@@ -227,7 +218,7 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 	if err = proto.Unmarshal(natsData, rsp); err != nil {
 		clog.Warnf("[RequestRemote] unmarshal fail. [nodeID = %s, %s, rsp = %v, err = %v]",
 			nodeID,
-			request.PrintLog(),
+			cpacket.PrintLog(),
 			rsp,
 			err,
 		)
@@ -236,18 +227,4 @@ func (p *Cluster) RequestRemote(nodeID string, request *cproto.ClusterPacket, ti
 	}
 
 	return rsp.Data, rsp.Code
-}
-
-func (p *Cluster) Publish(subject string, data []byte) error {
-	if !p.app.Running() {
-		return cerr.ClusterClientIsStop
-	}
-
-	return cnats.GetConnect().Publish(subject, data)
-}
-
-func WithBufferSize(size int) OptionFunc {
-	return func(o *Cluster) {
-		o.bufferSize = size
-	}
 }

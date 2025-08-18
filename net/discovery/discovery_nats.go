@@ -23,8 +23,7 @@ type DiscoveryNATS struct {
 	DiscoveryDefault
 	app               cfacade.IApplication
 	thisMember        cfacade.IMember
-	thisMemberBytes   []byte
-	masterMember      cfacade.IMember
+	masterID          string
 	prefix            string
 	registerSubject   string
 	unregisterSubject string
@@ -37,15 +36,15 @@ func (m *DiscoveryNATS) Name() string {
 }
 
 func (m *DiscoveryNATS) isMaster() bool {
-	return m.app.NodeID() == m.masterMember.GetNodeID()
+	return m.app.NodeID() == m.masterID
 }
 
 func (m *DiscoveryNATS) isClient() bool {
-	return m.app.NodeID() != m.masterMember.GetNodeID()
+	return m.app.NodeID() != m.masterID
 }
 
 func (m *DiscoveryNATS) buildSubject(subject string) string {
-	return fmt.Sprintf(subject, m.prefix, m.masterMember.GetNodeID())
+	return fmt.Sprintf(subject, m.prefix, m.masterID)
 }
 
 func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
@@ -53,6 +52,16 @@ func (m *DiscoveryNATS) Load(app cfacade.IApplication) {
 	m.app = app
 	m.loadMember()
 	m.init()
+}
+
+func (m *DiscoveryNATS) thisMemberBytes() []byte {
+	memberBytes, err := m.app.Serializer().Marshal(m.thisMember)
+	if err != nil {
+		clog.Warnf("Marshal member data error. err = %v", err)
+		return nil
+	}
+
+	return memberBytes
 }
 
 func (m *DiscoveryNATS) loadMember() {
@@ -63,39 +72,18 @@ func (m *DiscoveryNATS) loadMember() {
 		Settings: make(map[string]string),
 	}
 
-	memberBytes, err := m.app.Serializer().Marshal(m.thisMember)
-	if err != nil {
-		clog.Warnf("err = %s", err)
-		return
-	}
-
-	m.thisMemberBytes = memberBytes
-
 	//get nats config
 	config := cprofile.GetConfig("cluster").GetConfig(m.Name())
 	if config.LastError() != nil {
-		clog.Fatalf("nats config parameter not found. err = %v", config.LastError())
+		clog.Fatalf("Nats config parameter not found. err = %v", config.LastError())
 	}
 
 	m.prefix = config.GetString("prefix", "node")
 
 	// get master node id
-	masterID := config.GetString("master_node_id")
-	if masterID == "" {
-		clog.Fatal("master node id not in config.")
-	}
-
-	// load master node config
-	masterNode, err := cprofile.LoadNode(masterID)
-	if err != nil {
-		clog.Fatal(err)
-	}
-
-	m.masterMember = &cproto.Member{
-		NodeID:   masterNode.NodeID(),
-		NodeType: masterNode.NodeType(),
-		Address:  masterNode.RpcAddress(),
-		Settings: make(map[string]string),
+	m.masterID = config.GetString("master_node_id")
+	if m.masterID == "" {
+		clog.Fatal("Master node id not in config.")
 	}
 }
 
@@ -124,7 +112,7 @@ func (m *DiscoveryNATS) init() {
 	m.serverInit()
 	m.clientInit()
 
-	clog.Infof("[discovery = %s] is running.", m.Name())
+	clog.Infof("[Discovery = %s] is running.", m.Name())
 }
 
 func (m *DiscoveryNATS) serverInit() {
@@ -132,8 +120,8 @@ func (m *DiscoveryNATS) serverInit() {
 		return
 	}
 
-	//addMember master node
-	m.AddMember(m.masterMember)
+	// add master member
+	m.AddMember(m.thisMember)
 
 	// subscribe register message
 	m.subscribe(m.registerSubject, func(msg *nats.Msg) {
@@ -165,21 +153,21 @@ func (m *DiscoveryNATS) serverInit() {
 
 		rspData, err := m.app.Serializer().Marshal(memberList)
 		if err != nil {
-			clog.Warnf("marshal fail. err = %s", err)
+			clog.Warnf("Marshal fail. err = %s", err)
 			return
 		}
 
 		// response member list
 		err = msg.Respond(rspData)
 		if err != nil {
-			clog.Warnf("respond fail. err = %s", err)
+			clog.Warnf("Respond fail. err = %s", err)
 			return
 		}
 
 		// publish addMember new node
 		err = cnats.GetConnect().Publish(m.addSubject, msg.Data)
 		if err != nil {
-			clog.Warnf("publish fail. err = %s", err)
+			clog.Warnf("Publish fail. err = %s", err)
 			return
 		}
 	})
@@ -214,7 +202,7 @@ func (m *DiscoveryNATS) clientInit() {
 
 func (m *DiscoveryNATS) checkMaster() {
 	for {
-		_, found := m.GetMember(m.masterMember.GetNodeID())
+		_, found := m.GetMember(m.masterID)
 		if !found {
 			m.registerToMaster()
 		}
@@ -225,17 +213,17 @@ func (m *DiscoveryNATS) checkMaster() {
 
 func (m *DiscoveryNATS) registerToMaster() {
 	// register current node to master
-	natsData, err := cnats.GetConnect().Request(m.registerSubject, m.thisMemberBytes)
+	natsData, err := cnats.GetConnect().Request(m.registerSubject, m.thisMemberBytes())
 	if err != nil {
-		clog.Warnf("register node to [master = %s] fail. [err = %s]",
-			m.masterMember.GetNodeID(),
+		clog.Warnf("Register node to [master = %s] fail. [err = %s]",
+			m.masterID,
 			err,
 		)
 		return
 	}
 
 	clog.Infof("Register node to [master = %s]. [member = %s]",
-		m.masterMember.GetNodeID(),
+		m.masterID,
 		m.thisMember,
 	)
 
@@ -252,22 +240,22 @@ func (m *DiscoveryNATS) registerToMaster() {
 }
 
 func (m *DiscoveryNATS) Stop() {
-	err := cnats.GetConnect().Publish(m.unregisterSubject, m.thisMemberBytes)
+	err := cnats.GetConnect().Publish(m.unregisterSubject, m.thisMemberBytes())
 	if err != nil {
-		clog.Warnf("publish fail. err = %s", err)
+		clog.Warnf("Publish fail. err = %s", err)
 		return
 	}
 
-	clog.Debugf("[nodeID = %s] unregister node to [master = %s]",
+	clog.Debugf("[NodeID = %s] unregister node to [master = %s]",
 		m.app.NodeID(),
-		m.masterMember.GetNodeID(),
+		m.masterID,
 	)
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
 	_, err := cnats.GetConnect().Subscribe(subject, cb)
 	if err != nil {
-		clog.Warnf("subscribe fail. err = %s", err)
+		clog.Warnf("Subscribe fail. err = %s", err)
 		return
 	}
 }
