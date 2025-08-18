@@ -1,7 +1,6 @@
 package pomelo
 
 import (
-	ccode "github.com/cherry-game/cherry/code"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	pmessage "github.com/cherry-game/cherry/net/parser/pomelo/message"
@@ -34,13 +33,13 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	}
 
 	targetPath := cfacade.NewPath(member.GetNodeID(), route.HandleName())
-	errCode := ClusterLocalDataRoute(agent, session, route, msg, member.GetNodeID(), targetPath)
-	if ccode.IsFail(errCode) {
-		clog.Warnf("[sid = %s,uid = %d,route = %s] cluster local data error. errCode = %v",
+	err := ClusterLocalDataRoute(agent, session, route, msg, member.GetNodeID(), targetPath)
+	if err != nil {
+		clog.Warnf("[sid = %s,uid = %d,route = %s] cluster local data error. err = %v",
 			agent.SID(),
 			agent.UID(),
 			msg.Route,
-			errCode,
+			err,
 		)
 	}
 }
@@ -56,7 +55,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route
 	agent.ActorSystem().PostLocal(&message)
 }
 
-func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeID, targetPath string) int32 {
+func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeID, targetPath string) error {
 	clusterPacket := cproto.GetClusterPacket()
 	clusterPacket.SourcePath = session.AgentPath
 	clusterPacket.TargetPath = targetPath

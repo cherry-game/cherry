@@ -5,7 +5,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
-	ccode "github.com/cherry-game/cherry/code"
+	cerror "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cnats "github.com/cherry-game/cherry/net/nats"
@@ -122,7 +122,7 @@ func subscribeWithPool(subject, queue string, cb nats.MsgHandler) {
 	}
 }
 
-func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) int32 {
+func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) error {
 	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
@@ -132,7 +132,7 @@ func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) int
 			cpacket.PrintLog(),
 			err,
 		)
-		return ccode.DiscoveryNotFoundNode
+		return cerror.DiscoveryNotFoundNode
 	}
 
 	bytes, err := proto.Marshal(cpacket)
@@ -142,7 +142,7 @@ func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) int
 			cpacket.PrintLog(),
 			err,
 		)
-		return ccode.RPCMarshalError
+		return cerror.ClusterPacketMarshalFail
 	}
 
 	subject := GetLocalSubject(p.prefix, nodeType, nodeID)
@@ -154,13 +154,13 @@ func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) int
 			err,
 		)
 
-		return ccode.RPCNetError
+		return cerror.ClusterNatsPublishFail
 	}
 
-	return ccode.OK
+	return nil
 }
 
-func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) int32 {
+func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) error {
 	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
@@ -170,7 +170,7 @@ func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) in
 			cpacket.PrintLog(),
 			err,
 		)
-		return ccode.RPCMarshalError
+		return cerror.DiscoveryNotFoundNode
 	}
 
 	bytes, err := proto.Marshal(cpacket)
@@ -180,7 +180,7 @@ func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) in
 			cpacket.PrintLog(),
 			err,
 		)
-		return ccode.RPCMarshalError
+		return cerror.ClusterPacketMarshalFail
 	}
 
 	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
@@ -192,13 +192,13 @@ func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) in
 			err,
 		)
 
-		return ccode.RPCNetError
+		return cerror.ClusterNatsPublishFail
 	}
 
-	return ccode.OK
+	return nil
 }
 
-func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
+func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, error) {
 	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
@@ -209,7 +209,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, ccode.DiscoveryNotFoundNode
+		return nil, cerror.DiscoveryNotFoundNode
 	}
 
 	msg, err := proto.Marshal(cpacket)
@@ -220,7 +220,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, ccode.RPCMarshalError
+		return nil, cerror.ClusterPacketMarshalFail
 	}
 
 	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
@@ -232,7 +232,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, ccode.RPCNetError
+		return nil, cerror.ClsuterNatsRequestFail
 	}
 
 	rsp := &cproto.Response{}
@@ -244,8 +244,8 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, ccode.RPCUnmarshalError
+		return nil, cerror.ClusterPacketUnmarshalFail
 	}
 
-	return rsp.Data, rsp.Code
+	return rsp.Data, nil
 }

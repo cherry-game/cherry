@@ -50,8 +50,16 @@ var (
 
 // cluster
 var (
-	ClusterClientIsStop   = Error("Cluster client is stop")
-	ClusterRequestTimeout = Error("Request timeout")
+	ClusterClientIsStop        = Error("Cluster client is stop")
+	ClusterRequestTimeout      = Error("Cluster Request timeout")
+	ClusterPacketMarshalFail   = Error("Cluster packet marshal fail")
+	ClusterPacketUnmarshalFail = Error("Cluster packet unmarshal fail")
+	ClusterNatsPublishFail     = Error("Cluster nats publish fail")
+	ClsuterNatsRequestFail     = Error("Cluster nats request fail")
+)
+
+var (
+	DiscoveryNotFoundNode = Error("Discovery not found node")
 )
 
 var (
