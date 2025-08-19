@@ -35,7 +35,7 @@ func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message
 	targetPath := cfacade.NewPath(member.GetNodeID(), route.HandleName())
 	err := ClusterLocalDataRoute(agent, session, route, msg, member.GetNodeID(), targetPath)
 	if err != nil {
-		clog.Warnf("[sid = %s,uid = %d,route = %s] cluster local data error. err= %v",
+		clog.Warnf("[sid = %s,uid = %d,route = %s] cluster local data error. err = %v",
 			agent.SID(),
 			agent.UID(),
 			msg.Route,

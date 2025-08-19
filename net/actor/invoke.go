@@ -11,6 +11,7 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
+	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
@@ -44,15 +45,14 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 	if m.IsCluster {
 		cutils.Try(func() {
 			rets := fi.Value.Call(values)
-			rspCode, rspData := retValue(app.Serializer(), rets)
-
-			retResponse(m.ClusterReply, &cproto.Response{
+			rspData, rspCode := retValue(app.Serializer(), rets)
+			retResponse(m, &cproto.Response{
 				Code: rspCode,
 				Data: rspData,
 			})
 
 		}, func(errString string) {
-			retResponse(m.ClusterReply, &cproto.Response{
+			retResponse(m, &cproto.Response{
 				Code: ccode.RPCRemoteExecuteError,
 			})
 			clog.Errorf("[InvokeRemoteFunc] invoke error. [message = %+v, err = %s]", m, errString)
@@ -63,7 +63,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 				fi.Value.Call(values)
 			} else {
 				rets := fi.Value.Call(values)
-				rspCode, rspData := retValue(app.Serializer(), rets)
+				rspData, rspCode := retValue(app.Serializer(), rets)
 				m.ChanResult <- &cproto.Response{
 					Code: rspCode,
 					Data: rspData,
@@ -87,7 +87,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 
 func EncodeRemoteArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
 	if m.IsCluster {
-		if fi.InArgsLen == 0 {
+		if fi.InArgsLen == 0 || m.Args == nil {
 			return nil
 		}
 
@@ -128,20 +128,21 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 	return nil
 }
 
-func retValue(serializer cfacade.ISerializer, rets []reflect.Value) (int32, []byte) {
+func retValue(serializer cfacade.ISerializer, rets []reflect.Value) ([]byte, int32) {
 	var (
 		retsLen = len(rets)
 		rspCode = ccode.OK
 		rspData []byte
 	)
 
-	if retsLen == 1 {
+	switch retsLen {
+	case 1:
 		if val := rets[0].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
 				rspCode = c
 			}
 		}
-	} else if retsLen == 2 {
+	case 2:
 		if !rets[0].IsNil() {
 			data, err := serializer.Marshal(rets[0].Interface())
 			if err != nil {
@@ -159,15 +160,20 @@ func retValue(serializer cfacade.ISerializer, rets []reflect.Value) (int32, []by
 		}
 	}
 
-	return rspCode, rspData
+	return rspData, rspCode
 }
 
-func retResponse(reply cfacade.IRespond, rsp *cproto.Response) {
-	if reply != nil {
-		rspData, _ := proto.Marshal(rsp)
-		err := reply.Respond(rspData)
-		if err != nil {
-			clog.Warn(err)
-		}
+func retResponse(m *cfacade.Message, rsp *cproto.Response) {
+	rspData, _ := proto.Marshal(rsp)
+	rspMsg := cnats.GetMsg()
+	rspMsg.Header = m.Header
+	rspMsg.Subject = m.Reply
+	rspMsg.Data = rspData
+
+	if err := cnats.GetConnect().PublishMsg(rspMsg); err != nil {
+		clog.Warn(err)
 	}
+
+	cnats.ReleaseMsg(rspMsg)
+	m.Destory()
 }
