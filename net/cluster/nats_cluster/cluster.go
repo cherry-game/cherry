@@ -110,16 +110,25 @@ func (p *Cluster) remoteProcess() {
 }
 
 func subscribeWithPool(subject, queue string, cb nats.MsgHandler) {
-	for _, conn := range cnats.GetPool() {
-		if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
-			clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
-				queue,
-				subject,
-				err,
-			)
-			break
-		}
+	conn := cnats.GetConnect()
+	if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
+		clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
+			queue,
+			subject,
+			err,
+		)
 	}
+
+	// for _, conn := range cnats.GetPool() {
+	// 	if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
+	// 		clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
+	// 			queue,
+	// 			subject,
+	// 			err,
+	// 		)
+	// 		break
+	// 	}
+	// }
 }
 
 func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) error {
