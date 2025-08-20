@@ -43,14 +43,15 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 	}
 
 	if m.IsCluster {
-		cutils.Try(func() {
-			rets := fi.Value.Call(values)
-			rspData, rspCode := retValue(app.Serializer(), rets)
-			retResponse(m, &cproto.Response{
-				Code: rspCode,
-				Data: rspData,
-			})
+		rets := fi.Value.Call(values)
 
+		if m.Reply == "" {
+			return
+		}
+
+		cutils.Try(func() {
+			rsp := retValue(app.Serializer(), rets)
+			retResponse(m, rsp)
 		}, func(errString string) {
 			retResponse(m, &cproto.Response{
 				Code: ccode.RPCRemoteExecuteError,
@@ -63,18 +64,15 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 				fi.Value.Call(values)
 			} else {
 				rets := fi.Value.Call(values)
-				rspData, rspCode := retValue(app.Serializer(), rets)
-				m.ChanResult <- &cproto.Response{
-					Code: rspCode,
-					Data: rspData,
-				}
+				rsp := retValue(app.Serializer(), rets)
+				m.ChanResult <- rsp
 			}
 		}, func(errString string) {
 			if m.ChanResult != nil {
 				m.ChanResult <- nil
 			}
 
-			clog.Errorf("[remote] invoke error.[source = %s, target = %s -> %s, funcType = %v, err = %+v]",
+			clog.Errorf("[InvokeRemoteFunc] invoke error.[source = %s, target = %s -> %s, funcType = %v, err = %+v]",
 				m.Source,
 				m.Target,
 				m.FuncName,
@@ -128,43 +126,43 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 	return nil
 }
 
-func retValue(serializer cfacade.ISerializer, rets []reflect.Value) ([]byte, int32) {
-	var (
-		retsLen = len(rets)
-		rspCode = ccode.OK
-		rspData []byte
-	)
+func retValue(serializer cfacade.ISerializer, rets []reflect.Value) *cproto.Response {
+	rsp := &cproto.Response{
+		Code: ccode.OK,
+	}
 
+	retsLen := len(rets)
 	switch retsLen {
 	case 1:
 		if val := rets[0].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
-				rspCode = c
+				rsp.Code = c
 			}
 		}
 	case 2:
 		if !rets[0].IsNil() {
 			data, err := serializer.Marshal(rets[0].Interface())
 			if err != nil {
-				rspCode = ccode.RPCRemoteExecuteError
+				rsp.Code = ccode.RPCRemoteExecuteError
 				clog.Warn(err)
 			} else {
-				rspData = data
+				rsp.Data = data
 			}
 		}
 
 		if val := rets[1].Interface(); val != nil {
 			if c, ok := val.(int32); ok {
-				rspCode = c
+				rsp.Code = c
 			}
 		}
 	}
 
-	return rspData, rspCode
+	return rsp
 }
 
 func retResponse(m *cfacade.Message, rsp *cproto.Response) {
 	rspData, _ := proto.Marshal(rsp)
+
 	rspMsg := cnats.GetMsg()
 	rspMsg.Header = m.Header
 	rspMsg.Subject = m.Reply
