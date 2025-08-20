@@ -82,25 +82,49 @@ func GetConfig(path ...interface{}) cfacade.ProfileJSON {
 }
 
 func loadFile(filePath, fileName string) (*Config, error) {
-	// merge include json file
-	var maps = make(map[string]interface{})
+	var (
+		profileMaps = make(map[string]interface{})
+		includeMaps = make(map[string]interface{})
+		rootMaps    = make(map[string]interface{})
+	)
 
-	// read master json file
+	// read profile json file
 	fileNamePath := filepath.Join(filePath, fileName)
-	if err := cjson.ReadMaps(fileNamePath, maps); err != nil {
+	if err := cjson.ReadMaps(fileNamePath, profileMaps); err != nil {
 		return nil, err
 	}
 
 	// read include json file
-	if v, found := maps["include"].([]interface{}); found {
+	if v, found := profileMaps["include"].([]interface{}); found {
 		paths := cstring.ToStringSlice(v)
 		for _, p := range paths {
 			includePath := filepath.Join(filePath, p)
-			if err := cjson.ReadMaps(includePath, maps); err != nil {
+			if err := cjson.ReadMaps(includePath, includeMaps); err != nil {
 				return nil, err
 			}
 		}
 	}
 
-	return Wrap(maps), nil
+	mergeMap(rootMaps, includeMaps)
+	mergeMap(rootMaps, profileMaps)
+
+	return Wrap(rootMaps), nil
+}
+
+func mergeMap(dst, src map[string]interface{}) {
+	for key, value := range src {
+		if v, ok := dst[key]; ok {
+			if m1, ok := v.(map[string]interface{}); ok {
+				if m2, ok := value.(map[string]interface{}); ok {
+					mergeMap(m1, m2)
+				} else {
+					dst[key] = value
+				}
+			} else {
+				dst[key] = value
+			}
+		} else {
+			dst[key] = value
+		}
+	}
 }
