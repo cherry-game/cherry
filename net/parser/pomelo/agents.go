@@ -9,16 +9,12 @@ import (
 )
 
 var (
-	lock        = &sync.RWMutex{}
-	sidAgentMap = make(map[cfacade.SID]*Agent)      // sid -> Agent
-	uidMap      = make(map[cfacade.UID]cfacade.SID) // uid -> sid
+	sidAgentMap = sync.Map{} // make(map[cfacade.SID]*Agent)      // sid -> Agent
+	uidMap      = sync.Map{} // make(map[cfacade.UID]cfacade.SID) // uid -> sid
 )
 
 func BindSID(agent *Agent) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	sidAgentMap[agent.SID()] = agent
+	sidAgentMap.Store(agent.SID(), agent)
 }
 
 func Bind(sid cfacade.SID, uid cfacade.UID) (*Agent, error) {
@@ -30,59 +26,68 @@ func Bind(sid cfacade.SID, uid cfacade.UID) (*Agent, error) {
 		return nil, cerr.Errorf("[uid = %d] less than 1.", uid)
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
-
 	// sid不存在，可能在执行该函数前已经断开连接
-	agent, found := sidAgentMap[sid]
+	agent, found := GetAgentWithSID(sid)
 	if !found {
 		return nil, cerr.Errorf("[sid = %s] does not exist.", sid)
 	}
 
-	// 查找uid是否有旧的agent
+	// 先查找uid是否有旧的agent
 	var oldAgent *Agent
-	if oldsid, found := uidMap[uid]; found && oldsid != sid {
-		if agent, exists := sidAgentMap[oldsid]; exists {
+	if oldSID, found := GetSID(uid); found && oldSID != sid {
+		if agent, exists := GetAgentWithSID(oldSID); exists {
 			oldAgent = agent
 		}
 	}
 
-	// 绑定uid
+	// 再绑定uid
 	agent.session.Uid = uid
-	uidMap[uid] = sid
+	uidMap.Store(uid, sid)
 
-	// 返回旧的agent(可自行处理，比如踢下线)
+	// 返回oldAgent(如果没有则为空，可自行处理，比如踢下线)
 	return oldAgent, nil
 }
 
 func Unbind(sid cfacade.SID) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	agent, found := sidAgentMap[sid]
+	agent, found := GetAgentWithSIDAndDel(sid, true)
 	if !found {
 		return
 	}
 
-	delete(sidAgentMap, sid)
 	// sid是自己，则删除uidmap
-	if nowSID, ok := uidMap[agent.UID()]; ok && nowSID == sid {
-		delete(uidMap, agent.UID())
+	if nowSID, ok := GetSID(agent.UID()); ok && nowSID == sid {
+		uidMap.Delete(agent.UID())
 	}
 
-	sidCount := len(sidAgentMap)
-	uidCount := len(uidMap)
-	if sidCount == 0 || uidCount == 0 {
-		clog.Infof("Unbind agent. sid = %s, sidCount = %d, uidCount = %d", sid, sidCount, uidCount)
+	clog.Debugf("Unbind agent. sid = %s", sid)
+}
+
+func GetAgentWithSIDAndDel(sid cfacade.SID, isDel bool) (*Agent, bool) {
+	var (
+		agentValue any
+		found      bool
+	)
+
+	if isDel {
+		agentValue, found = sidAgentMap.LoadAndDelete(sid)
+	} else {
+		agentValue, found = sidAgentMap.Load(sid)
 	}
+
+	if !found {
+		return nil, false
+	}
+
+	agent, ok := agentValue.(*Agent)
+	if !ok {
+		return nil, false
+	}
+
+	return agent, found
 }
 
 func GetAgentWithSID(sid cfacade.SID) (*Agent, bool) {
-	lock.Lock()
-	defer lock.Unlock()
-
-	agent, found := sidAgentMap[sid]
-	return agent, found
+	return GetAgentWithSIDAndDel(sid, false)
 }
 
 func GetAgentWithUID(uid cfacade.UID) (*Agent, bool) {
@@ -90,16 +95,37 @@ func GetAgentWithUID(uid cfacade.UID) (*Agent, bool) {
 		return nil, false
 	}
 
-	lock.Lock()
-	defer lock.Unlock()
-
-	sid, found := uidMap[uid]
+	sidValue, found := uidMap.Load(uid)
 	if !found {
 		return nil, false
 	}
 
-	agent, found := sidAgentMap[sid]
+	sid := sidValue.(cfacade.UID)
+	agentValue, found := sidAgentMap.Load(sid)
+	if !found {
+		return nil, false
+	}
+
+	agent, ok := agentValue.(*Agent)
+	if !ok {
+		return nil, false
+	}
+
 	return agent, found
+}
+
+func GetSID(uid int64) (cfacade.SID, bool) {
+	sidValue, found := uidMap.Load(uid)
+	if !found {
+		return "", false
+	}
+
+	sid, ok := sidValue.(cfacade.SID)
+	if !ok {
+		return "", false
+	}
+
+	return sid, true
 }
 
 func GetAgent(sid string, uid cfacade.UID) (*Agent, bool) {
@@ -115,14 +141,20 @@ func GetAgent(sid string, uid cfacade.UID) (*Agent, bool) {
 }
 
 func ForeachAgent(fn func(a *Agent)) {
-	for _, agent := range sidAgentMap {
-		fn(agent)
-	}
+	sidAgentMap.Range(func(key, value any) bool {
+		if agent, ok := value.(*Agent); ok {
+			fn(agent)
+		}
+		return true
+	})
 }
 
 func Count() int {
-	lock.RLock()
-	defer lock.RUnlock()
+	count := 0
+	sidAgentMap.Range(func(key, value any) bool {
+		count += 1
+		return true
+	})
 
-	return len(sidAgentMap)
+	return count
 }

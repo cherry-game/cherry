@@ -176,18 +176,37 @@ func (p *actor) kick(rsp *cproto.PomeloKick) {
 	}
 }
 
-func (p *actor) broadcast(rsp *cproto.PomeloBroadcastPush) {
-	if rsp.AllUID {
-		ForeachAgent(func(agent *Agent) {
-			if agent.IsBind() {
-				agent.Push(rsp.Route, rsp.Data)
+func (p *actor) broadcast(rsp *cproto.PomeloBroadcast) {
+	switch rsp.PushType {
+	case cproto.PomeloBroadcast_AllUID:
+		{
+			ForeachAgent(func(agent *Agent) {
+				if agent.IsBind() {
+					agent.Push(rsp.Route, rsp.Data)
+				}
+			})
+
+			return
+		}
+	case cproto.PomeloBroadcast_UID:
+		{
+			for _, uid := range rsp.UidList {
+				if agent, found := GetAgentWithUID(uid); found {
+					agent.Push(rsp.Route, rsp.Data)
+				}
 			}
-		})
-	} else {
-		for _, uid := range rsp.UidList {
-			if agent, found := GetAgentWithUID(uid); found {
-				agent.Push(rsp.Route, rsp.Data)
-			}
+
+			return
+		}
+	case cproto.PomeloBroadcast_SessionEqual:
+		{
+			ForeachAgent(func(agent *Agent) {
+				if agent.session.Equal(rsp.SessionKey, rsp.SessionValue) {
+					agent.Push(rsp.Route, rsp.Data)
+				}
+			})
+
+			return
 		}
 	}
 }

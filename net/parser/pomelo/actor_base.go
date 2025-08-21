@@ -1,6 +1,7 @@
 package pomelo
 
 import (
+	cherryString "github.com/cherry-game/cherry/extend/string"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cactor "github.com/cherry-game/cherry/net/actor"
@@ -18,7 +19,7 @@ type ActorBase struct {
 	cactor.Base
 }
 
-func (p *ActorBase) Response(session *cproto.Session, v interface{}) {
+func (p *ActorBase) Response(session *cproto.Session, v any) {
 	Response(p, session.AgentPath, session.Sid, session.Mid, v)
 }
 
@@ -26,19 +27,24 @@ func (p *ActorBase) ResponseCode(session *cproto.Session, statusCode int32) {
 	ResponseCode(p, session.AgentPath, session.Sid, session.Mid, statusCode)
 }
 
-func (p *ActorBase) Push(session *cproto.Session, route string, v interface{}) {
+func (p *ActorBase) Push(session *cproto.Session, route string, v any) {
 	PushWithSID(p, session.AgentPath, session.Sid, route, v)
 }
 
-func (p *ActorBase) Kick(session *cproto.Session, reason interface{}, closed bool) {
+func (p *ActorBase) Kick(session *cproto.Session, reason any, closed bool) {
 	Kick(p, session.AgentPath, session.Sid, reason, closed)
 }
 
-func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
+func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, v any) {
 	Broadcast(p, agentPath, uidList, allUID, route, v)
 }
 
-func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v interface{}) {
+func (p *ActorBase) BroadcastSession(agentPath string, sessionKey string, sessionValue any, route string, v any) {
+	BroadcastSession(p, agentPath, sessionKey, sessionValue, route, v)
+}
+
+// 根据request的mid找到agent，返回消息给客户端
+func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v any) {
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
 		clog.Warnf("[Response] Marshal error. v = %+v", v)
@@ -54,6 +60,7 @@ func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v interf
 	iActor.Call(agentPath, ResponseFuncName, rsp)
 }
 
+// 根据request的mid找到agent，返回消息给客户端
 func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, statusCode int32) {
 	rsp := &cproto.PomeloResponse{
 		Sid:  sid,
@@ -64,15 +71,18 @@ func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, stat
 	iActor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-func PushWithSID(iActor cfacade.IActor, agentPath, sid, route string, v interface{}) {
+// 根据sid找到agent，推送消息给客户端
+func PushWithSID(iActor cfacade.IActor, agentPath, sid, route string, v any) {
 	Push(iActor, agentPath, sid, 0, route, v)
 }
 
-func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route string, v interface{}) {
+// 根据uid找到agent，推送消息给客户端
+func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route string, v any) {
 	Push(iActor, agentPath, "", uid, route, v)
 }
 
-func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route string, v interface{}) {
+// 根据sid或uid找到agent，推送消息给客户端
+func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route string, v any) {
 	if sid == "" && uid < 1 {
 		clog.Warn("[Push] sid or uid value error.")
 		return
@@ -99,7 +109,8 @@ func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route s
 	iActor.Call(agentPath, PushFuncName, rsp)
 }
 
-func Kick(iActor cfacade.IActor, agentPath, sid string, reason interface{}, closed bool) {
+// 根据sid找到agent，下发踢除消息给客户端
+func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool) {
 	data, err := iActor.App().Serializer().Marshal(reason)
 	if err != nil {
 		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
@@ -115,7 +126,8 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason interface{}, clos
 	iActor.Call(agentPath, KickFuncName, rsp)
 }
 
-func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
+// 根据uidList或allUID匹配找到Agent，下发数据给客户端
+func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
 	if !allUID && len(uidList) < 1 {
 		clog.Warn("[Broadcast] uidList value error.")
 		return
@@ -128,15 +140,49 @@ func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID 
 
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Kick] Marshal error. v = %+v", v)
+		clog.Warnf("[Broadcast] Marshal error. v = %+v", v)
 		return
 	}
 
-	rsp := &cproto.PomeloBroadcastPush{
-		UidList: uidList,
-		AllUID:  allUID,
-		Route:   route,
-		Data:    data,
+	rsp := &cproto.PomeloBroadcast{
+		Route: route,
+		Data:  data,
+	}
+
+	if allUID {
+		rsp.PushType = cproto.PomeloBroadcast_AllUID
+	} else {
+		rsp.PushType = cproto.PomeloBroadcast_UID
+		rsp.UidList = uidList
+	}
+
+	iActor.Call(agentPath, BroadcastName, rsp)
+}
+
+// 根据sessionKey和sessionValue匹配找到Agent，下发数据给客户端
+func BroadcastSession(iActor cfacade.IActor, agentPath string, sessionKey string, sessionValue any, route string, v any) {
+	if sessionKey == "" {
+		clog.Warn("[BroadcastSession] session key is empty.")
+		return
+	}
+
+	if sessionValue == "" {
+		clog.Warn("[BroadcastSession] session value is empty.")
+		return
+	}
+
+	data, err := iActor.App().Serializer().Marshal(v)
+	if err != nil {
+		clog.Warnf("[BroadcastSession] Marshal error. v = %+v", v)
+		return
+	}
+
+	rsp := &cproto.PomeloBroadcast{
+		PushType:     cproto.PomeloBroadcast_SessionEqual,
+		SessionKey:   sessionKey,
+		SessionValue: cherryString.ToString(sessionValue),
+		Route:        route,
+		Data:         data,
 	}
 
 	iActor.Call(agentPath, BroadcastName, rsp)

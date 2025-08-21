@@ -40,6 +40,15 @@ func (x *Session) Contains(key string) bool {
 	return found
 }
 
+func (x *Session) Equal(key, value string) bool {
+	dataValue, found := x.Data[key]
+	if !found {
+		return false
+	}
+
+	return dataValue == value
+}
+
 func (x *Session) Restore(data map[string]string) {
 	x.Clear()
 
