@@ -24,9 +24,8 @@ const (
 type PomeloBroadcast_PushType int32
 
 const (
-	PomeloBroadcast_AllUID       PomeloBroadcast_PushType = 0 // all agent with uid
-	PomeloBroadcast_UID          PomeloBroadcast_PushType = 1 // uidList
-	PomeloBroadcast_SessionEqual PomeloBroadcast_PushType = 2 // equal session key
+	PomeloBroadcast_AllUID PomeloBroadcast_PushType = 0 // all agent with uid
+	PomeloBroadcast_UID    PomeloBroadcast_PushType = 1 // uidList
 )
 
 // Enum value maps for PomeloBroadcast_PushType.
@@ -34,12 +33,10 @@ var (
 	PomeloBroadcast_PushType_name = map[int32]string{
 		0: "AllUID",
 		1: "UID",
-		2: "SessionEqual",
 	}
 	PomeloBroadcast_PushType_value = map[string]int32{
-		"AllUID":       0,
-		"UID":          1,
-		"SessionEqual": 2,
+		"AllUID": 0,
+		"UID":    1,
 	}
 )
 
@@ -655,12 +652,10 @@ func (x *PomeloKick) GetClose() bool {
 
 type PomeloBroadcast struct {
 	state         protoimpl.MessageState   `protogen:"open.v1"`
-	PushType      PomeloBroadcast_PushType `protobuf:"varint,1,opt,name=pushType,proto3,enum=cherryProto.PomeloBroadcast_PushType" json:"pushType,omitempty"` // boardcast push type
+	PushType      PomeloBroadcast_PushType `protobuf:"varint,1,opt,name=pushType,proto3,enum=cherryProto.PomeloBroadcast_PushType" json:"pushType,omitempty"` // broadcast push type
 	UidList       []int64                  `protobuf:"varint,2,rep,packed,name=uidList,proto3" json:"uidList,omitempty"`                                      // broadcast the uid list
-	SessionKey    string                   `protobuf:"bytes,3,opt,name=sessionKey,proto3" json:"sessionKey,omitempty"`                                        // session key
-	SessionValue  string                   `protobuf:"bytes,4,opt,name=sessionValue,proto3" json:"sessionValue,omitempty"`                                    // session value
-	Route         string                   `protobuf:"bytes,5,opt,name=route,proto3" json:"route,omitempty"`                                                  // push route
-	Data          []byte                   `protobuf:"bytes,6,opt,name=data,proto3" json:"data,omitempty"`                                                    // push data
+	Route         string                   `protobuf:"bytes,3,opt,name=route,proto3" json:"route,omitempty"`                                                  // push route
+	Data          []byte                   `protobuf:"bytes,4,opt,name=data,proto3" json:"data,omitempty"`                                                    // push data
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -707,20 +702,6 @@ func (x *PomeloBroadcast) GetUidList() []int64 {
 		return x.UidList
 	}
 	return nil
-}
-
-func (x *PomeloBroadcast) GetSessionKey() string {
-	if x != nil {
-		return x.SessionKey
-	}
-	return ""
-}
-
-func (x *PomeloBroadcast) GetSessionValue() string {
-	if x != nil {
-		return x.SessionValue
-	}
-	return ""
 }
 
 func (x *PomeloBroadcast) GetRoute() string {
@@ -795,21 +776,16 @@ const file_proto_proto_rawDesc = "" +
 	"\x03sid\x18\x01 \x01(\tR\x03sid\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\x03R\x03uid\x12\x16\n" +
 	"\x06reason\x18\x03 \x01(\fR\x06reason\x12\x14\n" +
-	"\x05close\x18\x04 \x01(\bR\x05close\"\x8f\x02\n" +
+	"\x05close\x18\x04 \x01(\bR\x05close\"\xb9\x01\n" +
 	"\x0fPomeloBroadcast\x12A\n" +
 	"\bpushType\x18\x01 \x01(\x0e2%.cherryProto.PomeloBroadcast.PushTypeR\bpushType\x12\x18\n" +
-	"\auidList\x18\x02 \x03(\x03R\auidList\x12\x1e\n" +
-	"\n" +
-	"sessionKey\x18\x03 \x01(\tR\n" +
-	"sessionKey\x12\"\n" +
-	"\fsessionValue\x18\x04 \x01(\tR\fsessionValue\x12\x14\n" +
-	"\x05route\x18\x05 \x01(\tR\x05route\x12\x12\n" +
-	"\x04data\x18\x06 \x01(\fR\x04data\"1\n" +
+	"\auidList\x18\x02 \x03(\x03R\auidList\x12\x14\n" +
+	"\x05route\x18\x03 \x01(\tR\x05route\x12\x12\n" +
+	"\x04data\x18\x04 \x01(\fR\x04data\"\x1f\n" +
 	"\bPushType\x12\n" +
 	"\n" +
 	"\x06AllUID\x10\x00\x12\a\n" +
-	"\x03UID\x10\x01\x12\x10\n" +
-	"\fSessionEqual\x10\x02B;Z9github.com/cherry-game/cherry/net/proto/proto;cherryProtob\x06proto3"
+	"\x03UID\x10\x01B;Z9github.com/cherry-game/cherry/net/proto/proto;cherryProtob\x06proto3"
 
 var (
 	file_proto_proto_rawDescOnce sync.Once

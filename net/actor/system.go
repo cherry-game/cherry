@@ -121,7 +121,7 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 }
 
 // Call 发送远程消息(不回复)
-func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
+func (p *System) Call(source, target, funcName string, arg any) int32 {
 	if target == "" {
 		clog.Warnf("[Call] Target path is nil. [source = %s, target = %s, funcName = %s]",
 			source,
@@ -196,7 +196,7 @@ func (p *System) Call(source, target, funcName string, arg interface{}) int32 {
 }
 
 // CallWait 发送远程消息(等待回复)
-func (p *System) CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32 {
+func (p *System) CallWait(source, target, funcName string, arg, reply any) int32 {
 	sourcePath, err := cfacade.ToActorPath(source)
 	if err != nil {
 		clog.Warnf("[CallWait] Source path error. [source = %s, target = %s, funcName = %s, err = %v]",
@@ -323,6 +323,53 @@ func (p *System) CallWait(source, target, funcName string, arg interface{}, repl
 		case <-time.After(p.callTimeout):
 			return ccode.ActorCallTimeout
 		}
+	}
+
+	return ccode.OK
+}
+
+// Broadcast 根据节点类型发布消息
+func (p *System) CallType(nodeType, actorID, funcName string, arg any) int32 {
+	if actorID == "" {
+		return ccode.ActorIDIsNil
+	}
+
+	if len(funcName) < 1 {
+		clog.Warnf("[CallType] FuncName error. [nodeType = %s, actorID = %s, funcName = %s]",
+			nodeType,
+			actorID,
+			funcName,
+		)
+		return ccode.ActorFuncNameError
+	}
+
+	clusterPacket := cproto.GetClusterPacket()
+	clusterPacket.TargetPath = cfacade.NewPath("", actorID)
+	clusterPacket.FuncName = funcName
+
+	if arg != nil {
+		argsBytes, err := p.app.Serializer().Marshal(arg)
+		if err != nil {
+			clog.Warnf("[CallType] Marshal arg error. [nodeType = %s, actorID = %s, funcName = %s, error = %s]",
+				nodeType,
+				actorID,
+				funcName,
+				err,
+			)
+			return ccode.ActorMarshalError
+		}
+		clusterPacket.ArgBytes = argsBytes
+	}
+
+	err := p.app.Cluster().PublishRemoteType(nodeType, clusterPacket)
+	if err != nil {
+		clog.Warnf("[CallType] Publish remote fail. [nodeType = %s, actorID = %s, funcName = %s, err = %v]",
+			nodeType,
+			actorID,
+			funcName,
+			err,
+		)
+		return ccode.ActorPublishRemoteError
 	}
 
 	return ccode.OK

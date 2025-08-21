@@ -82,14 +82,14 @@ func (p *actorChild) Each(fn func(cfacade.IActor)) {
 	})
 }
 
-func (p *actorChild) Call(childID, funcName string, args interface{}) {
+func (p *actorChild) Call(childID, funcName string, args any) {
 	if childActor, found := p.Get(childID); found {
 		path := cfacade.NewChildPath("", p.thisActor.ActorID(), childID)
 		childActor.Call(path, funcName, args)
 	}
 }
 
-func (p *actorChild) CallWait(childID, funcName string, arg interface{}, reply interface{}) int32 {
+func (p *actorChild) CallWait(childID, funcName string, arg, reply any) int32 {
 	if childActor, found := p.Get(childID); found {
 		path := cfacade.NewChildPath("", p.thisActor.ActorID(), childID)
 		return childActor.CallWait(path, funcName, arg, reply)

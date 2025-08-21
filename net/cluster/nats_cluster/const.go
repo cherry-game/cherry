@@ -5,6 +5,10 @@ import (
 )
 
 const (
+	Asterisk = "*"
+)
+
+const (
 	LocalType  = "local"
 	RemoteType = "remote"
 )

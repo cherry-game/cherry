@@ -13,8 +13,9 @@ type (
 		PostRemote(m *Message) bool
 		PostLocal(m *Message) bool
 		PostEvent(data IEventData)
-		Call(source, target, funcName string, arg interface{}) int32
-		CallWait(source, target, funcName string, arg interface{}, reply interface{}) int32
+		Call(source, target, funcName string, arg any) int32
+		CallWait(source, target, funcName string, arg, reply any) int32
+		CallType(nodeType, actorID, funcName string, arg any) int32
 		SetLocalInvoke(invoke InvokeFunc)
 		SetRemoteInvoke(invoke InvokeFunc)
 		SetCallTimeout(d time.Duration)
@@ -28,8 +29,9 @@ type (
 		App() IApplication
 		ActorID() string
 		Path() *ActorPath
-		Call(targetPath, funcName string, arg interface{}) int32
-		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) int32
+		Call(targetPath, funcName string, arg any) int32
+		CallWait(targetPath, funcName string, arg, reply any) int32
+		CallType(nodeType, actorID, funcName string, arg any) int32
 		PostRemote(m *Message)
 		PostLocal(m *Message)
 		LastAt() int64
@@ -46,12 +48,12 @@ type (
 	}
 
 	IActorChild interface {
-		Create(id string, handler IActorHandler) (IActor, error)                        // 创建子Actor
-		Get(id string) (IActor, bool)                                                   // 获取子Actor
-		Remove(id string)                                                               // 称除子Actor
-		Each(fn func(i IActor))                                                         // 遍历所有子Actor
-		Call(childID, funcName string, arg interface{})                                 // 调用当前子actor的函数
-		CallWait(targetPath, funcName string, arg interface{}, reply interface{}) int32 // 调用当前子actor的函数并等待返回
+		Create(id string, handler IActorHandler) (IActor, error)    // 创建子Actor
+		Get(id string) (IActor, bool)                               // 获取子Actor
+		Remove(id string)                                           // 称除子Actor
+		Each(fn func(i IActor))                                     // 遍历所有子Actor
+		Call(childID, funcName string, arg any)                     // 调用当前子actor的函数
+		CallWait(targetPath, funcName string, arg, reply any) int32 // 调用当前子actor的函数并等待返回
 	}
 )
 

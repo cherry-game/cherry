@@ -68,16 +68,13 @@ message PomeloKick {
 }
 
 message PomeloBroadcast {
-  PushType pushType = 1;      // boardcast push type
+  PushType pushType = 1;      // broadcast push type
   repeated int64 uidList = 2; // broadcast the uid list
-  string sessionKey = 3;      // session key
-  string sessionValue = 4;    // session value
-  string route = 5;           // push route
-  bytes data = 6;             // push data
+  string route = 3;           // push route
+  bytes data = 4;             // push data
 
   enum PushType {
     AllUID = 0;       // all agent with uid
     UID = 1;          // uidList
-    SessionEqual = 2; // equal session key
   }
 }

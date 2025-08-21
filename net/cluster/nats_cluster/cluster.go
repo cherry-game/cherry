@@ -207,6 +207,48 @@ func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) er
 	return nil
 }
 
+func (p *Cluster) PublishRemoteType(nodeType string, cpacket *cproto.ClusterPacket) error {
+	defer cpacket.Recycle()
+
+	if nodeType == "" {
+		nodeType = Asterisk
+	}
+
+	// else {
+	// 	if len(p.app.Discovery().ListByType(nodeType)) < 1 {
+	// 		clog.Warnf("[PublishLocal] Get node type fail. [nodeType = %s, packet = %s]",
+	// 			nodeType,
+	// 			cpacket.PrintLog(),
+	// 		)
+	// 		return cerror.DiscoveryNotFoundNode
+	// 	}
+	// }
+
+	bytes, err := proto.Marshal(cpacket)
+	if err != nil {
+		clog.Warnf("[BroadcastRemote] Marshal error. [nodeType = %s, packet = %s, err = %v]",
+			nodeType,
+			cpacket.PrintLog(),
+			err,
+		)
+		return cerror.ClusterPacketMarshalFail
+	}
+
+	subject := GetRemoteSubject(p.prefix, nodeType, Asterisk)
+	err = cnats.GetConnect().Publish(subject, bytes)
+	if err != nil {
+		clog.Warnf("[BroadcastRemote] Nats publish fail. [nodeType = %s, %s, err = %v]",
+			nodeType,
+			cpacket.PrintLog(),
+			err,
+		)
+
+		return cerror.ClusterNatsPublishFail
+	}
+
+	return nil
+}
+
 func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, error) {
 	defer cpacket.Recycle()
 

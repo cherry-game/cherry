@@ -20,6 +20,7 @@ const (
 	ActorPublishRemoteError int32 = 31 // actor publish remote error
 	ActorChildIDNotFound    int32 = 32 // actor child id not found
 	ActorCallTimeout        int32 = 33 // actor call timeout
+	ActorIDIsNil            int32 = 34 // actor id is nil
 )
 
 func IsOK(code int32) bool {
