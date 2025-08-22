@@ -60,10 +60,7 @@ func BuildClusterMessage(packet *cproto.ClusterPacket) Message {
 		FuncName:  packet.FuncName,
 		IsCluster: true,
 		Session:   packet.Session,
-	}
-
-	if packet.ArgBytes != nil {
-		message.Args = packet.ArgBytes
+		Args:      packet.ArgBytes,
 	}
 
 	return message
