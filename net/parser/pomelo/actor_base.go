@@ -34,8 +34,8 @@ func (p *ActorBase) Kick(session *cproto.Session, reason any, closed bool) {
 	Kick(p, session.AgentPath, session.Sid, reason, closed)
 }
 
-func (p *ActorBase) Broadcast(nodeType, actorID string, uidList []int64, allUID bool, route string, v any) {
-	Broadcast(p, nodeType, actorID, uidList, allUID, route, v)
+func (p *ActorBase) Broadcast(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
+	Broadcast(p, agentPath, uidList, allUID, route, v)
 }
 
 // 根据request的mid找到agent，返回消息给客户端
@@ -122,7 +122,7 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool)
 }
 
 // 根据uidList或allUID匹配找到Agent，下发数据给客户端
-func Broadcast(iActor cfacade.IActor, nodeType, actorID string, uidList []int64, allUID bool, route string, v any) {
+func Broadcast(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
 	if !allUID && len(uidList) < 1 {
 		clog.Warn("[Broadcast] uidList value error.")
 		return
@@ -135,7 +135,7 @@ func Broadcast(iActor cfacade.IActor, nodeType, actorID string, uidList []int64,
 
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Broadcast] Marshal error. v = %+v", v)
+		clog.Warnf("[Kick] Marshal error. v = %+v", v)
 		return
 	}
 
@@ -147,9 +147,8 @@ func Broadcast(iActor cfacade.IActor, nodeType, actorID string, uidList []int64,
 	if allUID {
 		rsp.PushType = cproto.PomeloBroadcast_AllUID
 	} else {
-		rsp.PushType = cproto.PomeloBroadcast_UID
 		rsp.UidList = uidList
 	}
 
-	iActor.CallType(nodeType, actorID, BroadcastName, rsp)
+	iActor.Call(agentPath, BroadcastName, rsp)
 }
