@@ -202,23 +202,9 @@ func (p *Cluster) PublishRemote(nodeID string, cpacket *cproto.ClusterPacket) er
 func (p *Cluster) PublishRemoteType(nodeType string, cpacket *cproto.ClusterPacket) error {
 	defer cpacket.Recycle()
 
-	if nodeType == "" {
-		nodeType = Asterisk
-	}
-
-	// else {
-	// 	if len(p.app.Discovery().ListByType(nodeType)) < 1 {
-	// 		clog.Warnf("[PublishLocal] Get node type fail. [nodeType = %s, packet = %s]",
-	// 			nodeType,
-	// 			cpacket.PrintLog(),
-	// 		)
-	// 		return cerror.DiscoveryNotFoundNode
-	// 	}
-	// }
-
 	bytes, err := proto.Marshal(cpacket)
 	if err != nil {
-		clog.Warnf("[BroadcastRemote] Marshal error. [nodeType = %s, packet = %s, err = %v]",
+		clog.Warnf("[PublishRemoteType] Marshal error. [nodeType = %s, packet = %s, err = %v]",
 			nodeType,
 			cpacket.PrintLog(),
 			err,
@@ -226,16 +212,27 @@ func (p *Cluster) PublishRemoteType(nodeType string, cpacket *cproto.ClusterPack
 		return cerror.ClusterPacketMarshalFail
 	}
 
-	subject := GetRemoteSubject(p.prefix, nodeType, Asterisk)
-	err = cnats.GetConnect().Publish(subject, bytes)
-	if err != nil {
-		clog.Warnf("[BroadcastRemote] Nats publish fail. [nodeType = %s, %s, err = %v]",
-			nodeType,
-			cpacket.PrintLog(),
-			err,
-		)
+	var members []cfacade.IMember
 
-		return cerror.ClusterNatsPublishFail
+	if nodeType == "" {
+		for _, member := range p.app.Discovery().Map() {
+			members = append(members, member)
+		}
+	} else {
+		members = p.app.Discovery().ListByType(nodeType)
+	}
+
+	// each member and publish
+	for _, member := range members {
+		subject := GetRemoteSubject(p.prefix, member.GetNodeType(), member.GetNodeID())
+		err = cnats.GetConnect().Publish(subject, bytes)
+		if err != nil {
+			clog.Warnf("[PublishRemoteType] Nats publish fail. [nodeType = %s, %s, err = %v]",
+				nodeType,
+				cpacket.PrintLog(),
+				err,
+			)
+		}
 	}
 
 	return nil
