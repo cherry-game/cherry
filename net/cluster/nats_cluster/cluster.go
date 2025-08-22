@@ -79,7 +79,14 @@ func (p *Cluster) localProcess() {
 		p.app.ActorSystem().PostLocal(&message)
 	}
 
-	subscribeWithPool(p.localSubject, LocalType, process)
+	conn := cnats.GetConnect()
+	err := conn.Subscribe(p.localSubject, process)
+	if err != nil {
+		clog.Errorf("[localProcess] Create subscribe fail. [subject = %s, err = %v]",
+			p.localSubject,
+			err,
+		)
+	}
 }
 
 func (p *Cluster) remoteProcess() {
@@ -106,29 +113,14 @@ func (p *Cluster) remoteProcess() {
 		p.app.ActorSystem().PostRemote(&message)
 	}
 
-	subscribeWithPool(p.remoteSubject, RemoteType, process)
-}
-
-func subscribeWithPool(subject, queue string, cb nats.MsgHandler) {
 	conn := cnats.GetConnect()
-	if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
-		clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
-			queue,
-			subject,
+	err := conn.Subscribe(p.remoteSubject, process)
+	if err != nil {
+		clog.Errorf("[remoteProcess] Create subscribe fail. [subject = %s, err = %v]",
+			p.remoteSubject,
 			err,
 		)
 	}
-
-	// for _, conn := range cnats.GetPool() {
-	// 	if err := conn.QueueSubscribe(subject, queue, cb); err != nil {
-	// 		clog.Errorf("[%s] Create queue subscribe fail. [subject = %s, err = %v]",
-	// 			queue,
-	// 			subject,
-	// 			err,
-	// 		)
-	// 		break
-	// 	}
-	// }
 }
 
 func (p *Cluster) PublishLocal(nodeID string, cpacket *cproto.ClusterPacket) error {

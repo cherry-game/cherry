@@ -253,7 +253,7 @@ func (m *DiscoveryNATS) Stop() {
 }
 
 func (m *DiscoveryNATS) subscribe(subject string, cb nats.MsgHandler) {
-	_, err := cnats.GetConnect().Subscribe(subject, cb)
+	err := cnats.GetConnect().Subscribe(subject, cb)
 	if err != nil {
 		clog.Warnf("Subscribe fail. err = %s", err)
 		return

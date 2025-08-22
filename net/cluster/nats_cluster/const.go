@@ -9,11 +9,6 @@ const (
 )
 
 const (
-	LocalType  = "local"
-	RemoteType = "remote"
-)
-
-const (
 	remoteSubjectFormat = "cherry.%s.remote.%s.%s" // cherry.{prefix}.remote.{nodeType}.{nodeID}
 	localSubjectFormat  = "cherry.%s.local.%s.%s"  // cherry.{prefix}.local.{nodeType}.{nodeID}
 	replySubjectFormat  = "cherry.%s.reply.%s.%s"  // cherry.{prefix}.reply.{nodeType}.{nodeID}

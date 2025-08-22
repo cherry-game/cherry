@@ -18,14 +18,13 @@ const (
 
 type (
 	Connect struct {
-		*nats.Conn                    //
-		options                       //
-		id         int                //
-		seq        uint64             //
-		waiters    sync.Map           // map[string]chan *nats.Msg
-		sub        *nats.Subscription //
-		reply      string             // request reply subject
-		replySub   *nats.Subscription //
+		*nats.Conn                      //
+		options                         //
+		id         int                  //
+		seq        uint64               //
+		waiters    sync.Map             // map[string]chan *nats.Msg
+		subs       []*nats.Subscription //
+		reply      string               // request reply subject
 	}
 
 	options struct {
@@ -76,10 +75,16 @@ func (p *Connect) Connect() {
 	}
 }
 
+func (p *Connect) Subs() []*nats.Subscription {
+	return p.subs
+}
+
 func (p *Connect) Close() {
 	if p.IsConnected() {
-		p.sub.Unsubscribe()
-		p.replySub.Unsubscribe()
+		for _, sub := range p.subs {
+			sub.Unsubscribe()
+		}
+
 		p.Conn.Close()
 	}
 }
@@ -88,20 +93,10 @@ func (p *Connect) statistics() {
 	for {
 		ticker := time.NewTicker(30 * time.Second)
 		for range ticker.C {
-			if p.sub != nil {
-				if dropped, err := p.sub.Dropped(); err != nil {
+			for _, sub := range p.subs {
+				if dropped, err := sub.Dropped(); err != nil {
 					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
-						p.sub.Subject,
-						dropped,
-						err,
-					)
-				}
-			}
-
-			if p.replySub != nil {
-				if dropped, err := p.replySub.Dropped(); err != nil {
-					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
-						p.sub.Subject,
+						sub.Subject,
 						dropped,
 						err,
 					)
@@ -125,7 +120,7 @@ func (p *Connect) GetID() int {
 }
 
 func (p *Connect) initReplySubscribe() {
-	sub, err := p.Subscribe(p.reply, func(msg *nats.Msg) {
+	err := p.Subscribe(p.reply, func(msg *nats.Msg) {
 		reqID := msg.Header.Get(REQ_ID)
 		if reqID == "" {
 			clog.Infof("header = %v, subject = %v", msg.Header, msg.Subject)
@@ -146,8 +141,6 @@ func (p *Connect) initReplySubscribe() {
 		clog.Warnf(" err = %v", err)
 		return
 	}
-
-	p.replySub = sub
 }
 
 func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
@@ -199,13 +192,29 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 	}
 }
 
+func (p *Connect) Subscribe(subject string, cb nats.MsgHandler) error {
+	sub, err := p.Conn.Subscribe(subject, cb)
+	if err != nil {
+		return err
+	}
+
+	if sub != nil {
+		p.subs = append(p.subs, sub)
+	}
+
+	return nil
+}
+
 func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) error {
 	sub, err := p.Conn.QueueSubscribe(subject, queue, cb)
 	if err != nil {
 		return err
 	}
 
-	p.sub = sub
+	if sub != nil {
+		p.subs = append(p.subs, sub)
+	}
+
 	return nil
 }
 
