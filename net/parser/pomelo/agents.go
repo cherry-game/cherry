@@ -100,7 +100,7 @@ func GetAgentWithUID(uid cfacade.UID) (*Agent, bool) {
 		return nil, false
 	}
 
-	sid := sidValue.(cfacade.UID)
+	sid := sidValue.(string)
 	agentValue, found := sidAgentMap.Load(sid)
 	if !found {
 		return nil, false
