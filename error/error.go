@@ -50,12 +50,14 @@ var (
 
 // cluster
 var (
-	ClusterClientIsStop        = Error("Cluster client is stop")
-	ClusterRequestTimeout      = Error("Cluster Request timeout")
-	ClusterPacketMarshalFail   = Error("Cluster packet marshal fail")
-	ClusterPacketUnmarshalFail = Error("Cluster packet unmarshal fail")
-	ClusterNatsPublishFail     = Error("Cluster nats publish fail")
-	ClsuterNatsRequestFail     = Error("Cluster nats request fail")
+	ClusterClientIsStop           = Error("Cluster client is stop")
+	ClusterRequestTimeout         = Error("Cluster Request timeout")
+	ClusterPacketMarshalFail      = Error("Cluster packet marshal fail")
+	ClusterPacketUnmarshalFail    = Error("Cluster packet unmarshal fail")
+	ClusterPublishFail            = Error("Cluster publish fail")
+	ClsuterRequestFail            = Error("Cluster request fail")
+	ClusterNodeTypeIsNil          = Error("Cluster node type is nil")
+	ClusterNodeTypeMemberNotFound = Error("Cluster node type member not found")
 )
 
 var (
