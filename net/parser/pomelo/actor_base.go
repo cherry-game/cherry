@@ -19,11 +19,11 @@ type ActorBase struct {
 }
 
 func (p *ActorBase) Response(session *cproto.Session, v any) {
-	Response(p, session.AgentPath, session.Sid, session.Mid, v)
+	Response(p, session.AgentPath, session.Sid, session.GetMID(), v)
 }
 
 func (p *ActorBase) ResponseCode(session *cproto.Session, statusCode int32) {
-	ResponseCode(p, session.AgentPath, session.Sid, session.Mid, statusCode)
+	ResponseCode(p, session.AgentPath, session.Sid, session.GetMID(), statusCode)
 }
 
 func (p *ActorBase) Push(session *cproto.Session, route string, v any) {
@@ -146,6 +146,22 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool)
 
 	rsp := &cproto.PomeloKick{
 		Sid:    sid,
+		Reason: data,
+		Close:  closed,
+	}
+
+	iActor.Call(agentPath, KickFuncName, rsp)
+}
+
+func KickUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, reason any, closed bool) {
+	data, err := iActor.App().Serializer().Marshal(reason)
+	if err != nil {
+		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
+		return
+	}
+
+	rsp := &cproto.PomeloKick{
+		Uid:    uid,
 		Reason: data,
 		Close:  closed,
 	}

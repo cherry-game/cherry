@@ -67,6 +67,7 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessag
 }
 
 func BuildSession(agent *Agent, msg *pmessage.Message) *cproto.Session {
-	agent.session.Mid = uint32(msg.ID)
+	agent.session.SetMID(uint32(msg.ID))
+
 	return agent.session
 }

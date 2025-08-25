@@ -5,6 +5,10 @@ import (
 	cstring "github.com/cherry-game/cherry/extend/string"
 )
 
+const (
+	MIDKey = "mid"
+)
+
 func (x *Session) IsBind() bool {
 	return x.Uid > 0
 }
@@ -27,6 +31,14 @@ func (x *Session) Set(key string, value string) {
 	}
 
 	x.Data[key] = value
+}
+
+func (x *Session) SetMID(mid uint32) {
+	x.Add(MIDKey, mid)
+}
+
+func (x *Session) GetMID() uint32 {
+	return uint32(x.GetUint(MIDKey))
 }
 
 func (x *Session) ImportAll(data map[string]string) {
@@ -104,7 +116,6 @@ func (x *Session) GetInt32(key string) int32 {
 	return value
 }
 
-// GetInt64 returns the value associated with the key as a int64.
 func (x *Session) GetInt64(key string) int64 {
 	v, ok := x.Data[key]
 	if !ok {

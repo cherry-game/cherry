@@ -352,14 +352,14 @@ func (a *Agent) sendPending(typ pomeloMessage.Type, route string, mid uint32, v 
 }
 
 func (a *Agent) Response(session *cproto.Session, v interface{}, isError ...bool) {
-	a.ResponseMID(session.Mid, v, isError...)
+	a.ResponseMID(session.GetMID(), v, isError...)
 }
 
 func (a *Agent) ResponseCode(session *cproto.Session, statusCode int32, isError ...bool) {
 	rsp := &cproto.Response{
 		Code: statusCode,
 	}
-	a.ResponseMID(session.Mid, rsp, isError...)
+	a.ResponseMID(session.GetMID(), rsp, isError...)
 }
 
 func (a *Agent) ResponseMID(mid uint32, v interface{}, isError ...bool) {

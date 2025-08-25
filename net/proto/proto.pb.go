@@ -368,7 +368,6 @@ type Session struct {
 	Uid           int64                  `protobuf:"varint,2,opt,name=uid,proto3" json:"uid,omitempty"`                                                                            // user id
 	AgentPath     string                 `protobuf:"bytes,3,opt,name=agentPath,proto3" json:"agentPath,omitempty"`                                                                 // frontend actor agent path
 	Ip            string                 `protobuf:"bytes,4,opt,name=ip,proto3" json:"ip,omitempty"`                                                                               // ip address
-	Mid           uint32                 `protobuf:"varint,5,opt,name=mid,proto3" json:"mid,omitempty"`                                                                            // message id build by client
 	Data          map[string]string      `protobuf:"bytes,7,rep,name=data,proto3" json:"data,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // extend data
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -432,13 +431,6 @@ func (x *Session) GetIp() string {
 	return ""
 }
 
-func (x *Session) GetMid() uint32 {
-	if x != nil {
-		return x.Mid
-	}
-	return 0
-}
-
 func (x *Session) GetData() map[string]string {
 	if x != nil {
 		return x.Data
@@ -449,7 +441,7 @@ func (x *Session) GetData() map[string]string {
 type PomeloResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Sid           string                 `protobuf:"bytes,1,opt,name=sid,proto3" json:"sid,omitempty"`
-	Mid           uint32                 `protobuf:"varint,2,opt,name=mid,proto3" json:"mid,omitempty"`
+	Mid           uint32                 `protobuf:"varint,2,opt,name=mid,proto3" json:"mid,omitempty"` // message id build by client
 	Data          []byte                 `protobuf:"bytes,3,opt,name=data,proto3" json:"data,omitempty"`
 	Code          int32                  `protobuf:"varint,4,opt,name=code,proto3" json:"code,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -749,13 +741,12 @@ const file_proto_proto_rawDesc = "" +
 	"targetPath\x12\x1a\n" +
 	"\bfuncName\x18\x04 \x01(\tR\bfuncName\x12\x1a\n" +
 	"\bargBytes\x18\x05 \x01(\fR\bargBytes\x12.\n" +
-	"\asession\x18\x06 \x01(\v2\x14.cherryProto.SessionR\asession\"\xda\x01\n" +
+	"\asession\x18\x06 \x01(\v2\x14.cherryProto.SessionR\asession\"\xc8\x01\n" +
 	"\aSession\x12\x10\n" +
 	"\x03sid\x18\x01 \x01(\tR\x03sid\x12\x10\n" +
 	"\x03uid\x18\x02 \x01(\x03R\x03uid\x12\x1c\n" +
 	"\tagentPath\x18\x03 \x01(\tR\tagentPath\x12\x0e\n" +
-	"\x02ip\x18\x04 \x01(\tR\x02ip\x12\x10\n" +
-	"\x03mid\x18\x05 \x01(\rR\x03mid\x122\n" +
+	"\x02ip\x18\x04 \x01(\tR\x02ip\x122\n" +
 	"\x04data\x18\a \x03(\v2\x1e.cherryProto.Session.DataEntryR\x04data\x1a7\n" +
 	"\tDataEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +

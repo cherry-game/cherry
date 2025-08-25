@@ -42,13 +42,12 @@ message Session {
   int64 uid = 2;                  // user id
   string agentPath = 3;           // frontend actor agent path
   string ip = 4;                  // ip address
-  uint32 mid = 5;                 // message id build by client
   map<string, string> data = 7;   // extend data
 }
 
 message PomeloResponse {
   string sid = 1;
-  uint32 mid = 2;
+  uint32 mid = 2; // message id build by client
   bytes data = 3;
   int32 code = 4;
 }

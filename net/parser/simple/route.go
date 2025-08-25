@@ -36,7 +36,7 @@ func GetNodeRoute(mid uint32) (*NodeRoute, bool) {
 
 func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
 	session := agent.session
-	session.Mid = msg.MID
+	session.SetMID(msg.MID)
 
 	// current node
 	if agent.NodeType() == route.NodeType {
