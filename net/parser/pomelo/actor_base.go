@@ -30,8 +30,8 @@ func (p *ActorBase) Push(session *cproto.Session, route string, v any) {
 	PushWithSID(p, session.AgentPath, session.Sid, route, v)
 }
 
-func (p *ActorBase) PushUIDS(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
-	PushUIDS(p, agentPath, uidList, allUID, route, v)
+func (p *ActorBase) PushWithUIDS(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
+	PushWithUIDS(p, agentPath, uidList, allUID, route, v)
 }
 
 func (p *ActorBase) Kick(session *cproto.Session, reason any, closed bool) {
@@ -105,7 +105,7 @@ func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route
 }
 
 // 根据uidList或allUID匹配找到Agent，下发数据给客户端
-func PushUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
+func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
 	if !allUID && len(uidList) < 1 {
 		clog.Warn("[Broadcast] uidList value error.")
 		return
