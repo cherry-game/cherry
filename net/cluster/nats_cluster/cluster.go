@@ -5,6 +5,7 @@ import (
 
 	"google.golang.org/protobuf/proto"
 
+	ccode "github.com/cherry-game/cherry/code"
 	cerror "github.com/cherry-game/cherry/error"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
@@ -267,7 +268,7 @@ func (p *Cluster) PublishRemoteType(nodeType string, cpacket *cproto.ClusterPack
 	return nil
 }
 
-func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, error) {
+func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) {
 	defer cpacket.Recycle()
 
 	nodeType, err := p.app.Discovery().GetType(nodeID)
@@ -278,7 +279,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, cerror.DiscoveryNotFoundNode
+		return nil, ccode.DiscoveryNotFoundNode
 	}
 
 	msg, err := proto.Marshal(cpacket)
@@ -289,7 +290,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, cerror.ClusterPacketMarshalFail
+		return nil, ccode.RPCMarshalError
 	}
 
 	subject := GetRemoteSubject(p.prefix, nodeType, nodeID)
@@ -301,7 +302,7 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, cerror.ClsuterRequestFail
+		return nil, ccode.RPCRemoteExecuteError
 	}
 
 	rsp := &cproto.Response{}
@@ -313,8 +314,8 @@ func (p *Cluster) RequestRemote(nodeID string, cpacket *cproto.ClusterPacket, ti
 			err,
 		)
 
-		return nil, cerror.ClusterPacketUnmarshalFail
+		return nil, ccode.RPCUnmarshalError
 	}
 
-	return rsp.Data, nil
+	return rsp.Data, rsp.Code
 }

@@ -250,9 +250,9 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 			clusterPacket.ArgBytes = argsBytes
 		}
 
-		rspData, err := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.callTimeout)
-		if err != nil {
-			return ccode.ActorPublishRemoteError
+		rspData, rspCode := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.callTimeout)
+		if ccode.IsFail(rspCode) {
+			return rspCode
 		}
 
 		if reply != nil {
