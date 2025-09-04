@@ -130,6 +130,7 @@ func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allU
 	if allUID {
 		rsp.PushType = cproto.PomeloBroadcast_AllUID
 	} else {
+		rsp.PushType = cproto.PomeloBroadcast_UID
 		rsp.UidList = uidList
 	}
 
