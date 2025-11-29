@@ -240,7 +240,7 @@ func (p *options) natsOptions() []nats.Option {
 		clog.Warnf("IsConnect = %v. %s on connection for subscription on %q",
 			nc.IsConnected(),
 			err.Error(),
-			sub.Subject,
+			GetSubject(sub),
 		)
 	}))
 
@@ -282,4 +282,12 @@ func WithIsStats(isStats bool) OptionFunc {
 	return func(opts *options) {
 		opts.isStats = isStats
 	}
+}
+
+func GetSubject(sub *nats.Subscription) string {
+	if sub == nil {
+		return "nil"
+	}
+
+	return sub.Subject
 }
