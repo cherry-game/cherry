@@ -42,7 +42,7 @@ func (p *actorEvent) Registers(names []string, fn IEventFunc, uniqueID ...int64)
 // Unregister 注销事件
 // name 事件名
 func (p *actorEvent) Unregister(name string) {
-	p.thisActor.system.removeActorEvent(p.thisActor.ActorID(), name)
+	p.thisActor.system.removeActorEvent(p.thisActor.PathString(), name)
 	delete(p.funcMap, name)
 }
 

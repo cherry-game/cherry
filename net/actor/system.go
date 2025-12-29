@@ -97,6 +97,20 @@ func (p *System) GetChildActor(actorID, childID string) (*Actor, bool) {
 	return parentActor.child.GetActor(childID)
 }
 
+func (p *System) GetActorWithPath(path string) (*Actor, bool) {
+	actorPath, err := cfacade.ToActorPath(path)
+	if err != nil {
+		clog.Warnf("[GetActorWithPath] Actor path is error. path = %s, err = %v", path, err)
+		return nil, false
+	}
+
+	if actorPath.IsChild() {
+		return p.GetChildActor(actorPath.ActorID, actorPath.ChildID)
+	}
+
+	return p.GetActor(actorPath.ActorID)
+}
+
 func (p *System) removeActor(actorID string) {
 	p.actorMap.Delete(actorID)
 }
@@ -438,8 +452,8 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 	}
 
 	actorIDSMap.Range(func(key, value any) bool {
-		actorPath := key.(string)
-		targetActor, found := p.GetActor(actorPath)
+		path := key.(string)
+		targetActor, found := p.GetActorWithPath(path)
 		if !found {
 			return true
 		}
