@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	version = "1.4.12"
+	version = "1.4.13"
 )
 
 var logo = `
