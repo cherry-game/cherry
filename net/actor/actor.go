@@ -248,8 +248,8 @@ func (p *Actor) findChildActor(m *cfacade.Message) (*Actor, bool) {
 }
 
 func (p *Actor) onInit() {
-	p.state = WorkerState
 	p.handler.OnInit()
+	p.state = WorkerState
 }
 
 func (p *Actor) onStop() {

@@ -7,15 +7,9 @@ import (
 
 type (
 	actorEvent struct {
-		thisActor *Actor                    //
-		queue                               // queue
-		funcMap   map[string]*eventFuncList // register event func list
-	}
-
-	eventFuncList struct {
-		list     []IEventFunc
-		isUnique bool
-		uniqueID int64
+		thisActor *Actor                  //
+		queue                             // queue
+		funcMap   map[string][]IEventFunc // register event func list
 	}
 )
 
@@ -23,7 +17,7 @@ func newEvent(thisActor *Actor) actorEvent {
 	return actorEvent{
 		thisActor: thisActor,
 		queue:     newQueue(),
-		funcMap:   make(map[string]*eventFuncList),
+		funcMap:   make(map[string][]IEventFunc), // make(map[string]*eventFuncList)
 	}
 }
 
@@ -32,19 +26,11 @@ func newEvent(thisActor *Actor) actorEvent {
 // fn       接收事件处理的函数
 // uniqueID match IEventData.UniqueID()
 func (p *actorEvent) Register(name string, fn IEventFunc, uniqueID ...int64) {
-	funcList, found := p.funcMap[name]
-	if !found {
-		funcList = &eventFuncList{}
-		p.funcMap[name] = funcList
-	}
+	// add event to system actor
+	p.thisActor.system.addActorEvent(p.thisActor.ActorID(), name, uniqueID...)
 
-	funcList.list = append(funcList.list, fn)
-
-	// If a unique ID is set, it will be matched when receiving events
-	funcList.isUnique = len(uniqueID) > 0
-	if funcList.isUnique {
-		funcList.uniqueID = uniqueID[0]
-	}
+	// name bind func
+	p.funcMap[name] = append(p.funcMap[name], fn)
 }
 
 func (p *actorEvent) Registers(names []string, fn IEventFunc, uniqueID ...int64) {
@@ -56,19 +42,12 @@ func (p *actorEvent) Registers(names []string, fn IEventFunc, uniqueID ...int64)
 // Unregister 注销事件
 // name 事件名
 func (p *actorEvent) Unregister(name string) {
+	p.thisActor.system.removeActorEvent(p.thisActor.ActorID(), name)
 	delete(p.funcMap, name)
 }
 
 func (p *actorEvent) Push(data cfacade.IEventData) {
-	if funcList, found := p.funcMap[data.Name()]; found {
-		if funcList.isUnique {
-			if funcList.uniqueID == data.UniqueID() {
-				p.queue.Push(data)
-			}
-		} else {
-			p.queue.Push(data)
-		}
-	}
+	p.queue.Push(data)
 }
 
 func (p *actorEvent) Pop() cfacade.IEventData {
@@ -105,13 +84,24 @@ func (p *actorEvent) invokeFunc(data cfacade.IEventData) {
 		}
 	}()
 
-	for _, eventFunc := range funcList.list {
+	for _, eventFunc := range funcList {
 		eventFunc(data)
 	}
 }
 
 func (p *actorEvent) onStop() {
+	// remove event names
+	p.thisActor.system.removeActorEvent(p.thisActor.ActorID(), p.EventNames()...)
+
 	p.funcMap = nil
 	p.queue.Destroy()
 	p.thisActor = nil
+}
+
+func (p *actorEvent) EventNames() []string {
+	var names []string
+	for eventName := range p.funcMap {
+		names = append(names, eventName)
+	}
+	return names
 }
