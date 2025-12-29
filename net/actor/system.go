@@ -17,7 +17,7 @@ type (
 	System struct {
 		app              cfacade.IApplication
 		actorMap         *sync.Map          // key:actorID, value:*actor
-		actorEventMap    *sync.Map          // map[string]map[string]int64 => key:eventName, value:map[actorID]uniqueID
+		actorEventMap    *sync.Map          // map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
 		localInvokeFunc  cfacade.InvokeFunc // default local func
 		remoteInvokeFunc cfacade.InvokeFunc // default remote func
 		wg               *sync.WaitGroup    // wait group
@@ -438,8 +438,8 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 	}
 
 	actorIDSMap.Range(func(key, value any) bool {
-		actorID := key.(string)
-		targetActor, found := p.GetActor(actorID)
+		actorPath := key.(string)
+		targetActor, found := p.GetActor(actorPath)
 		if !found {
 			return true
 		}
@@ -499,19 +499,19 @@ func (p *System) SetExecutionTimeout(t int64) {
 	}
 }
 
-func (p *System) addActorEvent(actorID string, eventName string, uniqueID ...int64) {
-	// map[string]map[string]int64 => key:eventName, value:map[actorID]uniqueID
+func (p *System) addActorEvent(actorPath string, eventName string, uniqueID ...int64) {
+	// map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
 	value, _ := p.actorEventMap.LoadOrStore(eventName, &sync.Map{})
 	eventMap := value.(*sync.Map)
 
 	if len(uniqueID) > 0 {
-		eventMap.Store(actorID, uniqueID[0])
+		eventMap.Store(actorPath, uniqueID[0])
 	} else {
-		eventMap.Store(actorID, nil) // no set unique
+		eventMap.Store(actorPath, nil) // no set unique
 	}
 }
 
-func (p *System) removeActorEvent(actorID string, eventNames ...string) {
+func (p *System) removeActorEvent(actorPath string, eventNames ...string) {
 	for _, eventName := range eventNames {
 		value, found := p.actorEventMap.Load(eventName)
 		if !found {
@@ -519,7 +519,7 @@ func (p *System) removeActorEvent(actorID string, eventNames ...string) {
 		}
 
 		if actorIDMap, found := value.(*sync.Map); found {
-			actorIDMap.Delete(actorID)
+			actorIDMap.Delete(actorPath)
 		}
 	}
 }

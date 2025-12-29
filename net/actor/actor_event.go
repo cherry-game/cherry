@@ -27,7 +27,7 @@ func newEvent(thisActor *Actor) actorEvent {
 // uniqueID match IEventData.UniqueID()
 func (p *actorEvent) Register(name string, fn IEventFunc, uniqueID ...int64) {
 	// add event to system actor
-	p.thisActor.system.addActorEvent(p.thisActor.ActorID(), name, uniqueID...)
+	p.thisActor.system.addActorEvent(p.thisActor.PathString(), name, uniqueID...)
 
 	// name bind func
 	p.funcMap[name] = append(p.funcMap[name], fn)
@@ -91,7 +91,7 @@ func (p *actorEvent) invokeFunc(data cfacade.IEventData) {
 
 func (p *actorEvent) onStop() {
 	// remove event names
-	p.thisActor.system.removeActorEvent(p.thisActor.ActorID(), p.EventNames()...)
+	p.thisActor.system.removeActorEvent(p.thisActor.PathString(), p.EventNames()...)
 
 	p.funcMap = nil
 	p.queue.Destroy()
