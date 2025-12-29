@@ -428,7 +428,6 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 
 	valueMap, found := p.actorEventMap.Load(data.Name())
 	if !found {
-		clog.Warnf("[PostEvent] Event register data not found. value = %v", data)
 		return
 	}
 
