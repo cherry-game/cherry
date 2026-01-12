@@ -9,18 +9,16 @@ import (
 )
 
 var (
-	connectPool      []*Connect                      // connect pool
-	connectSize      uint64                          // connect size
-	roundIndex       *uint64       = new(uint64)     // round-robin index
-	reconnectDelay   time.Duration = 1 * time.Second // reconnect delay
-	requestTimeout   time.Duration = 2 * time.Second // request timeout
-	heartbeatTimeout time.Duration = 3 * time.Second // heartbeat timeout
+	connectPool    []*Connect                      // connect pool
+	connectSize    uint64                          // connect size
+	roundIndex     *uint64       = new(uint64)     // round-robin index
+	reconnectDelay time.Duration = 1 * time.Second // reconnect delay
+	requestTimeout time.Duration = 2 * time.Second // request timeout
 )
 
 func NewPool(replySubject string, config cfacade.ProfileJSON, isConnect bool) {
 	reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
 	requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
-	heartbeatTimeout = config.GetDuration("heartbeat_timeout", 3) * time.Second
 
 	var (
 		address       = config.GetString("address")
@@ -79,8 +77,4 @@ func GetTimeout(tod ...time.Duration) time.Duration {
 	}
 
 	return requestTimeout
-}
-
-func HeartbeatTimeout() time.Duration {
-	return heartbeatTimeout
 }

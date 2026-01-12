@@ -157,14 +157,15 @@ func (x *NodeID) GetValue() string {
 
 // member data
 type Member struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	NodeID        string                 `protobuf:"bytes,1,opt,name=nodeID,proto3" json:"nodeID,omitempty"`                                                                               // node id
-	NodeType      string                 `protobuf:"bytes,2,opt,name=nodeType,proto3" json:"nodeType,omitempty"`                                                                           // node type
-	Address       string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`                                                                             // rpc ip address
-	Settings      map[string]string      `protobuf:"bytes,4,rep,name=settings,proto3" json:"settings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // node settings data
-	LastAt        int64                  `protobuf:"varint,5,opt,name=lastAt,proto3" json:"lastAt,omitempty"`                                                                              // last check time
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	NodeID           string                 `protobuf:"bytes,1,opt,name=nodeID,proto3" json:"nodeID,omitempty"`                                                                               // node id
+	NodeType         string                 `protobuf:"bytes,2,opt,name=nodeType,proto3" json:"nodeType,omitempty"`                                                                           // node type
+	Address          string                 `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`                                                                             // rpc ip address
+	Settings         map[string]string      `protobuf:"bytes,4,rep,name=settings,proto3" json:"settings,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"` // node settings data
+	LastAt           int64                  `protobuf:"varint,5,opt,name=lastAt,proto3" json:"lastAt,omitempty"`                                                                              // last check time
+	HeartbeatTimeout int64                  `protobuf:"varint,6,opt,name=heartbeatTimeout,proto3" json:"heartbeatTimeout,omitempty"`                                                          // The heartbeat timeout period (in milliseconds) for custom node configuration
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
 }
 
 func (x *Member) Reset() {
@@ -228,6 +229,13 @@ func (x *Member) GetSettings() map[string]string {
 func (x *Member) GetLastAt() int64 {
 	if x != nil {
 		return x.LastAt
+	}
+	return 0
+}
+
+func (x *Member) GetHeartbeatTimeout() int64 {
+	if x != nil {
+		return x.HeartbeatTimeout
 	}
 	return 0
 }
@@ -770,13 +778,14 @@ const file_proto_proto_rawDesc = "" +
 	"\x03I32\x12\x14\n" +
 	"\x05value\x18\x01 \x01(\x05R\x05value\"\x1e\n" +
 	"\x06NodeID\x12\x14\n" +
-	"\x05value\x18\x01 \x01(\tR\x05value\"\xea\x01\n" +
+	"\x05value\x18\x01 \x01(\tR\x05value\"\x96\x02\n" +
 	"\x06Member\x12\x16\n" +
 	"\x06nodeID\x18\x01 \x01(\tR\x06nodeID\x12\x1a\n" +
 	"\bnodeType\x18\x02 \x01(\tR\bnodeType\x12\x18\n" +
 	"\aaddress\x18\x03 \x01(\tR\aaddress\x12=\n" +
 	"\bsettings\x18\x04 \x03(\v2!.cherryProto.Member.SettingsEntryR\bsettings\x12\x16\n" +
-	"\x06lastAt\x18\x05 \x01(\x03R\x06lastAt\x1a;\n" +
+	"\x06lastAt\x18\x05 \x01(\x03R\x06lastAt\x12*\n" +
+	"\x10heartbeatTimeout\x18\x06 \x01(\x03R\x10heartbeatTimeout\x1a;\n" +
 	"\rSettingsEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"5\n" +

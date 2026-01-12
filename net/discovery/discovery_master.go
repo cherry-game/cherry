@@ -58,14 +58,6 @@ func (m *DiscoveryMaster) Load(app cfacade.IApplication) {
 }
 
 func (m *DiscoveryMaster) loadMember() {
-	m.thisMember = &cproto.Member{
-		NodeID:   m.app.NodeID(),
-		NodeType: m.app.NodeType(),
-		Address:  m.app.RpcAddress(),
-		LastAt:   ctime.Now().ToMillisecond(),
-		//Settings: make(map[string]string),
-	}
-
 	// Get nats config
 	config := cprofile.GetConfig("cluster").GetConfig(m.Name())
 	if config.LastError() != nil {
@@ -79,17 +71,31 @@ func (m *DiscoveryMaster) loadMember() {
 	if m.masterID == "" {
 		clog.Fatal("[loadMember] Master node id not in config.")
 	}
-}
 
-func (m *DiscoveryMaster) init() {
+	// Default timeout is 3 seconds
+	clusterHeartbeatTimeout := m.app.Settings().GetDuration("cluster_heartbeat_timeout", 3) * time.Second
+
+	m.thisMember = &cproto.Member{
+		NodeID:           m.app.NodeID(),
+		NodeType:         m.app.NodeType(),
+		Address:          m.app.RpcAddress(),
+		LastAt:           ctime.Now().ToMillisecond(),
+		HeartbeatTimeout: clusterHeartbeatTimeout.Milliseconds(),
+		//Settings: make(map[string]string),
+	}
+
 	if err := m.preloadMarshal(); err != nil {
 		clog.Fatalf("[init] Marshal data error. err = %v", err)
 	}
+}
 
+func (m *DiscoveryMaster) init() {
 	m.registerSubject = m.buildSubject("cherry.%s.discovery.%s.register")
 	m.addSubject = m.buildSubject("cherry.%s.discovery.%s.add")
 	m.removeSubject = m.buildSubject("cherry.%s.discovery.%s.remove")
 	m.heartbeatSubject = m.buildSubject("cherry.%s.discovery.%s.heartbeat")
+
+	// Node init
 	m.masterInit()
 	m.clientInit()
 
@@ -223,7 +229,8 @@ func (m *DiscoveryMaster) heartbeatCheck() {
 				return true
 			}
 
-			if m.heartbeatisTimeout(protoMember.LastAt) {
+			//  Determine whether the heartbeat of the node is timed out
+			if protoMember.IsTimeout(ctime.Now().NowDiffMillisecond()) {
 				m.RemoveMember(protoMember.NodeID)
 
 				nodeIDBytes, err := m.NodeID2Bytes(protoMember.NodeID)
@@ -241,10 +248,6 @@ func (m *DiscoveryMaster) heartbeatCheck() {
 
 		time.Sleep(time.Second) // sleep 1 second
 	}
-}
-
-func (m *DiscoveryMaster) heartbeatisTimeout(lastAt int64) bool {
-	return lastAt+cnats.HeartbeatTimeout().Milliseconds() < ctime.Now().ToMillisecond()
 }
 
 func (m *DiscoveryMaster) registerSubscribe() {

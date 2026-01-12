@@ -14,11 +14,12 @@ message NodeID {
 
 // member data
 message Member {
-  string              nodeID = 1;     // node id
-  string              nodeType = 2;   // node type
-  string              address = 3;    // rpc ip address
-  map<string, string> settings = 4;   // node settings data
-  int64               lastAt = 5;     // last check time
+  string              nodeID = 1;           // node id
+  string              nodeType = 2;         // node type
+  string              address = 3;          // rpc ip address
+  map<string, string> settings = 4;         // node settings data
+  int64               lastAt = 5;           // last check time
+  int64               heartbeatTimeout = 6; // The heartbeat timeout period (in milliseconds) for custom node configuration
   //map<string, int32>  routes   = 5; // route list  key:route name,value:status 0.enable 1.disable
 }
 
