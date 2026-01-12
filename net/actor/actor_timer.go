@@ -8,14 +8,11 @@ import (
 	clog "github.com/cherry-game/cherry/logger"
 )
 
-const (
-	updateTimerFuncName = "_updateTimer_"
-)
-
 type (
 	actorTimer struct {
-		thisActor    *Actor
-		timerInfoMap map[uint64]*timerInfo //key:timerID,value:*timerInfo
+		queue                              // queue
+		thisActor    *Actor                // this actor
+		timerInfoMap map[uint64]*timerInfo // key:timerID,value:*timerInfo
 	}
 
 	timerInfo struct {
@@ -27,6 +24,7 @@ type (
 
 func newTimer(thisActor *Actor) actorTimer {
 	return actorTimer{
+		queue:        newQueue(),
 		thisActor:    thisActor,
 		timerInfoMap: make(map[uint64]*timerInfo),
 	}
@@ -37,6 +35,25 @@ func (p *actorTimer) onStop() {
 	p.thisActor = nil
 }
 
+func (p *actorTimer) Push(data uint64) {
+	p.queue.Push(data)
+}
+
+func (p *actorTimer) Pop() uint64 {
+	v := p.queue.Pop()
+	if v == nil {
+		return 0
+	}
+
+	timerID, ok := v.(uint64)
+	if !ok {
+		clog.Warnf("Convert to Timer ID fail. v = %+v", v)
+		return 0
+	}
+
+	return timerID
+}
+
 func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 	if delay.Milliseconds() < 1 || fn == nil {
 		clog.Warnf("[ActorTimer] Add parameter error. delay = %+v", delay)
@@ -44,10 +61,10 @@ func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 	}
 
 	newID := globalTimer.NextID()
-	timer := globalTimer.AddEveryFunc(newID, delay, p.callUpdateTimer(newID), async...)
+	timer := globalTimer.AddEveryFunc(newID, delay, p.timerTrigger(newID), async...)
 
 	if timer == nil {
-		clog.Warnf("[ActorTimer] Add error. delay = %+v", delay)
+		clog.Warnf("[Add] error. delay = %+v", delay)
 		return 0
 	}
 
@@ -58,21 +75,21 @@ func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
 
 func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint64 {
 	if delay.Milliseconds() < 1 || fn == nil {
-		clog.Warnf("[ActorTimer] AddOnce parameter error. delay = %+v", delay)
+		clog.Warnf("[AddOnce] parameter error. delay = %+v", delay)
 		return 0
 	}
 
-	newID := globalTimer.NextID()
-	timer := globalTimer.AfterFunc(newID, delay, p.callUpdateTimer(newID), async...)
+	timerID := globalTimer.NextID()
+	timer := globalTimer.AfterFunc(timerID, delay, p.timerTrigger(timerID), async...)
 
 	if timer == nil {
-		clog.Warnf("[ActorTimer] AddOnce error. d = %+v", delay)
+		clog.Warnf("[AddOnce] error. d = %+v", delay)
 		return 0
 	}
 
 	p.addTimerInfo(timer, fn, true)
 
-	return newID
+	return timerID
 }
 
 func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {
@@ -94,17 +111,18 @@ func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func(), async ...bool) uin
 		return 0
 	}
 
-	newID := globalTimer.NextID()
-	timer := globalTimer.ScheduleFunc(newID, s, p.callUpdateTimer(newID), async...)
+	timerID := globalTimer.NextID()
+	timer := globalTimer.ScheduleFunc(timerID, s, func() {
+		p.Push(timerID)
+	}, async...)
 
 	p.addTimerInfo(timer, fn, false)
 
-	return newID
+	return timerID
 }
 
 func (p *actorTimer) Remove(id uint64) {
-	funcItem, found := p.timerInfoMap[id]
-	if found {
+	if funcItem, found := p.timerInfoMap[id]; found {
 		funcItem.timer.Stop()
 		delete(p.timerInfoMap, id)
 	}
@@ -124,14 +142,8 @@ func (p *actorTimer) addTimerInfo(timer *cherryTimeWheel.Timer, fn func(), once 
 	}
 }
 
-func (p *actorTimer) callUpdateTimer(id uint64) func() {
-	return func() {
-		p.thisActor.Call(p.thisActor.PathString(), updateTimerFuncName, id)
-	}
-}
-
-func (p *actorTimer) _updateTimer_(id uint64) {
-	value, found := p.timerInfoMap[id]
+func (p *actorTimer) invokeFunc(timerID uint64) {
+	value, found := p.timerInfoMap[timerID]
 	if !found {
 		return
 	}
@@ -143,6 +155,14 @@ func (p *actorTimer) _updateTimer_(id uint64) {
 	})
 
 	if value.once {
-		delete(p.timerInfoMap, id)
+		delete(p.timerInfoMap, timerID)
+	}
+}
+
+func (p *actorTimer) timerTrigger(timerID uint64) func() {
+	return func() {
+		if p != nil {
+			p.Push(timerID)
+		}
 	}
 }

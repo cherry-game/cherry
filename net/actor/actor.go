@@ -44,9 +44,9 @@ type (
 		handler          cfacade.IActorHandler // actor handler
 		localMail        *mailbox              // local message mailbox
 		remoteMail       *mailbox              // remote message mailbox
-		event            *actorEvent           // event
+		event            *actorEvent           // event handle
+		timer            *actorTimer           // timer handle
 		child            *actorChild           // child actor
-		timer            *actorTimer           // timer
 		lastAt           int64                 // last process time (count of seconds)
 		arrivalElapsed   int64                 // arrival elapsed for message
 		executionElapsed int64                 // execution elapsed for message
@@ -85,6 +85,10 @@ func (p *Actor) loop() bool {
 	case <-p.event.C:
 		{
 			p.processEvent()
+		}
+	case <-p.timer.C:
+		{
+			p.processTimer()
 		}
 	case <-p.close:
 		{
@@ -167,6 +171,15 @@ func (p *Actor) processEvent() {
 
 	p.lastAt = ctime.Now().ToSecond()
 	p.event.invokeFunc(eventData)
+}
+
+func (p *Actor) processTimer() {
+	timerID := p.timer.Pop()
+	if timerID < 1 {
+		return
+	}
+
+	p.timer.invokeFunc(timerID)
 }
 
 func (p *Actor) invokeFunc(mb *mailbox, app cfacade.IApplication, fn cfacade.InvokeFunc, m *cfacade.Message) {
@@ -395,9 +408,6 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 
 	timer := newTimer(&thisActor)
 	thisActor.timer = &timer
-
-	// register update timer func
-	thisActor.remoteMail.Register(updateTimerFuncName, thisActor.timer._updateTimer_)
 
 	// spawn load!
 	actorLoad, ok := handler.(IActorLoader)

@@ -7,16 +7,16 @@ import (
 
 type (
 	actorEvent struct {
-		thisActor *Actor                  //
 		queue                             // queue
+		thisActor *Actor                  // this actor
 		funcMap   map[string][]IEventFunc // register event func list
 	}
 )
 
 func newEvent(thisActor *Actor) actorEvent {
 	return actorEvent{
-		thisActor: thisActor,
 		queue:     newQueue(),
+		thisActor: thisActor,
 		funcMap:   make(map[string][]IEventFunc), // make(map[string]*eventFuncList)
 	}
 }
