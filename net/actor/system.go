@@ -67,9 +67,9 @@ func (p *System) Stop() {
 		return true
 	})
 
-	clog.Info("actor system stopping!")
+	clog.Info("[OnStop] actor system stopping!")
 	p.wg.Wait()
-	clog.Info("actor system stopped!")
+	clog.Info("[OnStop]actor system stopped!")
 }
 
 // GetIActor 根据ActorID获取IActor
@@ -301,7 +301,11 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 			childActor.PostRemote(&message)
 		} else {
 			if !p.PostRemote(&message) {
-				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
+				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]",
+					source,
+					target,
+					funcName,
+				)
 				return ccode.ActorCallFail
 			}
 		}
@@ -310,13 +314,21 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		case result = <-message.ChanResult:
 			{
 				if result == nil {
-					clog.Warnf("[CallWait] Response is nil. [targetPath = %s]", target)
+					clog.Warnf("[CallWait] Response is nil. [source = %s, target = %s, funcName = %s]",
+						source,
+						target,
+						funcName,
+					)
 					return ccode.ActorCallFail
 				}
 
 				rsp := result.(*cproto.Response)
 				if rsp == nil {
-					clog.Warnf("[CallWait] Response is nil. [targetPath = %s]", target)
+					clog.Warnf("[CallWait] Response is nil. [source = %s, target = %s, funcName = %s]",
+						source,
+						target,
+						funcName,
+					)
 					return ccode.ActorCallFail
 				}
 
@@ -326,12 +338,22 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 
 				if reply != nil {
 					if rsp.Data == nil {
-						clog.Warnf("[CallWait] rsp.Data is nil. [targetPath = %s, error = %s]", target, err)
+						clog.Warnf("[CallWait] rsp.Data is nil.[source = %s, target = %s, funcName = %s, error = %s]",
+							source,
+							target,
+							funcName,
+							err,
+						)
 					}
 
 					err = p.app.Serializer().Unmarshal(rsp.Data, reply)
 					if err != nil {
-						clog.Warnf("[CallWait] Unmarshal reply error. [targetPath = %s, error = %s]", target, err)
+						clog.Warnf("[CallWait] Unmarshal reply error.[source = %s, target = %s, funcName = %s, error = %s]",
+							source,
+							target,
+							funcName,
+							err,
+						)
 						return ccode.ActorUnmarshalError
 					}
 				}
@@ -379,7 +401,7 @@ func (p *System) CallType(nodeType, actorID, funcName string, arg any) int32 {
 
 	err := p.app.Cluster().PublishRemoteType(nodeType, clusterPacket)
 	if err != nil {
-		clog.Warnf("[CallType] Publish remote fail. [nodeType = %s, actorID = %s, funcName = %s, err = %v]",
+		clog.Warnf("[CallType] Publish remote fail. [nodeType = %s, actorID = %s, funcName = %s, error = %v]",
 			nodeType,
 			actorID,
 			funcName,
