@@ -42,7 +42,7 @@ func (p *ActorBase) Kick(session *cproto.Session, reason any, closed bool) {
 func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v any) {
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Response] Marshal error. v = %+v", v)
+		clog.Warnf("[Response] Marshal error. agentPath = %s, v = %+v", agentPath, v)
 		return
 	}
 
@@ -69,18 +69,23 @@ func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, stat
 // 根据sid或uid找到agent，推送消息给客户端
 func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route string, v any) {
 	if sid == "" && uid < 1 {
-		clog.Warn("[Push] sid or uid value error.")
+		clog.Warnf("[Push] sid or uid value error. agentPath = %s, route = %s, sid = %s, uid = %d",
+			agentPath,
+			route,
+			sid,
+			uid,
+		)
 		return
 	}
 
 	if route == "" {
-		clog.Warn("[Push] route value error.")
+		clog.Warnf("[Push] route value error. agentPath = %s, route = %s", agentPath, route)
 		return
 	}
 
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Push] Marshal error. route =%s, v = %+v", route, v)
+		clog.Warnf("[Push] Marshal error. agentPath = %s, route = %s, v = %+v", agentPath, route, v)
 		return
 	}
 
@@ -107,18 +112,18 @@ func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route
 // 根据uidList或allUID匹配找到Agent，下发数据给客户端
 func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
 	if !allUID && len(uidList) < 1 {
-		clog.Warn("[Broadcast] uidList value error.")
+		clog.Warnf("[PushWithUIDS] uidList value error. agentPath = %s, route = %s", agentPath, route)
 		return
 	}
 
 	if route == "" {
-		clog.Warn("[Broadcast] route value error.")
+		clog.Warnf("[PushWithUIDS] route value error. agentPath = %s, route = %s", agentPath, route)
 		return
 	}
 
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
-		clog.Warnf("[Kick] Marshal error. v = %+v", v)
+		clog.Warnf("[PushWithUIDS] Marshal error. agentPath = %s, route = %s, v = %+v", agentPath, route, v)
 		return
 	}
 
@@ -141,7 +146,7 @@ func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allU
 func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool) {
 	data, err := iActor.App().Serializer().Marshal(reason)
 	if err != nil {
-		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
+		clog.Warnf("[Kick] Marshal error. agentPath = %s, sid = %s, reason = %+v", agentPath, sid, reason)
 		return
 	}
 
@@ -157,7 +162,7 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool)
 func KickUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, reason any, closed bool) {
 	data, err := iActor.App().Serializer().Marshal(reason)
 	if err != nil {
-		clog.Warnf("[Kick] Marshal error. reason = %+v", reason)
+		clog.Warnf("[KickUID] Marshal error. agentPath = %s, uid = %d, reason = %+v", agentPath, uid, reason)
 		return
 	}
 
