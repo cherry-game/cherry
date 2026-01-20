@@ -56,7 +56,7 @@ func Init(filePath, nodeID string) (cfacade.INode, error) {
 	}
 
 	p, f := filepath.Split(judgePath)
-	jsonConfig, err := loadFile(p, f)
+	jsonConfig, err := LoadFile(p, f)
 	if err != nil || jsonConfig.Any == nil || jsonConfig.LastError() != nil {
 		return nil, cerror.Errorf("Load profile file error. [err = %v]", err)
 	}
@@ -81,7 +81,7 @@ func GetConfig(path ...interface{}) cfacade.ProfileJSON {
 	return cfg.jsonConfig.GetConfig(path...)
 }
 
-func loadFile(filePath, fileName string) (*Config, error) {
+func LoadFile(filePath, fileName string) (*Config, error) {
 	var (
 		profileMaps = make(map[string]interface{})
 		includeMaps = make(map[string]interface{})
