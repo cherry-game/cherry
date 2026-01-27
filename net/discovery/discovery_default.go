@@ -137,21 +137,16 @@ func (n *DiscoveryDefault) GetMember(nodeID string) (cfacade.IMember, bool) {
 }
 
 func (n *DiscoveryDefault) AddMember(member cfacade.IMember) {
-	_, loaded := n.memberMap.LoadOrStore(member.GetNodeID(), member)
-	if loaded {
-		clog.Warnf("Duplicate nodeID. [nodeType = %s, nodeID = %s, settings = %v]",
-			member.GetNodeType(),
-			member.GetNodeID(),
-			member.GetSettings(),
-		)
-		return
+	_, isDuplicate := n.memberMap.LoadOrStore(member.GetNodeID(), member)
+	if isDuplicate {
+		clog.Debugf("Add Duplicate Member. [member = %s]", member)
+	} else {
+		clog.Debugf("Add Member. [ member = %s]", member)
 	}
 
 	for _, listener := range n.onAddListener {
 		listener(member)
 	}
-
-	clog.Debugf("AddMember new member. [member = %s]", member)
 }
 
 func (n *DiscoveryDefault) RemoveMember(nodeID string) {

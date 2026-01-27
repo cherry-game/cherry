@@ -73,14 +73,14 @@ func (m *DiscoveryMaster) loadMember() {
 	}
 
 	// Default timeout is 3 seconds
-	clusterHeartbeatTimeout := m.app.Settings().GetDuration("cluster_heartbeat_timeout", 3) * time.Second
+	clusterHeartbeatTimeout := m.app.Settings().GetInt64("cluster_heartbeat_timeout", 3) * ctime.MillisecondsPerSecond
 
 	m.thisMember = &cproto.Member{
 		NodeID:           m.app.NodeID(),
 		NodeType:         m.app.NodeType(),
 		Address:          m.app.RpcAddress(),
 		LastAt:           ctime.Now().ToMillisecond(),
-		HeartbeatTimeout: clusterHeartbeatTimeout.Milliseconds(),
+		HeartbeatTimeout: clusterHeartbeatTimeout,
 		//Settings: make(map[string]string),
 	}
 
@@ -135,20 +135,22 @@ func (m *DiscoveryMaster) addSubscribe() {
 		}
 
 		if _, ok := m.GetMember(addMember.NodeID); !ok {
-			m.AddMember(addMember)
+			if addMember.NodeID != m.thisMember.GetNodeID() {
+				m.AddMember(addMember)
+			}
 		}
 	})
 }
 
 func (m *DiscoveryMaster) send2Master() {
 	for {
-		if _, found := m.GetMember(m.masterID); !found {
+		if _, found := m.GetMember(m.thisMember.GetNodeID()); !found {
 			m.sendRegister2Master()
 		} else {
 			m.sendHeartbeat2Master()
 		}
 
-		time.Sleep(cnats.ReconnectDelay())
+		time.Sleep(time.Second)
 	}
 }
 
@@ -188,9 +190,7 @@ func (m *DiscoveryMaster) sendRegister2Master() {
 	}
 
 	for _, member := range memberList.GetList() {
-		if member.GetNodeID() != m.thisMember.GetNodeID() {
-			m.AddMember(member)
-		}
+		m.AddMember(member)
 	}
 }
 
@@ -215,8 +215,7 @@ func (m *DiscoveryMaster) heartbeatSubscribe() {
 
 		if value, found := m.GetMember(nodeID); found {
 			if protoMember, ok := value.(*cproto.Member); ok {
-				// update last heartbeat time
-				protoMember.LastAt = ctime.Now().ToMillisecond()
+				protoMember.LastAt = ctime.Now().ToMillisecond() // update last heartbeat time
 			}
 		}
 	})
@@ -231,8 +230,12 @@ func (m *DiscoveryMaster) heartbeatCheck() {
 				return true
 			}
 
+			if protoMember.NodeID == m.thisMember.GetNodeID() {
+				return true
+			}
+
 			//  Determine whether the heartbeat of the node is timed out
-			if protoMember.IsTimeout(ctime.Now().NowDiffMillisecond()) {
+			if protoMember.IsTimeout(ctime.Now().ToMillisecond()) {
 				m.RemoveMember(protoMember.NodeID)
 
 				nodeIDBytes, err := m.NodeID2Bytes(protoMember.NodeID)
@@ -248,7 +251,7 @@ func (m *DiscoveryMaster) heartbeatCheck() {
 			return true
 		})
 
-		time.Sleep(time.Second) // sleep 1 second
+		time.Sleep(cnats.ReconnectDelay()) // sleep x second
 	}
 }
 
@@ -260,6 +263,8 @@ func (m *DiscoveryMaster) registerSubscribe() {
 			return
 		}
 
+		// update last heartbeat time
+		newMember.LastAt = ctime.Now().ToMillisecond()
 		// addMember new member
 		m.AddMember(newMember)
 
@@ -293,9 +298,10 @@ func (m *DiscoveryMaster) removeSubscribe() {
 			return
 		}
 
-		if nodeID == m.app.NodeID() {
+		if m.isMaster() && nodeID == m.app.NodeID() {
 			return
 		}
+
 		// remove member
 		m.RemoveMember(nodeID)
 	})
