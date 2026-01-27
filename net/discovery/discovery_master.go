@@ -188,7 +188,9 @@ func (m *DiscoveryMaster) sendRegister2Master() {
 	}
 
 	for _, member := range memberList.GetList() {
-		m.AddMember(member)
+		if member.GetNodeID() != m.thisMember.GetNodeID() {
+			m.AddMember(member)
+		}
 	}
 }
 
