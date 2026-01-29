@@ -66,7 +66,7 @@
 
 ### Actor 模型
 
-- 个 Actor 独立运行于一个 goroutine，逻辑串行处理
+- 每个 Actor 独立运行于一个 goroutine，逻辑串行处理
 - 接收本地、远程、事件三种消息，各自有独立队列按 FIFO 原则消费
 - 可创建子 Actor，消息由父 Actor 路由转发
 - 支持跨节点 Actor 通信
@@ -130,4 +130,5 @@
 ## 🙏 致谢
 
 - [pomelo](https://github.com/NetEase/pomelo)
+
 - [pitaya](https://github.com/topfreegames/pitaya)
