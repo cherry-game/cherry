@@ -163,15 +163,15 @@ func retValue(serializer cfacade.ISerializer, rets []reflect.Value) *cproto.Resp
 func retResponse(m *cfacade.Message, rsp *cproto.Response) {
 	rspData, _ := proto.Marshal(rsp)
 
-	rspMsg := cnats.GetMsg()
+	rspMsg := cnats.GetNatsMsg()
 	rspMsg.Header = m.Header
 	rspMsg.Subject = m.Reply
 	rspMsg.Data = rspData
 
-	if err := cnats.GetConnect().PublishMsg(rspMsg); err != nil {
+	if err := cnats.GetConnect().PublishMsg(rspMsg.Msg); err != nil {
 		clog.Warn(err)
 	}
 
-	cnats.ReleaseMsg(rspMsg)
+	rspMsg.Release()
 	m.Destory()
 }

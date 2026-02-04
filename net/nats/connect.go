@@ -18,21 +18,26 @@ const (
 
 type (
 	Connect struct {
-		*nats.Conn                      //
-		options                         //
-		id         int                  //
-		seq        uint64               //
-		waiters    sync.Map             // map[string]chan *nats.Msg
-		subs       []*nats.Subscription //
-		reply      string               // request reply subject
+		options
+		*nats.Conn
+		mu        sync.Mutex           // protect local mutable state: subs / stopStats
+		id        int                  // connect id
+		seq       uint64               // seq value
+		waiters   sync.Map             // map[string]chan *nats.Msg
+		subs      []*nats.Subscription // subscription list
+		reply     string               // request reply subject
+		stopStats chan struct{}        // notify statistics goroutine to exit
 	}
 
 	options struct {
-		address       string
-		maxReconnects int
-		user          string
-		password      string
-		isStats       bool
+		address        string        // NATS server address.
+		reconnectDelay time.Duration // Reconnect backoff interval. Defaults to 1 second when unset.
+		requestTimeout time.Duration // Default request timeout. Defaults to 2 seconds when unset.
+		maxReconnects  int           // Maximum reconnect attempts handled by nats.Conn.
+		user           string        // Optional NATS auth username.
+		password       string        // Optional NATS auth password.
+		isStats        bool          // Whether to start the statistics goroutine.
+		statsInterval  time.Duration // Statistics reporting interval. Defaults to 30 seconds when unset.
 	}
 	OptionFunc func(o *options)
 )
@@ -57,43 +62,90 @@ func (p *Connect) Connect() {
 		return
 	}
 
+	var conn *nats.Conn
 	for {
-		conn, err := nats.Connect(p.address, p.natsOptions()...)
+		var err error
+		conn, err = nats.Connect(p.address, p.natsOptions()...)
 		if err != nil {
 			clog.Warnf("[id = %d] Nats connect fail! retrying in 3 seconds. err = %s", p.id, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
-		p.Conn = conn
-		p.initReplySubscribe()
-
-		if p.isStats {
-			go p.statistics()
-		}
-
 		break
 	}
+
+	p.mu.Lock()
+	if p.Conn != nil {
+		p.mu.Unlock()
+		conn.Close()
+		return
+	}
+	p.Conn = conn
+	if p.isStats && p.stopStats == nil {
+		p.stopStats = make(chan struct{})
+	}
+	p.mu.Unlock()
+
+	p.initReplySubscribe()
+
+	if p.isStats {
+		go p.statistics()
+	}
+
+	clog.Infof("[id = %d] Nats connected! [reply = %s]", p.id, p.reply)
 }
 
 func (p *Connect) Subs() []*nats.Subscription {
-	return p.subs
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]*nats.Subscription(nil), p.subs...)
 }
 
 func (p *Connect) Close() {
-	if p.IsConnected() {
-		for _, sub := range p.subs {
-			sub.Unsubscribe()
-		}
-
-		p.Conn.Close()
+	p.mu.Lock()
+	if p.Conn == nil {
+		p.mu.Unlock()
+		return
 	}
+
+	stopStats := p.stopStats
+	p.stopStats = nil
+	subs := append([]*nats.Subscription(nil), p.subs...)
+	p.subs = nil
+	conn := p.Conn
+	p.mu.Unlock()
+
+	if stopStats != nil {
+		close(stopStats)
+	}
+
+	for _, sub := range subs {
+		sub.Unsubscribe()
+	}
+
+	conn.Close()
+	p.clearWaiters()
+
+	clog.Infof("[id = %d] Nats closed", p.id)
 }
 
 func (p *Connect) statistics() {
+	p.mu.Lock()
+	stopStats := p.stopStats
+	p.mu.Unlock()
+	if stopStats == nil {
+		return
+	}
+
+	ticker := time.NewTicker(p.StatsInterval())
+	defer ticker.Stop()
+
 	for {
-		ticker := time.NewTicker(30 * time.Second)
-		for range ticker.C {
-			for _, sub := range p.subs {
+		select {
+		case <-ticker.C:
+			subs := p.Subs()
+
+			for _, sub := range subs {
 				if dropped, err := sub.Dropped(); err != nil {
 					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
 						sub.Subject,
@@ -111,12 +163,24 @@ func (p *Connect) statistics() {
 				stats.OutBytes,
 				stats.Reconnects,
 			)
+		case <-stopStats:
+			clog.Infof("[id = %d] Statistics goroutine stopped", p.id)
+			return
 		}
 	}
 }
 
 func (p *Connect) GetID() int {
 	return p.id
+}
+
+func (p *Connect) clearWaiters() {
+	p.waiters.Range(func(key, value any) bool {
+		ch := value.(chan *nats.Msg)
+		p.waiters.Delete(key)
+		close(ch)
+		return true
+	})
 }
 
 func (p *Connect) initReplySubscribe() {
@@ -127,12 +191,10 @@ func (p *Connect) initReplySubscribe() {
 			return
 		}
 
+		// LoadAndDelete takes ownership of the waiting channel.
 		if chMsg, ok := p.waiters.LoadAndDelete(reqID); ok {
 			ch := chMsg.(chan *nats.Msg)
-			select {
-			case ch <- msg:
-			default:
-			}
+			ch <- msg
 			close(ch)
 		}
 	})
@@ -144,8 +206,13 @@ func (p *Connect) initReplySubscribe() {
 }
 
 func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
-	timeout := GetTimeout(tod...)
-	natsMsg, err := p.Conn.Request(subject, data, timeout)
+	conn := p.Conn
+	if conn == nil {
+		return nil, fmt.Errorf("nats connection is nil")
+	}
+
+	timeout := p.Timeout(tod...)
+	natsMsg, err := conn.Request(subject, data, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -154,23 +221,25 @@ func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]
 }
 
 func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
-	timeout := GetTimeout(tod...)
+	conn := p.Conn
+	if conn == nil {
+		return nil, fmt.Errorf("nats connection is nil")
+	}
+
+	timeout := p.Timeout(tod...)
 
 	reqID := strconv.FormatUint(atomic.AddUint64(&p.seq, 1), 10)
 	ch := make(chan *nats.Msg, 1)
 	p.waiters.Store(reqID, ch)
 
-	// get msg from pool
-	msg := GetMsg()
-	msg.Subject = subject
-	msg.Reply = p.reply
-	msg.Header.Set(REQ_ID, reqID)
-	msg.Data = data
+	natsMsg := GetNatsMsg()
+	natsMsg.Subject = subject
+	natsMsg.Reply = p.reply
+	natsMsg.Header.Set(REQ_ID, reqID)
+	natsMsg.Data = data
 
-	err := p.PublishMsg(msg)
-
-	// release msg
-	ReleaseMsg(msg)
+	err := conn.PublishMsg(natsMsg.Msg)
+	natsMsg.Release()
 
 	if err != nil {
 		p.waiters.Delete(reqID)
@@ -178,83 +247,100 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 		return nil, err
 	}
 
+	timer := acquireTimer(timeout)
+	defer releaseTimer(timer)
+
 	select {
 	case resp, ok := <-ch:
 		if !ok || resp == nil {
 			return nil, cerror.ClusterRequestTimeout
 		}
 		return resp.Data, nil
-	case <-time.After(timeout):
-		p.waiters.Delete(reqID)
-		clog.Warnf("id = %d, reqID = %s", p.id, reqID)
-		close(ch)
+	case <-timer.C:
+		if _, existed := p.waiters.LoadAndDelete(reqID); existed {
+			close(ch)
+		}
+		clog.Warnf("[RequestSync] timeout. id = %d, reqID = %s", p.id, reqID)
 		return nil, cerror.ClusterRequestTimeout
 	}
 }
 
 func (p *Connect) Subscribe(subject string, cb nats.MsgHandler) error {
-	sub, err := p.Conn.Subscribe(subject, cb)
+	conn := p.Conn
+	if conn == nil {
+		return fmt.Errorf("nats connection is nil")
+	}
+
+	sub, err := conn.Subscribe(subject, cb)
 	if err != nil {
 		return err
 	}
 
-	if sub != nil {
-		p.subs = append(p.subs, sub)
-	}
+	p.mu.Lock()
+	p.subs = append(p.subs, sub)
+	p.mu.Unlock()
 
 	return nil
 }
 
 func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) error {
-	sub, err := p.Conn.QueueSubscribe(subject, queue, cb)
+	conn := p.Conn
+	if conn == nil {
+		return fmt.Errorf("nats connection is nil")
+	}
+
+	sub, err := conn.QueueSubscribe(subject, queue, cb)
 	if err != nil {
 		return err
 	}
 
-	if sub != nil {
-		p.subs = append(p.subs, sub)
-	}
+	p.mu.Lock()
+	p.subs = append(p.subs, sub)
+	p.mu.Unlock()
 
 	return nil
 }
 
-func (p *options) natsOptions() []nats.Option {
+func (p *Connect) natsOptions() []nats.Option {
 	var opts []nats.Option
 
-	if reconnectDelay > 0 {
+	if reconnectDelay := p.ReconnectDelay(); reconnectDelay > 0 {
 		opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	}
 
-	if p.maxReconnects > 0 {
-		opts = append(opts, nats.MaxReconnects(p.maxReconnects))
+	if p.options.maxReconnects > 0 {
+		opts = append(opts, nats.MaxReconnects(p.options.maxReconnects))
 	}
 
 	opts = append(opts, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
-			clog.Warnf("Disconnect error. [error = %v]", err)
+			clog.Warnf("[id = %d] Disconnect error. [error = %v]", p.id, err)
 		}
+		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-		clog.Warnf("Reconnected [%s]", nc.ConnectedUrl())
+		clog.Warnf("[id = %d] Reconnected [%s]", p.id, nc.ConnectedUrl())
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
 		if nc.LastError() != nil {
-			clog.Infof("error = %v", nc.LastError())
+			clog.Infof("[id = %d] error = %v", p.id, nc.LastError())
 		}
+		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		clog.Warnf("IsConnect = %v. %s on connection for subscription on %q",
+		clog.Warnf("[id = %d] IsConnect = %v. %s on connection for subscription on %q",
+			p.id,
 			nc.IsConnected(),
 			err.Error(),
 			sub.Subject,
 		)
 	}))
 
-	if p.user != "" {
-		opts = append(opts, nats.UserInfo(p.user, p.password))
+	if p.options.user != "" {
+		opts = append(opts, nats.UserInfo(p.options.user, p.options.password))
 	}
 
 	return opts
@@ -268,9 +354,57 @@ func (p *options) MaxReconnects() int {
 	return p.maxReconnects
 }
 
+func (p *options) ReconnectDelay() time.Duration {
+	if p.reconnectDelay <= 0 {
+		return 1 * time.Second
+	}
+
+	return p.reconnectDelay
+}
+
+func (p *options) RequestTimeout() time.Duration {
+	if p.requestTimeout <= 0 {
+		return 2 * time.Second
+	}
+
+	return p.requestTimeout
+}
+
+func (p *options) StatsInterval() time.Duration {
+	if p.statsInterval <= 0 {
+		return 30 * time.Second
+	}
+
+	return p.statsInterval
+}
+
+func (p *Connect) ReconnectDelay() time.Duration {
+	return p.options.ReconnectDelay()
+}
+
+func (p *Connect) Timeout(tod ...time.Duration) time.Duration {
+	if len(tod) > 0 {
+		return tod[0]
+	}
+
+	return p.options.RequestTimeout()
+}
+
 func WithAddress(address string) OptionFunc {
 	return func(opts *options) {
 		opts.address = address
+	}
+}
+
+func WithReconnectDelay(delay time.Duration) OptionFunc {
+	return func(opts *options) {
+		opts.reconnectDelay = delay
+	}
+}
+
+func WithRequestTimeout(timeout time.Duration) OptionFunc {
+	return func(opts *options) {
+		opts.requestTimeout = timeout
 	}
 }
 
@@ -290,5 +424,11 @@ func WithAuth(user, password string) OptionFunc {
 func WithIsStats(isStats bool) OptionFunc {
 	return func(opts *options) {
 		opts.isStats = isStats
+	}
+}
+
+func WithStatsInterval(seconds int) OptionFunc {
+	return func(opts *options) {
+		opts.statsInterval = time.Duration(seconds) * time.Second
 	}
 }
