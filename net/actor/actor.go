@@ -2,6 +2,7 @@ package cherryActor
 
 import (
 	"strings"
+	"time"
 
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
@@ -105,7 +106,7 @@ func (p *Actor) processLocal() {
 		return
 	}
 
-	p.lastAt = ctime.Now().ToSecond()
+	p.lastAt = time.Now().Unix()
 
 	next, invoke := p.handler.OnLocalReceived(m)
 	if invoke {
@@ -137,7 +138,7 @@ func (p *Actor) processRemote() {
 		return
 	}
 
-	p.lastAt = ctime.Now().ToSecond()
+	p.lastAt = time.Now().Unix()
 
 	next, invoke := p.handler.OnRemoteReceived(m)
 	if invoke {
@@ -169,7 +170,7 @@ func (p *Actor) processEvent() {
 		return
 	}
 
-	p.lastAt = ctime.Now().ToSecond()
+	p.lastAt = time.Now().Unix()
 	p.event.invokeFunc(eventData)
 }
 
@@ -391,7 +392,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,
-		lastAt:  ctime.Now().ToSecond(),
+		lastAt:  time.Now().Unix(),
 	}
 
 	localMailbox := newMailbox(LocalName)

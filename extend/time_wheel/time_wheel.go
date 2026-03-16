@@ -6,6 +6,7 @@ import (
 	"time"
 	"unsafe"
 
+	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	clog "github.com/cherry-game/cherry/logger"
 )
@@ -31,7 +32,7 @@ func NewTimeWheel(tick time.Duration, wheelSize int64) *TimeWheel {
 		return nil
 	}
 
-	startMs := TimeToMS(time.Now().UTC())
+	startMs := TimeToMS(ctime.Now().Time.UTC())
 
 	return newTimingWheel(
 		tickMs,
@@ -138,7 +139,7 @@ func (tw *TimeWheel) advanceClock(expiration int64) {
 func (tw *TimeWheel) Start() {
 	tw.waitGroup.Wrap(func() {
 		tw.queue.Poll(tw.exitC, func() int64 {
-			return TimeToMS(time.Now().UTC())
+			return TimeToMS(ctime.Now().Time.UTC())
 		})
 	})
 
@@ -171,7 +172,7 @@ func (tw *TimeWheel) Stop() {
 func (tw *TimeWheel) AfterFunc(id uint64, d time.Duration, f func(), async ...bool) *Timer {
 	t := &Timer{
 		id:         id,
-		expiration: TimeToMS(time.Now().UTC().Add(d)),
+		expiration: TimeToMS(ctime.Now().Time.UTC().Add(d)),
 		task:       f,
 		isAsync:    getAsyncValue(async...),
 	}
@@ -210,7 +211,7 @@ func (tw *TimeWheel) BuildEveryFunc(d time.Duration, f func(), async ...bool) *T
 // be executed, and f will be called at the next execution time if the time
 // is non-zero.
 func (tw *TimeWheel) ScheduleFunc(id uint64, s Scheduler, f func(), async ...bool) *Timer {
-	expiration := s.Next(time.Now())
+	expiration := s.Next(ctime.Now().Time)
 	if expiration.IsZero() {
 		// No time is scheduled, return nil.
 		return nil
