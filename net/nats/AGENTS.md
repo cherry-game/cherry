@@ -8,26 +8,32 @@ NATS 连接池管理，支持多连接、自动重连、请求超时、统计监
 
 ```
 net/nats/
-├── pool.go       # 连接池管理
-├── connect.go    # 单连接实现（Subscribe, Request, Publish）
-└── msg_pool.go   # 消息对象池
+├── connect_pool.go  # 连接池管理
+├── connect.go       # 单连接实现（Subscribe, Request, Publish）
+├── msg_pool.go      # NatsMsg 消息对象池
+└── timer_pool.go    # Timer 对象池
 ```
 
 ## 查找指南
 
 | 任务 | 位置 | 说明 |
 |------|----------|------|
-| 创建连接池 | `pool.go:19` | `NewPool(replySubject, config, isConnect)` |
-| 获取连接 | `pool.go:58` | `GetConnect()` 轮询获取 |
-| 关闭所有连接 | `pool.go:63` | `ConnectClose()` |
+| 创建连接池 | `connect_pool.go:19` | `NewConnectPool(replySubject, config, isConnect)` |
+| 获取连接池列表 | `connect_pool.go:54` | `GetConnectPool()` |
+| 获取单个连接 | `connect_pool.go:58` | `GetConnect()` 轮询获取 |
+| 关闭连接池 | `connect_pool.go:63` | `CloseConnectPool()` |
 | 连接服务器 | `connect.go:55` | `Connect()` 自动重连 |
-| 发布消息 | `connect.go:170` | `PublishMsg(msg)` |
-| 同步请求 | `connect.go:156` | `RequestSync(subject, data, timeout)` |
-| 订阅消息 | `connect.go:195` | `Subscribe(subject, cb)` |
+| 发布消息 | `connect.go:180` | `PublishMsg(msg)` |
+| 同步请求 | `connect.go:167` | `RequestSync(subject, data, timeout)` |
+| 订阅消息 | `connect.go:207` | `Subscribe(subject, cb)` |
+| 获取消息对象 | `msg_pool.go:21` | `GetNatsMsg()` 从池获取 |
+| 释放消息对象 | `msg_pool.go:29` | `NatsMsg.Release()` 归还池 |
+| 获取 Timer | `timer_pool.go` | `acquireTimer(timeout)` |
+| 释放 Timer | `timer_pool.go` | `releaseTimer(timer)` |
 
 ## 连接池特性
 
-**轮询获取** (`pool.go:58-61`):
+**轮询获取** (`connect_pool.go:58-61`):
 ```go
 func GetConnect() *Connect {
     index := atomic.AddUint64(roundIndex, 1)
@@ -72,12 +78,51 @@ type Connect struct {
 }
 ```
 
+**NatsMsg** (`msg_pool.go:17-19`):
+```go
+type NatsMsg struct {
+    *nats.Msg
+}
+
+func (m *NatsMsg) Release()  // 归还对象池
+```
+
 ## RequestSync 实现原理
 
-1. 生成唯一 reqID
+1. 生成唯一 reqID（每个 Connect 独立计数）
 2. 创建等待 channel
-3. 发送消息，Header 携带 reqID
-4. 监听 reply subject，匹配 reqID 返回
+3. 从 NatsMsg 池获取消息对象
+4. 发送消息，Header 携带 reqID
+5. 从 Timer 池获取 Timer，等待响应或超时
+6. 归还 NatsMsg 和 Timer 到池
+
+**并发安全设计**:
+- `LoadAndDelete` 原子操作，防止 channel 双重关闭
+- 阻塞发送响应，防止消息丢失
+- Disconnect/Close 回调清理 waiters
+
+## 对象池设计
+
+**NatsMsg 池** (`msg_pool.go`):
+```go
+msg := GetNatsMsg()
+msg.Subject = subject
+msg.Data = data
+p.PublishMsg(msg.Msg)
+msg.Release()  // 归还池
+```
+
+**Timer 池** (`timer_pool.go`):
+```go
+timer := acquireTimer(timeout)
+defer releaseTimer(timer)
+select {
+case resp := <-ch:
+    return resp.Data
+case <-timer.C:
+    // timeout
+}
+```
 
 ## 统计监控
 
@@ -88,11 +133,13 @@ type Connect struct {
 
 ## 项目约定
 
-- 使用对象池 (`msg_pool.go`) 减少 GC
+- 使用对象池 (`msg_pool.go`, `timer_pool.go`) 减少 GC
 - 所有订阅在连接关闭时自动取消
+- reqID 在 Reply Subject 级别唯一，非全局唯一
 
 ## 注意事项
 
 - 连接池大小建议与并发请求量匹配
 - `RequestSync` 超时后会清理等待 channel
-- 重连时会输出警告日志
+- 重连时 NATS 自动恢复订阅，无需重新订阅
+- Disconnect 回调会清理所有等待中的请求

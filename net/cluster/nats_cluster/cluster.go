@@ -46,7 +46,7 @@ func (p *Cluster) loadNatsConfig() {
 	p.remoteTypeSubject = GetRemoteTypeSubject(p.prefix, p.app.NodeType())
 	p.replySubject = GetReplySubject(p.prefix, p.app.NodeType(), p.app.NodeID())
 
-	cnats.NewPool(p.replySubject, natsConfig, true)
+	cnats.NewConnectPool(p.replySubject, natsConfig, true)
 }
 
 func (p *Cluster) Init() {
@@ -60,7 +60,7 @@ func (p *Cluster) Init() {
 }
 
 func (p *Cluster) Stop() {
-	cnats.ConnectClose()
+	cnats.CloseConnectPool()
 
 	clog.Info("Nats cluster execute OnStop().")
 }

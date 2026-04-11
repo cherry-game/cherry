@@ -8,24 +8,28 @@ import (
 
 var (
 	_msgPool = &sync.Pool{
-		New: func() interface{} {
-			return &nats.Msg{}
+		New: func() any {
+			return &NatsMsg{Msg: &nats.Msg{}}
 		},
 	}
 )
 
-func GetMsg() *nats.Msg {
-	value := _msgPool.Get()
-	msg := value.(*nats.Msg)
+type NatsMsg struct {
+	*nats.Msg
+}
+
+func GetNatsMsg() *NatsMsg {
+	msg := _msgPool.Get().(*NatsMsg)
 	if msg.Header == nil {
 		msg.Header = nats.Header{}
 	}
-
 	return msg
 }
 
-func ReleaseMsg(msg *nats.Msg) {
-	msg.Header = nil
-	msg.Data = nil
-	_msgPool.Put(msg)
+func (m *NatsMsg) Release() {
+	for k := range m.Header {
+		delete(m.Header, k)
+	}
+	m.Data = nil
+	_msgPool.Put(m)
 }

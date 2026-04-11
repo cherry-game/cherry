@@ -86,6 +86,9 @@ func (p *Connect) Close() {
 		}
 
 		p.Conn.Close()
+
+		// 连接关闭后清理残留的 waiters（防御性编程）
+		p.clearWaiters()
 	}
 }
 
@@ -119,6 +122,15 @@ func (p *Connect) GetID() int {
 	return p.id
 }
 
+func (p *Connect) clearWaiters() {
+	p.waiters.Range(func(key, value any) bool {
+		ch := value.(chan *nats.Msg)
+		p.waiters.Delete(key)
+		close(ch)
+		return true
+	})
+}
+
 func (p *Connect) initReplySubscribe() {
 	err := p.Subscribe(p.reply, func(msg *nats.Msg) {
 		reqID := msg.Header.Get(REQ_ID)
@@ -127,12 +139,11 @@ func (p *Connect) initReplySubscribe() {
 			return
 		}
 
+		// LoadAndDelete 获取 channel 所有权，如果不存在说明请求方已超时处理
 		if chMsg, ok := p.waiters.LoadAndDelete(reqID); ok {
 			ch := chMsg.(chan *nats.Msg)
-			select {
-			case ch <- msg:
-			default:
-			}
+			// 直接发送到 buffered channel，请求方已准备好等待
+			ch <- msg
 			close(ch)
 		}
 	})
@@ -160,17 +171,14 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 	ch := make(chan *nats.Msg, 1)
 	p.waiters.Store(reqID, ch)
 
-	// get msg from pool
-	msg := GetMsg()
-	msg.Subject = subject
-	msg.Reply = p.reply
-	msg.Header.Set(REQ_ID, reqID)
-	msg.Data = data
+	natsMsg := GetNatsMsg()
+	natsMsg.Subject = subject
+	natsMsg.Reply = p.reply
+	natsMsg.Header.Set(REQ_ID, reqID)
+	natsMsg.Data = data
 
-	err := p.PublishMsg(msg)
-
-	// release msg
-	ReleaseMsg(msg)
+	err := p.PublishMsg(natsMsg.Msg)
+	natsMsg.Release()
 
 	if err != nil {
 		p.waiters.Delete(reqID)
@@ -178,16 +186,20 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 		return nil, err
 	}
 
+	timer := acquireTimer(timeout)
+	defer releaseTimer(timer)
+
 	select {
 	case resp, ok := <-ch:
 		if !ok || resp == nil {
 			return nil, cerror.ClusterRequestTimeout
 		}
 		return resp.Data, nil
-	case <-time.After(timeout):
-		p.waiters.Delete(reqID)
-		clog.Warnf("id = %d, reqID = %s", p.id, reqID)
-		close(ch)
+	case <-timer.C:
+		if _, existed := p.waiters.LoadAndDelete(reqID); existed {
+			close(ch)
+		}
+		clog.Warnf("[RequestSync] timeout. id = %d, reqID = %s", p.id, reqID)
 		return nil, cerror.ClusterRequestTimeout
 	}
 }
@@ -218,43 +230,48 @@ func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) erro
 	return nil
 }
 
-func (p *options) natsOptions() []nats.Option {
+func (p *Connect) natsOptions() []nats.Option {
 	var opts []nats.Option
 
 	if reconnectDelay > 0 {
 		opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	}
 
-	if p.maxReconnects > 0 {
-		opts = append(opts, nats.MaxReconnects(p.maxReconnects))
+	if p.options.maxReconnects > 0 {
+		opts = append(opts, nats.MaxReconnects(p.options.maxReconnects))
 	}
 
 	opts = append(opts, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
-			clog.Warnf("Disconnect error. [error = %v]", err)
+			clog.Warnf("[id = %d] Disconnect error. [error = %v]", p.id, err)
 		}
+		// 连接断开时清理所有等待中的请求
+		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-		clog.Warnf("Reconnected [%s]", nc.ConnectedUrl())
+		clog.Warnf("[id = %d] Reconnected [%s]", p.id, nc.ConnectedUrl())
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
 		if nc.LastError() != nil {
-			clog.Infof("error = %v", nc.LastError())
+			clog.Infof("[id = %d] error = %v", p.id, nc.LastError())
 		}
+		// 连接关闭时清理所有等待中的请求
+		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		clog.Warnf("IsConnect = %v. %s on connection for subscription on %q",
+		clog.Warnf("[id = %d] IsConnect = %v. %s on connection for subscription on %q",
+			p.id,
 			nc.IsConnected(),
 			err.Error(),
 			sub.Subject,
 		)
 	}))
 
-	if p.user != "" {
-		opts = append(opts, nats.UserInfo(p.user, p.password))
+	if p.options.user != "" {
+		opts = append(opts, nats.UserInfo(p.options.user, p.options.password))
 	}
 
 	return opts
