@@ -1,118 +1,62 @@
-# net/parser - 协议解析器
+# net/parser
 
-## 概述
+## 角色
 
-框架提供 `INetParser` 可扩展接口，支持开发者自定义协议实现。系统自带两种协议实现作为示例：pomelo（网易 Pomelo 协议）和 simple（自定义简化协议）。
+`net/parser` 不是单纯协议编解码目录，而是前端接入层。它负责把 connector、新连接、session、agent actor 和路由处理串起来。
 
-## 目录结构
+## 真实接口
 
-```
-net/parser/
-├── pomelo/         # Pomelo 协议实现
-│   ├── pomelo.go   # 主解析器
-│   ├── actor.go    # Actor 处理器
-│   ├── actor_base.go
-│   ├── agent.go    # 连接代理
-│   ├── agents.go   # 代理管理
-│   ├── command.go  # 命令定义
-│   ├── client/     # Pomelo 客户端
-│   ├── message/    # 消息结构
-│   └── packet/     # 数据包结构
-└── simple/         # Simple 协议实现
-│   ├── simple.go   # 主解析器
-│   ├── actor.go    # Actor 处理器
-│   ├── actor_base.go
-│   ├── agent.go    # 连接代理
-│   ├── agents.go   # 代理管理
-│   ├── message.go  # 消息结构
-│   ├── route.go    # 路由定义
-│   └── define.go   # 常量定义
-```
+- [INetParser](../../facade/net_parser.go:5)
 
-## 查找指南
+当前仓库里的 parser 接口职责是：
 
-| 任务 | 位置 | 说明 |
-|------|----------|-------|
-| Pomelo 解析 | `pomelo/pomelo.go` | `New()` 创建解析器 |
-| Simple 解析 | `simple/simple.go` | `New()` 创建解析器 |
-| 消息路由 | `pomelo/message/route.go` | Route 结构 |
-| 数据包格式 | `pomelo/packet/packet.go` | Handshake, Data, Kick 等 |
-| 代理管理 | `pomelo/agents.go`, `simple/agents.go` | Agent 生命周期 |
+- `Load(application IApplication)`
+- `AddConnector(connector IConnector)`
+- `Connectors() []IConnector`
 
-## 协议接口
+不要再按旧版 `Package/Message/Route/Serialize` 理解它。
 
-**INetParser** (`facade/net_parser.go`):
-```go
-type INetParser interface {
-    Package() IPackage   // 数据包解析
-    Message() IMessage   // 消息解析
-    Route() IRoute       // 路由解析
-    Serialize() ISerializer // 序列化器
-}
-```
+## 实现入口
 
-开发者可基于此接口实现自定义协议，通过 `appBuilder.SetNetParser()` 注册。
+- [pomelo/actor.go](./pomelo/actor.go:30)
+- [simple/actor.go](./simple/actor.go:27)
 
-## 自带协议实现
+## 真实运行链
 
-### Pomelo 协议 (`pomelo/`)
-- 基于 Pomelo 框架协议格式
-- 支持握手、心跳、数据包
-- 消息路由: `serverType.handler.method`
-- 支持消息字典压缩
+标准接入方式：
 
-### Simple 协议 (`simple/`)
-- 简化格式: `id(4bytes) + dataLen(4bytes) + data(n bytes)`
-- 更轻量，适合自定义场景
-- 无握手过程
+1. 创建 parser
+2. `AddConnector(...)`
+3. `app.SetNetParser(parser)`
+4. 启动应用后由 parser `Load()` 接管 connector
 
-## 关键结构
+`Load()` 典型会做这些事：
 
-**pomelo/packet/packet.go**:
-```go
-type Packet struct {
-    Type   byte   // Handshake, HandshakeAck, Heartbeat, Data, Kick
-    Length int    // 数据长度
-    Data   []byte // 数据内容
-}
-```
+- 检查 connector 是否已挂载
+- 初始化协议或命令上下文
+- 创建前端 `agentActor`
+- 为每个 connector 注册 `OnConnect`
+- 启动全部 connector
 
-**pomelo/message/message.go**:
-```go
-type Message struct {
-    Type    byte   // Request, Notify, Response, Push
-    ID      uint   // 消息 ID
-    Route   string // 路由路径
-    Data    []byte // 数据
-}
-```
+## 新连接处理
 
-**simple/message.go**:
-```go
-type Message struct {
-    MsgID uint32 // 消息 ID (4 bytes)
-    Data  []byte // 数据内容
-}
-```
+Pomelo 和 Simple 的默认入口都会：
 
-## 项目约定
+- 创建 `Session`
+- 生成 `sid`
+- 构造 `Agent`
+- 绑定到当前 parser actor 路径
+- 启动 agent
 
-- Agent 代表单个连接
-- Agents 管理所有 Agent
-- ActorHandler 处理路由消息
+## 常见坑
 
-## 自定义协议
+- `isFrontend == true` 时，应用启动前必须设置 parser
+- parser 没有 connector 时，`Load()` 会直接 `panic`
+- 绕过 parser 直接操作 connector，会失去默认的 session / agent 接入逻辑
 
-开发者可基于 `INetParser` 接口实现自定义协议：
+## 联动检查
 
-```go
-// 1. 实现 INetParser 接口
-type MyParser struct { ... }
-func (p *MyParser) Package() IPackage { ... }
-func (p *MyParser) Message() IMessage { ... }
-func (p *MyParser) Route() IRoute { ... }
-func (p *MyParser) Serialize() ISerializer { ... }
-
-// 2. 注册到应用
-appBuilder.SetNetParser(&MyParser{})
-```
+- 改 parser `Load()`：同步检查 `application.go`、`net/connector/`
+- 改 agent 创建逻辑：同步检查 `net/proto/session.go`、`net/actor/`
+- 改 Pomelo 路由或命令：同步检查 `net/proto/` 和客户端兼容性
+- 改 `INetParser` 实现方式：同步检查 `facade/net_parser.go`

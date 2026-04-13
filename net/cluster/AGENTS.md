@@ -1,84 +1,49 @@
-# net/cluster - 集群通信组件
+# net/cluster
 
-## 概述
+## 角色
 
-基于 NATS 的集群 RPC 通信实现，支持本地消息、远程消息、节点类型广播等多种发布模式。
+`net/cluster` 是框架集群组件层，负责把 `ICluster` 契约接到 NATS 实现上。
 
-## 目录结构
+## 真实入口
 
-```
-net/cluster/
-├── component.go       # 集群组件定义
-└── nats_cluster/
-    ├── cluster.go     # NATS 集群实现（核心）
-    └── const.go       # Subject 生成函数
-```
+- [component.go](./component.go:12)
+- [nats_cluster/cluster.go](./nats_cluster/cluster.go:18)
 
-## 查找指南
+## 生命周期
 
-| 任务 | 位置 | 说明 |
-|------|----------|------|
-| 创建集群组件 | `component.go:17` | `New()` 创建组件 |
-| 初始化集群 | `nats_cluster/cluster.go:52` | `Init()` 加载配置、订阅消息 |
-| 发布本地消息 | `nats_cluster/cluster.go:159` | `PublishLocal(nodeID, packet)` |
-| 发布远程消息 | `nats_cluster/cluster.go:197` | `PublishRemote(nodeID, packet)` |
-| 按类型广播 | `nats_cluster/cluster.go:235` | `PublishRemoteType(nodeType, packet)` |
-| 同步请求 | `nats_cluster/cluster.go:271` | `RequestRemote(nodeID, packet, timeout)` |
+1. `cluster_component.Init()` 创建 cluster 实例
+2. 读取配置、初始化 NATS 连接池、订阅 subject
+3. 停机时 `OnStop()` 调用 `Stop()`
 
-## 关键接口
+## 关键语义
 
-**ICluster** (`facade/cluster.go:37-44`):
-```go
-type ICluster interface {
-    Init()                                                                                               // 初始化
-    PublishLocal(nodeID string, packet *cproto.ClusterPacket) error                                      // 发布本地消息
-    PublishRemote(nodeID string, packet *cproto.ClusterPacket) error                                     // 发布远程消息
-    PublishRemoteType(nodeType string, cpacket *cproto.ClusterPacket) error                              // 按节点类型广播
-    RequestRemote(nodeID string, packet *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) // 同步请求
-    Stop()                                                                                               // 停止
-}
-```
+- `PublishLocal()`：
+  - 会先通过 discovery 查目标节点的 `nodeType`
+  - 再编码 `ClusterPacket` 并投递到目标 local subject
+- `PublishRemote()`：
+  - 与 `PublishLocal()` 类似，但投递到 remote subject
+- `PublishRemoteType()`：
+  - 按节点类型广播
+  - 广播前会确认该类型在 discovery 中至少有成员
+- `RequestRemote()`：
+  - 返回 `[]byte` 和 `int32 code`
+  - 调用方要自己继续反序列化
 
-## 消息发布模式
+## 局部约束
 
-| 方法 | 用途 | Subject 格式 |
-|------|------|-------------|
-| `PublishLocal` | 发送到目标节点的本地队列 | `{prefix}.{nodeType}.local.{nodeID}` |
-| `PublishRemote` | 发送到目标节点的远程队列 | `{prefix}.{nodeType}.remote.{nodeID}` |
-| `PublishRemoteType` | 广播到某类型所有节点 | `{prefix}.{nodeType}.remote.type` |
-| `RequestRemote` | 同步 RPC，等待响应 | 使用 reply subject |
+- 对外发布接口通常都会 `defer cpacket.Recycle()`
+- 调用后不要继续持有同一个 `ClusterPacket`
+- `nodeType` 不是调用方直接传入，而是经 discovery 查询得到
+- 底层传输协议固定为 protobuf
 
-## Subject 订阅
+## 常见坑
 
-集群启动时订阅三种 Subject：
-- **localSubject**: 接收本地消息，投递到 ActorSystem 的 Local 队列
-- **remoteSubject**: 接收远程消息，投递到 ActorSystem 的 Remote 队列
-- **remoteTypeSubject**: 接收类型广播消息
+- `PublishRemote` 失败时，常见根因其实是 discovery 里没有对应节点
+- `RequestRemote` 超时不一定是网络问题，也可能是远端 Actor 没处理完
+- 复用已经发过的 `ClusterPacket` 会踩对象池复用问题
 
-## 配置要求
+## 联动检查
 
-需在 profile 中配置 `cluster.nats`:
-```json
-{
-  "cluster": {
-    "nats": {
-      "prefix": "node",
-      "address": "nats://127.0.0.1:4222",
-      "pool_size": 1,
-      "request_timeout": 2
-    }
-  }
-}
-```
-
-## 项目约定
-
-- 所有发布方法在完成后调用 `packet.Recycle()` 回收对象
-- 通过 Discovery 服务获取目标节点的 nodeType
-- 使用 protobuf 序列化 ClusterPacket
-
-## 注意事项
-
-- 调用 `PublishRemote` 前需确保目标节点在 Discovery 中已注册
-- `RequestRemote` 超时默认 2 秒，可传入自定义 timeout
-- 组件名称: `cluster_component`
+- 改 `component.go`：同步检查 `cherry.go`、`application.go`
+- 改 `nats_cluster/cluster.go`：同步检查 `net/nats/`、`net/discovery/`、`net/proto/`、`code/`、`error/`
+- 改 subject 生成规则：同步检查 `net/discovery/discovery_master.go`

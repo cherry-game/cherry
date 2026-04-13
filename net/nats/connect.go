@@ -18,13 +18,15 @@ const (
 
 type (
 	Connect struct {
-		*nats.Conn                      //
-		options                         //
-		id         int                  //
-		seq        uint64               //
-		waiters    sync.Map             // map[string]chan *nats.Msg
-		subs       []*nats.Subscription //
-		reply      string               // request reply subject
+		*nats.Conn
+		mu sync.Mutex // protect local mutable state: subs / stopStats
+		options
+		id        int
+		seq       uint64
+		waiters   sync.Map // map[string]chan *nats.Msg
+		subs      []*nats.Subscription
+		reply     string        // request reply subject
+		stopStats chan struct{} // notify statistics goroutine to exit
 	}
 
 	options struct {
@@ -57,46 +59,90 @@ func (p *Connect) Connect() {
 		return
 	}
 
+	var conn *nats.Conn
 	for {
-		conn, err := nats.Connect(p.address, p.natsOptions()...)
+		var err error
+		conn, err = nats.Connect(p.address, p.natsOptions()...)
 		if err != nil {
 			clog.Warnf("[id = %d] Nats connect fail! retrying in 3 seconds. err = %s", p.id, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
-		p.Conn = conn
-		p.initReplySubscribe()
-
-		if p.isStats {
-			go p.statistics()
-		}
-
 		break
 	}
+
+	p.mu.Lock()
+	if p.Conn != nil {
+		p.mu.Unlock()
+		conn.Close()
+		return
+	}
+	p.Conn = conn
+	if p.isStats && p.stopStats == nil {
+		p.stopStats = make(chan struct{})
+	}
+	p.mu.Unlock()
+
+	p.initReplySubscribe()
+
+	if p.isStats {
+		go p.statistics()
+	}
+
+	clog.Infof("[id = %d] Nats connected! [reply = %s]", p.id, p.reply)
 }
 
 func (p *Connect) Subs() []*nats.Subscription {
-	return p.subs
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	return append([]*nats.Subscription(nil), p.subs...)
 }
 
 func (p *Connect) Close() {
-	if p.IsConnected() {
-		for _, sub := range p.subs {
-			sub.Unsubscribe()
-		}
-
-		p.Conn.Close()
-
-		// 连接关闭后清理残留的 waiters（防御性编程）
-		p.clearWaiters()
+	p.mu.Lock()
+	if p.Conn == nil {
+		p.mu.Unlock()
+		return
 	}
+
+	stopStats := p.stopStats
+	p.stopStats = nil
+	subs := append([]*nats.Subscription(nil), p.subs...)
+	p.subs = nil
+	conn := p.Conn
+	p.mu.Unlock()
+
+	if stopStats != nil {
+		close(stopStats)
+	}
+
+	for _, sub := range subs {
+		sub.Unsubscribe()
+	}
+
+	conn.Close()
+	p.clearWaiters()
+
+	clog.Infof("[id = %d] Nats closed", p.id)
 }
 
 func (p *Connect) statistics() {
+	p.mu.Lock()
+	stopStats := p.stopStats
+	p.mu.Unlock()
+	if stopStats == nil {
+		return
+	}
+
+	ticker := time.NewTicker(30 * time.Second)
+	defer ticker.Stop()
+
 	for {
-		ticker := time.NewTicker(30 * time.Second)
-		for range ticker.C {
-			for _, sub := range p.subs {
+		select {
+		case <-ticker.C:
+			subs := p.Subs()
+
+			for _, sub := range subs {
 				if dropped, err := sub.Dropped(); err != nil {
 					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
 						sub.Subject,
@@ -114,6 +160,9 @@ func (p *Connect) statistics() {
 				stats.OutBytes,
 				stats.Reconnects,
 			)
+		case <-stopStats:
+			clog.Infof("[id = %d] Statistics goroutine stopped", p.id)
+			return
 		}
 	}
 }
@@ -139,10 +188,9 @@ func (p *Connect) initReplySubscribe() {
 			return
 		}
 
-		// LoadAndDelete 获取 channel 所有权，如果不存在说明请求方已超时处理
+		// LoadAndDelete takes ownership of the waiting channel.
 		if chMsg, ok := p.waiters.LoadAndDelete(reqID); ok {
 			ch := chMsg.(chan *nats.Msg)
-			// 直接发送到 buffered channel，请求方已准备好等待
 			ch <- msg
 			close(ch)
 		}
@@ -155,8 +203,13 @@ func (p *Connect) initReplySubscribe() {
 }
 
 func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
+	conn := p.Conn
+	if conn == nil {
+		return nil, fmt.Errorf("nats connection is nil")
+	}
+
 	timeout := GetTimeout(tod...)
-	natsMsg, err := p.Conn.Request(subject, data, timeout)
+	natsMsg, err := conn.Request(subject, data, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -165,6 +218,11 @@ func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]
 }
 
 func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
+	conn := p.Conn
+	if conn == nil {
+		return nil, fmt.Errorf("nats connection is nil")
+	}
+
 	timeout := GetTimeout(tod...)
 
 	reqID := strconv.FormatUint(atomic.AddUint64(&p.seq, 1), 10)
@@ -177,7 +235,7 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 	natsMsg.Header.Set(REQ_ID, reqID)
 	natsMsg.Data = data
 
-	err := p.PublishMsg(natsMsg.Msg)
+	err := conn.PublishMsg(natsMsg.Msg)
 	natsMsg.Release()
 
 	if err != nil {
@@ -205,27 +263,37 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 }
 
 func (p *Connect) Subscribe(subject string, cb nats.MsgHandler) error {
-	sub, err := p.Conn.Subscribe(subject, cb)
+	conn := p.Conn
+	if conn == nil {
+		return fmt.Errorf("nats connection is nil")
+	}
+
+	sub, err := conn.Subscribe(subject, cb)
 	if err != nil {
 		return err
 	}
 
-	if sub != nil {
-		p.subs = append(p.subs, sub)
-	}
+	p.mu.Lock()
+	p.subs = append(p.subs, sub)
+	p.mu.Unlock()
 
 	return nil
 }
 
 func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) error {
-	sub, err := p.Conn.QueueSubscribe(subject, queue, cb)
+	conn := p.Conn
+	if conn == nil {
+		return fmt.Errorf("nats connection is nil")
+	}
+
+	sub, err := conn.QueueSubscribe(subject, queue, cb)
 	if err != nil {
 		return err
 	}
 
-	if sub != nil {
-		p.subs = append(p.subs, sub)
-	}
+	p.mu.Lock()
+	p.subs = append(p.subs, sub)
+	p.mu.Unlock()
 
 	return nil
 }
@@ -245,7 +313,6 @@ func (p *Connect) natsOptions() []nats.Option {
 		if err != nil {
 			clog.Warnf("[id = %d] Disconnect error. [error = %v]", p.id, err)
 		}
-		// 连接断开时清理所有等待中的请求
 		p.clearWaiters()
 	}))
 
@@ -257,7 +324,6 @@ func (p *Connect) natsOptions() []nats.Option {
 		if nc.LastError() != nil {
 			clog.Infof("[id = %d] error = %v", p.id, nc.LastError())
 		}
-		// 连接关闭时清理所有等待中的请求
 		p.clearWaiters()
 	}))
 

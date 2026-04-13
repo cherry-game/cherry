@@ -1,145 +1,72 @@
-# net/nats - NATS 连接池
+# net/nats
 
-## 概述
+## 角色
 
-NATS 连接池管理，支持多连接、自动重连、请求超时、统计监控等功能。
+`net/nats` 是框架底层 NATS 客户端封装，负责连接池、请求响应、订阅管理、对象池和部分并发清理。
 
-## 目录结构
+## 真实入口
 
-```
-net/nats/
-├── connect_pool.go  # 连接池管理
-├── connect.go       # 单连接实现（Subscribe, Request, Publish）
-├── msg_pool.go      # NatsMsg 消息对象池
-└── timer_pool.go    # Timer 对象池
-```
+- [connect_pool.go](./connect_pool.go:19)
+- [connect.go](./connect.go:20)
 
-## 查找指南
+## 全局状态
 
-| 任务 | 位置 | 说明 |
-|------|----------|------|
-| 创建连接池 | `connect_pool.go:19` | `NewConnectPool(replySubject, config, isConnect)` |
-| 获取连接池列表 | `connect_pool.go:54` | `GetConnectPool()` |
-| 获取单个连接 | `connect_pool.go:58` | `GetConnect()` 轮询获取 |
-| 关闭连接池 | `connect_pool.go:63` | `CloseConnectPool()` |
-| 连接服务器 | `connect.go:55` | `Connect()` 自动重连 |
-| 发布消息 | `connect.go:180` | `PublishMsg(msg)` |
-| 同步请求 | `connect.go:167` | `RequestSync(subject, data, timeout)` |
-| 订阅消息 | `connect.go:207` | `Subscribe(subject, cb)` |
-| 获取消息对象 | `msg_pool.go:21` | `GetNatsMsg()` 从池获取 |
-| 释放消息对象 | `msg_pool.go:29` | `NatsMsg.Release()` 归还池 |
-| 获取 Timer | `timer_pool.go` | `acquireTimer(timeout)` |
-| 释放 Timer | `timer_pool.go` | `releaseTimer(timer)` |
+这里不是实例化对象模型，而是包级全局：
 
-## 连接池特性
+- `connectPool`
+- `connectSize`
+- `reconnectDelay`
+- `requestTimeout`
 
-**轮询获取** (`connect_pool.go:58-61`):
-```go
-func GetConnect() *Connect {
-    index := atomic.AddUint64(roundIndex, 1)
-    return connectPool[index%connectSize]  // 轮询分配
-}
-```
+这意味着同进程默认共享一个连接池，重新初始化时要考虑旧状态残留。
 
-**自动重连** (`connect.go:60-76`):
-- 连接失败后每 3 秒重试
-- 支持配置最大重连次数
+## 关键行为
 
-**请求超时**:
-- 默认超时: 2 秒
-- 可通过配置 `request_timeout` 调整
+- `Connect()`：
+  - 首次连接失败会按固定间隔重试
+  - 成功后初始化 reply 订阅
+  - 如果开启统计，会启动独立 goroutine
+- `Request()`：
+  - 直接使用 NATS 自带请求
+- `RequestSync()`：
+  - 在本连接内分配唯一 `reqID`
+  - 把 waiter 登记到 `waiters`
+  - 通过 reply subject 发请求
+  - 等待响应、超时或断线清理
+- `Subscribe()`：
+  - 会记录到 `subs`
+  - 便于关闭时统一取消订阅
 
-## 配置参数
+## 并发约束
 
-```json
-{
-  "address": "nats://127.0.0.1:4222",
-  "user": "",               // 用户名（可选）
-  "password": "",           // 密码（可选）
-  "pool_size": 1,           // 连接池大小
-  "max_reconnects": 10,     // 最大重连次数
-  "reconnect_delay": 1,     // 重连延迟（秒）
-  "request_timeout": 2,     // 请求超时（秒）
-  "is_stats": false         // 是否开启统计
-}
-```
+- `waiters.LoadAndDelete` 用来避免重复关闭 channel
+- 断线、关闭、超时都会尝试清理 waiter
+- `Connect.Conn` 在首次成功连接后保持稳定；运行期重连由 `nats.Conn` 自己处理
+- `mu` 主要保护本 wrapper 的局部可变状态，如 `subs` 和 `stopStats`
+- 不要在持有 `mu` 时调用 `Subscribe()`，避免重入死锁
 
-## 关键结构
+## 对象池
 
-**Connect** (`connect.go:19-28`):
-```go
-type Connect struct {
-    *nats.Conn       // NATS 连接
-    id      int      // 连接 ID
-    seq     uint64   // 请求序列号
-    waiters sync.Map // 等待响应的请求
-    subs    []*nats.Subscription // 订阅列表
-    reply   string   // 响应 subject
-}
-```
+- `msg_pool.go` 复用 `nats.Msg`
+- `timer_pool.go` 复用 `time.Timer`
 
-**NatsMsg** (`msg_pool.go:17-19`):
-```go
-type NatsMsg struct {
-    *nats.Msg
-}
+如果改请求逻辑，要一起检查对象池释放路径。
 
-func (m *NatsMsg) Release()  // 归还对象池
-```
+## 常见坑
 
-## RequestSync 实现原理
+- `RequestSync` 超时后，晚到响应会变成无主响应
+- 断线时 `waiters` 会被清空，上层调用方要自己考虑重试
+- reply subject 是每个连接一个，不是全局唯一队列
+- `CloseConnectPool()` 不会自动重置所有包级变量
 
-1. 生成唯一 reqID（每个 Connect 独立计数）
-2. 创建等待 channel
-3. 从 NatsMsg 池获取消息对象
-4. 发送消息，Header 携带 reqID
-5. 从 Timer 池获取 Timer，等待响应或超时
-6. 归还 NatsMsg 和 Timer 到池
+## 联动检查
 
-**并发安全设计**:
-- `LoadAndDelete` 原子操作，防止 channel 双重关闭
-- 阻塞发送响应，防止消息丢失
-- Disconnect/Close 回调清理 waiters
+- 改 `connect_pool.go`：同步检查 `net/cluster/`、`net/discovery/`
+- 改 `connect.go`：同步检查 `RequestSync` 调用方和超时语义
+- 改 reply subject：同步检查 `net/cluster/nats_cluster/cluster.go`
+- 改对象池：同步检查 `msg_pool.go`、`timer_pool.go`
+## 2026-04-13 mutex note
 
-## 对象池设计
-
-**NatsMsg 池** (`msg_pool.go`):
-```go
-msg := GetNatsMsg()
-msg.Subject = subject
-msg.Data = data
-p.PublishMsg(msg.Msg)
-msg.Release()  // 归还池
-```
-
-**Timer 池** (`timer_pool.go`):
-```go
-timer := acquireTimer(timeout)
-defer releaseTimer(timer)
-select {
-case resp := <-ch:
-    return resp.Data
-case <-timer.C:
-    // timeout
-}
-```
-
-## 统计监控
-
-开启 `is_stats: true` 后，每 30 秒输出：
-- InMsgs / OutMsgs: 收发消息数
-- InBytes / OutBytes: 收发字节
-- Reconnects: 重连次数
-
-## 项目约定
-
-- 使用对象池 (`msg_pool.go`, `timer_pool.go`) 减少 GC
-- 所有订阅在连接关闭时自动取消
-- reqID 在 Reply Subject 级别唯一，非全局唯一
-
-## 注意事项
-
-- 连接池大小建议与并发请求量匹配
-- `RequestSync` 超时后会清理等待 channel
-- 重连时 NATS 自动恢复订阅，无需重新订阅
-- Disconnect 回调会清理所有等待中的请求
+- `Connect` now uses `sync.Mutex` instead of `sync.RWMutex`.
+- Hot paths such as `Request()` and `RequestSync()` should continue to use the stable `*nats.Conn` pointer directly and must not take `mu`.
+- `mu` is only for wrapper-owned mutable state like `subs` and `stopStats`.

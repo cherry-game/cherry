@@ -1,114 +1,72 @@
-# net/actor - Actor Model 实现
+# net/actor
 
-## 概述
+## 角色
 
-Actor 系统核心实现，每个 Actor 独立运行在单个 goroutine，逻辑串行处理。
+`net/actor` 是框架执行内核。每个 Actor 独占 goroutine，通过串行消费消息来承接状态和会话逻辑。
 
-## 目录结构
+## 真实入口
 
-```
-net/actor/
-├── actor.go          # Actor 实体定义、消息循环
-├── actor_base.go     # Actor 基础功能扩展
-├── actor_child.go    # 子 Actor 管理
-├── actor_mailbox.go  # 消息邮箱（Local/Remote 队列）
-├── actor_timer.go    # 定时器管理
-├── actor_event.go    # 事件订阅处理
-├── system.go         # Actor 系统管理器
-├── component.go      # Actor 组件（注册到 Application）
-├── invoke.go         # 函数调用实现
-├── queue.go          # 消息队列
-├── timer.go          # 定时器接口
-├── const.go          # Actor 常量、错误定义
-└── facade.go         # 接口定义
-```
+- [component.go](./component.go:9)
+- [system.go](./system.go:17)
+- [actor.go](./actor.go)
 
-## 查找指南
+## 启动链
 
-| 任务 | 位置 | 说明 |
-|------|----------|-------|
-| 创建 Actor | `system.go:119` | `CreateActor(id, handler)` |
-| Actor 生命周期 | `actor.go:57-66` | `run()` → `onInit()` → `loop()` → `onStop()` |
-| 发送消息 | `actor.go:367-372` | `PostRemote()`, `PostLocal()` |
-| 函数调用 | `actor.go:186-237` | `invokeFunc()` - 反射调用 |
-| 子 Actor | `actor_child.go` | `Create()`, `Get()`, `Remove()` |
-| 定时器 | `actor_timer.go` | `AddTimer()`, `RemoveTimer()` |
-| 事件订阅 | `actor_event.go` | `Subscribe()`, `Unsubscribe()` |
+1. `Application.Startup()` 自动注册 `actor_component`
+2. `actor_component.Init()` 注入 `app` 到 `System`
+3. `actor_component.OnAfterInit()` 遍历 `AddActors(...)` 收集到的 handler
+4. 每个 handler 通过 `CreateActor()` 创建真实 Actor 并启动 goroutine
 
-## 关键接口
+## 关键行为
 
-```go
-// IActorHandler - Actor 处理器合约
-type IActorHandler interface {
-    AliasID() string                          // Actor ID
-    OnInit()                                  // 启动前触发
-    OnStop()                                  // 停止前触发
-    OnLocalReceived(m *Message) (bool, bool)  // 本地消息处理
-    OnRemoteReceived(m *Message) (bool, bool) // 远程消息处理
-    OnFindChild(m *Message) (IActor, bool)    // 查找子 Actor
-}
+- `CreateActor()`：
+  - `actorID` 为空会报错
+  - 同名 Actor 已存在时直接返回已有实例
+  - 创建成功后立即 `go thisActor.run()`
+- `Call()`：
+  - 本机节点走本地 `Remote` 队列
+  - 跨节点调用会序列化参数并转成 `ClusterPacket`
+- `CallWait()`：
+  - 本地调用走 `ChanResult`
+  - 跨节点调用走 `Cluster.RequestRemote`
+  - `source == target` 会直接返回错误码
+- `PostLocal()` / `PostRemote()`：
+  - 按路径查找 Actor 或子 Actor
+  - 再投递到对应邮箱
 
-// IActor - Actor 实例接口
-type IActor interface {
-    App() IApplication
-    ActorID() string
-    Path() *ActorPath
-    Call(targetPath, funcName string, arg any) int32
-    CallWait(targetPath, funcName string, arg, reply any) int32
-    PostRemote(m *Message)
-    PostLocal(m *Message)
-    Exit()
-}
-```
+## 运行模型
 
-## 消息流转
+Actor 主循环会串行处理这些输入：
 
-**三种消息队列**:
-1. **Local Mailbox** - 客户端发来的本地消息
-2. **Remote Mailbox** - Actor 间远程调用消息
-3. **Event Queue** - 订阅发布的事件消息
+- `Local` 邮箱
+- `Remote` 邮箱
+- `Event` 队列
+- `Timer`
+- `close` 信号
 
-**处理顺序**: FIFO，每类消息独立队列
+默认超时见 [system.go:30](./system.go:30)：
 
-**消息循环** (`actor.go:68-101`):
-```go
-select {
-case <-p.localMail.C:    processLocal()
-case <-p.remoteMail.C:   processRemote()
-case <-p.event.C:        processEvent()
-case <-p.timer.C:        processTimer()
-case <-p.close:          state = StopState
-}
-```
+- `callTimeout = 3s`
+- `arrivalTimeOut = 100ms`
+- `executionTimeout = 100ms`
 
-## 项目约定
+这几个值是 Actor 处理链路的超时保护，不是网络超时。
 
-- Actor 路径格式: `{nodeID}.{actorID}.{childID}`
-- 状态机: `InitState(0)` → `WorkerState(1)` → `FreeState(2)` → `StopState(3)`
-- 停止时等待所有队列清空后才退出
-- 子 Actor 不能再创建子 Actor（层级限制）
+## 局部约束
 
-## 反模式
+- 子 Actor 只能由父 Actor 创建；子 Actor 不能继续创建子 Actor
+- 子 Actor 路径格式为 `node.actor.child`
+- `System.Stop()` 会等待全部 Actor 退出；单个 Actor 卡住会拖住整个应用停机
 
-- 子 Actor 尝试创建子 Actor → 日志警告并返回 nil
-- ActorID 为空 → 返回 `ErrActorIDIsNil`
-- 消息超时: `arrivalTimeOut` (100ms), `executionTimeout` (100ms)
+## 常见坑
 
-## 示例代码
+- 上层如果假设 handler 可并发执行，会和 Actor 串行模型冲突
+- `CreateActor()` 是幂等返回已有实例，不会替换旧 handler
+- 子 Actor 生命周期依附父 Actor，排查问题别只看顶层 Actor
 
-```go
-// 创建 Actor 处理器
-type MyActor struct {
-    cherryActor.Base
-}
+## 联动检查
 
-func (p *MyActor) AliasID() string { return "my-actor" }
-func (p *MyActor) OnInit() { /* 初始化 */ }
-func (p *MyActor) OnLocalReceived(m *cfacade.Message) (bool, bool) {
-    // 处理本地消息
-    return true, true // next=true, invoke=true
-}
-
-// 注册
-appBuilder.AddActors(&MyActor{})
-```
+- 改 `system.go`：同步检查 `facade/actor.go`、`net/cluster/`、`code/code.go`、`error/error.go`
+- 改 `actor.go`：同步检查 `facade/message.go`、`invoke.go`、`actor_mailbox.go`
+- 改 `invoke.go`：同步检查 `extend/reflect/`、`facade/actor.go`
+- 改 `actor_child.go`：同步检查 `facade/message.go` 和路径规则

@@ -1,123 +1,61 @@
-# net/discovery - 节点发现服务
+# net/discovery
 
-## 概述
+## 角色
 
-提供节点注册、发现、监听功能，支持三种实现方式：default（配置文件）、nats（master-client模式）、etcd（第三方组件）。
+`net/discovery` 负责节点成员发现与成员表维护。当前核心实现是 `default` 和 `nats`。
 
-## 目录结构
+## 真实入口
 
-```
-net/discovery/
-├── discovery.go           # 发现服务注册管理
-├── component.go           # 发现服务组件
-├── discovery_default.go   # 默认实现（读取 profile 配置）
-├── discovery_master.go    # NATS master-client 实现
-└── discovery_etcd.go      # etcd 实现（引用 components/etcd）
-```
+- [component.go](./component.go:13)
+- [discovery.go](./discovery.go:18)
 
-## 查找指南
+## 模式
 
-| 任务 | 位置 | 说明 |
-|------|----------|------|
-| 注册发现服务 | `discovery.go:18` | `Register(discovery)` |
-| 创建组件 | `component.go:18` | `New()` 创建组件 |
-| 加载节点 | `discovery_default.go:28` | 从 profile 加载节点信息 |
-| 获取成员 | `discovery_default.go:126` | `GetMember(nodeID)` |
-| 按类型获取 | `discovery_default.go:86` | `ListByType(nodeType)` |
-| 随机获取 | `discovery_default.go:103` | `Random(nodeType)` |
-| 添加成员监听 | `discovery_default.go:164` | `OnAddMember(listener)` |
+配置入口见 [component.go:27](./component.go:27)：
 
-## 关键接口
+- `default`
+- `nats`
+- `etcd`
 
-**IDiscovery** (`facade/cluster.go:11-24`):
-```go
-type IDiscovery interface {
-    Load(app IApplication)
-    Name() string                                                 // 发现服务名称
-    Map() map[string]IMember                                      // 获取成员列表
-    ListByType(nodeType string, filterNodeID ...string) []IMember // 按类型获取列表
-    Random(nodeType string) (IMember, bool)                       // 随机获取
-    GetType(nodeID string) (nodeType string, err error)           // 获取节点类型
-    GetMember(nodeID string) (member IMember, found bool)         // 获取成员
-    AddMember(member IMember)                                     // 添加成员
-    RemoveMember(nodeID string)                                   // 移除成员
-    OnAddMember(listener MemberListener)                          // 添加监听
-    OnRemoveMember(listener MemberListener)                       // 移除监听
-    Stop()
-}
-```
+协作时优先关注前两者；`etcd` 更像扩展点。
 
-## 三种实现方式
+## 关键实现
 
-### 1. default（默认）
+- `default`：
+  - 直接从 profile 读取节点表
+  - 适合开发、测试、静态配置
+  - 不做动态注册和心跳剔除
+- `nats`：
+  - master 维护成员表
+  - client 向 master 注册并持续心跳
+  - master 后台检查超时节点并广播移除事件
 
-- 从 profile 配置文件读取节点信息
-- 适用场景：开发测试、静态节点配置
-- 配置位置：`profile.json` → `node` 字段
-- 模式名称：`default`
+关键后台循环在 [discovery_master.go](./discovery_master.go)：
 
-### 2. nats（master-client）
+- `send2Master()`
+- `heartbeatCheck()`
 
-- master 节点管理所有注册信息
-- client 启动时向 master 注册
-- 支持心跳检测、超时移除
-- 适用场景：动态节点、生产环境
-- 模式名称：`nats`
-- 配置：
-```json
-{
-  "cluster": {
-    "discovery": {
-      "mode": "nats"
-    },
-    "nats": {
-      "master_node_id": "master-1"
-    }
-  }
-}
-```
+## 配置重点
 
-### 3. etcd
+- `cluster.discovery.mode`
+- `cluster.nats.prefix`
+- `cluster.nats.master_node_id`
+- 当前节点 `__settings__.cluster_heartbeat_timeout`
 
-- 基于 etcd 实现
-- 实际代码在 `components/etcd` 仓库
-- 模式名称：`etcd`
+## 局部约束
 
-## 配置切换
+- `nats` 模式排障要同时看 discovery 和 NATS 连接状态
+- 上层感知成员变化主要依赖 `OnAddMember` / `OnRemoveMember`
+- 节点成员结构变更会影响 `facade/cluster.go` 和 `net/proto/`
 
-通过 `cluster.discovery.mode` 切换：
-```json
-{
-  "cluster": {
-    "discovery": {
-      "mode": "default"  // 或 "nats"、"etcd"
-    }
-  }
-}
-```
+## 常见坑
 
-## 成员监听
+- `mode` 配错时 discovery 不会正常加载
+- `nats` 模式必须配置 `master_node_id`
+- `default` 模式不会动态感知新节点
 
-```go
-// 监听节点添加
-app.Discovery().OnAddMember(func(member cfacade.IMember) {
-    clog.Infof("新节点加入: %s", member.GetNodeID())
-})
+## 联动检查
 
-// 监听节点移除
-app.Discovery().OnRemoveMember(func(member cfacade.IMember) {
-    clog.Infof("节点离线: %s", member.GetNodeID())
-})
-```
-
-## 项目约定
-
-- 组件名称: `discovery_component`
-- 自动注册 default 和 nats 实现（init 函数）
-- IMember 使用 `cproto.Member` 实现
-
-## 注意事项
-
-- default 模式仅适合开发测试，不支持动态节点
-- nats 模式需配置 `master_node_id`
-- 心跳超时可通过节点 `__settings__.cluster_heartbeat_timeout` 配置（毫秒）
+- 改 `component.go`：同步检查 `profile/`、`cherry.go`
+- 改 `discovery_default.go`：同步检查 `profile/node.go`
+- 改 `discovery_master.go`：同步检查 `net/nats/`、`net/proto/`、`profile/`
