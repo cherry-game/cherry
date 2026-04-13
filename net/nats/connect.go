@@ -18,15 +18,15 @@ const (
 
 type (
 	Connect struct {
-		*nats.Conn
-		mu sync.Mutex // protect local mutable state: subs / stopStats
 		options
-		id        int
-		seq       uint64
-		waiters   sync.Map // map[string]chan *nats.Msg
-		subs      []*nats.Subscription
-		reply     string        // request reply subject
-		stopStats chan struct{} // notify statistics goroutine to exit
+		*nats.Conn
+		mu        sync.Mutex           // protect local mutable state: subs / stopStats
+		id        int                  // connect id
+		seq       uint64               // seq value
+		waiters   sync.Map             // map[string]chan *nats.Msg
+		subs      []*nats.Subscription // subscription list
+		reply     string               // request reply subject
+		stopStats chan struct{}        // notify statistics goroutine to exit
 	}
 
 	options struct {
