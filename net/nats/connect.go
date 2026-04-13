@@ -30,11 +30,12 @@ type (
 	}
 
 	options struct {
-		address       string
-		maxReconnects int
-		user          string
-		password      string
-		isStats       bool
+		address       string        // NATS server address.
+		maxReconnects int           // Maximum reconnect attempts handled by nats.Conn.
+		user          string        // Optional NATS auth username.
+		password      string        // Optional NATS auth password.
+		isStats       bool          // Whether to start the statistics goroutine.
+		statsInterval time.Duration // Statistics reporting interval. Defaults to 30 seconds when unset.
 	}
 	OptionFunc func(o *options)
 )
@@ -134,7 +135,7 @@ func (p *Connect) statistics() {
 		return
 	}
 
-	ticker := time.NewTicker(30 * time.Second)
+	ticker := time.NewTicker(p.StatsInterval())
 	defer ticker.Stop()
 
 	for {
@@ -351,6 +352,14 @@ func (p *options) MaxReconnects() int {
 	return p.maxReconnects
 }
 
+func (p *options) StatsInterval() time.Duration {
+	if p.statsInterval <= 0 {
+		return 30 * time.Second
+	}
+
+	return p.statsInterval
+}
+
 func WithAddress(address string) OptionFunc {
 	return func(opts *options) {
 		opts.address = address
@@ -373,5 +382,11 @@ func WithAuth(user, password string) OptionFunc {
 func WithIsStats(isStats bool) OptionFunc {
 	return func(opts *options) {
 		opts.isStats = isStats
+	}
+}
+
+func WithStatsInterval(seconds int) OptionFunc {
+	return func(opts *options) {
+		opts.statsInterval = time.Duration(seconds) * time.Second
 	}
 }

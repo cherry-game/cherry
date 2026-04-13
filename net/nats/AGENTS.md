@@ -70,3 +70,4 @@
 - `Connect` now uses `sync.Mutex` instead of `sync.RWMutex`.
 - Hot paths such as `Request()` and `RequestSync()` should continue to use the stable `*nats.Conn` pointer directly and must not take `mu`.
 - `mu` is only for wrapper-owned mutable state like `subs` and `stopStats`.
+- `stats_interval` is configured in seconds; when omitted or set to `<= 0`, the statistics loop falls back to 30 seconds.
