@@ -30,12 +30,14 @@ type (
 	}
 
 	options struct {
-		address       string        // NATS server address.
-		maxReconnects int           // Maximum reconnect attempts handled by nats.Conn.
-		user          string        // Optional NATS auth username.
-		password      string        // Optional NATS auth password.
-		isStats       bool          // Whether to start the statistics goroutine.
-		statsInterval time.Duration // Statistics reporting interval. Defaults to 30 seconds when unset.
+		address        string        // NATS server address.
+		reconnectDelay time.Duration // Reconnect backoff interval. Defaults to 1 second when unset.
+		requestTimeout time.Duration // Default request timeout. Defaults to 2 seconds when unset.
+		maxReconnects  int           // Maximum reconnect attempts handled by nats.Conn.
+		user           string        // Optional NATS auth username.
+		password       string        // Optional NATS auth password.
+		isStats        bool          // Whether to start the statistics goroutine.
+		statsInterval  time.Duration // Statistics reporting interval. Defaults to 30 seconds when unset.
 	}
 	OptionFunc func(o *options)
 )
@@ -209,7 +211,7 @@ func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]
 		return nil, fmt.Errorf("nats connection is nil")
 	}
 
-	timeout := GetTimeout(tod...)
+	timeout := p.Timeout(tod...)
 	natsMsg, err := conn.Request(subject, data, timeout)
 	if err != nil {
 		return nil, err
@@ -224,7 +226,7 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 		return nil, fmt.Errorf("nats connection is nil")
 	}
 
-	timeout := GetTimeout(tod...)
+	timeout := p.Timeout(tod...)
 
 	reqID := strconv.FormatUint(atomic.AddUint64(&p.seq, 1), 10)
 	ch := make(chan *nats.Msg, 1)
@@ -302,7 +304,7 @@ func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) erro
 func (p *Connect) natsOptions() []nats.Option {
 	var opts []nats.Option
 
-	if reconnectDelay > 0 {
+	if reconnectDelay := p.ReconnectDelay(); reconnectDelay > 0 {
 		opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	}
 
@@ -352,6 +354,22 @@ func (p *options) MaxReconnects() int {
 	return p.maxReconnects
 }
 
+func (p *options) ReconnectDelay() time.Duration {
+	if p.reconnectDelay <= 0 {
+		return 1 * time.Second
+	}
+
+	return p.reconnectDelay
+}
+
+func (p *options) RequestTimeout() time.Duration {
+	if p.requestTimeout <= 0 {
+		return 2 * time.Second
+	}
+
+	return p.requestTimeout
+}
+
 func (p *options) StatsInterval() time.Duration {
 	if p.statsInterval <= 0 {
 		return 30 * time.Second
@@ -360,9 +378,33 @@ func (p *options) StatsInterval() time.Duration {
 	return p.statsInterval
 }
 
+func (p *Connect) ReconnectDelay() time.Duration {
+	return p.options.ReconnectDelay()
+}
+
+func (p *Connect) Timeout(tod ...time.Duration) time.Duration {
+	if len(tod) > 0 {
+		return tod[0]
+	}
+
+	return p.options.RequestTimeout()
+}
+
 func WithAddress(address string) OptionFunc {
 	return func(opts *options) {
 		opts.address = address
+	}
+}
+
+func WithReconnectDelay(delay time.Duration) OptionFunc {
+	return func(opts *options) {
+		opts.reconnectDelay = delay
+	}
+}
+
+func WithRequestTimeout(timeout time.Duration) OptionFunc {
+	return func(opts *options) {
+		opts.requestTimeout = timeout
 	}
 }
 

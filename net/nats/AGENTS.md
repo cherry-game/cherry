@@ -14,7 +14,6 @@
 这里不是实例化对象模型，而是包级全局：
 
 - `connectPool`
-- `connectSize`
 - `reconnectDelay`
 - `requestTimeout`
 
@@ -71,3 +70,8 @@
 - Hot paths such as `Request()` and `RequestSync()` should continue to use the stable `*nats.Conn` pointer directly and must not take `mu`.
 - `mu` is only for wrapper-owned mutable state like `subs` and `stopStats`.
 - `stats_interval` is configured in seconds; when omitted or set to `<= 0`, the statistics loop falls back to 30 seconds.
+- `reconnect_delay` and `request_timeout` are stored on each `Connect` instance via `options`, not as package-level globals.
+## 2026-04-13 pool and timer note
+
+- `NewConnectPool()` and `CloseConnectPool()` now reset the package-level pool state before rebuilding or after shutdown.
+- `timer_pool.go` keeps pooled timers in a stopped and drained state before `Reset`, to avoid stale ticks causing false timeouts.

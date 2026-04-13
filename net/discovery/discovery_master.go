@@ -81,7 +81,7 @@ func (m *DiscoveryMaster) loadMember() {
 		Address:          m.app.RpcAddress(),
 		LastAt:           ctime.Now().ToMillisecond(),
 		HeartbeatTimeout: clusterHeartbeatTimeout,
-		//Settings: make(map[string]string),
+		Settings:         make(map[string]string),
 	}
 
 	if err := m.preloadMarshal(); err != nil {
@@ -251,7 +251,7 @@ func (m *DiscoveryMaster) heartbeatCheck() {
 			return true
 		})
 
-		time.Sleep(cnats.ReconnectDelay()) // sleep x second
+		time.Sleep(time.Second) // sleep x second
 	}
 }
 

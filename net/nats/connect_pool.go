@@ -9,30 +9,30 @@ import (
 )
 
 var (
-	connectPool    []*Connect                      // connect pool
-	connectSize    uint64                          // connect size
-	roundIndex     *uint64       = new(uint64)     // round-robin index
-	reconnectDelay time.Duration = 1 * time.Second // reconnect delay
-	requestTimeout time.Duration = 2 * time.Second // request timeout
+	connectPool []*Connect               // connect pool
+	roundIndex  *uint64    = new(uint64) // round-robin index
 )
 
 func NewConnectPool(replySubject string, config cfacade.ProfileJSON, isConnect bool) {
-	reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
-	requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
+	resetConnectPool()
 
 	var (
-		address       = config.GetString("address")
-		user          = config.GetString("user")
-		pwd           = config.GetString("password")
-		maxReconnects = config.GetInt("max_reconnects")
-		poolSize      = config.GetInt("pool_size", 1)
-		isStats       = config.GetBool("is_stats")
-		statsInterval = config.GetInt("stats_interval", 30)
+		address        = config.GetString("address")
+		user           = config.GetString("user")
+		pwd            = config.GetString("password")
+		maxReconnects  = config.GetInt("max_reconnects")
+		poolSize       = config.GetInt("pool_size", 1)
+		isStats        = config.GetBool("is_stats")
+		statsInterval  = config.GetInt("stats_interval", 30)
+		reconnectDelay = config.GetDuration("reconnect_delay", 1) * time.Second
+		requestTimeout = config.GetDuration("request_timeout", 1) * time.Second
 	)
 
 	for id := 1; id <= poolSize; id++ {
 		conn := NewConnect(id, replySubject,
 			WithAddress(address),
+			WithReconnectDelay(reconnectDelay),
+			WithRequestTimeout(requestTimeout),
 			WithAuth(user, pwd),
 			WithParams(maxReconnects),
 			WithIsStats(isStats),
@@ -41,8 +41,6 @@ func NewConnectPool(replySubject string, config cfacade.ProfileJSON, isConnect b
 
 		connectPool = append(connectPool, conn)
 	}
-
-	connectSize = uint64(len(connectPool))
 
 	if isConnect {
 		for _, conn := range connectPool {
@@ -58,25 +56,31 @@ func GetConnectPool() []*Connect {
 }
 
 func GetConnect() *Connect {
+	size := connectPoolSize()
+	if size == 0 {
+		return nil
+	}
+
 	index := atomic.AddUint64(roundIndex, 1)
-	return connectPool[index%connectSize]
+	return connectPool[index%size]
 }
 
 func CloseConnectPool() {
-	for _, conn := range connectPool {
-		conn.Close()
-	}
-	clog.Infof("Nats connect pool execute Close() [connectSize = %d]", connectSize)
+	resetConnectPool()
 }
 
-func ReconnectDelay() time.Duration {
-	return reconnectDelay
-}
-
-func GetTimeout(tod ...time.Duration) time.Duration {
-	if len(tod) > 0 {
-		return tod[0]
+func resetConnectPool() {
+	if len(connectPool) > 0 {
+		for _, conn := range connectPool {
+			conn.Close()
+		}
+		clog.Infof("Nats connect pool execute Close() [connectSize = %d]", connectPoolSize())
 	}
 
-	return requestTimeout
+	connectPool = nil
+	atomic.StoreUint64(roundIndex, 0)
+}
+
+func connectPoolSize() uint64 {
+	return uint64(len(connectPool))
 }
