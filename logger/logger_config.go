@@ -13,6 +13,7 @@ type (
 	Config struct {
 		LogLevel        string `json:"level"`             // 输出日志等级
 		StackLevel      string `json:"stack_level"`       // 堆栈输出日志等级
+		EncoderType     string `json:"encoder_type"`      // 编码器类型(console/json)
 		EnableConsole   bool   `json:"enable_console"`    // 是否控制台输出
 		EnableWriteFile bool   `json:"enable_write_file"` // 是否输出文件(必需配置FilePath)
 		MaxAge          int    `json:"max_age"`           // 最大保留天数(达到限制，则会被清理)
@@ -30,6 +31,7 @@ func defaultConsoleConfig() *Config {
 	config := &Config{
 		LogLevel:        "debug",
 		StackLevel:      "error",
+		EncoderType:     "console",
 		EnableConsole:   true,
 		EnableWriteFile: false,
 		MaxAge:          7,
@@ -48,6 +50,7 @@ func NewConfig(jsonConfig cfacade.ProfileJSON) (*Config, error) {
 	config := &Config{
 		LogLevel:        jsonConfig.GetString("level", "debug"),
 		StackLevel:      jsonConfig.GetString("stack_level", "error"),
+		EncoderType:     jsonConfig.GetString("encoder_type", "console"),
 		EnableConsole:   jsonConfig.GetBool("enable_console", true),
 		EnableWriteFile: jsonConfig.GetBool("enable_write_file", false),
 		MaxAge:          jsonConfig.GetInt("max_age", 7),

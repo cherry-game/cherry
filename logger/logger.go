@@ -154,7 +154,7 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	core := zapcore.NewCore(
-		zapcore.NewConsoleEncoder(encoderConfig),
+		getEncoder(config.EncoderType, encoderConfig),
 		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
 		zap.NewAtomicLevelAt(GetLevel(config.LogLevel)),
 	)
@@ -313,5 +313,14 @@ func GetLevel(level string) zapcore.Level {
 		return zapcore.FatalLevel
 	default:
 		return zapcore.DebugLevel
+	}
+}
+
+func getEncoder(encoderType string, encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
+	switch strings.ToLower(encoderType) {
+	case "json":
+		return zapcore.NewJSONEncoder(encoderConfig)
+	default:
+		return zapcore.NewConsoleEncoder(encoderConfig)
 	}
 }
