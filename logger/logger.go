@@ -167,6 +167,10 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 		zap.NewAtomicLevelAt(GetLevel(config.LogLevel)),
 	)
 
+	for _, v := range wrappers {
+		core = v.Wrap(core)
+	}
+
 	cherryLogger := &CherryLogger{
 		SugaredLogger: zap.New(core, opts...).Sugar(),
 		Config:        config,
