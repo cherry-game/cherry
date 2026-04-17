@@ -204,7 +204,7 @@ func (p *System) Call(source, target, funcName string, arg any) int32 {
 
 		if !p.PostRemote(&remoteMsg) {
 			clog.Warnf("[Call] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
-			return ccode.ActorCallFail
+			return ccode.ActorInvokeRemoteError
 		}
 	}
 
@@ -306,7 +306,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 					target,
 					funcName,
 				)
-				return ccode.ActorCallFail
+				return ccode.ActorInvokeRemoteError
 			}
 		}
 
@@ -319,7 +319,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 						target,
 						funcName,
 					)
-					return ccode.ActorCallFail
+					return ccode.ActorInvokeResultIsNil
 				}
 
 				rsp := result.(*cproto.Response)
@@ -329,7 +329,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 						target,
 						funcName,
 					)
-					return ccode.ActorCallFail
+					return ccode.ActorResponseIsError
 				}
 
 				if ccode.IsFail(rsp.Code) {

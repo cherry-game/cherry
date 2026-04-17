@@ -15,12 +15,15 @@ const (
 	ActorConvertPathError   int32 = 26 // convert to path error
 	ActorMarshalError       int32 = 27 // marshal arg error
 	ActorUnmarshalError     int32 = 28 // unmarshal arg error
-	ActorCallFail           int32 = 29 // actor call fail
+	ActorInvokeResultIsNil  int32 = 29 // actor invoke result is nil
 	ActorSourceEqualTarget  int32 = 30 // source equal target
 	ActorPublishRemoteError int32 = 31 // actor publish remote error
 	ActorChildIDNotFound    int32 = 32 // actor child id not found
 	ActorCallTimeout        int32 = 33 // actor call timeout
 	ActorIDIsNil            int32 = 34 // actor id is nil
+	ActorNotFound           int32 = 35 // actor object not found
+	ActorInvokeRemoteError  int32 = 36 // actor invoke remote error
+	ActorResponseIsError    int32 = 37 // actor response is error
 )
 
 func IsOK(code int32) bool {

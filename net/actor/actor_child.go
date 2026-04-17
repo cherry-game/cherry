@@ -95,5 +95,5 @@ func (p *actorChild) CallWait(childID, funcName string, arg, reply any) int32 {
 		return childActor.CallWait(path, funcName, arg, reply)
 	}
 
-	return cherryCode.ActorCallFail
+	return cherryCode.ActorNotFound
 }
