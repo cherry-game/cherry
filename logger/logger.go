@@ -1,7 +1,6 @@
 package cherryLogger
 
 import (
-	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -14,13 +13,19 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+const (
+	KEY_NODE_TYPE     = "nodetype"
+	KEY_NODE_ID       = "nodeid"
+	ENCODER_JSON_Type = "json"
+)
+
 var (
 	rw             sync.RWMutex             // mutex
 	DefaultLogger  *CherryLogger            // 默认日志对象(控制台输出)
 	loggers        map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	nodeID         string                   // current node id
 	printLevel     zapcore.Level            // cherry log print level
 	fileNameVarMap = map[string]string{}    // 日志输出文件名自定义变量
+	commonFields   = map[string]string{}    // 日志公共字段，每次日志都会输出
 )
 
 func init() {
@@ -38,15 +43,17 @@ func (c *CherryLogger) Print(v ...interface{}) {
 }
 
 func SetNodeLogger(node cfacade.INode) {
-	nodeID = node.NodeID()
 	refLoggerName := node.Settings().Get("ref_logger").ToString()
 	if refLoggerName == "" {
 		DefaultLogger.Infof("RefLoggerName not found, used default console logger.")
 		return
 	}
 
-	SetFileNameVar("nodeid", node.NodeID())     // %nodeid
-	SetFileNameVar("nodetype", node.NodeType()) // %nodetype
+	SetFileNameVar(KEY_NODE_TYPE, node.NodeType())
+	SetFileNameVar(KEY_NODE_ID, node.NodeID())
+
+	SetCommonField(KEY_NODE_TYPE, node.NodeType())
+	SetCommonField(KEY_NODE_ID, node.NodeID())
 
 	DefaultLogger = NewLogger(refLoggerName, zap.AddCallerSkip(1))
 	printLevel = GetLevel(cprofile.PrintLevel())
@@ -54,6 +61,10 @@ func SetNodeLogger(node cfacade.INode) {
 
 func SetFileNameVar(key, value string) {
 	fileNameVarMap[key] = value
+}
+
+func SetCommonField(key, value string) {
+	commonFields[key] = value
 }
 
 func Flush() {
@@ -108,15 +119,12 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	encoderConfig.EncodeLevel = func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
-		if nodeID != "" {
-			encoder.AppendString(fmt.Sprintf("%s  %-5s", nodeID, level.CapitalString()))
-		} else {
-			encoder.AppendString(level.CapitalString())
-		}
+		encoder.AppendString(level.CapitalString())
 	}
 
+	encoderConfig.EncodeTime = config.TimeEncoder()
+
 	if config.PrintCaller {
-		encoderConfig.EncodeTime = config.TimeEncoder()
 		encoderConfig.EncodeName = zapcore.FullNameEncoder
 		encoderConfig.FunctionKey = zapcore.OmitKey
 		opts = append(opts, zap.AddCaller())
@@ -154,22 +162,17 @@ func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
 	}
 
 	core := zapcore.NewCore(
-		getEncoder(config.EncoderType, encoderConfig),
+		getEncoderWithCommonFields(config.EncoderType, encoderConfig, commonFields),
 		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
 		zap.NewAtomicLevelAt(GetLevel(config.LogLevel)),
 	)
 
 	cherryLogger := &CherryLogger{
-		SugaredLogger: NewSugaredLogger(core, opts...),
+		SugaredLogger: zap.New(core, opts...).Sugar(),
 		Config:        config,
 	}
 
 	return cherryLogger
-}
-
-func NewSugaredLogger(core zapcore.Core, opts ...zap.Option) *zap.SugaredLogger {
-	zapLogger := zap.New(core, opts...)
-	return zapLogger.Sugar()
 }
 
 func Enable(level zapcore.Level) bool {
@@ -316,11 +319,23 @@ func GetLevel(level string) zapcore.Level {
 	}
 }
 
-func getEncoder(encoderType string, encoderConfig zapcore.EncoderConfig) zapcore.Encoder {
+func getEncoderWithCommonFields(encoderType string, encoderConfig zapcore.EncoderConfig, commonFields map[string]string) zapcore.Encoder {
 	switch strings.ToLower(encoderType) {
-	case "json":
-		return zapcore.NewJSONEncoder(encoderConfig)
+	case ENCODER_JSON_Type:
+		encoder := zapcore.NewJSONEncoder(encoderConfig)
+		if len(commonFields) > 0 {
+			for key, value := range commonFields {
+				encoder.AddString(key, value)
+			}
+		}
+		return encoder
 	default:
-		return zapcore.NewConsoleEncoder(encoderConfig)
+		encoder := newKVConsoleEncoder(encoderConfig)
+		if len(commonFields) > 0 {
+			for key, value := range commonFields {
+				encoder.AddString(key, value)
+			}
+		}
+		return encoder
 	}
 }
