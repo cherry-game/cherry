@@ -27,9 +27,9 @@ func GetNatsMsg() *NatsMsg {
 }
 
 func (m *NatsMsg) Release() {
-	for k := range m.Header {
-		delete(m.Header, k)
-	}
+	m.Header = nil
+	m.Subject = ""
+	m.Reply = ""
 	m.Data = nil
 	_msgPool.Put(m)
 }
