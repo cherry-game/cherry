@@ -21,7 +21,10 @@ func InvokeLocalFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade
 		return
 	}
 
-	EncodeLocalArgs(app, fi, m)
+	if err := EncodeLocalArgs(app, fi, m); err != nil {
+		clog.Errorf("[InvokeLocalFunc] encode args error. [message = %+v, err = %v]", m, err)
+		return
+	}
 
 	values := make([]reflect.Value, 2)
 	values[0] = reflect.ValueOf(m.Session) // session
@@ -35,7 +38,11 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 		return
 	}
 
-	EncodeRemoteArgs(app, fi, m)
+	if err := EncodeRemoteArgs(app, fi, m); err != nil {
+		clog.Errorf("[InvokeRemoteFunc] encode args error. [message = %+v, err = %v]", m, err)
+		replyReponseCode(m, ccode.RPCRemoteExecuteError)
+		return
+	}
 
 	values := make([]reflect.Value, fi.InArgsLen)
 	if fi.InArgsLen > 0 {
@@ -50,12 +57,11 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 		}
 
 		cutils.Try(func() {
-			rsp := retValue(app.Serializer(), rets)
-			retResponse(m, rsp)
+			rsp := retValue(app, rets)
+			replyResponse(m, rsp)
+
 		}, func(errString string) {
-			retResponse(m, &cproto.Response{
-				Code: ccode.RPCRemoteExecuteError,
-			})
+			replyReponseCode(m, ccode.RPCRemoteExecuteError)
 			clog.Errorf("[InvokeRemoteFunc] invoke error. [message = %+v, err = %s]", m, errString)
 		})
 	} else {
@@ -64,7 +70,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 				fi.Value.Call(values)
 			} else {
 				rets := fi.Value.Call(values)
-				rsp := retValue(app.Serializer(), rets)
+				rsp := retValue(app, rets)
 				m.ChanResult <- rsp
 			}
 		}, func(errString string) {
@@ -100,6 +106,13 @@ func EncodeLocalArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade
 }
 
 func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *cfacade.Message) error {
+	if index >= len(fi.InArgs) {
+		return cerror.Errorf("encode args index out of bounds. [index = %d, len = %d]",
+			index,
+			len(fi.InArgs),
+		)
+	}
+
 	argBytes, ok := m.Args.([]byte)
 	if !ok {
 		return cerror.Errorf("Encode args error.[source = %s, target = %s -> %s, funcType = %v]",
@@ -126,7 +139,7 @@ func EncodeArgs(app cfacade.IApplication, fi *creflect.FuncInfo, index int, m *c
 	return nil
 }
 
-func retValue(serializer cfacade.ISerializer, rets []reflect.Value) *cproto.Response {
+func retValue(app cfacade.IApplication, rets []reflect.Value) *cproto.Response {
 	rsp := &cproto.Response{
 		Code: ccode.OK,
 	}
@@ -141,7 +154,7 @@ func retValue(serializer cfacade.ISerializer, rets []reflect.Value) *cproto.Resp
 		}
 	case 2:
 		if !rets[0].IsNil() {
-			data, err := serializer.Marshal(rets[0].Interface())
+			data, err := app.Serializer().Marshal(rets[0].Interface())
 			if err != nil {
 				rsp.Code = ccode.RPCRemoteExecuteError
 				clog.Warn(err)
@@ -160,18 +173,25 @@ func retValue(serializer cfacade.ISerializer, rets []reflect.Value) *cproto.Resp
 	return rsp
 }
 
-func retResponse(m *cfacade.Message, rsp *cproto.Response) {
-	rspData, _ := proto.Marshal(rsp)
+func replyReponseCode(m *cfacade.Message, errCode int32) {
+	rsp := &cproto.Response{
+		Code: errCode,
+	}
 
-	rspMsg := cnats.GetNatsMsg()
-	rspMsg.Header = m.Header
-	rspMsg.Subject = m.Reply
-	rspMsg.Data = rspData
+	replyResponse(m, rsp)
+}
 
-	if err := cnats.GetConnect().PublishMsg(rspMsg.Msg); err != nil {
+func replyResponse(m *cfacade.Message, rsp *cproto.Response) {
+	replyData, err := proto.Marshal(rsp)
+	if err != nil {
+		clog.Warnf("Source = %s, Target = %s,  err := %v", m.Source, m.Target, err)
+		return
+	}
+
+	err = cnats.ReplySync(m.ReqID, m.Reply, replyData)
+	if err != nil {
 		clog.Warn(err)
 	}
 
-	rspMsg.Release()
 	m.Destory()
 }

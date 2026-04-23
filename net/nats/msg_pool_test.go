@@ -16,14 +16,14 @@ func TestNatsMsgReleaseDoesNotMutateCallerHeader(t *testing.T) {
 	msg.Subject = "subject"
 	msg.Reply = "reply"
 	msg.Data = []byte("payload")
-	msg.Release()
+	ReleaseNatsMsg(msg)
 
 	if got := header.Get(REQ_ID); got != "req-1" {
 		t.Fatalf("expected caller header to stay intact, got %q", got)
 	}
 
 	pooled := GetNatsMsg()
-	defer pooled.Release()
+	defer ReleaseNatsMsg(pooled)
 
 	if pooled.Header == nil {
 		t.Fatal("expected pooled message header to be reinitialized")

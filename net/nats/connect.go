@@ -2,9 +2,7 @@ package cherryNats
 
 import (
 	"fmt"
-	"strconv"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	cerror "github.com/cherry-game/cherry/error"
@@ -20,13 +18,13 @@ type (
 	Connect struct {
 		options
 		*nats.Conn
-		mu        sync.Mutex           // protect local mutable state: subs / stopStats
 		id        int                  // connect id
-		seq       uint64               // seq value
 		waiters   sync.Map             // map[string]chan *nats.Msg
 		subs      []*nats.Subscription // subscription list
+		subsMutex sync.RWMutex         // subscription mutex
 		reply     string               // request reply subject
 		stopStats chan struct{}        // notify statistics goroutine to exit
+		closeOnce sync.Once            // ensure Close only executes once
 	}
 
 	options struct {
@@ -44,8 +42,9 @@ type (
 
 func NewConnect(id int, replySubject string, opts ...OptionFunc) *Connect {
 	conn := &Connect{
-		id:    id,
-		reply: fmt.Sprintf("%s.%d", replySubject, id),
+		id:        id,
+		reply:     fmt.Sprintf("%s.%d", replySubject, id),
+		stopStats: make(chan struct{}),
 	}
 
 	if len(opts) > 0 {
@@ -62,10 +61,14 @@ func (p *Connect) Connect() {
 		return
 	}
 
-	var conn *nats.Conn
+	var (
+		natsOpts = p.natsOptions()
+		conn     *nats.Conn
+		err      error
+	)
+
 	for {
-		var err error
-		conn, err = nats.Connect(p.address, p.natsOptions()...)
+		conn, err = nats.Connect(p.address, natsOpts...)
 		if err != nil {
 			clog.Warnf("[id = %d] Nats connect fail! retrying in 3 seconds. err = %s", p.id, err)
 			time.Sleep(3 * time.Second)
@@ -74,17 +77,7 @@ func (p *Connect) Connect() {
 		break
 	}
 
-	p.mu.Lock()
-	if p.Conn != nil {
-		p.mu.Unlock()
-		conn.Close()
-		return
-	}
 	p.Conn = conn
-	if p.isStats && p.stopStats == nil {
-		p.stopStats = make(chan struct{})
-	}
-	p.mu.Unlock()
 
 	p.initReplySubscribe()
 
@@ -95,57 +88,36 @@ func (p *Connect) Connect() {
 	clog.Infof("[id = %d] Nats connected! [reply = %s]", p.id, p.reply)
 }
 
-func (p *Connect) Subs() []*nats.Subscription {
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	return append([]*nats.Subscription(nil), p.subs...)
-}
-
 func (p *Connect) Close() {
-	p.mu.Lock()
-	if p.Conn == nil {
-		p.mu.Unlock()
-		return
-	}
+	p.closeOnce.Do(func() {
+		if p.Conn == nil {
+			return
+		}
 
-	stopStats := p.stopStats
-	p.stopStats = nil
-	subs := append([]*nats.Subscription(nil), p.subs...)
-	p.subs = nil
-	conn := p.Conn
-	p.mu.Unlock()
+		p.subsMutex.Lock()
+		for _, sub := range p.subs {
+			sub.Unsubscribe()
+		}
+		p.subsMutex.Unlock()
 
-	if stopStats != nil {
-		close(stopStats)
-	}
+		close(p.stopStats)
 
-	for _, sub := range subs {
-		sub.Unsubscribe()
-	}
+		p.Conn.Close()
+		p.clearWaiters()
 
-	conn.Close()
-	p.clearWaiters()
-
-	clog.Infof("[id = %d] Nats closed", p.id)
+		clog.Infof("[id = %d] Nats closed", p.id)
+	})
 }
 
 func (p *Connect) statistics() {
-	p.mu.Lock()
-	stopStats := p.stopStats
-	p.mu.Unlock()
-	if stopStats == nil {
-		return
-	}
-
 	ticker := time.NewTicker(p.StatsInterval())
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ticker.C:
-			subs := p.Subs()
-
-			for _, sub := range subs {
+			p.subsMutex.RLock()
+			for _, sub := range p.subs {
 				if dropped, err := sub.Dropped(); err != nil {
 					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
 						sub.Subject,
@@ -154,6 +126,7 @@ func (p *Connect) statistics() {
 					)
 				}
 			}
+			p.subsMutex.RUnlock()
 
 			stats := p.Stats()
 			clog.Debugf("[Statistics] InMsgs = %d, OutMsgs = %d, InBytes = %d, OutBytes = %d, Reconnects = %d",
@@ -163,7 +136,7 @@ func (p *Connect) statistics() {
 				stats.OutBytes,
 				stats.Reconnects,
 			)
-		case <-stopStats:
+		case <-p.stopStats:
 			clog.Infof("[id = %d] Statistics goroutine stopped", p.id)
 			return
 		}
@@ -176,9 +149,10 @@ func (p *Connect) GetID() int {
 
 func (p *Connect) clearWaiters() {
 	p.waiters.Range(func(key, value any) bool {
-		ch := value.(chan *nats.Msg)
-		p.waiters.Delete(key)
-		close(ch)
+		if v, ok := p.waiters.LoadAndDelete(key); ok {
+			ch := v.(chan *nats.Msg)
+			close(ch)
+		}
 		return true
 	})
 }
@@ -200,19 +174,18 @@ func (p *Connect) initReplySubscribe() {
 	})
 
 	if err != nil {
-		clog.Warnf(" err = %v", err)
-		return
+		clog.Warnf("[initReplySubscribe] error = %v", err)
 	}
+
 }
 
 func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
-	conn := p.Conn
-	if conn == nil {
+	if p.Conn == nil {
 		return nil, fmt.Errorf("nats connection is nil")
 	}
 
 	timeout := p.Timeout(tod...)
-	natsMsg, err := conn.Request(subject, data, timeout)
+	natsMsg, err := p.Conn.Request(subject, data, timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -220,15 +193,11 @@ func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]
 	return natsMsg.Data, nil
 }
 
-func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
-	conn := p.Conn
-	if conn == nil {
+func (p *Connect) RequestSync(reqID, subject string, data []byte, tod ...time.Duration) ([]byte, error) {
+	if p.Conn == nil {
 		return nil, fmt.Errorf("nats connection is nil")
 	}
 
-	timeout := p.Timeout(tod...)
-
-	reqID := strconv.FormatUint(atomic.AddUint64(&p.seq, 1), 10)
 	ch := make(chan *nats.Msg, 1)
 	p.waiters.Store(reqID, ch)
 
@@ -238,16 +207,16 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 	natsMsg.Header.Set(REQ_ID, reqID)
 	natsMsg.Data = data
 
-	err := conn.PublishMsg(natsMsg.Msg)
-	natsMsg.Release()
-
+	err := p.Conn.PublishMsg(natsMsg)
+	ReleaseNatsMsg(natsMsg)
 	if err != nil {
-		p.waiters.Delete(reqID)
-		close(ch)
+		if _, existed := p.waiters.LoadAndDelete(reqID); existed {
+			close(ch)
+		}
 		return nil, err
 	}
 
-	timer := acquireTimer(timeout)
+	timer := acquireTimer(p.Timeout(tod...))
 	defer releaseTimer(timer)
 
 	select {
@@ -265,38 +234,51 @@ func (p *Connect) RequestSync(subject string, data []byte, tod ...time.Duration)
 	}
 }
 
-func (p *Connect) Subscribe(subject string, cb nats.MsgHandler) error {
-	conn := p.Conn
-	if conn == nil {
+func (p *Connect) ReplySync(reqID, reply string, data []byte) error {
+	if p.Conn == nil {
 		return fmt.Errorf("nats connection is nil")
 	}
 
-	sub, err := conn.Subscribe(subject, cb)
-	if err != nil {
-		return err
+	natsMsg := GetNatsMsg()
+	natsMsg.Subject = reply
+	natsMsg.Header.Set(REQ_ID, reqID)
+	natsMsg.Data = data
+
+	err := p.Conn.PublishMsg(natsMsg)
+	ReleaseNatsMsg(natsMsg)
+	return err
+}
+
+func (p *Connect) Subscribe(subject string, cb nats.MsgHandler) error {
+	if p.Conn == nil {
+		return cerror.Errorf("nats connection is nil. subject = %s", subject)
 	}
 
-	p.mu.Lock()
+	sub, err := p.Conn.Subscribe(subject, cb)
+	if err != nil {
+		return cerror.Errorf("Subscribe error. subject = %s, error = %v", subject, err)
+	}
+
+	p.subsMutex.Lock()
 	p.subs = append(p.subs, sub)
-	p.mu.Unlock()
+	p.subsMutex.Unlock()
 
 	return nil
 }
 
 func (p *Connect) QueueSubscribe(subject, queue string, cb nats.MsgHandler) error {
-	conn := p.Conn
-	if conn == nil {
-		return fmt.Errorf("nats connection is nil")
+	if p.Conn == nil {
+		return cerror.Errorf("nats connection is nil. subject = %s,queue = %s", subject, queue)
 	}
 
-	sub, err := conn.QueueSubscribe(subject, queue, cb)
+	sub, err := p.Conn.QueueSubscribe(subject, queue, cb)
 	if err != nil {
-		return err
+		return cerror.Errorf("QueueSubscribe error. subject = %s,queue = %s, error = %v", subject, queue, err)
 	}
 
-	p.mu.Lock()
+	p.subsMutex.Lock()
 	p.subs = append(p.subs, sub)
-	p.mu.Unlock()
+	p.subsMutex.Unlock()
 
 	return nil
 }
@@ -316,7 +298,6 @@ func (p *Connect) natsOptions() []nats.Option {
 		if err != nil {
 			clog.Warnf("[id = %d] Disconnect error. [error = %v]", p.id, err)
 		}
-		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
