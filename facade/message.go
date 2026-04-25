@@ -8,7 +8,6 @@ import (
 	cstring "github.com/cherry-game/cherry/extend/string"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cproto "github.com/cherry-game/cherry/net/proto"
-	"github.com/nats-io/nats.go"
 )
 
 type (
@@ -21,8 +20,8 @@ type (
 		FuncName   string           // 请求调用的函数名
 		Session    *cproto.Session  // session of gateway
 		Args       interface{}      // 请求的参数
-		Header     nats.Header      // nats.Msg Header
-		Reply      string           // nats.Msg reply subject
+		ReqID      string           // req id
+		Reply      string           // reply subject
 		IsCluster  bool             // 是否为集群消息
 		ChanResult chan interface{} //
 	}
@@ -97,7 +96,7 @@ func (p *Message) Destory() {
 	p.targetPath = nil
 	p.Session = nil
 	p.Args = nil
-	p.Header = nil
+	p.ReqID = ""
 	p.ChanResult = nil
 }
 

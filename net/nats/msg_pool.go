@@ -7,25 +7,25 @@ import (
 )
 
 var (
-	_msgPool = &sync.Pool{
-		New: func() interface{} {
+	_natsMsgPool = &sync.Pool{
+		New: func() any {
 			return &nats.Msg{}
 		},
 	}
 )
 
-func GetMsg() *nats.Msg {
-	value := _msgPool.Get()
-	msg := value.(*nats.Msg)
+func GetNatsMsg() *nats.Msg {
+	msg := _natsMsgPool.Get().(*nats.Msg)
 	if msg.Header == nil {
 		msg.Header = nats.Header{}
 	}
-
 	return msg
 }
 
-func ReleaseMsg(msg *nats.Msg) {
-	msg.Header = nil
-	msg.Data = nil
-	_msgPool.Put(msg)
+func ReleaseNatsMsg(natsMsg *nats.Msg) {
+	natsMsg.Header = nil
+	natsMsg.Subject = ""
+	natsMsg.Reply = ""
+	natsMsg.Data = nil
+	_natsMsgPool.Put(natsMsg)
 }
