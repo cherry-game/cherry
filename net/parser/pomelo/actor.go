@@ -5,6 +5,7 @@ import (
 	"time"
 
 	ccode "github.com/cherry-game/cherry/code"
+	cnet "github.com/cherry-game/cherry/extend/net"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cactor "github.com/cherry-game/cherry/net/actor"
@@ -89,15 +90,16 @@ func (p *Actor) defaultOnConnectFunc(conn net.Conn) {
 		Sid:       nuid.Next(),
 		AgentPath: p.Path().String(),
 		Data:      map[string]string{},
+		Ip:        cnet.GetIPV4(conn.RemoteAddr()),
 	}
 
 	agent := NewAgent(p.App(), conn, session)
 
 	if p.onNewAgentFunc != nil {
-		p.onNewAgentFunc(&agent)
+		p.onNewAgentFunc(agent)
 	}
 
-	BindSID(&agent)
+	BindSID(agent)
 	agent.Run()
 }
 

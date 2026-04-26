@@ -3,10 +3,10 @@ package pomelo
 import (
 	"fmt"
 	"net"
+	"sync"
 	"sync/atomic"
 	"time"
 
-	cnet "github.com/cherry-game/cherry/extend/net"
 	ctime "github.com/cherry-game/cherry/extend/time"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
@@ -28,13 +28,14 @@ type (
 	Agent struct {
 		cfacade.IApplication                      // app
 		conn                 net.Conn             // low-level conn fd
-		state                int32                // current agent state
+		state                atomic.Int32         // current agent state
 		session              *cproto.Session      // session
-		chDie                chan struct{}        // wait for close
+		chDie                chan struct{}        // signal writeChan to exit
 		chPending            chan *pendingMessage // push message queue
 		chWrite              chan []byte          // push bytes queue
-		lastAt               int64                // last heartbeat unix time stamp
+		lastAt               atomic.Int64         // last heartbeat unix time stamp
 		onCloseFunc          []OnCloseFunc        // on close agent
+		closeOnce            sync.Once            // ensure Close logic runs once
 	}
 
 	pendingMessage struct {
@@ -44,24 +45,20 @@ type (
 		payload interface{}        // payload
 		err     bool               // if it's an error
 	}
-
 	OnCloseFunc func(*Agent)
 )
 
-func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) Agent {
-	agent := Agent{
+func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) *Agent {
+	agent := &Agent{
 		IApplication: app,
 		conn:         conn,
-		state:        AgentInit,
 		session:      session,
 		chDie:        make(chan struct{}),
 		chPending:    make(chan *pendingMessage, cmd.writeBacklog),
 		chWrite:      make(chan []byte, cmd.writeBacklog),
-		lastAt:       0,
-		onCloseFunc:  nil,
 	}
 
-	agent.session.Ip = agent.RemoteAddr()
+	agent.state.Store(AgentInit)
 	agent.SetLastAt()
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
@@ -72,16 +69,15 @@ func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) 
 			agent.RemoteAddr(),
 		)
 	}
-
 	return agent
 }
 
 func (a *Agent) State() int32 {
-	return a.state
+	return a.state.Load()
 }
 
 func (a *Agent) SetState(state int32) bool {
-	oldValue := atomic.SwapInt32(&a.state, state)
+	oldValue := a.state.Swap(state)
 	return oldValue != state
 }
 
@@ -110,11 +106,17 @@ func (a *Agent) Unbind() {
 }
 
 func (a *Agent) SetLastAt() {
-	atomic.StoreInt64(&a.lastAt, ctime.Now().ToSecond())
+	a.lastAt.Store(ctime.Now().ToSecond())
 }
 
 func (a *Agent) SendRaw(bytes []byte) {
-	a.chWrite <- bytes
+	if a.state.Load() == AgentClosed {
+		return
+	}
+	select {
+	case a.chWrite <- bytes:
+	default:
+	}
 }
 
 func (a *Agent) SendPacket(typ pomeloPacket.Type, data []byte) {
@@ -126,12 +128,50 @@ func (a *Agent) SendPacket(typ pomeloPacket.Type, data []byte) {
 	a.SendRaw(pkg)
 }
 
+// Close sets state to AgentClosed, signals writeChan to exit, runs cleanup
+// callbacks, unbinds the session, closes the connection, and drains channels.
+// Safe to call multiple times — only the first call takes effect.
 func (a *Agent) Close() {
-	if a.SetState(AgentClosed) {
+	a.closeOnce.Do(func() {
+		a.state.Store(AgentClosed)
+		close(a.chDie)
+
+		cutils.Try(func() {
+			for _, fn := range a.onCloseFunc {
+				fn(a)
+			}
+		}, func(errString string) {
+			clog.Warnf("[sid = %s,uid = %d] Agent on close func error. error = %s",
+				a.SID(),
+				a.UID(),
+				errString)
+		})
+
+		a.Unbind()
+
+		closeErr := a.conn.Close()
+
+		if clog.PrintLevel(zapcore.InfoLevel) {
+			clog.Infof("[sid = %s,uid = %d] Agent closed. [count = %d, ip = %s, error = %v]",
+				a.SID(),
+				a.UID(),
+				Count(),
+				a.RemoteAddr(),
+				closeErr,
+			)
+		}
+
+		a.drainChannels()
+	})
+}
+
+func (a *Agent) drainChannels() {
+	for {
 		select {
-		case <-a.chDie:
+		case <-a.chPending:
+		case <-a.chWrite:
 		default:
-			close(a.chDie)
+			return
 		}
 	}
 }
@@ -143,19 +183,22 @@ func (a *Agent) Run() {
 
 func (a *Agent) readChan() {
 	defer func() {
-		if clog.PrintLevel(zapcore.DebugLevel) {
-			clog.Debugf("[sid = %s,uid = %d] Agent read chan exit.",
-				a.SID(),
-				a.UID(),
-			)
-		}
-
+		// ensure Close is called when readChan exits,
+		// no-op if already closed by writeChan or other caller
 		a.Close()
 	}()
 
 	for {
 		packets, isBreak, err := pomeloPacket.Read(a.conn)
 		if isBreak || err != nil {
+			if clog.PrintLevel(zapcore.InfoLevel) {
+				clog.Infof("[sid = %s,uid = %d] Agent read chan exit. [isBreak = %v, error = %v]",
+					a.SID(),
+					a.UID(),
+					isBreak,
+					err,
+				)
+			}
 			return
 		}
 
@@ -175,9 +218,9 @@ func (a *Agent) writeChan() {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Debugf("[sid = %s,uid = %d] Agent write chan exit.", a.SID(), a.UID())
 		}
-
 		ticker.Stop()
-		a.closeProcess()
+		// ensure Close is called when writeChan exits,
+		// no-op if already closed by readChan or other caller
 		a.Close()
 	}()
 
@@ -186,69 +229,30 @@ func (a *Agent) writeChan() {
 	for {
 		select {
 		case <-a.chDie:
-			{
+			return
+		case <-ticker.C:
+			lastAt = a.lastAt.Load()
+			deadline = time.Now().Add(-cmd.heartbeatTime).Unix()
+			if lastAt < deadline {
+				if clog.PrintLevel(zapcore.DebugLevel) {
+					clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
+				}
 				return
 			}
-		case <-ticker.C:
-			{
-				lastAt = atomic.LoadInt64(&a.lastAt)
-				deadline = time.Now().Add(-cmd.heartbeatTime).Unix()
-				if lastAt < deadline {
-					if clog.PrintLevel(zapcore.DebugLevel) {
-						clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
-					}
-					return
-				}
-			}
 		case pending := <-a.chPending:
-			{
-				a.processPending(pending)
-			}
+			a.processPending(pending)
 		case bytes := <-a.chWrite:
-			{
-				a.write(bytes)
+			if err := a.write(bytes); err != nil {
+				clog.Warn(err)
+				return
 			}
 		}
 	}
 }
 
-func (a *Agent) closeProcess() {
-	cutils.Try(func() {
-		for _, fn := range a.onCloseFunc {
-			fn(a)
-		}
-	}, func(errString string) {
-		clog.Warn(errString)
-	})
-
-	a.Unbind()
-
-	if err := a.conn.Close(); err != nil {
-		clog.Debugf("[sid = %s,uid = %d] Agent connect closed. [error = %s]",
-			a.SID(),
-			a.UID(),
-			err,
-		)
-	}
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Agent closed. [count = %d, ip = %s]",
-			a.SID(),
-			a.UID(),
-			Count(),
-			a.RemoteAddr(),
-		)
-	}
-
-	close(a.chPending)
-	close(a.chWrite)
-}
-
-func (a *Agent) write(bytes []byte) {
+func (a *Agent) write(bytes []byte) error {
 	_, err := a.conn.Write(bytes)
-	if err != nil {
-		clog.Warn(err)
-	}
+	return err
 }
 
 func (a *Agent) processPacket(packet *pomeloPacket.Packet) {
@@ -264,17 +268,14 @@ func (a *Agent) processPacket(packet *pomeloPacket.Packet) {
 		a.Close()
 		return
 	}
-
 	process(a, packet)
-	// update last time
 	a.SetLastAt()
 }
 
 func (a *Agent) RemoteAddr() string {
-	if a.conn != nil {
-		return cnet.GetIPV4(a.conn.RemoteAddr())
+	if a.session != nil {
+		return a.session.Ip
 	}
-
 	return ""
 }
 
@@ -293,7 +294,6 @@ func (a *Agent) processPending(data *pendingMessage) {
 		return
 	}
 
-	// construct message and encode
 	m := &pomeloMessage.Message{
 		Type:  data.typ,
 		ID:    data.mid,
@@ -302,33 +302,18 @@ func (a *Agent) processPending(data *pendingMessage) {
 		Error: data.err,
 	}
 
-	// encode message
 	em, err := pomeloMessage.Encode(m)
 	if err != nil {
 		clog.Warn(err)
 		return
 	}
 
-	// encode packet
 	a.SendPacket(pomeloPacket.Data, em)
 }
 
 func (a *Agent) sendPending(typ pomeloMessage.Type, route string, mid uint32, v interface{}, isError bool) {
-	if a.state == AgentClosed {
+	if a.state.Load() == AgentClosed {
 		clog.Warnf("[sid = %s,uid = %d] Session is closed. [typ = %v, route = %s, mid = %d, val = %+v, err = %v]",
-			a.SID(),
-			a.UID(),
-			typ,
-			route,
-			mid,
-			v,
-			isError,
-		)
-		return
-	}
-
-	if len(a.chPending) >= cmd.writeBacklog {
-		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [typ = %v, route = %s, mid = %d, val = %+v, err = %v]",
 			a.SID(),
 			a.UID(),
 			typ,
@@ -348,7 +333,19 @@ func (a *Agent) sendPending(typ pomeloMessage.Type, route string, mid uint32, v 
 		err:     isError,
 	}
 
-	a.chPending <- pending
+	select {
+	case a.chPending <- pending:
+	default:
+		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [typ = %v, route = %s, mid = %d, val = %+v, err = %v]",
+			a.SID(),
+			a.UID(),
+			typ,
+			route,
+			mid,
+			v,
+			isError,
+		)
+	}
 }
 
 func (a *Agent) Response(session *cproto.Session, v interface{}, isError ...bool) {
@@ -400,6 +397,10 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 			reason,
 			err,
 		)
+		if closed {
+			a.Close()
+		}
+		return
 	}
 
 	pkg, err := pomeloPacket.Encode(pomeloPacket.Kick, bytes)
@@ -421,8 +422,6 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 			closed,
 		)
 	}
-
-	// 不进入pending chan，直接踢了
 	a.SendRaw(pkg)
 
 	if closed {
@@ -431,6 +430,13 @@ func (a *Agent) Kick(reason interface{}, closed bool) {
 }
 
 func (a *Agent) AddOnClose(fn OnCloseFunc) {
+	if a.state.Load() != AgentInit {
+		clog.Warnf("[sid = %s] AddOnClose failed: agent is not in Init state. [state = %d]",
+			a.SID(),
+			a.State(),
+		)
+		return
+	}
 	if fn != nil {
 		a.onCloseFunc = append(a.onCloseFunc, fn)
 	}
