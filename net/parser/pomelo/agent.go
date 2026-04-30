@@ -243,7 +243,7 @@ func (a *Agent) writeChan() {
 			a.processPending(pending)
 		case bytes := <-a.chWrite:
 			if err := a.write(bytes); err != nil {
-				clog.Warn(err)
+				clog.Warnf("[sid = %s,uid = %d] Write bytes err=%v", a.SID(), a.UID(), err)
 				return
 			}
 		}
@@ -251,6 +251,12 @@ func (a *Agent) writeChan() {
 }
 
 func (a *Agent) write(bytes []byte) error {
+	if a.state.Load() == AgentClosed {
+		if clog.PrintLevel(zapcore.InfoLevel) {
+			clog.Infof("[sid = %s,uid = %d] Write bytes failed because the connection is closed!", a.SID(), a.UID())
+		}
+		return nil
+	}
 	_, err := a.conn.Write(bytes)
 	return err
 }
