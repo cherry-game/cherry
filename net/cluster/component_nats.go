@@ -11,8 +11,8 @@ import (
 	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 	cprofile "github.com/cherry-game/cherry/profile"
-	"github.com/gogo/protobuf/proto"
 	"github.com/nats-io/nats.go"
+	"google.golang.org/protobuf/proto"
 )
 
 const (
