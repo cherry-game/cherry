@@ -7,10 +7,14 @@ import (
 )
 
 type (
+	IDiscoveryComponent interface {
+		IComponent
+		IDiscovery
+	}
+
 	// IDiscovery 发现服务接口
 	IDiscovery interface {
-		Load(app IApplication)
-		Name() string                                                 // 发现服务名称
+		Mode() string                                                 //
 		Map() map[string]IMember                                      // 获取成员列表
 		ListByType(nodeType string, filterNodeID ...string) []IMember // 根据节点类型获取列表
 		Random(nodeType string) (IMember, bool)                       // 根据节点类型随机一个
@@ -20,7 +24,6 @@ type (
 		RemoveMember(nodeID string)                                   // 移除成员
 		OnAddMember(listener MemberListener)                          // 添加成员监听函数
 		OnRemoveMember(listener MemberListener)                       // 移除成员监听函数
-		Stop()
 	}
 
 	IMember interface {
@@ -34,12 +37,16 @@ type (
 )
 
 type (
+	IClusterComponent interface {
+		IComponent
+		ICluster
+	}
+
 	ICluster interface {
-		Init()                                                                                               // 初始化
+		Mode() string                                                                                        // cluster implement mode
 		PublishLocal(nodeID string, packet *cproto.ClusterPacket) error                                      // 发布本地消息
 		PublishRemote(nodeID string, packet *cproto.ClusterPacket) error                                     // 发布远程消息
 		PublishRemoteType(nodeType string, cpacket *cproto.ClusterPacket) error                              // 根据节点类型发布远程消息
 		RequestRemote(nodeID string, packet *cproto.ClusterPacket, timeout ...time.Duration) ([]byte, int32) // 请求远程消息
-		Stop()                                                                                               // 停止
 	}
 )

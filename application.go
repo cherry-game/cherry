@@ -26,18 +26,18 @@ type (
 
 	Application struct {
 		cfacade.INode
-		isFrontend   bool
-		nodeMode     NodeMode
-		startTime    ctime.CherryTime     // application start time
-		running      int32                // is running
-		dieChan      chan bool            // wait for end application
-		onShutdownFn []func()             // on shutdown execute functions
-		components   []cfacade.IComponent // all components
-		serializer   cfacade.ISerializer  // serializer
-		discovery    cfacade.IDiscovery   // discovery component
-		cluster      cfacade.ICluster     // cluster component
-		actorSystem  *cactor.Component    // actor system
-		netParser    cfacade.INetParser   // net packet parser
+		isFrontend   bool                        // is frontend node
+		nodeMode     NodeMode                    // node mode
+		startTime    ctime.CherryTime            // application start time
+		running      int32                       // is running
+		dieChan      chan bool                   // wait for end application
+		onShutdownFn []func()                    // on shutdown execute functions
+		components   []cfacade.IComponent        // all components
+		serializer   cfacade.ISerializer         // serializer
+		discovery    cfacade.IDiscoveryComponent // discovery component
+		cluster      cfacade.IClusterComponent   // cluster component
+		actorSystem  *cactor.Component           // actor system
+		netParser    cfacade.INetParser          // net packet parser
 	}
 )
 
@@ -292,38 +292,10 @@ func (a *Application) ActorSystem() cfacade.IActorSystem {
 	return a.actorSystem
 }
 
+func (p *AppBuilder) NetParser() cfacade.INetParser {
+	return p.netParser
+}
+
 func (a *Application) StartTime() string {
 	return a.startTime.ToDateTimeFormat()
-}
-
-func (a *Application) SetSerializer(serializer cfacade.ISerializer) {
-	if a.Running() || serializer == nil {
-		return
-	}
-
-	a.serializer = serializer
-}
-
-func (a *Application) SetDiscovery(discovery cfacade.IDiscovery) {
-	if a.Running() || discovery == nil {
-		return
-	}
-
-	a.discovery = discovery
-}
-
-func (a *Application) SetCluster(cluster cfacade.ICluster) {
-	if a.Running() || cluster == nil {
-		return
-	}
-
-	a.cluster = cluster
-}
-
-func (a *Application) SetNetParser(netParser cfacade.INetParser) {
-	if a.Running() || netParser == nil {
-		return
-	}
-
-	a.netParser = netParser
 }

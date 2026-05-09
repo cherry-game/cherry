@@ -4,6 +4,7 @@ import (
 	cfacade "github.com/cherry-game/cherry/facade"
 	ccluster "github.com/cherry-game/cherry/net/cluster"
 	cdiscovery "github.com/cherry-game/cherry/net/discovery"
+	cherryDiscovery "github.com/cherry-game/cherry/net/discovery"
 )
 
 type (
@@ -35,13 +36,15 @@ func (p *AppBuilder) Startup() {
 	app := p.Application
 
 	if app.NodeMode() == Cluster {
-		cluster := ccluster.New()
-		app.SetCluster(cluster)
-		app.Register(cluster)
+		if app.cluster == nil {
+			// Set deafult nats cluster
+			app.cluster = ccluster.New()
+		}
+		app.Register(app.cluster)
 
-		discovery := cdiscovery.New()
-		app.SetDiscovery(discovery)
-		app.Register(discovery)
+		// Obtain the discovery service according to the configured mode
+		app.discovery = cdiscovery.New()
+		app.Register(app.discovery)
 	}
 
 	// Register custom components
@@ -59,10 +62,34 @@ func (p *AppBuilder) AddActors(actors ...cfacade.IActorHandler) {
 	p.actorSystem.Add(actors...)
 }
 
-func (p *AppBuilder) NetParser() cfacade.INetParser {
-	return p.netParser
+func (p *AppBuilder) SetSerializer(serializer cfacade.ISerializer) {
+	if serializer == nil {
+		return
+	}
+
+	p.serializer = serializer
 }
 
-func (p *AppBuilder) SetNetParser(parser cfacade.INetParser) {
-	p.netParser = parser
+func (p *AppBuilder) SetDiscovery(discovery cfacade.IDiscoveryComponent) {
+	if discovery == nil {
+		return
+	}
+
+	cherryDiscovery.Register(discovery)
+}
+
+func (a *AppBuilder) SetCluster(cluster cfacade.IClusterComponent) {
+	if cluster == nil {
+		return
+	}
+
+	a.cluster = cluster
+}
+
+func (a *AppBuilder) SetNetParser(netParser cfacade.INetParser) {
+	if a.Running() || netParser == nil {
+		return
+	}
+
+	a.netParser = netParser
 }
