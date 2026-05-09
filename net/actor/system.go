@@ -69,7 +69,7 @@ func (p *System) Stop() {
 
 	clog.Info("[OnStop] actor system stopping!")
 	p.wg.Wait()
-	clog.Info("[OnStop]actor system stopped!")
+	clog.Info("[OnStop] actor system stopped!")
 }
 
 // GetIActor 根据ActorID获取IActor
