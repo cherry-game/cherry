@@ -132,13 +132,13 @@ func (m *ComponentMaster) loadThisMember() {
 
 	// Build this member
 	m.thisMember = NewMemberWithApp(m.App())
+
+	// add member
+	m.AddMember(m.thisMember)
 }
 
 func (m *ComponentMaster) masterInit() {
 	if m.isMaster() {
-		// add master member
-		m.AddMember(m.thisMember)
-
 		// subscribe register message
 		m.registerSubscribe()
 		// subscribe update message
