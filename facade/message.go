@@ -2,32 +2,53 @@ package cherryFacade
 
 import (
 	"strings"
+	"sync"
+	"sync/atomic"
+	"time"
 
 	cconst "github.com/cherry-game/cherry/const"
 	cerr "github.com/cherry-game/cherry/error"
 	cstring "github.com/cherry-game/cherry/extend/string"
-	ctime "github.com/cherry-game/cherry/extend/time"
 	cproto "github.com/cherry-game/cherry/net/proto"
+	"google.golang.org/protobuf/proto"
+)
+
+var (
+	messagePool = &sync.Pool{
+		New: func() interface{} {
+			return new(Message)
+		},
+	}
 )
 
 type (
+	// Message is the in-process message carrier for the Actor system.
+	// For cross-process transfer, use Marshal/Unmarshal which internally uses ClusterPacket proto.
+	//
+	// Field groups:
+	//   Common: BuildTime, Source, Target, FuncName, Args
+	//   Local (client->Actor, set by parser): Session
+	//   Remote (Actor->Actor, set by System.Call/CallWait/CallType): ReqID, Reply, ChanResult
 	Message struct {
-		BuildTime  int64            // message build time(ms)
-		PostTime   int64            // post to actor time(ms)
-		Source     string           // 来源actor path
-		Target     string           // 目标actor path
-		targetPath *ActorPath       // 目标actor path对象
-		FuncName   string           // 请求调用的函数名
-		Session    *cproto.Session  // session of gateway
-		Args       interface{}      // 请求的参数
-		ReqID      string           // req id
-		Reply      string           // reply subject
-		IsCluster  bool             // 是否为集群消息
-		ChanResult chan interface{} //
+		// --- Common fields ---
+		refs      int32       // reference count, see Recycle()
+		BuildTime int64       // message build time(ms)
+		Source    string      // source actor path
+		Target    string      // target actor path (node.actor or node.actor.child)
+		FuncName  string      // target function name
+		Args      interface{} // payload: same-node=decoded object, cross-node=[]byte (pending decode)
+
+		// --- Local only (client->Actor, set by parser) ---
+		Session *cproto.Session // client session
+
+		// --- Remote only (Actor->Actor, set by System.Call/CallWait/CallType) ---
+		ReqID      string           // NATS request ID (cross-node request-reply)
+		Reply      string           // NATS reply subject (non-empty if from cross-node)
+		ChanResult chan interface{} // same-node CallWait sync channel
+
+		targetPath *ActorPath // lazily cached on first TargetPath() call; cleared in Recycle()
 	}
 
-	// ActorPath = NodeID . ActorID
-	// ActorPath = NodeID . ActorID . ChildID
 	ActorPath struct {
 		NodeID  string
 		ActorID string
@@ -35,69 +56,96 @@ type (
 	}
 )
 
-//var (
-//	messagePool = &sync.Pool{
-//		New: func() interface{} {
-//			return new(Message)
-//		},
-//	}
-//)
-
-func GetMessage() Message {
-	msg := Message{
-		BuildTime: ctime.Now().ToMillisecond(),
-	}
-
+func GetMessage() *Message {
+	msg := messagePool.Get().(*Message)
+	msg.BuildTime = time.Now().UnixMilli()
 	return msg
 }
 
-func BuildClusterMessage(packet *cproto.ClusterPacket) Message {
-	message := Message{
-		BuildTime: packet.BuildTime,
-		Source:    packet.SourcePath,
-		Target:    packet.TargetPath,
-		FuncName:  packet.FuncName,
-		IsCluster: true,
-		Session:   packet.Session,
-		Args:      packet.ArgBytes,
+// Marshal serializes Message for cross-process transfer via NATS.
+// Internally uses ClusterPacket proto as the wire format.
+func (p *Message) Marshal() ([]byte, error) {
+	cp := cproto.GetClusterPacket()
+	defer cp.Recycle()
+
+	cp.BuildTime = p.BuildTime
+	cp.SourcePath = p.Source
+	cp.TargetPath = p.Target
+	cp.FuncName = p.FuncName
+	cp.Session = p.Session
+
+	if argBytes, ok := p.Args.([]byte); ok {
+		cp.ArgBytes = argBytes
 	}
 
-	return message
+	return proto.Marshal(cp)
 }
 
-//func (p *Message) Recycle() {
-//	p.BuildTime = 0
-//	p.PostTime = 0
-//	p.Source = ""
-//	p.Target = ""
-//	p.targetPath = nil
-//	p.FuncName = "_"
-//	p.Session = nil
-//	p.Args = nil
-//	p.Err = nil
-//	p.ClusterReply = nil
-//	p.ChanResult = nil
-//	p.IsCluster = false
-//	messagePool.Put(p)
-//}
+// Unmarshal deserializes cross-process transfer data back into Message.
+func (p *Message) Unmarshal(data []byte) error {
+	cp := cproto.GetClusterPacket()
+	defer cp.Recycle()
+
+	if err := proto.Unmarshal(data, cp); err != nil {
+		return err
+	}
+
+	p.BuildTime = cp.BuildTime
+	p.Source = cp.SourcePath
+	p.Target = cp.TargetPath
+	p.FuncName = cp.FuncName
+	p.Args = cp.ArgBytes // keep as []byte, decoded on-demand by Actor
+	p.Session = cp.Session
+
+	return nil
+}
+
+// Clone creates a shallow copy for child Actor forwarding.
+// Session, Args and ChanResult are intentionally shared.
+func (p *Message) Clone() *Message {
+	clone := GetMessage()
+	clone.BuildTime = p.BuildTime
+	clone.Source = p.Source
+	clone.Target = p.Target
+	clone.FuncName = p.FuncName
+	clone.Args = p.Args       // shared (same-node=object, cross-node=read-only []byte)
+	clone.Session = p.Session // shared (Session must persist across forwarding)
+	clone.ReqID = p.ReqID
+	clone.Reply = p.Reply
+	clone.ChanResult = p.ChanResult // shared (CallWait sync channel)
+	return clone
+}
+
+// AddRef increments the reference count. Each call to PostLocal/PostRemote
+// adds a reference that will be released by the receiving actor's Recycle.
+func (p *Message) AddRef() {
+	atomic.AddInt32(&p.refs, 1)
+}
+
+func (p *Message) Recycle() {
+	if atomic.AddInt32(&p.refs, -1) > 0 {
+		return
+	}
+
+	p.refs = 0
+	p.BuildTime = 0
+	p.Source = ""
+	p.Target = ""
+	p.FuncName = ""
+	p.Session = nil
+	p.Args = nil
+	p.ReqID = ""
+	p.Reply = ""
+	p.ChanResult = nil
+	p.targetPath = nil
+	messagePool.Put(p)
+}
 
 func (p *Message) TargetPath() *ActorPath {
 	if p.targetPath == nil {
 		p.targetPath, _ = ToActorPath(p.Target)
 	}
 	return p.targetPath
-}
-
-func (p *Message) IsReply() bool {
-	return p.Reply != ""
-}
-
-func (p *Message) Destory() {
-	p.targetPath = nil
-	p.Session = nil
-	p.Args = nil
-	p.ReqID = ""
-	p.ChanResult = nil
 }
 
 func (p *ActorPath) IsChild() bool {
@@ -108,7 +156,6 @@ func (p *ActorPath) IsParent() bool {
 	return p.ChildID == ""
 }
 
-// String
 func (p *ActorPath) String() string {
 	return NewChildPath(p.NodeID, p.ActorID, p.ChildID)
 }
@@ -144,7 +191,7 @@ func ToActorPath(path string) (*ActorPath, error) {
 		return NewActorPath(p[0], p[1], ""), nil
 	}
 
-	if len(p) == 3 {
+	if pLen == 3 {
 		return NewActorPath(p[0], p[1], p[2]), nil
 	}
 

@@ -13,17 +13,17 @@ import (
 )
 
 type (
-	// System Actor系统
+	// System is the Actor system
 	System struct {
-		app              cfacade.IApplication
-		actorMap         *sync.Map          // key:actorID, value:*actor
-		actorEventMap    *sync.Map          // map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
-		localInvokeFunc  cfacade.InvokeFunc // default local func
-		remoteInvokeFunc cfacade.InvokeFunc // default remote func
-		wg               *sync.WaitGroup    // wait group
-		callTimeout      time.Duration      // call调用超时
-		arrivalTimeOut   int64              // message到达超时(毫秒)
-		executionTimeout int64              // 消息执行超时(毫秒)
+		app              cfacade.IApplication // application
+		actorMap         *sync.Map            // key:actorID, value:*actor
+		actorEventMap    *sync.Map            // map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
+		localInvokeFunc  cfacade.InvokeFunc   // default local func
+		remoteInvokeFunc cfacade.InvokeFunc   // default remote func
+		wg               *sync.WaitGroup      // wait group
+		callTimeout      time.Duration        // call timeout
+		arrivalTimeOut   int64                // message arrival timeout (ms)
+		executionTimeout int64                // message execution timeout (ms)
 	}
 )
 
@@ -72,12 +72,12 @@ func (p *System) Stop() {
 	clog.Info("[OnStop] actor system stopped!")
 }
 
-// GetIActor 根据ActorID获取IActor
+// GetIActor returns IActor by actor ID
 func (p *System) GetIActor(id string) (cfacade.IActor, bool) {
 	return p.GetActor(id)
 }
 
-// GetActor 根据ActorID获取*actor
+// GetActor returns *Actor by actor ID
 func (p *System) GetActor(id string) (*Actor, bool) {
 	actorValue, found := p.actorMap.Load(id)
 	if !found {
@@ -115,7 +115,7 @@ func (p *System) removeActor(actorID string) {
 	p.actorMap.Delete(actorID)
 }
 
-// CreateActor 创建Actor
+// CreateActor creates a new Actor
 func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.IActor, error) {
 	if strings.TrimSpace(id) == "" {
 		return nil, ErrActorIDIsNil
@@ -136,7 +136,7 @@ func (p *System) CreateActor(id string, handler cfacade.IActorHandler) (cfacade.
 	return thisActor, nil
 }
 
-// Call 发送远程消息(不回复)
+// Call sends a remote message (no reply)
 func (p *System) Call(source, target, funcName string, arg any) int32 {
 	if target == "" {
 		clog.Warnf("[Call] Target path is nil. [source = %s, target = %s, funcName = %s]",
@@ -168,24 +168,14 @@ func (p *System) Call(source, target, funcName string, arg any) int32 {
 	}
 
 	if targetPath.NodeID != "" && targetPath.NodeID != p.NodeID() {
-		clusterPacket := cproto.GetClusterPacket()
-		clusterPacket.SourcePath = source
-		clusterPacket.TargetPath = target
-		clusterPacket.FuncName = funcName
-
-		if arg != nil {
-			argsBytes, err := p.app.Serializer().Marshal(arg)
-			if err != nil {
-				clog.Warnf("[Call] Marshal arg error. [targetPath = %s, error = %s]",
-					target,
-					err,
-				)
-				return ccode.ActorMarshalError
-			}
-			clusterPacket.ArgBytes = argsBytes
+		remoteMsg, errCode := p.buildClusterMessage(source, target, funcName, arg)
+		if ccode.IsFail(errCode) {
+			clog.Warnf("[Call] Marshal arg error. [targetPath = %s, error = %d]", target, errCode)
+			return errCode
 		}
 
-		err = p.app.Cluster().PublishRemote(targetPath.NodeID, clusterPacket)
+		// PublishRemote recycles remoteMsg via defer on all paths.
+		err := p.app.Cluster().PublishRemote(targetPath.NodeID, remoteMsg)
 		if err != nil {
 			clog.Warnf("[Call] Publish remote fail. [source = %s, target = %s, funcName = %s, err = %v]",
 				source,
@@ -202,7 +192,7 @@ func (p *System) Call(source, target, funcName string, arg any) int32 {
 		remoteMsg.FuncName = funcName
 		remoteMsg.Args = arg
 
-		if !p.PostRemote(&remoteMsg) {
+		if !p.PostRemote(remoteMsg) {
 			clog.Warnf("[Call] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
 			return ccode.ActorInvokeRemoteError
 		}
@@ -211,7 +201,7 @@ func (p *System) Call(source, target, funcName string, arg any) int32 {
 	return ccode.OK
 }
 
-// CallWait 发送远程消息(等待回复)
+// CallWait sends a remote message and waits for reply
 func (p *System) CallWait(source, target, funcName string, arg, reply any) int32 {
 	sourcePath, err := cfacade.ToActorPath(source)
 	if err != nil {
@@ -253,20 +243,16 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		return ccode.ActorFuncNameError
 	}
 
-	// forward to remote actor
+	// Forward to remote node.
 	if targetPath.NodeID != "" && targetPath.NodeID != sourcePath.NodeID {
-		clusterPacket := cproto.BuildClusterPacket(source, target, funcName)
-
-		if arg != nil {
-			argsBytes, err := p.app.Serializer().Marshal(arg)
-			if err != nil {
-				clog.Warnf("[CallWait] Marshal arg error. [targetPath = %s, error = %s]", target, err)
-				return ccode.ActorMarshalError
-			}
-			clusterPacket.ArgBytes = argsBytes
+		remoteMsg, errCode := p.buildClusterMessage(source, target, funcName, arg)
+		if ccode.IsFail(errCode) {
+			clog.Warnf("[CallWait] Marshal arg error. [targetPath = %s, error = %d]", target, errCode)
+			return errCode
 		}
 
-		rspData, rspCode := p.app.Cluster().RequestRemote(targetPath.NodeID, clusterPacket, p.callTimeout)
+		// RequestRemote recycles remoteMsg via defer on all paths.
+		rspData, rspCode := p.app.Cluster().RequestRemote(targetPath.NodeID, remoteMsg, p.callTimeout)
 		if ccode.IsFail(rspCode) {
 			return rspCode
 		}
@@ -286,29 +272,21 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		message.Args = arg
 		message.ChanResult = make(chan interface{})
 
-		var result interface{}
-
 		if sourcePath.ActorID == targetPath.ActorID {
-			if sourcePath.ChildID == targetPath.ChildID {
-				return ccode.ActorSourceEqualTarget
-			}
-
 			childActor, found := p.GetChildActor(targetPath.ActorID, targetPath.ChildID)
 			if !found {
+				message.Recycle()
 				return ccode.ActorChildIDNotFound
 			}
-
-			childActor.PostRemote(&message)
+			childActor.PostRemote(message)
 		} else {
-			if !p.PostRemote(&message) {
-				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]",
-					source,
-					target,
-					funcName,
-				)
+			if !p.PostRemote(message) {
+				clog.Warnf("[CallWait] Post remote fail. [source = %s, target = %s, funcName = %s]", source, target, funcName)
 				return ccode.ActorInvokeRemoteError
 			}
 		}
+
+		var result interface{}
 
 		select {
 		case result = <-message.ChanResult:
@@ -366,7 +344,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 	return ccode.OK
 }
 
-// Broadcast 根据节点类型发布消息
+// CallType publishes message by node type
 func (p *System) CallType(nodeType, actorID, funcName string, arg any) int32 {
 	if actorID == "" {
 		return ccode.ActorIDIsNil
@@ -381,25 +359,24 @@ func (p *System) CallType(nodeType, actorID, funcName string, arg any) int32 {
 		return ccode.ActorFuncNameError
 	}
 
-	clusterPacket := cproto.GetClusterPacket()
-	clusterPacket.TargetPath = cfacade.NewPath("", actorID)
-	clusterPacket.FuncName = funcName
-
-	if arg != nil {
-		argsBytes, err := p.app.Serializer().Marshal(arg)
-		if err != nil {
-			clog.Warnf("[CallType] Marshal arg error. [nodeType = %s, actorID = %s, funcName = %s, error = %s]",
-				nodeType,
-				actorID,
-				funcName,
-				err,
-			)
-			return ccode.ActorMarshalError
-		}
-		clusterPacket.ArgBytes = argsBytes
+	argsBytes, errCode := p.marshalArg(arg)
+	if ccode.IsFail(errCode) {
+		clog.Warnf("[CallType] Marshal arg error. [nodeType = %s, actorID = %s, funcName = %s, error = %d]",
+			nodeType,
+			actorID,
+			funcName,
+			errCode,
+		)
+		return errCode
 	}
 
-	err := p.app.Cluster().PublishRemoteType(nodeType, clusterPacket)
+	remoteMsg := cfacade.GetMessage()
+	remoteMsg.Target = cfacade.NewPath("", actorID)
+	remoteMsg.FuncName = funcName
+	remoteMsg.Args = argsBytes
+
+	// PublishRemoteType recycles remoteMsg via defer on all paths.
+	err := p.app.Cluster().PublishRemoteType(nodeType, remoteMsg)
 	if err != nil {
 		clog.Warnf("[CallType] Publish remote fail. [nodeType = %s, actorID = %s, funcName = %s, error = %v]",
 			nodeType,
@@ -413,44 +390,53 @@ func (p *System) CallType(nodeType, actorID, funcName string, arg any) int32 {
 	return ccode.OK
 }
 
-// PostRemote 提交远程消息
+// PostRemote delivers message to the remote mailbox.
 func (p *System) PostRemote(m *cfacade.Message) bool {
 	if m == nil {
 		clog.Error("Message is nil.")
 		return false
 	}
 
-	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		if targetActor.state == WorkerState {
-			targetActor.PostRemote(m)
-		}
-		return true
+	targetActor, found := p.GetActor(m.TargetPath().ActorID)
+	if !found {
+		clog.Warnf("[PostRemote] actor not found. [source = %s, target = %s -> %s]", m.Source, m.Target, m.FuncName)
+		m.Recycle()
+		return false
 	}
 
-	clog.Warnf("[PostRemote] actor not found. [source = %s, target = %s -> %s]", m.Source, m.Target, m.FuncName)
-	return false
+	if targetActor.state != WorkerState {
+		m.Recycle()
+		return false
+	}
+
+	targetActor.PostRemote(m)
+	return true
 }
 
-// PostLocal 提交本地消息
+// PostLocal delivers message to the local mailbox.
 func (p *System) PostLocal(m *cfacade.Message) bool {
 	if m == nil {
 		clog.Error("Message is nil.")
 		return false
 	}
 
-	if targetActor, found := p.GetActor(m.TargetPath().ActorID); found {
-		if targetActor.state == WorkerState {
-			targetActor.PostLocal(m)
-		}
-		return true
+	targetActor, found := p.GetActor(m.TargetPath().ActorID)
+	if !found {
+		clog.Warnf("[PostLocal] actor not found. [source = %s, target = %s -> %s]", m.Source, m.Target, m.FuncName)
+		m.Recycle()
+		return false
 	}
 
-	clog.Warnf("[PostLocal] actor not found. [source = %s, target = %s -> %s]", m.Source, m.Target, m.FuncName)
+	if targetActor.state != WorkerState {
+		m.Recycle()
+		return false
+	}
 
-	return false
+	targetActor.PostLocal(m)
+	return true
 }
 
-// PostEvent 提交事件
+// PostEvent delivers an event to subscribed actors
 func (p *System) PostEvent(data cfacade.IEventData) {
 	if data == nil {
 		clog.Error("[PostEvent] Event is nil.")
@@ -480,12 +466,13 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 			return true
 		}
 
+		if targetActor.state != WorkerState {
+			return true
+		}
+
 		// no set unique
 		if value == nil {
-			if targetActor.state == WorkerState {
-				targetActor.event.Push(data)
-			}
-
+			targetActor.event.Push(data)
 			return true
 		}
 
@@ -496,11 +483,7 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 		}
 
 		if uniqueID == data.UniqueID() {
-			if targetActor.state == WorkerState {
-				targetActor.event.Push(data)
-			}
-
-			return true
+			targetActor.event.Push(data)
 		}
 
 		return true
@@ -558,4 +541,33 @@ func (p *System) removeActorEvent(actorPath string, eventNames ...string) {
 			actorIDMap.Delete(actorPath)
 		}
 	}
+}
+
+// marshalArg serializes the argument for cross-node transfer.
+func (p *System) marshalArg(arg any) ([]byte, int32) {
+	if arg == nil {
+		return nil, ccode.OK
+	}
+	bytes, err := p.app.Serializer().Marshal(arg)
+	if err != nil {
+		return nil, ccode.ActorMarshalError
+	}
+	return bytes, ccode.OK
+}
+
+// buildClusterMessage creates a Message for cross-node transfer.
+// Args are serialized to []byte. The caller is responsible for recycling
+// (PublishRemote / RequestRemote recycle via defer on all paths).
+func (p *System) buildClusterMessage(source, target, funcName string, arg any) (*cfacade.Message, int32) {
+	argsBytes, errCode := p.marshalArg(arg)
+	if ccode.IsFail(errCode) {
+		return nil, errCode
+	}
+
+	msg := cfacade.GetMessage()
+	msg.Source = source
+	msg.Target = target
+	msg.FuncName = funcName
+	msg.Args = argsBytes
+	return msg, ccode.OK
 }

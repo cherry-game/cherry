@@ -7,7 +7,7 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
-// DefaultDataRoute 默认的消息路由
+// DefaultDataRoute default message route handler
 func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message) {
 	session := BuildSession(agent, msg)
 
@@ -52,18 +52,18 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route
 	message.Session = session
 	message.Args = msg.Data
 
-	agent.ActorSystem().PostLocal(&message)
+	agent.ActorSystem().PostLocal(message)
 }
 
 func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessage.Route, msg *pmessage.Message, nodeID, targetPath string) error {
-	clusterPacket := cproto.GetClusterPacket()
-	clusterPacket.SourcePath = session.AgentPath
-	clusterPacket.TargetPath = targetPath
-	clusterPacket.FuncName = route.Method()
-	clusterPacket.Session = session   // agent session
-	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
+	message := cfacade.GetMessage()
+	message.Source = session.AgentPath
+	message.Target = targetPath
+	message.FuncName = route.Method()
+	message.Session = session
+	message.Args = msg.Data
 
-	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
+	return agent.Cluster().PublishLocal(nodeID, message)
 }
 
 func BuildSession(agent *Agent, msg *pmessage.Message) *cproto.Session {

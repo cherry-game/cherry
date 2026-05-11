@@ -71,16 +71,16 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRou
 	message.Session = session
 	message.Args = msg.Data
 
-	agent.ActorSystem().PostLocal(&message)
+	agent.ActorSystem().PostLocal(message)
 }
 
 func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) error {
-	clusterPacket := cproto.GetClusterPacket()
-	clusterPacket.SourcePath = session.AgentPath
-	clusterPacket.TargetPath = targetPath
-	clusterPacket.FuncName = nodeRoute.FuncName
-	clusterPacket.Session = session   // agent session
-	clusterPacket.ArgBytes = msg.Data // packet -> message -> data
+	message := cfacade.GetMessage()
+	message.Source = session.AgentPath
+	message.Target = targetPath
+	message.FuncName = nodeRoute.FuncName
+	message.Session = session
+	message.Args = msg.Data
 
-	return agent.Cluster().PublishLocal(nodeID, clusterPacket)
+	return agent.Cluster().PublishLocal(nodeID, message)
 }

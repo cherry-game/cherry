@@ -25,7 +25,7 @@
   - 创建成功后立即 `go thisActor.run()`
 - `Call()`：
   - 本机节点走本地 `Remote` 队列
-  - 跨节点调用会序列化参数并转成 `ClusterPacket`
+  - 跨节点调用通过 `Message.Marshal()` 序列化，经 `Cluster.PublishRemote` 投递
 - `CallWait()`：
   - 本地调用走 `ChanResult`
   - 跨节点调用走 `Cluster.RequestRemote`

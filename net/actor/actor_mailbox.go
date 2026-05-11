@@ -2,7 +2,6 @@ package cherryActor
 
 import (
 	creflect "github.com/cherry-game/cherry/extend/reflect"
-	ctime "github.com/cherry-game/cherry/extend/time"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 )
@@ -63,7 +62,6 @@ func (p *mailbox) Pop() *cfacade.Message {
 
 func (p *mailbox) Push(m *cfacade.Message) {
 	if m != nil {
-		m.PostTime = ctime.Now().ToMillisecond()
 		p.queue.Push(m)
 	}
 }

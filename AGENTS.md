@@ -90,7 +90,7 @@
 轻量目录的关键约束统一放这里：
 
 - `net/connector/`：连接器一般由 parser 接管；直接 `Start()` 前必须先设置 `OnConnect`
-- `net/proto/`：`proto.pb.go` 为生成文件；`ClusterPacket` 使用对象池，发送后不可继续持有
+- `net/proto/`：`proto.pb.go` 为生成文件；`ClusterPacket` 仅在 `Message.Marshal/Unmarshal` 内部使用，外部不可直接持有
 - `net/serializer/`：默认序列化器是 protobuf；切换前要确认 cluster / actor reply 兼容
 - `logger/`：大部分调用走全局 `DefaultLogger`；节点日志配置来自 `__settings__.ref_logger`
 - `extend/`：`extend/reflect/` 影响 Actor 反射调用；`extend/file/json/string/` 影响 `profile`
@@ -101,7 +101,7 @@
 
 - `isFrontend == true` 但没有设置 parser，会在启动阶段 `panic`
 - `INetParser` 的真实职责是装配 connector 并加载前端 agent actor，不只是编解码
-- `ClusterPacket` 使用对象池，发完后通常会被 `Recycle()`，不能复用
+- `Message` 使用对象池，投递成功后由 Actor 自动回收；投递失败时调用方需主动 `Recycle()`
 - `profile`、`logger`、`net/nats` 都有包级全局状态，同进程多实例要格外小心
 - `discovery` 的 `nats` 模式依赖后台 goroutine 与心跳，排查问题时要同时看 discovery 和 nats
 

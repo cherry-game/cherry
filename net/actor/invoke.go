@@ -49,12 +49,11 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 		values[0] = reflect.ValueOf(m.Args) // args
 	}
 
-	if m.IsCluster {
+	// Reply != "" identifies a cross-node request-reply: send the response
+	// back via NATS. The message is recycled by processRemote's defer.
+	// Same-node messages have Reply == "" and use ChanResult or fire-and-forget.
+	if m.Reply != "" {
 		rets := fi.Value.Call(values)
-
-		if m.Reply == "" {
-			return
-		}
 
 		cutils.Try(func() {
 			rsp := retValue(app, rets)
@@ -89,16 +88,17 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 	}
 }
 
+// EncodeRemoteArgs decodes cross-node Args from []byte to the typed parameter.
+// Same-node messages (Args is already a Go object) are skipped via the []byte guard.
 func EncodeRemoteArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
-	if m.IsCluster {
-		if fi.InArgsLen == 0 || m.Args == nil {
-			return nil
-		}
-
-		return EncodeArgs(app, fi, 0, m)
+	if _, ok := m.Args.([]byte); !ok {
+		return nil // already decoded (same-node message)
+	}
+	if fi.InArgsLen == 0 {
+		return nil // function has no input parameters
 	}
 
-	return nil
+	return EncodeArgs(app, fi, 0, m)
 }
 
 func EncodeLocalArgs(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacade.Message) error {
@@ -181,6 +181,8 @@ func replyReponseCode(m *cfacade.Message, errCode int32) {
 	replyResponse(m, rsp)
 }
 
+// replyResponse sends the cluster reply via NATS. It does NOT recycle the
+// message — processRemote's defer handles that, avoiding a double-recycle.
 func replyResponse(m *cfacade.Message, rsp *cproto.Response) {
 	replyData, err := proto.Marshal(rsp)
 	if err != nil {
@@ -192,6 +194,4 @@ func replyResponse(m *cfacade.Message, rsp *cproto.Response) {
 	if err != nil {
 		clog.Warn(err)
 	}
-
-	m.Destory()
 }

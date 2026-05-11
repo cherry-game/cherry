@@ -1,11 +1,9 @@
 package cherryProto
 
 import (
-	"fmt"
 	"sync"
 
 	ctime "github.com/cherry-game/cherry/extend/time"
-	"google.golang.org/protobuf/proto"
 )
 
 var (
@@ -22,20 +20,6 @@ func GetClusterPacket() *ClusterPacket {
 	return pkg
 }
 
-func UnmarshalPacket(data []byte) (*ClusterPacket, error) {
-	packet := GetClusterPacket()
-	err := proto.Unmarshal(data, packet)
-	return packet, err
-}
-
-func BuildClusterPacket(source, target, funcName string) *ClusterPacket {
-	clusterPacket := GetClusterPacket()
-	clusterPacket.SourcePath = source
-	clusterPacket.TargetPath = target
-	clusterPacket.FuncName = funcName
-	return clusterPacket
-}
-
 func (x *ClusterPacket) Recycle() {
 	x.BuildTime = 0
 	x.SourcePath = ""
@@ -44,14 +28,4 @@ func (x *ClusterPacket) Recycle() {
 	x.ArgBytes = nil
 	x.Session = nil
 	clusterPacketPool.Put(x)
-}
-
-func (x *ClusterPacket) PrintLog() string {
-	return fmt.Sprintf("source = %s, target = %s, funcName = %s, bytesLen = %d, session = %v",
-		x.SourcePath,
-		x.TargetPath,
-		x.FuncName,
-		len(x.ArgBytes),
-		x.Session,
-	)
 }

@@ -24,8 +24,8 @@
 
 ## 关键结构
 
-- [Message](./message.go:12)：Actor 与 Cluster 之间的统一消息载体
-- [ActorPath](./message.go:29)：路径格式为 `node.actor` 或 `node.actor.child`
+- [Message](./message.go:31)：Actor 与 Cluster 之间的统一消息载体，支持 pool 复用、Marshal/Unmarshal、Clone
+- [ActorPath](./message.go:49)：路径格式为 `node.actor` 或 `node.actor.child`
 
 ## 联动检查
 
