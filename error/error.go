@@ -39,14 +39,14 @@ func Wrapf(err error, format string, a ...interface{}) error {
 
 // route
 var (
-	RouteFieldCantEmpty = Error("Route field can not be empty")
+	RouteFieldCantEmpty = Error("Route field cannot be empty")
 	RouteInvalid        = Error("Invalid route")
 )
 
 // packet
 var (
 	PacketWrongType              = Error("Wrong packet type")
-	PacketSizeExceed             = Error("Codec: packet size exceed")
+	PacketSizeExceed             = Error("Codec: packet size exceeded")
 	PacketConnectClosed          = Error("Client connection closed")
 	PacketInvalidHeader          = Error("Invalid header")
 	PacketMsgSmallerThanExpected = Error("Received less data than expected, EOF?")
@@ -61,29 +61,29 @@ var (
 
 // protobuf
 var (
-	ProtobufWrongValueType = Error("Convert on wrong type value")
+	ProtobufWrongValueType = Error("Conversion on wrong value type")
 )
 
 // cluster
 var (
-	ClusterClientIsStop           = Error("Cluster client is stop")
-	ClusterRequestTimeout         = Error("Cluster Request timeout")
-	ClusterPacketMarshalFail      = Error("Cluster packet marshal fail")
-	ClusterPacketUnmarshalFail    = Error("Cluster packet unmarshal fail")
-	ClusterPublishFail            = Error("Cluster publish fail")
-	ClsuterRequestFail            = Error("Cluster request fail")
+	ClusterClientIsStop           = Error("Cluster client is stopped")
+	ClusterRequestTimeout         = Error("Cluster request timeout")
+	ClusterPacketMarshalFail      = Error("Cluster packet marshal failed")
+	ClusterPacketUnmarshalFail    = Error("Cluster packet unmarshal failed")
+	ClusterPublishFail            = Error("Cluster publish failed")
+	ClusterRequestFail            = Error("Cluster request failed")
 	ClusterNodeTypeIsNil          = Error("Cluster node type is nil")
 	ClusterNodeTypeMemberNotFound = Error("Cluster node type member not found")
 )
 
 // discovery
 var (
-	DiscoveryNotFoundNode = Error("Discovery not found node")
+	DiscoveryNotFoundNode = Error("Discovery node not found")
 )
 
 // actor
 var (
-	ActorPathError = Error("Actor path is error.")
+	ActorPathError = Error("Actor path is invalid")
 )
 
 // func
