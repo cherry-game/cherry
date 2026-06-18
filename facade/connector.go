@@ -1,14 +1,23 @@
+// Package cherryFacade defines the core interfaces for the Cherry framework.
+//
+// This file defines the network connector abstraction:
+//   - IConnector: listen/accept connections and emit OnConnect callbacks
 package cherryFacade
 
 import "net"
 
-// IConnector 网络连接器接口
+// IConnector manages a network listener, accepting connections on a specific
+// address and protocol. It emits each new connection through OnConnect callbacks,
+// which downstream parsers use to create sessions and agent Actors.
+//
+// Typical implementations wrap a TCP or WebSocket listener and handle accept loops
+// internally. Start/Stop are called by the framework during application startup/shutdown.
 type IConnector interface {
 	IComponent
-	Start()                     // 启动连接器
-	Stop()                      // 停止连接器
-	OnConnect(fn OnConnectFunc) // 建立新连接时触发的函数
+	Start()                     // begin accepting connections
+	Stop()                      // stop the listener and drain pending connections
+	OnConnect(fn OnConnectFunc) // register a callback invoked for each new connection
 }
 
-// OnConnectFunc 建立连接时监听的函数
+// OnConnectFunc is called when a new connection is established.
 type OnConnectFunc func(conn net.Conn)

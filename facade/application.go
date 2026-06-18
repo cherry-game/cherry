@@ -1,3 +1,9 @@
+// Package cherryFacade defines the core interfaces for the Cherry framework.
+//
+// This file defines application-level abstractions:
+//   - INode: node identity and configuration
+//   - IApplication: the application container — component registry, lifecycle, service accessors
+//   - ProfileJSON: typed profile/config reader
 package cherryFacade
 
 import (
@@ -7,35 +13,35 @@ import (
 )
 
 type (
-	// INode 节点信息
+	// INode represents a cluster node's identity and configuration.
 	INode interface {
-		NodeID() string        // 节点id(全局唯一)
-		NodeType() string      // 节点类型
-		Address() string       // 对外网络监听地址(前端节点用)
-		RpcAddress() string    // rpc监听地址(未用)
-		Settings() ProfileJSON // 节点配置参数
-		Enabled() bool         // 是否启用
+		NodeID() string        // globally unique node ID
+		NodeType() string      // node type (e.g. "game", "gate", "map")
+		Address() string       // public listen address (for frontend nodes)
+		RpcAddress() string    // RPC listen address (reserved)
+		Settings() ProfileJSON // node settings from profile
+		Enabled() bool         // whether this node is enabled
 	}
 
 	IApplication interface {
 		INode
-		Running() bool                     // 是否运行中
-		DieChan() chan bool                // die chan
-		IsFrontend() bool                  // 是否为前端节点
-		Register(components ...IComponent) // 注册组件
-		Find(name string) IComponent       // 根据name获取组件对象
-		Remove(name string) IComponent     // 根据name移除组件对象
-		All() []IComponent                 // 获取所有组件列表
-		OnShutdown(fn ...func())           // 关闭前执行的函数
-		Startup()                          // 启动应用实例
-		Shutdown()                         // 关闭应用实例
-		Serializer() ISerializer           // 序列化
-		Discovery() IDiscovery             // 发现服务
-		Cluster() ICluster                 // 集群服务
-		ActorSystem() IActorSystem         // actor系统
+		Running() bool                     // whether the application is running
+		DieChan() chan bool                // closed when application shuts down
+		IsFrontend() bool                  // whether this is a frontend node
+		Register(components ...IComponent) // register components (before startup)
+		Find(name string) IComponent       // find a component by name
+		Remove(name string) IComponent     // remove a component by name
+		All() []IComponent                 // list all registered components
+		OnShutdown(fn ...func())           // register shutdown hooks (called in registration order)
+		Startup()                          // start the application (blocks until shutdown)
+		Shutdown()                         // shut down the application
+		Serializer() ISerializer           // message serializer
+		Discovery() IDiscovery             // node discovery service
+		Cluster() ICluster                 // cluster messaging service
+		ActorSystem() IActorSystem         // Actor system
 	}
 
-	// ProfileJSON profile配置文件读取接口
+	// ProfileJSON is a typed profile/config reader backed by jsoniter.
 	ProfileJSON interface {
 		jsoniter.Any
 		GetConfig(path ...interface{}) ProfileJSON

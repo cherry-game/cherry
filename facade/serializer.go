@@ -1,8 +1,17 @@
+// Package cherryFacade defines the core interfaces for the Cherry framework.
+//
+// This file defines the serialization abstraction:
+//   - ISerializer: pluggable codec for message encoding/decoding
 package cherryFacade
 
-// ISerializer 消息序列化
+// ISerializer is a pluggable codec for message encoding and decoding.
+// It is used by the cluster, Actor system, and connectors to serialize
+// messages for cross-process transfer and deserialize incoming payloads.
+//
+// Multiple implementations may coexist (e.g. "json", "protobuf");
+// the Name() method identifies which codec is in use.
 type ISerializer interface {
-	Marshal(interface{}) ([]byte, error) // 编码
-	Unmarshal([]byte, interface{}) error // 解码
-	Name() string                        // 序列化类型的名称
+	Marshal(v interface{}) ([]byte, error)   // encode a value into bytes
+	Unmarshal(data []byte, v interface{}) error // decode bytes into a value
+	Name() string                             // codec name (e.g. "json", "protobuf")
 }

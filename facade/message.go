@@ -1,3 +1,8 @@
+// Package cherryFacade defines the core interfaces for the Cherry framework.
+//
+// This file defines the in-process message carrier and Actor path helpers:
+//   - Message: pooled, reference-counted envelope for Actor dispatch
+//   - ActorPath: parsed {NodeID, ActorID, ChildID} triplet
 package cherryFacade
 
 import (
@@ -56,6 +61,8 @@ type (
 	}
 )
 
+// GetMessage returns a pooled Message with BuildTime set to now.
+// Caller must Recycle() when done (or the receiving Actor will do so).
 func GetMessage() *Message {
 	msg := messagePool.Get().(*Message)
 	msg.BuildTime = time.Now().UnixMilli()
@@ -122,6 +129,9 @@ func (p *Message) AddRef() {
 	atomic.AddInt32(&p.refs, 1)
 }
 
+// Recycle decrements the reference count and returns the Message to the pool
+// when it reaches zero. Each PostLocal/PostRemote increments refs; the receiving
+// Actor calls Recycle after processing. If delivery fails, the caller must Recycle.
 func (p *Message) Recycle() {
 	if atomic.AddInt32(&p.refs, -1) > 0 {
 		return
@@ -141,6 +151,8 @@ func (p *Message) Recycle() {
 	messagePool.Put(p)
 }
 
+// TargetPath lazily parses the Target field into an ActorPath.
+// Result is cached across the message lifetime and cleared on Recycle.
 func (p *Message) TargetPath() *ActorPath {
 	if p.targetPath == nil {
 		p.targetPath, _ = ToActorPath(p.Target)
@@ -148,18 +160,23 @@ func (p *Message) TargetPath() *ActorPath {
 	return p.targetPath
 }
 
+// IsChild returns true if this path targets a child Actor.
 func (p *ActorPath) IsChild() bool {
 	return p.ChildID != ""
 }
 
+// IsParent returns true if this path targets a parent (non-child) Actor.
 func (p *ActorPath) IsParent() bool {
 	return p.ChildID == ""
 }
 
+// String reconstructs the dotted path notation: "nodeID.actorID" or "nodeID.actorID.childID".
 func (p *ActorPath) String() string {
 	return NewChildPath(p.NodeID, p.ActorID, p.ChildID)
 }
 
+// NewActorPath creates an ActorPath from individual components.
+// Pass empty string for childID when targeting a parent Actor.
 func NewActorPath(nodeID, actorID, childID string) *ActorPath {
 	return &ActorPath{
 		NodeID:  nodeID,
@@ -168,6 +185,8 @@ func NewActorPath(nodeID, actorID, childID string) *ActorPath {
 	}
 }
 
+// NewChildPath builds a dotted path string. If childID is empty,
+// it returns "nodeID.actorID"; otherwise "nodeID.actorID.childID".
 func NewChildPath(nodeID, actorID, childID interface{}) string {
 	if childID == "" {
 		return NewPath(nodeID, actorID)
@@ -175,10 +194,13 @@ func NewChildPath(nodeID, actorID, childID interface{}) string {
 	return cstring.ToString(nodeID) + cconst.DOT + cstring.ToString(actorID) + cconst.DOT + cstring.ToString(childID)
 }
 
+// NewPath builds a two-segment dotted path "nodeID.actorID".
 func NewPath(nodeID, actorID interface{}) string {
 	return cstring.ToString(nodeID) + cconst.DOT + cstring.ToString(actorID)
 }
 
+// ToActorPath parses a dotted path string into an ActorPath.
+// Accepts "node.actor" (2-segment) or "node.actor.child" (3-segment) formats.
 func ToActorPath(path string) (*ActorPath, error) {
 	if path == "" {
 		return nil, cerr.ActorPathError
