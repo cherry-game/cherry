@@ -23,7 +23,7 @@ func GetNatsMsg() *nats.Msg {
 }
 
 func ReleaseNatsMsg(natsMsg *nats.Msg) {
-	natsMsg.Header = nil
+	clear(natsMsg.Header)
 	natsMsg.Subject = ""
 	natsMsg.Reply = ""
 	natsMsg.Data = nil
