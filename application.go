@@ -53,6 +53,7 @@ func NewApp(profileFilePath, nodeID string, isFrontend bool, mode NodeMode) *App
 
 func NewAppNode(node cfacade.INode, isFrontend bool, mode NodeMode) *Application {
 	// set logger
+	clog.SetPrintLevel(clog.GetLevel(cprofile.PrintLevel()))
 	clog.SetNodeLogger(node)
 
 	// print version info

@@ -1,309 +1,107 @@
 package cherryLogger
 
 import (
-	"os"
 	"strings"
-	"sync"
-	"time"
 
 	cfacade "github.com/cherry-game/cherry/facade"
-	"github.com/cherry-game/cherry/logger/rotatelogs"
-	cprofile "github.com/cherry-game/cherry/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 const (
-	KEY_NODE_TYPE     = "nodetype"
-	KEY_NODE_ID       = "nodeid"
+	// KEY_NODE_TYPE is the common-field key for the node type (e.g. "game", "gate").
+	KEY_NODE_TYPE = "nodetype"
+	// KEY_NODE_ID is the common-field key for the node's unique ID.
+	KEY_NODE_ID = "nodeid"
+	// ENCODER_JSON_Type selects the JSON encoder when passed to a Config.
 	ENCODER_JSON_Type = "json"
 )
 
-var (
-	rw             sync.RWMutex             // mutex
-	DefaultLogger  *CherryLogger            // 默认日志对象(控制台输出)
-	loggers        map[string]*CherryLogger // 日志实例存储map(key:日志名称,value:日志实例)
-	printLevel     zapcore.Level            // cherry log print level
-	fileNameVarMap = map[string]string{}    // 日志输出文件名自定义变量
-	commonFields   = map[string]string{}    // 日志公共字段，每次日志都会输出
-)
+// DefaultLogger is the package-level default logger backed by defaultManager.
+// It is always a valid console-logging CherryLogger, never nil.
+var DefaultLogger = defaultManager.DefaultLogger()
 
-func init() {
-	DefaultLogger = NewConfigLogger(defaultConsoleConfig(), zap.AddCallerSkip(1))
-	loggers = make(map[string]*CherryLogger)
-}
-
+// CherryLogger wraps zap.SugaredLogger with framework-level Config awareness.
+// It embeds *zap.SugaredLogger (all logging methods) and a value copy of Config
+// that reflects the logger's construction-time settings.
 type CherryLogger struct {
+	Config
 	*zap.SugaredLogger
-	*Config
 }
 
-func (c *CherryLogger) Print(v ...interface{}) {
-	c.Warn(v)
-}
-
+// SetNodeLogger reads the node's profile, determines the referenced logger
+// name, and replaces DefaultLogger with a fully configured instance (file
+// writer, common fields, fileName vars) from the profile config.
 func SetNodeLogger(node cfacade.INode) {
 	refLoggerName := node.Settings().Get("ref_logger").ToString()
 	if refLoggerName == "" {
-		DefaultLogger.Infof("RefLoggerName not found, used default console logger.")
+		DefaultLogger.Warnf("RefLoggerName not found, used default console logger.")
 		return
 	}
 
-	SetFileNameVar(KEY_NODE_TYPE, node.NodeType())
-	SetFileNameVar(KEY_NODE_ID, node.NodeID())
+	defaultManager.SetFileNameVar(KEY_NODE_TYPE, node.NodeType())
+	defaultManager.SetFileNameVar(KEY_NODE_ID, node.NodeID())
 
-	SetCommonField(KEY_NODE_TYPE, node.NodeType())
-	SetCommonField(KEY_NODE_ID, node.NodeID())
+	defaultManager.SetCommonField(KEY_NODE_TYPE, node.NodeType())
+	defaultManager.SetCommonField(KEY_NODE_ID, node.NodeID())
 
-	DefaultLogger = NewLogger(refLoggerName, zap.AddCallerSkip(1))
-	printLevel = GetLevel(cprofile.PrintLevel())
+	DefaultLogger = defaultManager.GetOrCreateLogger(refLoggerName, zap.AddCallerSkip(1))
 }
 
+// SetFileNameVar sets a template variable on the default manager. Keys such as
+// "nodetype" or "nodeid" can be used in log file paths via %key placeholders.
 func SetFileNameVar(key, value string) {
-	fileNameVarMap[key] = value
+	defaultManager.SetFileNameVar(key, value)
 }
 
+// SetCommonField sets a single common field on the default manager. Common
+// fields appear on every log line produced by the manager's loggers.
 func SetCommonField(key, value string) {
-	commonFields[key] = value
+	defaultManager.SetCommonField(key, value)
 }
 
+// SetCommonFields sets multiple common fields at once on the default manager.
+func SetCommonFields(fields map[string]string) {
+	defaultManager.SetCommonFields(fields)
+}
+
+// CommonFields returns a copy of the default manager's current common fields.
+func CommonFields() map[string]string {
+	return defaultManager.CommonFields()
+}
+
+// Flush syncs all loggers in the default manager. Call before shutdown to
+// ensure buffered log entries are written.
 func Flush() {
-	_ = DefaultLogger.Sync()
-
-	for _, logger := range loggers {
-		_ = logger.Sync()
-	}
+	defaultManager.Sync()
 }
 
+// NewLogger creates or retrieves a named logger from profile config via the
+// default manager. Loggers are cached by name; subsequent calls with the same
+// name return the existing instance.
 func NewLogger(refLoggerName string, opts ...zap.Option) *CherryLogger {
-	if refLoggerName == "" {
-		return nil
-	}
-
-	defer rw.Unlock()
-	rw.Lock()
-
-	if logger, found := loggers[refLoggerName]; found {
-		return logger
-	}
-
-	config, err := NewConfigWithName(refLoggerName)
-	if err != nil {
-		Panicf("New Config fail. err = %v", err)
-	}
-
-	logger := NewConfigLogger(config, opts...)
-	loggers[refLoggerName] = logger
-
-	return logger
+	return defaultManager.GetOrCreateLogger(refLoggerName, opts...)
 }
 
-func NewConfigLogger(config *Config, opts ...zap.Option) *CherryLogger {
-	if config.EnableWriteFile {
-		for key, value := range fileNameVarMap {
-			config.FileLinkPath = strings.ReplaceAll(config.FileLinkPath, "%"+key, value)
-			config.FilePathFormat = strings.ReplaceAll(config.FilePathFormat, "%"+key, value)
-		}
-	}
-
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "ts",
-		LevelKey:       "level",
-		CallerKey:      "caller",
-		MessageKey:     "msg",
-		NameKey:        "name",
-		StacktraceKey:  "stack",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
-	}
-
-	encoderConfig.EncodeLevel = func(level zapcore.Level, encoder zapcore.PrimitiveArrayEncoder) {
-		encoder.AppendString(level.CapitalString())
-	}
-
-	encoderConfig.EncodeTime = config.TimeEncoder()
-
-	if config.PrintCaller {
-		encoderConfig.EncodeName = zapcore.FullNameEncoder
-		encoderConfig.FunctionKey = zapcore.OmitKey
-		opts = append(opts, zap.AddCaller())
-	}
-
-	opts = append(opts, zap.AddStacktrace(GetLevel(config.StackLevel)))
-
-	var writers []zapcore.WriteSyncer
-
-	if config.EnableWriteFile {
-		hook, err := rotatelogs.New(
-			config.FilePathFormat, //filename+"_%Y%m%d%H%M.log",
-			rotatelogs.WithLinkName(config.FileLinkPath),
-			rotatelogs.WithMaxAge(time.Hour*24*time.Duration(config.MaxAge)),
-			rotatelogs.WithRotationTime(time.Second*time.Duration(config.RotationTime)),
-		)
-
-		if err != nil {
-			panic(err)
-		}
-
-		writers = append(writers, zapcore.AddSync(hook))
-	}
-
-	if config.EnableConsole {
-		writers = append(writers, zapcore.AddSync(os.Stderr))
-	}
-
-	if config.IncludeStdout {
-		writers = append(writers, zapcore.Lock(os.Stdout))
-	}
-
-	if config.IncludeStderr {
-		writers = append(writers, zapcore.Lock(os.Stderr))
-	}
-
-	core := zapcore.NewCore(
-		getEncoderWithCommonFields(config.EncoderType, encoderConfig, commonFields),
-		zapcore.AddSync(zapcore.NewMultiWriteSyncer(writers...)),
-		zap.NewAtomicLevelAt(GetLevel(config.LogLevel)),
-	)
-
-	for _, v := range wrappers {
-		core = v.Wrap(core)
-	}
-
-	cherryLogger := &CherryLogger{
-		SugaredLogger: zap.New(core, opts...).Sugar(),
-		Config:        config,
-	}
-
-	return cherryLogger
-}
-
+// Enable reports whether the given log level is enabled on DefaultLogger.
 func Enable(level zapcore.Level) bool {
 	return DefaultLogger.Desugar().Core().Enabled(level)
 }
 
-func Debug(args ...interface{}) {
-	DefaultLogger.Debug(args...)
-}
-
-func Info(args ...interface{}) {
-	DefaultLogger.Info(args...)
-}
-
-// Warn uses fmt.Sprint to construct and log a message.
-func Warn(args ...interface{}) {
-	DefaultLogger.Warn(args...)
-}
-
-// Error uses fmt.Sprint to construct and log a message.
-func Error(args ...interface{}) {
-	DefaultLogger.Error(args...)
-}
-
-// DPanic uses fmt.Sprint to construct and log a message. In development, the
-// logger then panics. (See DPanicLevel for details.)
-func DPanic(args ...interface{}) {
-	DefaultLogger.DPanic(args...)
-}
-
-// Panic uses fmt.Sprint to construct and log a message, then panics.
-func Panic(args ...interface{}) {
-	DefaultLogger.Panic(args...)
-}
-
-// Fatal uses fmt.Sprint to construct and log a message, then calls os.Exit.
-func Fatal(args ...interface{}) {
-	DefaultLogger.Fatal(args...)
-}
-
-// Debugf uses fmt.Sprintf to log a templated message.
-func Debugf(template string, args ...interface{}) {
-	DefaultLogger.Debugf(template, args...)
-}
-
-// Infof uses fmt.Sprintf to log a templated message.
-func Infof(template string, args ...interface{}) {
-	DefaultLogger.Infof(template, args...)
-}
-
-// Warnf uses fmt.Sprintf to log a templated message.
-func Warnf(template string, args ...interface{}) {
-	DefaultLogger.Warnf(template, args...)
-}
-
-// Errorf uses fmt.Sprintf to log a templated message.
-func Errorf(template string, args ...interface{}) {
-	DefaultLogger.Errorf(template, args...)
-}
-
-// DPanicf uses fmt.Sprintf to log a templated message. In development, the
-// logger then panics. (See DPanicLevel for details.)
-func DPanicf(template string, args ...interface{}) {
-	DefaultLogger.DPanicf(template, args...)
-}
-
-// Panicf uses fmt.Sprintf to log a templated message, then panics.
-func Panicf(template string, args ...interface{}) {
-	DefaultLogger.Panicf(template, args...)
-}
-
-// Fatalf uses fmt.Sprintf to log a templated message, then calls os.Exit.
-func Fatalf(template string, args ...interface{}) {
-	DefaultLogger.Fatalf(template, args...)
-}
-
-// Debugw logs a message with some additional context. The variadic key-value
-// pairs are treated as they are in With.
-//
-// When debug-level logging is disabled, this is much faster than
-//
-//	s.With(keysAndValues).Debug(msg)
-func Debugw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Debugw(msg, keysAndValues...)
-}
-
-// Infow logs a message with some additional context. The variadic key-value
-// pairs are treated as they are in With.
-func Infow(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Infow(msg, keysAndValues...)
-}
-
-// Warnw logs a message with some additional context. The variadic key-value
-// pairs are treated as they are in With.
-func Warnw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Warnw(msg, keysAndValues...)
-}
-
-// Errorw logs a message with some additional context. The variadic key-value
-// pairs are treated as they are in With.
-func Errorw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Errorw(msg, keysAndValues...)
-}
-
-// DPanicw logs a message with some additional context. In development, the
-// logger then panics. (See DPanicLevel for details.) The variadic key-value
-// pairs are treated as they are in With.
-func DPanicw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.DPanicw(msg, keysAndValues...)
-}
-
-// Panicw logs a message with some additional context, then panics. The
-// variadic key-value pairs are treated as they are in With.
-func Panicw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Panicw(msg, keysAndValues...)
-}
-
-// Fatalw logs a message with some additional context, then calls os.Exit. The
-// variadic key-value pairs are treated as they are in With.
-func Fatalw(msg string, keysAndValues ...interface{}) {
-	DefaultLogger.Fatalw(msg, keysAndValues...)
-}
-
+// PrintLevel returns true if the given level meets the minimum print threshold
+// set on the default manager.
 func PrintLevel(level zapcore.Level) bool {
-	return level >= printLevel
+	return defaultManager.PrintLevel(level)
 }
 
+// SetPrintLevel updates the minimum print threshold on the default manager.
+func SetPrintLevel(level zapcore.Level) {
+	defaultManager.SetPrintLevel(level)
+}
+
+// GetLevel converts a level name string to a zapcore.Level. Supported values
+// (case-insensitive): "debug", "info", "warn", "error", "panic", "fatal".
+// Unknown values default to DebugLevel.
 func GetLevel(level string) zapcore.Level {
 	switch strings.ToLower(level) {
 	case "debug":
@@ -323,23 +121,69 @@ func GetLevel(level string) zapcore.Level {
 	}
 }
 
-func getEncoderWithCommonFields(encoderType string, encoderConfig zapcore.EncoderConfig, commonFields map[string]string) zapcore.Encoder {
-	switch strings.ToLower(encoderType) {
-	case ENCODER_JSON_Type:
-		encoder := zapcore.NewJSONEncoder(encoderConfig)
-		if len(commonFields) > 0 {
-			for key, value := range commonFields {
-				encoder.AddString(key, value)
-			}
-		}
-		return encoder
-	default:
-		encoder := newKVConsoleEncoder(encoderConfig)
-		if len(commonFields) > 0 {
-			for key, value := range commonFields {
-				encoder.AddString(key, value)
-			}
-		}
-		return encoder
-	}
-}
+// --- Package-level convenience functions ---
+// Each family mirrors zap.SugaredLogger: plain (fmt.Sprint), f (fmt.Sprintf),
+// and w (key=value pairs). All delegate to DefaultLogger.
+
+// Debug logs a message at DebugLevel.
+func Debug(args ...interface{}) { DefaultLogger.Debug(args...) }
+
+// Info logs a message at InfoLevel.
+func Info(args ...interface{}) { DefaultLogger.Info(args...) }
+
+// Warn logs a message at WarnLevel.
+func Warn(args ...interface{}) { DefaultLogger.Warn(args...) }
+
+// Error logs a message at ErrorLevel.
+func Error(args ...interface{}) { DefaultLogger.Error(args...) }
+
+// DPanic logs a message at DPanicLevel. In development mode the logger then panics.
+func DPanic(args ...interface{}) { DefaultLogger.DPanic(args...) }
+
+// Panic logs a message at PanicLevel, then panics.
+func Panic(args ...interface{}) { DefaultLogger.Panic(args...) }
+
+// Fatal logs a message at FatalLevel, then calls os.Exit(1).
+func Fatal(args ...interface{}) { DefaultLogger.Fatal(args...) }
+
+// Debugf formats and logs a message at DebugLevel.
+func Debugf(template string, args ...interface{}) { DefaultLogger.Debugf(template, args...) }
+
+// Infof formats and logs a message at InfoLevel.
+func Infof(template string, args ...interface{}) { DefaultLogger.Infof(template, args...) }
+
+// Warnf formats and logs a message at WarnLevel.
+func Warnf(template string, args ...interface{}) { DefaultLogger.Warnf(template, args...) }
+
+// Errorf formats and logs a message at ErrorLevel.
+func Errorf(template string, args ...interface{}) { DefaultLogger.Errorf(template, args...) }
+
+// DPanicf formats and logs a message at DPanicLevel. In development mode the logger then panics.
+func DPanicf(template string, args ...interface{}) { DefaultLogger.DPanicf(template, args...) }
+
+// Panicf formats and logs a message at PanicLevel, then panics.
+func Panicf(template string, args ...interface{}) { DefaultLogger.Panicf(template, args...) }
+
+// Fatalf formats and logs a message at FatalLevel, then calls os.Exit(1).
+func Fatalf(template string, args ...interface{}) { DefaultLogger.Fatalf(template, args...) }
+
+// Debugw logs a message at DebugLevel with key-value pairs.
+func Debugw(msg string, keysAndValues ...interface{}) { DefaultLogger.Debugw(msg, keysAndValues...) }
+
+// Infow logs a message at InfoLevel with key-value pairs.
+func Infow(msg string, keysAndValues ...interface{}) { DefaultLogger.Infow(msg, keysAndValues...) }
+
+// Warnw logs a message at WarnLevel with key-value pairs.
+func Warnw(msg string, keysAndValues ...interface{}) { DefaultLogger.Warnw(msg, keysAndValues...) }
+
+// Errorw logs a message at ErrorLevel with key-value pairs.
+func Errorw(msg string, keysAndValues ...interface{}) { DefaultLogger.Errorw(msg, keysAndValues...) }
+
+// DPanicw logs a message at DPanicLevel with key-value pairs. In development mode the logger then panics.
+func DPanicw(msg string, keysAndValues ...interface{}) { DefaultLogger.DPanicw(msg, keysAndValues...) }
+
+// Panicw logs a message at PanicLevel with key-value pairs, then panics.
+func Panicw(msg string, keysAndValues ...interface{}) { DefaultLogger.Panicw(msg, keysAndValues...) }
+
+// Fatalw logs a message at FatalLevel with key-value pairs, then calls os.Exit(1).
+func Fatalw(msg string, keysAndValues ...interface{}) { DefaultLogger.Fatalw(msg, keysAndValues...) }
