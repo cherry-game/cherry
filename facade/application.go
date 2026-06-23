@@ -44,13 +44,18 @@ type (
 	// ProfileJSON is a typed profile/config reader backed by jsoniter.
 	ProfileJSON interface {
 		jsoniter.Any
-		GetConfig(path ...interface{}) ProfileJSON
-		GetString(path interface{}, defaultVal ...string) string
-		GetBool(path interface{}, defaultVal ...bool) bool
-		GetInt(path interface{}, defaultVal ...int) int
-		GetInt32(path interface{}, defaultVal ...int32) int32
-		GetInt64(path interface{}, defaultVal ...int64) int64
-		GetDuration(path interface{}, defaultVal ...time.Duration) time.Duration
-		Unmarshal(ptrVal interface{}) error
+		GetConfig(path ...any) ProfileJSON
+		GetString(path any, defaultVal ...string) string
+		GetBool(path any, defaultVal ...bool) bool
+		GetInt(path any, defaultVal ...int) int
+		GetInt32(path any, defaultVal ...int32) int32
+		GetInt64(path any, defaultVal ...int64) int64
+		GetUint(path any, defaultVal ...uint) uint
+		GetUint32(path any, defaultVal ...uint32) uint32
+		GetUint64(path any, defaultVal ...uint64) uint64
+		GetFloat32(path any, defaultVal ...float32) float32
+		GetFloat64(path any, defaultVal ...float64) float64
+		GetDuration(path any, defaultVal ...time.Duration) time.Duration
+		Unmarshal(ptrVal any) error
 	}
 )
