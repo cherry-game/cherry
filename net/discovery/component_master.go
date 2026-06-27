@@ -21,11 +21,11 @@ var registerRequired = []byte{0x01}
 // ComponentMaster implements NATS-based master/worker discovery.
 //
 // Protocol overview:
-//   1. Start a single master node first.
-//   2. Worker nodes send a register message (cherry.<prefix>.discovery.<masterID>.register) to the master.
-//   3. The master replies with the full member list and broadcasts the new member via add subject.
-//   4. Workers periodically send heartbeat messages; the master removes members that time out.
-//   5. Workers broadcast remove messages on shutdown.
+//  1. Start a single master node first.
+//  2. Worker nodes send a register message (cherry.<prefix>.discovery.<masterID>.register) to the master.
+//  3. The master replies with the full member list and broadcasts the new member via add subject.
+//  4. Workers periodically send heartbeat messages; the master removes members that time out.
+//  5. Workers broadcast remove messages on shutdown.
 //
 // natsSubjects holds the NATS subject strings built from prefix and masterID.
 // thisMember is the local node's member info, synced with the master on setting changes.
@@ -34,10 +34,10 @@ type (
 	ComponentMaster struct {
 		ComponentDefault
 		natsSubjects
-		thisMember *cproto.Member  // local node's member info, updated on setting changes
-		masterID   string           // the designated master node ID from config
-		ctx        context.Context  // lifecycle context for background goroutines
-		cancel     context.CancelFunc
+		thisMember *cproto.Member     // local node's member info, updated on setting changes
+		masterID   string             // the designated master node ID from config
+		ctx        context.Context    // lifecycle context for background goroutines
+		cancel     context.CancelFunc // cancel func
 	}
 
 	natsSubjects struct {
@@ -124,11 +124,7 @@ func (m *ComponentMaster) init() {
 	m.masterInit()
 	m.clientInit()
 
-	role := "worker"
-	if m.isMaster() {
-		role = "master"
-	}
-	clog.Infof("[init] Discovery = %s is running. [role = %s, nodeID = %s]", m.Mode(), role, m.App().NodeID())
+	clog.Infof("[init] Discovery = %s is running. [isMaster = %s, nodeID = %s]", m.Mode(), m.isMaster(), m.App().NodeID())
 }
 
 // loadThisMember reads NATS/member config from profile and constructs the local member.
@@ -434,8 +430,7 @@ func (m *ComponentMaster) sendAdd(member *cproto.Member) {
 }
 
 // removeSubscribe handles incoming remove notifications.
-// On workers: removes the member from the local table.
-// On master: ignores self-remove to prevent accidental self-deletion.
+// Both master and workers ignore self-remove to prevent accidental self-deletion.
 func (m *ComponentMaster) removeSubscribe() {
 	m.subscribe(m.removeSubject, func(msg *nats.Msg) {
 		nodeID, err := m.bytes2NodeID(msg.Data)
@@ -444,8 +439,8 @@ func (m *ComponentMaster) removeSubscribe() {
 			return
 		}
 
-		// Master should never remove itself via this path
-		if m.isMaster() && nodeID == m.App().NodeID() {
+		// Never remove self via this path — applies to both master and workers
+		if nodeID == m.App().NodeID() {
 			return
 		}
 
