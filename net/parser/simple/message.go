@@ -9,18 +9,24 @@ import (
 	cerr "github.com/cherry-game/cherry/error"
 )
 
+// Package-level message constants.
 var (
-	NoneMessage        = Message{} // none message
-	headLength         = 8         // ID uint32(4 bytes) +  DataLen uint32(4 bytes)
-	dataLength  uint32 = 4096      // data length
+	NoneMessage        = Message{} // zero-value sentinel
+	headLength         = 8         // header size: MID uint32(4 bytes) + DataLen uint32(4 bytes)
+	dataLength  uint32 = 4096      // maximum allowed data payload size
 )
 
+// Message represents a decoded simple-protocol message.
+// The wire format is: MID(4 bytes) + DataLen(4 bytes) + Data(DataLen bytes).
 type Message struct {
-	MID  uint32
-	Len  uint32
-	Data []byte
+	MID  uint32 // message id for request/response matching
+	Len  uint32 // length of the data payload
+	Data []byte // payload bytes
 }
 
+// ReadMessage reads and parses a single message from the connection.
+// It returns the message, a break flag (true if the connection should be considered closed),
+// and any error encountered.
 func ReadMessage(conn net.Conn) (Message, bool, error) {
 	header, err := io.ReadAll(io.LimitReader(conn, int64(headLength)))
 	if err != nil {

@@ -37,11 +37,15 @@ type (
 		chWrite       chan []byte
 	}
 
+// ActionFn is a deferred function executed in the client's event loop.
 	ActionFn    func() error
+
+// OnMessageFn is called when a push message arrives on a bound route.
 	OnMessageFn func(msg *pomeloMessage.Message)
 )
 
-// New returns a new client
+// New returns a new pomelo client with default options. Use With* Option functions
+// to customize the client before connecting.
 func New(opts ...Option) *Client {
 	client := &Client{
 		TagName:   "client",
@@ -68,6 +72,8 @@ func New(opts ...Option) *Client {
 	return client
 }
 
+// ConnectToWS establishes a WebSocket connection to the given address and path,
+// performs the pomelo handshake, and starts the read/write loops.
 func (p *Client) ConnectToWS(addr string, path string, tlsConfig ...*tls.Config) error {
 	u := url.URL{
 		Scheme: "ws",
@@ -96,6 +102,8 @@ func (p *Client) ConnectToWS(addr string, path string, tlsConfig ...*tls.Config)
 	return nil
 }
 
+// ConnectToTCP establishes a TCP connection to the given address, performs the
+// pomelo handshake, and starts the read/write loops.
 func (p *Client) ConnectToTCP(addr string, tlsConfig ...*tls.Config) error {
 	var conn net.Conn
 	var err error
@@ -119,6 +127,8 @@ func (p *Client) ConnectToTCP(addr string, tlsConfig ...*tls.Config) error {
 	return nil
 }
 
+// Disconnect closes the connection and signals all goroutines to exit.
+// Safe to call multiple times.
 func (p *Client) Disconnect() {
 	for p.connected {
 		p.connected = false
@@ -132,10 +142,13 @@ func (p *Client) Disconnect() {
 	}
 }
 
+// AddAction enqueues a function to be executed in the client's event loop.
 func (p *Client) AddAction(actionFn ActionFn) {
 	p.actionChan <- actionFn
 }
 
+// Request sends a request to the server and blocks until a response is received
+// or the request timeout is reached.
 func (p *Client) Request(route string, val interface{}) (*pomeloMessage.Message, error) {
 	id, err := p.Send(pomeloMessage.Request, route, val)
 	if err != nil {
@@ -171,7 +184,7 @@ func (p *Client) Request(route string, val interface{}) (*pomeloMessage.Message,
 	}
 }
 
-// Notify sends a notify to the server
+// Notify sends a one-way notify message to the server.
 func (p *Client) Notify(route string, val interface{}) error {
 	_, err := p.Send(pomeloMessage.Notify, route, val)
 	if err != nil {
@@ -181,16 +194,17 @@ func (p *Client) Notify(route string, val interface{}) error {
 	return nil
 }
 
-// On listener route
+// On registers a callback for push messages arriving on the given route.
 func (p *Client) On(route string, fn OnMessageFn) {
 	p.pushBindMaps.Store(route, fn)
 }
 
-// IsConnected return the connection status
+// IsConnected returns whether the client is currently connected.
 func (p *Client) IsConnected() bool {
 	return p.connected
 }
 
+// HandshakeData returns the handshake data received from the server.
 func (p *Client) HandshakeData() *HandshakeData {
 	return p.handshakeData
 }
@@ -361,7 +375,8 @@ func (p *Client) getPackets() ([]*pomeloPacket.Packet, error) {
 	return packets, nil
 }
 
-// Send the message to the server
+// Send encodes and enqueues a message for writing to the server.
+// Returns the auto-incremented message id.
 func (p *Client) Send(msgType pomeloMessage.Type, route string, val interface{}) (uint, error) {
 	data, err := p.serializer.Marshal(val)
 	if err != nil {

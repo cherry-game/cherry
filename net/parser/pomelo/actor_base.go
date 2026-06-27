@@ -8,37 +8,46 @@ import (
 )
 
 const (
-	ResponseFuncName = "response"
-	PushFuncName     = "push"
-	KickFuncName     = "kick"
-	BroadcastName    = "broadcast"
+	ResponseFuncName = "response" // remote function name for response
+	PushFuncName     = "push"     // remote function name for push
+	KickFuncName     = "kick"     // remote function name for kick
+	BroadcastName    = "broadcast" // remote function name for broadcast
 )
 
+// ActorBase provides convenience methods for actors to respond, push, kick,
+// and broadcast messages to clients. Embed it in your actor to inherit these
+// methods.
 type ActorBase struct {
 	cactor.Base
 }
 
+// Response sends a response payload back to the client for the given session.
 func (p *ActorBase) Response(session *cproto.Session, v any) {
 	Response(p, session.AgentPath, session.Sid, session.GetMID(), v)
 }
 
+// ResponseCode sends a status-code response back to the client for the given session.
 func (p *ActorBase) ResponseCode(session *cproto.Session, statusCode int32) {
 	ResponseCode(p, session.AgentPath, session.Sid, session.GetMID(), statusCode)
 }
 
+// Push sends a push message to the client identified by the session's sid.
 func (p *ActorBase) Push(session *cproto.Session, route string, v any) {
 	PushWithSID(p, session.AgentPath, session.Sid, route, v)
 }
 
+// PushWithUIDS sends a push message to clients matching the given uid list or to
+// all connected clients when allUID is true.
 func (p *ActorBase) PushWithUIDS(agentPath string, uidList []int64, allUID bool, route string, v interface{}) {
 	PushWithUIDS(p, agentPath, uidList, allUID, route, v)
 }
 
+// Kick sends a kick message to the client identified by the session's sid.
 func (p *ActorBase) Kick(session *cproto.Session, reason any, closed bool) {
 	Kick(p, session.AgentPath, session.Sid, reason, closed)
 }
 
-// 根据request的mid找到agent，返回消息给客户端
+// Response looks up the agent by request mid and sends a response payload back to the client.
 func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v any) {
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {
@@ -55,7 +64,7 @@ func Response(iActor cfacade.IActor, agentPath, sid string, mid uint32, v any) {
 	iActor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-// 根据request的mid找到agent，返回消息给客户端
+// ResponseCode looks up the agent by request mid and sends a status-code response back to the client.
 func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, statusCode int32) {
 	rsp := &cproto.PomeloResponse{
 		Sid:  sid,
@@ -66,7 +75,7 @@ func ResponseCode(iActor cfacade.IActor, agentPath, sid string, mid uint32, stat
 	iActor.Call(agentPath, ResponseFuncName, rsp)
 }
 
-// 根据sid或uid找到agent，推送消息给客户端
+// Push looks up the agent by sid or uid and sends a push message to the client.
 func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route string, v any) {
 	if sid == "" && uid < 1 {
 		clog.Warnf("[Push] sid or uid value error. agentPath = %s, route = %s, sid = %s, uid = %d",
@@ -99,17 +108,18 @@ func Push(iActor cfacade.IActor, agentPath, sid string, uid cfacade.UID, route s
 	iActor.Call(agentPath, PushFuncName, rsp)
 }
 
-// 根据sid找到agent，推送消息给客户端
+// PushWithSID looks up the agent by session id and sends a push message.
 func PushWithSID(iActor cfacade.IActor, agentPath, sid, route string, v any) {
 	Push(iActor, agentPath, sid, 0, route, v)
 }
 
-// 根据uid找到agent，推送消息给客户端
+// PushWithUID looks up the agent by user id and sends a push message.
 func PushWithUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, route string, v any) {
 	Push(iActor, agentPath, "", uid, route, v)
 }
 
-// 根据uidList或allUID匹配找到Agent，下发数据给客户端
+// PushWithUIDS sends a push message to agents matching the uid list or to all connected
+// clients when allUID is true.
 func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allUID bool, route string, v any) {
 	if !allUID && len(uidList) < 1 {
 		clog.Warnf("[PushWithUIDS] uidList value error. agentPath = %s, route = %s", agentPath, route)
@@ -142,7 +152,7 @@ func PushWithUIDS(iActor cfacade.IActor, agentPath string, uidList []int64, allU
 	iActor.Call(agentPath, BroadcastName, rsp)
 }
 
-// 根据sid找到agent，下发踢除消息给客户端
+// Kick looks up the agent by session id and sends a kick message to the client.
 func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool) {
 	data, err := iActor.App().Serializer().Marshal(reason)
 	if err != nil {
@@ -159,6 +169,7 @@ func Kick(iActor cfacade.IActor, agentPath, sid string, reason any, closed bool)
 	iActor.Call(agentPath, KickFuncName, rsp)
 }
 
+// KickUID looks up the agent by user id and sends a kick message to the client.
 func KickUID(iActor cfacade.IActor, agentPath string, uid cfacade.UID, reason any, closed bool) {
 	data, err := iActor.App().Serializer().Marshal(reason)
 	if err != nil {

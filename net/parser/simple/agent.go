@@ -15,22 +15,26 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Agent lifecycle states.
 const (
-	AgentInit   int32 = 0
-	AgentClosed int32 = 3
+	AgentInit   int32 = 0 // initial state
+	AgentClosed int32 = 4 // closed, no further processing
 )
 
 type (
+	// Agent represents a single client connection. All conn.Write and teardown
+	// operations happen exclusively in writeChan's goroutine.
 	Agent struct {
-		cfacade.IApplication                      // app
-		conn                 net.Conn             // low-level conn fd
-		state                int32                // current agent state
-		session              *cproto.Session      // session
-		chDie                chan struct{}        // wait for close
-		chPending            chan *pendingMessage // push message queue
-		chWrite              chan []byte          // push bytes queue
-		lastAt               int64                // last heartbeat unix time stamp
-		onCloseFunc          []OnCloseFunc        // on close agent
+		cfacade.IApplication
+		conn        net.Conn
+		state       atomic.Int32
+		session     *cproto.Session
+		chDie       chan struct{}
+		chPending   chan *pendingMessage
+		chWrite     chan []byte
+		chKick      chan []byte
+		lastAt      atomic.Int64
+		onCloseFunc []OnCloseFunc
 	}
 
 	pendingMessage struct {
@@ -41,40 +45,39 @@ type (
 	OnCloseFunc func(*Agent)
 )
 
-func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) Agent {
-	agent := Agent{
+// NewAgent creates an agent for a new connection.
+func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) *Agent {
+	agent := &Agent{
 		IApplication: app,
 		conn:         conn,
-		state:        AgentInit,
 		session:      session,
 		chDie:        make(chan struct{}),
 		chPending:    make(chan *pendingMessage, writeBacklog),
 		chWrite:      make(chan []byte, writeBacklog),
-		lastAt:       0,
-		onCloseFunc:  nil,
+		chKick:       make(chan []byte, 1),
 	}
 
-	agent.session.Ip = agent.RemoteAddr()
+	agent.state.Store(AgentInit)
 	agent.SetLastAt()
 
 	if clog.PrintLevel(zapcore.DebugLevel) {
 		clog.Debugf("[sid = %s,uid = %d] Agent create. [count = %d, ip = %s]",
-			agent.SID(),
-			agent.UID(),
-			Count(),
-			agent.RemoteAddr(),
-		)
+			agent.SID(), agent.UID(), Count(), agent.RemoteAddr())
 	}
 
 	return agent
 }
 
 func (a *Agent) State() int32 {
-	return a.state
+	return a.state.Load()
+}
+
+func (a *Agent) IsClosed() bool {
+	return a.state.Load() == AgentClosed
 }
 
 func (a *Agent) SetState(state int32) bool {
-	oldValue := atomic.SwapInt32(&a.state, state)
+	oldValue := a.state.Swap(state)
 	return oldValue != state
 }
 
@@ -90,8 +93,8 @@ func (a *Agent) SID() cfacade.SID {
 	return a.session.Sid
 }
 
-func (a *Agent) Bind(uid cfacade.UID) error {
-	return BindUID(a.SID(), uid)
+func (a *Agent) Bind(uid cfacade.UID) (*Agent, error) {
+	return Bind(a.SID(), uid)
 }
 
 func (a *Agent) Unbind() {
@@ -99,11 +102,70 @@ func (a *Agent) Unbind() {
 }
 
 func (a *Agent) SetLastAt() {
-	atomic.StoreInt64(&a.lastAt, ctime.Now().ToSecond())
+	a.lastAt.Store(ctime.Now().ToSecond())
 }
 
 func (a *Agent) SendRaw(bytes []byte) {
-	a.chWrite <- bytes
+	if a.IsClosed() {
+		return
+	}
+	select {
+	case a.chWrite <- bytes:
+	default:
+	}
+}
+
+func (a *Agent) Response(mid uint32, v interface{}) {
+	a.sendPending(mid, v)
+	if clog.PrintLevel(zapcore.DebugLevel) {
+		clog.Debugf("[sid = %s,uid = %d] Response ok. [mid = %d, val = %+v]",
+			a.SID(), a.UID(), mid, v)
+	}
+}
+
+func (a *Agent) SendKick(pkg []byte) {
+	if a.IsClosed() {
+		return
+	}
+	select {
+	case a.chKick <- pkg:
+	default:
+		clog.Warnf("[sid = %s,uid = %d] Kick buffer full, closing without kick packet.", a.SID(), a.UID())
+		a.Close()
+	}
+}
+
+func (a *Agent) Kick(mid uint32, reason interface{}, closed bool) {
+	bytes, err := a.Serializer().Marshal(reason)
+	if err != nil {
+		clog.Warnf("[sid = %s,uid = %d] Kick marshal fail. [closed = %v, reason = {%+v}, err = %s]",
+			a.SID(), a.UID(), closed, reason, err)
+		if closed {
+			a.Close()
+		}
+		return
+	}
+
+	pkg, err := pack(mid, bytes)
+	if err != nil {
+		clog.Warnf("[sid = %s,uid = %d] Kick packet encode error. [closed = %v, reason = %+v, err = %s]",
+			a.SID(), a.UID(), closed, reason, err)
+		if closed {
+			a.Close()
+		}
+		return
+	}
+
+	if clog.PrintLevel(zapcore.DebugLevel) {
+		clog.Debugf("[sid = %s,uid = %d] Kick ok. [closed = %v, reason = %+v]",
+			a.SID(), a.UID(), closed, reason)
+	}
+
+	if closed {
+		a.SendKick(pkg)
+	} else {
+		a.SendRaw(pkg)
+	}
 }
 
 func (a *Agent) Close() {
@@ -113,6 +175,39 @@ func (a *Agent) Close() {
 		default:
 			close(a.chDie)
 		}
+		a.conn.SetWriteDeadline(time.Now().Add(-1))
+	}
+}
+
+func (a *Agent) closeClean() {
+	for _, fn := range a.onCloseFunc {
+		cutils.Try(func() { fn(a) }, func(errString string) {
+			clog.Warnf("[sid = %s,uid = %d] onCloseFunc error = %s",
+				a.SID(), a.UID(), errString)
+		})
+	}
+
+	a.Unbind()
+
+	if err := a.conn.Close(); err != nil {
+		clog.Debugf("[sid = %s,uid = %d] Agent connect closed. [error = %s]",
+			a.SID(), a.UID(), err)
+	}
+
+	if clog.PrintLevel(zapcore.DebugLevel) {
+		clog.Debugf("[sid = %s,uid = %d] Agent closed. [count = %d, ip = %s]",
+			a.SID(), a.UID(), Count(), a.RemoteAddr())
+	}
+}
+
+func (a *Agent) AddOnClose(fn OnCloseFunc) {
+	if a.state.Load() != AgentInit {
+		clog.Warnf("[sid = %s,uid = %d] AddOnClose failed: agent is not in Init state. [state = %d]",
+			a.SID(), a.UID(), a.State())
+		return
+	}
+	if fn != nil {
+		a.onCloseFunc = append(a.onCloseFunc, fn)
 	}
 }
 
@@ -124,21 +219,20 @@ func (a *Agent) Run() {
 func (a *Agent) readChan() {
 	defer func() {
 		if clog.PrintLevel(zapcore.DebugLevel) {
-			clog.Debugf("[sid = %s,uid = %d] Agent read chan exit.",
-				a.SID(),
-				a.UID(),
-			)
+			clog.Debugf("[sid = %s,uid = %d] Agent read chan exit.", a.SID(), a.UID())
 		}
-
 		a.Close()
 	}()
 
 	for {
+		if a.IsClosed() {
+			return
+		}
+
 		msg, isBreak, err := ReadMessage(a.conn)
 		if isBreak || err != nil {
 			return
 		}
-
 		a.processPacket(&msg)
 	}
 }
@@ -146,80 +240,54 @@ func (a *Agent) readChan() {
 func (a *Agent) writeChan() {
 	ticker := time.NewTicker(heartbeatTime)
 	defer func() {
+		ticker.Stop()
+		a.Close()
+		a.closeClean()
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Debugf("[sid = %s,uid = %d] Agent write chan exit.", a.SID(), a.UID())
 		}
-
-		ticker.Stop()
-		a.closeProcess()
-		a.Close()
 	}()
+
+	var lastAt, deadline int64
 
 	for {
 		select {
 		case <-a.chDie:
-			{
+			return
+		case bytes := <-a.chKick:
+			if err := a.write(bytes); err != nil {
+				clog.Warnf("[sid = %s,uid = %d] Kick write error. [error = %v]", a.SID(), a.UID(), err)
+			}
+			return
+		case <-ticker.C:
+			lastAt = a.lastAt.Load()
+			deadline = time.Now().Add(-heartbeatTime).Unix()
+			if lastAt < deadline {
+				if clog.PrintLevel(zapcore.DebugLevel) {
+					clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
+				}
 				return
 			}
-		case <-ticker.C:
-			{
-				deadline := ctime.Now().Add(-heartbeatTime).Unix()
-				if a.lastAt < deadline {
-					if clog.PrintLevel(zapcore.DebugLevel) {
-						clog.Debugf("[sid = %s,uid = %d] Check heartbeat timeout.", a.SID(), a.UID())
-					}
-					return
-				}
-			}
 		case pending := <-a.chPending:
-			{
-				a.processPending(pending)
-			}
+			a.processPending(pending)
 		case bytes := <-a.chWrite:
-			{
-				a.write(bytes)
+			if err := a.write(bytes); err != nil {
+				clog.Warnf("[sid = %s,uid = %d] Write bytes error. [error = %v]", a.SID(), a.UID(), err)
+				return
 			}
 		}
 	}
 }
 
-func (a *Agent) closeProcess() {
-	cutils.Try(func() {
-		for _, fn := range a.onCloseFunc {
-			fn(a)
+func (a *Agent) write(bytes []byte) error {
+	if a.IsClosed() {
+		if clog.PrintLevel(zapcore.InfoLevel) {
+			clog.Infof("[sid = %s,uid = %d] Write bytes failed because the connection is closed!", a.SID(), a.UID())
 		}
-	}, func(errString string) {
-		clog.Warn(errString)
-	})
-
-	a.Unbind()
-
-	if err := a.conn.Close(); err != nil {
-		clog.Debugf("[sid = %s,uid = %d] Agent connect closed. [error = %s]",
-			a.SID(),
-			a.UID(),
-			err,
-		)
+		return nil
 	}
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Agent closed. [count = %d, ip = %s]",
-			a.SID(),
-			a.UID(),
-			Count(),
-			a.RemoteAddr(),
-		)
-	}
-
-	close(a.chPending)
-	close(a.chWrite)
-}
-
-func (a *Agent) write(bytes []byte) {
 	_, err := a.conn.Write(bytes)
-	if err != nil {
-		clog.Warn(err)
-	}
+	return err
 }
 
 func (a *Agent) processPacket(msg *Message) {
@@ -227,48 +295,26 @@ func (a *Agent) processPacket(msg *Message) {
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {
 			clog.Warnf("[sid = %s,uid = %d] Route not found, close connect! [message = %+v]",
-				a.SID(),
-				a.UID(),
-				msg,
-			)
+				a.SID(), a.UID(), msg)
 		}
 		a.Close()
 		return
 	}
-
 	onDataRouteFunc(a, msg, nodeRoute)
-
-	// update last time
 	a.SetLastAt()
-}
-
-func (a *Agent) RemoteAddr() string {
-	if a.conn != nil {
-		return cnet.GetIPV4(a.conn.RemoteAddr())
-	}
-
-	return ""
-}
-
-func (p *pendingMessage) String() string {
-	return fmt.Sprintf("mid = %d, payload = %v", p.mid, p.payload)
 }
 
 func (a *Agent) processPending(pending *pendingMessage) {
 	data, err := a.Serializer().Marshal(pending.payload)
 	if err != nil {
 		clog.Warnf("[sid = %s,uid = %d] Payload marshal error. [data = %s]",
-			a.SID(),
-			a.UID(),
-			pending.String(),
-		)
+			a.SID(), a.UID(), pending.String())
 		return
 	}
 
-	// encode packet
 	pkg, err := pack(pending.mid, data)
 	if err != nil {
-		clog.Warn(err)
+		clog.Warnf("[sid = %s,uid = %d] Pack error. [error = %v]", a.SID(), a.UID(), err)
 		return
 	}
 
@@ -276,23 +322,9 @@ func (a *Agent) processPending(pending *pendingMessage) {
 }
 
 func (a *Agent) sendPending(mid uint32, payload interface{}) {
-	if a.state == AgentClosed {
+	if a.IsClosed() {
 		clog.Warnf("[sid = %s,uid = %d] Session is closed. [mid = %d, payload = %+v]",
-			a.SID(),
-			a.UID(),
-			mid,
-			payload,
-		)
-		return
-	}
-
-	if len(a.chPending) >= writeBacklog {
-		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [mid = %d, payload = %+v]",
-			a.SID(),
-			a.UID(),
-			mid,
-			payload,
-		)
+			a.SID(), a.UID(), mid, payload)
 		return
 	}
 
@@ -301,62 +333,21 @@ func (a *Agent) sendPending(mid uint32, payload interface{}) {
 		payload: payload,
 	}
 
-	a.chPending <- pending
-}
-
-func (a *Agent) Response(mid uint32, v interface{}) {
-	a.sendPending(mid, v)
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Response ok. [mid = %d, val = %+v]",
-			a.SID(),
-			a.UID(),
-			mid,
-			v,
-		)
+	select {
+	case a.chPending <- pending:
+	default:
+		clog.Warnf("[sid = %s,uid = %d] send buffer exceed. [mid = %d, payload = %+v]",
+			a.SID(), a.UID(), mid, payload)
 	}
 }
 
-func (a *Agent) AddOnClose(fn OnCloseFunc) {
-	if fn != nil {
-		a.onCloseFunc = append(a.onCloseFunc, fn)
+func (a *Agent) RemoteAddr() string {
+	if a.conn != nil {
+		return cnet.GetIPV4(a.conn.RemoteAddr())
 	}
+	return ""
 }
 
-func (a *Agent) Kick(mid uint32, reason interface{}, closed bool) {
-	bytes, err := a.Serializer().Marshal(reason)
-	if err != nil {
-		clog.Warnf("[sid = %s,uid = %d] Kick marshal fail. [reason = {%+v}, err = %s]",
-			a.SID(),
-			a.UID(),
-			reason,
-			err,
-		)
-	}
-	// encode packet
-	pkg, err := pack(mid, bytes)
-	if err != nil {
-		clog.Warnf("[sid = %s,uid = %d] Kick packet encode error.[reason = %+v, err = %s]",
-			a.SID(),
-			a.UID(),
-			reason,
-			err,
-		)
-		return
-	}
-
-	if clog.PrintLevel(zapcore.DebugLevel) {
-		clog.Debugf("[sid = %s,uid = %d] Kick ok. [reason = %+v, closed = %v]",
-			a.SID(),
-			a.UID(),
-			reason,
-			closed,
-		)
-	}
-
-	// 不进入pending chan，直接踢了
-	a.write(pkg)
-
-	if closed {
-		a.Close()
-	}
+func (p *pendingMessage) String() string {
+	return fmt.Sprintf("mid = %d, payload = %v", p.mid, p.payload)
 }

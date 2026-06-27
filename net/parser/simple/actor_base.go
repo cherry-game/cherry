@@ -7,14 +7,17 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
+// ActorBase provides convenience methods for actors to respond to clients.
 type ActorBase struct {
 	cactor.Base
 }
 
+// Response sends a response payload back to the client for the given session and message id.
 func (p *ActorBase) Response(session *cproto.Session, mid uint32, v interface{}) {
 	Response(p, session, mid, v)
 }
 
+// Response looks up the agent by the session and sends a response payload back to the client.
 func Response(iActor cfacade.IActor, session *cproto.Session, mid uint32, v interface{}) {
 	data, err := iActor.App().Serializer().Marshal(v)
 	if err != nil {

@@ -6,21 +6,25 @@ import (
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
+// Package-level routing state.
 var (
-	nodeRouteMap    = map[uint32]*NodeRoute{}
-	onDataRouteFunc = DefaultDataRoute
+	nodeRouteMap    = map[uint32]*NodeRoute{} // mid → target route
+	onDataRouteFunc = DefaultDataRoute        // data routing handler
 )
 
+// NodeRoute describes the target actor and function for a given message id.
 type (
 	NodeRoute struct {
-		NodeType string
-		ActorID  string
-		FuncName string
+		NodeType string // target node type
+		ActorID  string // target actor id
+		FuncName string // target function name
 	}
 
+// DataRouteFunc is called to route a decoded message to the target actor.
 	DataRouteFunc func(agent *Agent, msg *Message, route *NodeRoute)
 )
 
+// AddNodeRoute maps a mid (message id) to a NodeRoute for routing incoming messages.
 func AddNodeRoute(mid uint32, nodeRoute *NodeRoute) {
 	if nodeRoute == nil {
 		return
@@ -29,11 +33,15 @@ func AddNodeRoute(mid uint32, nodeRoute *NodeRoute) {
 	nodeRouteMap[mid] = nodeRoute
 }
 
+// GetNodeRoute returns the NodeRoute for the given message id.
 func GetNodeRoute(mid uint32) (*NodeRoute, bool) {
 	routeActor, found := nodeRouteMap[mid]
 	return routeActor, found
 }
 
+// DefaultDataRoute is the default message routing handler. It dispatches locally
+// when the target node type matches the agent's node, or forwards to a random
+// member of the target node type via the cluster.
 func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
 	session := agent.session
 	session.SetMID(msg.MID)
@@ -63,6 +71,7 @@ func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
 	ClusterLocalDataRoute(agent, session, msg, route, member.GetNodeID(), targetPath)
 }
 
+// LocalDataRoute posts a message to a local actor on this node.
 func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, targetPath string) {
 	message := cfacade.GetMessage()
 	message.Source = session.AgentPath
@@ -74,6 +83,7 @@ func LocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRou
 	agent.ActorSystem().PostLocal(message)
 }
 
+// ClusterLocalDataRoute publishes a message to a local actor on a remote node via the cluster.
 func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, msg *Message, nodeRoute *NodeRoute, nodeID, targetPath string) error {
 	message := cfacade.GetMessage()
 	message.Source = session.AgentPath

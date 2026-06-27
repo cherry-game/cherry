@@ -25,9 +25,11 @@ type (
 		onInitFunc     func()
 	}
 
+// OnNewAgentFunc is called when a new agent connection is established.
 	OnNewAgentFunc func(newAgent *Agent)
 )
 
+// NewActor creates a new pomelo parser Actor with the given agent actor id.
 func NewActor(agentActorID string) *Actor {
 	if agentActorID == "" {
 		panic("agentActorID is empty.")
@@ -54,10 +56,13 @@ func (p *Actor) OnInit() {
 	}
 }
 
+// SetOnInitFunc sets a callback that is invoked during Actor initialization.
 func (p *Actor) SetOnInitFunc(fn func()) {
 	p.onInitFunc = fn
 }
 
+// Load starts the parser: initializes the command, creates the agent actor,
+// and starts all registered connectors.
 func (p *Actor) Load(app cfacade.IApplication) {
 	if len(p.connectors) < 1 {
 		panic("connectors is nil. Please call the AddConnector(...) method add IConnector.")
@@ -76,10 +81,12 @@ func (p *Actor) Load(app cfacade.IApplication) {
 	}
 }
 
+// AddConnector registers a connector that will be started when the parser loads.
 func (p *Actor) AddConnector(connector cfacade.IConnector) {
 	p.connectors = append(p.connectors, connector)
 }
 
+// Connectors returns the list of registered connectors.
 func (p *Actor) Connectors() []cfacade.IConnector {
 	return p.connectors
 }
@@ -103,18 +110,22 @@ func (p *Actor) defaultOnConnectFunc(conn net.Conn) {
 	agent.Run()
 }
 
+// SetDictionary sets the route-to-code dictionary used for route compression.
 func (*Actor) SetDictionary(dict map[string]uint16) {
 	pomeloMessage.SetDictionary(dict)
 }
 
+// SetDataCompression enables or disables data compression for message encoding.
 func (*Actor) SetDataCompression(compression bool) {
 	pomeloMessage.SetDataCompression(compression)
 }
 
+// SetWriteBacklog sets the size of the write and pending channel buffers.
 func (*Actor) SetWriteBacklog(size int) {
 	cmd.writeBacklog = size
 }
 
+// SetHeartbeat sets the heartbeat interval. Values less than 1 second default to 60 seconds.
 func (*Actor) SetHeartbeat(t time.Duration) {
 	if t.Seconds() < 1 {
 		t = 60 * time.Second
@@ -122,20 +133,26 @@ func (*Actor) SetHeartbeat(t time.Duration) {
 	cmd.heartbeatTime = t
 }
 
+// SetSysData sets a system data key-value pair that is sent during handshake.
 func (*Actor) SetSysData(key string, value interface{}) {
 	cmd.sysData[key] = value
 }
 
+// SetOnNewAgent sets the callback that is invoked when a new agent connection is established.
 func (p *Actor) SetOnNewAgent(fn OnNewAgentFunc) {
 	p.onNewAgentFunc = fn
 }
 
+// SetOnDataRoute sets the callback that handles routing of incoming data messages.
+// If fn is nil the call is silently ignored and the default handler is kept.
 func (*Actor) SetOnDataRoute(fn DataRouteFunc) {
 	if fn != nil {
 		cmd.onDataRouteFunc = fn
 	}
 }
 
+// SetOnPacket registers a handler for the given packet type. Only installed once per type;
+// subsequent calls for the same type are ignored.
 func (*Actor) SetOnPacket(typ ppacket.Type, fn PacketFunc) {
 	cmd.onPacketFuncMap[typ] = fn
 }

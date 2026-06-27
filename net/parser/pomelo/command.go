@@ -11,25 +11,31 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Command holds the parser-level configuration shared by all agents, including
+// heartbeat timing, handshake payload, and the registered packet/data-route handlers.
 type (
 	Command struct {
-		writeBacklog    int
-		sysData         map[string]interface{}
-		heartbeatTime   time.Duration
-		handshakeBytes  []byte
-		heartbeatBytes  []byte
-		onPacketFuncMap map[ppacket.Type]PacketFunc
-		onDataRouteFunc DataRouteFunc
+		writeBacklog    int                          // write/pending channel buffer size
+		sysData         map[string]interface{}       // system data sent during handshake
+		heartbeatTime   time.Duration                // heartbeat interval
+		handshakeBytes  []byte                       // pre-encoded handshake packet
+		heartbeatBytes  []byte                       // pre-encoded heartbeat packet
+		onPacketFuncMap map[ppacket.Type]PacketFunc  // packet type → handler
+		onDataRouteFunc DataRouteFunc                // data message routing handler
 	}
 
+// PacketFunc is called when a packet of a registered type arrives.
 	PacketFunc    func(agent *Agent, packet *ppacket.Packet)
+
+// DataRouteFunc is called to route a decoded data message to the target actor.
 	DataRouteFunc func(agent *Agent, route *pmessage.Route, msg *pmessage.Message)
 )
 
+// System data keys sent in the handshake response.
 const (
-	DataHeartbeat  = "heartbeat"
-	DataDict       = "dict"
-	DataSerializer = "serializer"
+	DataHeartbeat  = "heartbeat"  // heartbeat interval in seconds
+	DataDict       = "dict"       // route compression dictionary
+	DataSerializer = "serializer" // serializer name
 )
 
 var (
@@ -109,6 +115,8 @@ func (p *Command) setOnPacketFunc() {
 	}
 }
 
+// handshakeCommand is the packet handler for the initial client handshake.
+// It sets the agent to AgentWaitAck and sends the pre-encoded handshake bytes.
 func handshakeCommand(agent *Agent, _ *ppacket.Packet) {
 	agent.SetState(AgentWaitAck)
 	agent.SendRaw(cmd.handshakeBytes)
@@ -122,6 +130,8 @@ func handshakeCommand(agent *Agent, _ *ppacket.Packet) {
 	}
 }
 
+// handshakeACKCommand is the packet handler for the handshake acknowledgement.
+// It transitions the agent to AgentWorking state.
 func handshakeACKCommand(agent *Agent, _ *ppacket.Packet) {
 	agent.SetState(AgentWorking)
 
@@ -134,10 +144,14 @@ func handshakeACKCommand(agent *Agent, _ *ppacket.Packet) {
 	}
 }
 
+// heartbeatCommand is the packet handler for heartbeat packets.
+// It replies with the pre-encoded heartbeat bytes.
 func heartbeatCommand(agent *Agent, _ *ppacket.Packet) {
 	agent.SendRaw(cmd.heartbeatBytes)
 }
 
+// dataCommand is the packet handler for data packets. It decodes the message,
+// resolves the route, and dispatches via the configured onDataRouteFunc.
 func dataCommand(agent *Agent, pkg *ppacket.Packet) {
 	if agent.State() != AgentWorking {
 		if clog.PrintLevel(zapcore.DebugLevel) {
