@@ -124,7 +124,7 @@ func (m *ComponentMaster) init() {
 	m.masterInit()
 	m.clientInit()
 
-	clog.Infof("[init] Discovery = %s is running. [isMaster = %s, nodeID = %s]", m.Mode(), m.isMaster(), m.App().NodeID())
+	clog.Infof("[init] Discovery = %s is running. [isMaster = %v, nodeID = %s]", m.Mode(), m.isMaster(), m.App().NodeID())
 }
 
 // loadThisMember reads NATS/member config from profile and constructs the local member.
