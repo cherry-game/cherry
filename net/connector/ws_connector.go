@@ -2,9 +2,11 @@ package cherryConnector
 
 import (
 	"io"
+	"net"
 	"net/http"
 	"time"
 
+	cherryNet "github.com/cherry-game/cherry/extend/net"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	"github.com/gorilla/websocket"
@@ -22,8 +24,9 @@ type (
 	// interface base on *websocket.INetConn
 	WSConn struct {
 		*websocket.Conn
-		typ    int // message type
-		reader io.Reader
+		typ      int    // message type
+		reader   io.Reader
+		remoteIP string // 从header提取的真实客户端IP，优先于底层连接的RemoteAddr
 	}
 )
 
@@ -103,6 +106,7 @@ func (w *WSConnector) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	}
 
 	conn := NewWSConn(wsConn)
+	conn.remoteIP = cherryNet.ExtractClientIP(r)
 	w.InChan(&conn)
 }
 
@@ -152,4 +156,11 @@ func (c *WSConn) SetDeadline(t time.Time) error {
 	}
 
 	return c.SetWriteDeadline(t)
+}
+
+func (c *WSConn) RemoteAddr() net.Addr {
+	if c.remoteIP != "" {
+		return &net.TCPAddr{IP: net.ParseIP(c.remoteIP)}
+	}
+	return c.Conn.UnderlyingConn().RemoteAddr()
 }

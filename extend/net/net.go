@@ -2,6 +2,8 @@ package cherryNet
 
 import (
 	"net"
+	"net/http"
+	"strings"
 	"sync"
 )
 
@@ -39,3 +41,17 @@ func GetIPV4(addr net.Addr) string {
 
 	return ""
 }
+
+func ExtractClientIP(r *http.Request) string {
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		if idx := strings.IndexByte(xff, ','); idx > 0 {
+			return strings.TrimSpace(xff[:idx])
+		}
+		return strings.TrimSpace(xff)
+	}
+	if xri := r.Header.Get("X-Real-IP"); xri != "" {
+		return strings.TrimSpace(xri)
+	}
+	return ""
+}
+
