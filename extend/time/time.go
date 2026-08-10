@@ -55,7 +55,7 @@ func NewTime(tt time.Time, setGlobal bool) CherryTime {
 	ct := CherryTime{}
 
 	if setGlobal {
-		ct.Time = tt.In(offsetLocation).Add(offsetTime)
+		ct.Time = tt.In(offsetLocation).Add(time.Duration(offsetTime.Load()))
 	} else {
 		ct.Time = tt
 	}
