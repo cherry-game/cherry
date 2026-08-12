@@ -15,30 +15,35 @@ type (
 
 type (
 	IEvent interface {
-		Register(name string, fn IEventFunc, uniqueID ...int64)     // 注册事件
-		Registers(names []string, fn IEventFunc, uniqueID ...int64) // 注册多个事件
-		Unregister(name string)                                     // 注销事件
+		Register(name string, fn IEventFunc, uniqueID ...int64)     // register event
+		Registers(names []string, fn IEventFunc, uniqueID ...int64) // register multiple events
+		Unregister(name string)                                     // unregister event
 	}
 
-	IEventFunc func(cfacade.IEventData) // 接收事件数据时的处理函数
+	IEventFunc func(cfacade.IEventData) // event handler
 )
 
 type (
 	IMailBox interface {
-		Register(funcName string, fn interface{}) // 注册执行函数
+		Register(funcName string, fn interface{}) // register handler function
 		GetFuncInfo(funcName string) (*creflect.FuncInfo, bool)
 	}
 )
 
 type (
 	ITimer interface {
-		Add(d time.Duration, fn func(), async ...bool) uint64                   // 添加定时器,循环执行
-		AddOnce(d time.Duration, fn func(), async ...bool) uint64               // 添加定时器,执行一次
-		AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 // 固定x小时x分x秒,循环执行
-		AddFixedMinute(minute, second int, fn func(), async ...bool) uint64     // 固定x分x秒,循环执行
-		AddSchedule(s ITimerSchedule, f func(), async ...bool) uint64           // 添加自定义调度
-		Remove(id uint64)                                                       // 移除定时器
-		RemoveAll()                                                             // 移除所有定时器
+		Add(d time.Duration, fn func()) ITimerHandle                   // add recurring timer
+		AddOnce(d time.Duration, fn func()) ITimerHandle               // add one-shot timer
+		AddFixedHour(hour, minute, second int, fn func()) ITimerHandle // add daily timer at fixed hour:minute:second
+		AddFixedMinute(minute, second int, fn func()) ITimerHandle     // add hourly timer at fixed minute:second
+		AddSchedule(s ITimerSchedule, f func()) ITimerHandle           // add timer with custom schedule
+		RemoveAll()                                                    // remove all timers
+	}
+
+	ITimerHandle interface {
+		ID() uint64 // unique timer id
+		Start()     // start or restart the timer
+		Stop()      // stop the timer (asynchronous, may fire once more)
 	}
 
 	ITimerSchedule interface {

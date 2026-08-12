@@ -9,7 +9,7 @@ type Scheduler interface {
 	// Next returns the next execution time after the given (previous) time.
 	// It will return a zero time if no next time is scheduled.
 	//
-	// All times must be UTC.
+	// Times use the local clock (AddSchedule seeds with time.Now()).
 	Next(time.Time) time.Time
 }
 
@@ -18,6 +18,9 @@ type EverySchedule struct {
 }
 
 func (s *EverySchedule) Next(prev time.Time) time.Time {
+	if s.Interval <= 0 {
+		return time.Time{}
+	}
 	return prev.Add(s.Interval)
 }
 

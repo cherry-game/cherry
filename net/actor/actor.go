@@ -35,7 +35,7 @@ var (
 )
 
 type (
-	State int
+	State int32
 
 	Actor struct {
 		system           *System               // actor system
@@ -66,7 +66,7 @@ func (p *Actor) run() {
 }
 
 func (p *Actor) loop() bool {
-	if State(p.state.Load()) == StopState {
+	if p.State() == StopState {
 		if p.localMail.Count() < 1 &&
 			p.remoteMail.Count() < 1 &&
 			p.event.Count() < 1 {
@@ -93,7 +93,7 @@ func (p *Actor) loop() bool {
 		}
 	case <-p.close:
 		{
-			p.state.Store(int32(StopState))
+			p.setState(StopState)
 		}
 	}
 
@@ -271,7 +271,7 @@ func (p *Actor) findChildActor(m *cfacade.Message) (*Actor, bool) {
 
 func (p *Actor) onInit() {
 	p.handler.OnInit()
-	p.state.Store(int32(WorkerState))
+	p.setState(WorkerState)
 }
 
 func (p *Actor) onStop() {
@@ -301,6 +301,10 @@ func (p *Actor) onStop() {
 
 func (p *Actor) State() State {
 	return State(p.state.Load())
+}
+
+func (p *Actor) setState(state State) {
+	p.state.Store(int32(state))
 }
 
 func (p *Actor) App() cfacade.IApplication {
@@ -398,12 +402,14 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 			ActorID: actorID,
 			ChildID: childID,
 		},
-		// state:   InitState,	state 字段类型是 atomic.Int32，其零值(0)恰好等于 InitState，
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,
 		lastAt:  time.Now().UnixMilli(),
 	}
+
+	// Default init state
+	thisActor.setState(InitState)
 
 	localMailbox := newMailbox(LocalName)
 	thisActor.localMail = &localMailbox

@@ -1,6 +1,8 @@
 package cherryActor
 
-import cfacade "github.com/cherry-game/cherry/facade"
+import (
+	cfacade "github.com/cherry-game/cherry/facade"
+)
 
 var (
 	Name = "actor_component"
@@ -23,7 +25,7 @@ func (c *Component) Name() string {
 }
 
 func (c *Component) Init() {
-	c.System.SetApp(c.App())
+	c.System.Start(c.App())
 }
 
 func (c *Component) OnAfterInit() {

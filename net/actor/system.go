@@ -6,24 +6,30 @@ import (
 	"time"
 
 	ccode "github.com/cherry-game/cherry/code"
+	ctimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
+const ()
+
 type (
 	// System is the Actor system
 	System struct {
-		app              cfacade.IApplication // application
-		actorMap         *sync.Map            // key:actorID, value:*actor
-		actorEventMap    *sync.Map            // map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
-		localInvokeFunc  cfacade.InvokeFunc   // default local func
-		remoteInvokeFunc cfacade.InvokeFunc   // default remote func
-		wg               *sync.WaitGroup      // wait group
-		callTimeout      time.Duration        // call timeout
-		arrivalTimeOut   int64                // message arrival timeout (ms)
-		executionTimeout int64                // message execution timeout (ms)
+		app              cfacade.IApplication  // application
+		actorMap         *sync.Map             // key:actorID, value:*actor
+		actorEventMap    *sync.Map             // map[string]map[string]int64 => key:eventName, value:map[actorPath]uniqueID
+		localInvokeFunc  cfacade.InvokeFunc    // default local func
+		remoteInvokeFunc cfacade.InvokeFunc    // default remote func
+		wg               *sync.WaitGroup       // wait group
+		callTimeout      time.Duration         // call timeout
+		arrivalTimeOut   int64                 // message arrival timeout (ms)
+		executionTimeout int64                 // message execution timeout (ms)
+		timeWheel        *ctimeWheel.TimeWheel // global timer for all actors
+		timerTick        time.Duration         // time wheel tick, configured before Start
+		timerHint        int                   // time wheel nodeMap pre-alloc hint
 	}
 )
 
@@ -34,6 +40,8 @@ func NewSystem() *System {
 		localInvokeFunc:  InvokeLocalFunc,
 		remoteInvokeFunc: InvokeRemoteFunc,
 		wg:               &sync.WaitGroup{},
+		timerTick:        ctimeWheel.DefaultTick,
+		timerHint:        1024,
 		callTimeout:      3 * time.Second,
 		arrivalTimeOut:   100,
 		executionTimeout: 100,
@@ -42,8 +50,18 @@ func NewSystem() *System {
 	return system
 }
 
-func (p *System) SetApp(app cfacade.IApplication) {
+func (p *System) Start(app cfacade.IApplication) {
+	if p.app != nil {
+		return
+	}
+
 	p.app = app
+
+	if p.timeWheel == nil {
+		p.timeWheel = ctimeWheel.NewTimeWheelWithHint(p.timerTick, p.timerHint)
+	}
+
+	p.timeWheel.Start()
 }
 
 func (p *System) NodeID() string {
@@ -54,7 +72,24 @@ func (p *System) NodeID() string {
 	return p.app.NodeID()
 }
 
+func (p *System) SetTimerTick(d time.Duration) {
+	if d < ctimeWheel.DefaultTick {
+		d = ctimeWheel.DefaultTick
+	}
+	p.timerTick = d
+}
+
+func (p *System) SetTimerHint(n int) {
+	if n > 0 {
+		p.timerHint = n
+	}
+}
+
 func (p *System) Stop() {
+	if p.timeWheel != nil {
+		p.timeWheel.Stop()
+	}
+
 	p.actorMap.Range(func(key, value any) bool {
 		actor, ok := value.(*Actor)
 		if ok {
@@ -270,10 +305,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		message.Target = target
 		message.FuncName = funcName
 		message.Args = arg
-				// 容量为1的缓冲channel：即使本次调用因超时先返回，
-		// 目标actor执行完毕后的回写(m.ChanResult <- rsp)也能立即写入缓冲区并返回，
-		// 不会永久阻塞在无接收者的channel上，避免目标actor所在goroutine被"冻死"。
-		message.ChanResult = make(chan interface{}, 1)
+		message.ChanResult = make(chan interface{}, 1) // Buffered (1)
 
 		if sourcePath.ActorID == targetPath.ActorID {
 			childActor, found := p.GetChildActor(targetPath.ActorID, targetPath.ChildID)

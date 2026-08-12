@@ -3,7 +3,7 @@ package cherryActor
 import (
 	"time"
 
-	cherryTimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
+	ctimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	clog "github.com/cherry-game/cherry/logger"
 )
@@ -16,7 +16,7 @@ type (
 	}
 
 	timerInfo struct {
-		timer *cherryTimeWheel.Timer
+		timer ITimerHandle
 		fn    func()
 		once  bool
 	}
@@ -54,78 +54,79 @@ func (p *actorTimer) Pop() uint64 {
 	return timerID
 }
 
-func (p *actorTimer) Add(delay time.Duration, fn func(), async ...bool) uint64 {
-	if delay.Milliseconds() < 1 || fn == nil {
+func (p *actorTimer) Add(delay time.Duration, fn func()) ITimerHandle {
+	if delay < ctimeWheel.DefaultTick || fn == nil {
 		clog.Warnf("[ActorTimer] Add parameter error. delay = %+v", delay)
-		return 0
+		return nil
 	}
 
-	newID := globalTimer.NextID()
-	timer := globalTimer.AddEveryFunc(newID, delay, p.timerTrigger(newID), async...)
+	var timer ITimerHandle
+	timer = p.thisActor.system.timeWheel.Add(delay, func() {
+		p.Push(timer.ID())
+	})
 
 	if timer == nil {
 		clog.Warnf("[Add] error. delay = %+v", delay)
-		return 0
+		return nil
 	}
 
 	p.addTimerInfo(timer, fn, false)
 
-	return newID
+	return timer
 }
 
-func (p *actorTimer) AddOnce(delay time.Duration, fn func(), async ...bool) uint64 {
-	if delay.Milliseconds() < 1 || fn == nil {
+func (p *actorTimer) AddOnce(delay time.Duration, fn func()) ITimerHandle {
+	if delay < ctimeWheel.DefaultTick || fn == nil {
 		clog.Warnf("[AddOnce] parameter error. delay = %+v", delay)
-		return 0
+		return nil
 	}
 
-	timerID := globalTimer.NextID()
-	timer := globalTimer.AfterFunc(timerID, delay, p.timerTrigger(timerID), async...)
+	var timer ITimerHandle
+	timer = p.thisActor.system.timeWheel.AddOnce(delay, func() {
+		p.Push(timer.ID())
+	})
 
 	if timer == nil {
 		clog.Warnf("[AddOnce] error. d = %+v", delay)
-		return 0
+		return nil
 	}
 
 	p.addTimerInfo(timer, fn, true)
 
-	return timerID
+	return timer
 }
 
-func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func(), async ...bool) uint64 {
-	schedule := &cherryTimeWheel.FixedDateSchedule{
+func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func()) ITimerHandle {
+	schedule := &ctimeWheel.FixedDateSchedule{
 		Hour:   hour,
 		Minute: minute,
 		Second: second,
 	}
 
-	return p.AddSchedule(schedule, fn, async...)
+	return p.AddSchedule(schedule, fn)
 }
 
-func (p *actorTimer) AddFixedMinute(minute, second int, fn func(), async ...bool) uint64 {
-	return p.AddFixedHour(-1, minute, second, fn, async...)
+func (p *actorTimer) AddFixedMinute(minute, second int, fn func()) ITimerHandle {
+	return p.AddFixedHour(-1, minute, second, fn)
 }
 
-func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func(), async ...bool) uint64 {
+func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func()) ITimerHandle {
 	if s == nil || fn == nil {
-		return 0
+		return nil
 	}
 
-	timerID := globalTimer.NextID()
-	timer := globalTimer.ScheduleFunc(timerID, s, func() {
-		p.Push(timerID)
-	}, async...)
+	var timer ITimerHandle
+	timer = p.thisActor.system.timeWheel.AddSchedule(s, func() {
+		p.Push(timer.ID())
+	})
+
+	if timer == nil {
+		return nil
+	}
 
 	p.addTimerInfo(timer, fn, false)
 
-	return timerID
-}
-
-func (p *actorTimer) Remove(id uint64) {
-	if funcItem, found := p.timerInfoMap[id]; found {
-		funcItem.timer.Stop()
-		delete(p.timerInfoMap, id)
-	}
+	return timer
 }
 
 func (p *actorTimer) RemoveAll() {
@@ -134,7 +135,7 @@ func (p *actorTimer) RemoveAll() {
 	}
 }
 
-func (p *actorTimer) addTimerInfo(timer *cherryTimeWheel.Timer, fn func(), once bool) {
+func (p *actorTimer) addTimerInfo(timer ITimerHandle, fn func(), once bool) {
 	p.timerInfoMap[timer.ID()] = &timerInfo{
 		timer: timer,
 		fn:    fn,
@@ -156,13 +157,5 @@ func (p *actorTimer) invokeFunc(timerID uint64) {
 
 	if value.once {
 		delete(p.timerInfoMap, timerID)
-	}
-}
-
-func (p *actorTimer) timerTrigger(timerID uint64) func() {
-	return func() {
-		if p != nil {
-			p.Push(timerID)
-		}
 	}
 }

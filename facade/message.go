@@ -49,7 +49,7 @@ type (
 		// --- Remote only (Actor->Actor, set by System.Call/CallWait/CallType) ---
 		ReqID      string           // NATS request ID (cross-node request-reply)
 		Reply      string           // NATS reply subject (non-empty if from cross-node)
-		ChanResult chan interface{} // same-node CallWait sync channel
+		ChanResult chan interface{} // same-node CallWait reply channel (buffered 1)
 
 		targetPath *ActorPath // lazily cached on first TargetPath() call; cleared in Recycle()
 	}
