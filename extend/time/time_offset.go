@@ -1,9 +1,12 @@
 package cherryTime
 
-import "time"
+import (
+	"sync/atomic"
+	"time"
+)
 
 var (
-	offsetTime     time.Duration  //全局偏移时间
+	offsetTime     atomic.Int64  //全局偏移时间
 	offsetLocation *time.Location //全局偏移时区
 )
 
@@ -12,11 +15,11 @@ func init() {
 }
 
 func AddOffsetTime(t time.Duration) {
-	offsetTime = t
+	offsetTime.Store(int64(t))
 }
 
 func SubOffsetTime(t time.Duration) {
-	offsetTime = -t
+	offsetTime.Store(int64(-t))
 }
 
 func SetOffsetLocation(name string) (err error) {
