@@ -2,6 +2,7 @@ package cherryActor
 
 import (
 	"strings"
+	"sync/atomic"
 	"time"
 
 	cutils "github.com/cherry-game/cherry/extend/utils"
@@ -39,7 +40,7 @@ type (
 	Actor struct {
 		system           *System               // actor system
 		path             *cfacade.ActorPath    // actor path
-		state            State                 // actor state
+		state            atomic.Int32          // actor state (State)
 		close            chan struct{}         // close flag
 		handler          cfacade.IActorHandler // actor handler
 		localMail        *mailbox              // local message mailbox
@@ -65,7 +66,7 @@ func (p *Actor) run() {
 }
 
 func (p *Actor) loop() bool {
-	if p.state == StopState {
+	if State(p.state.Load()) == StopState {
 		if p.localMail.Count() < 1 &&
 			p.remoteMail.Count() < 1 &&
 			p.event.Count() < 1 {
@@ -92,7 +93,7 @@ func (p *Actor) loop() bool {
 		}
 	case <-p.close:
 		{
-			p.state = StopState
+			p.state.Store(int32(StopState))
 		}
 	}
 
@@ -270,7 +271,7 @@ func (p *Actor) findChildActor(m *cfacade.Message) (*Actor, bool) {
 
 func (p *Actor) onInit() {
 	p.handler.OnInit()
-	p.state = WorkerState
+	p.state.Store(int32(WorkerState))
 }
 
 func (p *Actor) onStop() {
@@ -299,7 +300,7 @@ func (p *Actor) onStop() {
 }
 
 func (p *Actor) State() State {
-	return p.state
+	return State(p.state.Load())
 }
 
 func (p *Actor) App() cfacade.IApplication {
@@ -397,7 +398,7 @@ func newActor(actorID, childID string, handler cfacade.IActorHandler, c *System)
 			ActorID: actorID,
 			ChildID: childID,
 		},
-		state:   InitState,
+		// state:   InitState,	state 字段类型是 atomic.Int32，其零值(0)恰好等于 InitState，
 		system:  c,
 		close:   make(chan struct{}, 1),
 		handler: handler,

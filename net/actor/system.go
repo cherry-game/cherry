@@ -404,7 +404,7 @@ func (p *System) PostRemote(m *cfacade.Message) bool {
 		return false
 	}
 
-	if targetActor.state != WorkerState {
+	if targetActor.State() != WorkerState {
 		m.Recycle()
 		return false
 	}
@@ -427,7 +427,7 @@ func (p *System) PostLocal(m *cfacade.Message) bool {
 		return false
 	}
 
-	if targetActor.state != WorkerState {
+	if targetActor.State() != WorkerState {
 		m.Recycle()
 		return false
 	}
@@ -466,7 +466,7 @@ func (p *System) PostEvent(data cfacade.IEventData) {
 			return true
 		}
 
-		if targetActor.state != WorkerState {
+		if targetActor.State() != WorkerState {
 			return true
 		}
 
