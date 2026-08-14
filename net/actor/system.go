@@ -270,7 +270,10 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		message.Target = target
 		message.FuncName = funcName
 		message.Args = arg
-		message.ChanResult = make(chan interface{})
+				// 容量为1的缓冲channel：即使本次调用因超时先返回，
+		// 目标actor执行完毕后的回写(m.ChanResult <- rsp)也能立即写入缓冲区并返回，
+		// 不会永久阻塞在无接收者的channel上，避免目标actor所在goroutine被"冻死"。
+		message.ChanResult = make(chan interface{}, 1)
 
 		if sourcePath.ActorID == targetPath.ActorID {
 			childActor, found := p.GetChildActor(targetPath.ActorID, targetPath.ChildID)
