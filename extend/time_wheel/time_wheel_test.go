@@ -19,9 +19,9 @@ func TestAddOnce_Fires(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(50*time.Millisecond, func() {
+	tw.AddTimer(50*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(200 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -34,9 +34,9 @@ func TestAddOnce_FiresOnce(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.AddOnceTimer(50*time.Millisecond, func() {
+	tw.AddTimer(50*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, true)
 
 	time.Sleep(300 * time.Millisecond)
 	if c := count.Load(); c != 1 {
@@ -51,7 +51,7 @@ func TestAdd_Repeats(t *testing.T) {
 	var count atomic.Int32
 	tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, false)
 
 	time.Sleep(250 * time.Millisecond)
 	c := count.Load()
@@ -67,7 +67,7 @@ func TestAdd_SubTickInterval(t *testing.T) {
 	var count atomic.Int32
 	tw.AddTimer(3*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, false)
 
 	time.Sleep(100 * time.Millisecond)
 	if c := count.Load(); c < 3 {
@@ -80,9 +80,9 @@ func TestTimerStop_PreventsFire(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnceTimer(200*time.Millisecond, func() {
+	timer := tw.AddTimer(200*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	timer.Stop()
 
@@ -99,7 +99,7 @@ func TestTimerStopAndStart(t *testing.T) {
 	var count atomic.Int32
 	timer := tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, false)
 
 	time.Sleep(120 * time.Millisecond)
 	timer.Stop()
@@ -131,7 +131,7 @@ func TestTimerStart_WhileRunning(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddTimer(20*time.Millisecond, func() {})
+	timer := tw.AddTimer(20*time.Millisecond, func() {}, false)
 
 	time.Sleep(60 * time.Millisecond)
 	// Start while already running: the old node must be removed before the new one
@@ -152,9 +152,9 @@ func TestTimerStop_AfterFired(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnceTimer(20*time.Millisecond, func() {
+	timer := tw.AddTimer(20*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(150 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -206,9 +206,9 @@ func TestCascade_NearWrap(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(300*time.Millisecond, func() {
+	tw.AddTimer(300*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(600 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -221,9 +221,9 @@ func TestCascade_MultiLevel(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(20*time.Second, func() {
+	tw.AddTimer(20*time.Second, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(25 * time.Second)
 	if fired.Load() != 1 {
@@ -284,7 +284,7 @@ func TestConcurrentAddStop(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			tw.AddOnceTimer(100*time.Millisecond, func() {})
+			tw.AddTimer(100*time.Millisecond, func() {}, true)
 		}()
 	}
 
@@ -297,9 +297,9 @@ func TestAddOnce_Dispatch(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(50*time.Millisecond, func() {
+	tw.AddTimer(50*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(200 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -313,7 +313,7 @@ func TestAfterStop_NoMoreFires(t *testing.T) {
 	var count atomic.Int32
 	tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, false)
 
 	time.Sleep(100 * time.Millisecond)
 	tw.Stop()
@@ -353,9 +353,9 @@ func TestStop_Closed_NoRestart(t *testing.T) {
 	tw.Start()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(50*time.Millisecond, func() {
+	tw.AddTimer(50*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(200 * time.Millisecond)
 	if fired.Load() != 0 {
@@ -373,9 +373,9 @@ func TestNewTimeWheel_TickFallback(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnceTimer(50*time.Millisecond, func() {
+	tw.AddTimer(50*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	time.Sleep(200 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -390,9 +390,9 @@ func TestTimerClear_PreventsFire(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnceTimer(50*time.Millisecond, func() {
+	timer := tw.AddTimer(50*time.Millisecond, func() {
 		fired.Store(1)
-	})
+	}, true)
 
 	timer.Clear()
 
@@ -406,7 +406,7 @@ func TestTimerClear_Idempotent(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddOnceTimer(50*time.Millisecond, func() {})
+	timer := tw.AddTimer(50*time.Millisecond, func() {}, true)
 	timer.Clear()
 	timer.Clear() // must not panic
 }
@@ -417,7 +417,7 @@ func TestTimerStop_AlreadyStopped(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddOnceTimer(200*time.Millisecond, func() {})
+	timer := tw.AddTimer(200*time.Millisecond, func() {}, true)
 
 	timer.Stop()
 	timer.Stop() // must not panic (no-op after the first Stop)
@@ -430,9 +430,9 @@ func TestAddOnce_StopStart(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	timer := tw.AddOnceTimer(100*time.Millisecond, func() {
+	timer := tw.AddTimer(100*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, true)
 
 	// cancel before it fires
 	time.Sleep(50 * time.Millisecond)
@@ -452,7 +452,7 @@ func TestAddOnce_StopStart(t *testing.T) {
 func TestStop_RemoveCmdAfterStop(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 
-	timer := tw.AddOnceTimer(time.Hour, func() {})
+	timer := tw.AddTimer(time.Hour, func() {}, true)
 	tw.Stop()
 
 	timer.Stop() // must not panic after TimeWheel is stopped
@@ -509,9 +509,9 @@ func TestConcurrentStopStart(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			timer := tw.AddOnceTimer(50*time.Millisecond, func() {
+			timer := tw.AddTimer(50*time.Millisecond, func() {
 				count.Add(1)
-			})
+			}, true)
 			timer.Stop()
 			timer.Start()
 			time.Sleep(100 * time.Millisecond)
@@ -528,7 +528,7 @@ func TestTimerStopStart_NodeIdentity(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddTimer(20*time.Millisecond, func() {})
+	timer := tw.AddTimer(20*time.Millisecond, func() {}, false)
 
 	time.Sleep(30 * time.Millisecond)
 	timer.Stop()
@@ -556,7 +556,7 @@ func BenchmarkAddOnce(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		tw.AddOnceTimer(time.Second, func() {})
+		tw.AddTimer(time.Second, func() {}, true)
 	}
 }
 
@@ -566,7 +566,7 @@ func BenchmarkAdd(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		tw.AddTimer(time.Second, func() {})
+		tw.AddTimer(time.Second, func() {}, false)
 	}
 }
 
@@ -576,7 +576,7 @@ func BenchmarkTimerStop(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		timer := tw.AddOnceTimer(time.Hour, func() {})
+		timer := tw.AddTimer(time.Hour, func() {}, true)
 		timer.Stop()
 	}
 }
@@ -603,7 +603,7 @@ func TestMillionTimers(t *testing.T) {
 	for i := range n {
 		// scatter delays over 2s ~ 5s so all timers stay active while injecting
 		d := 2*time.Second + time.Duration(i%3000)*time.Millisecond
-		tw.AddOnceTimer(d, func() { fired.Add(1) })
+		tw.AddTimer(d, func() { fired.Add(1) }, true)
 	}
 	t.Logf("inject %d timers in %v", n, time.Since(start))
 
@@ -662,7 +662,7 @@ func TestTimerClear_ThenStart(t *testing.T) {
 	var count atomic.Int32
 	timer := tw.AddTimer(20*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, false)
 	timer.Clear()
 	timer.Start() // callback was released; must not start a timer
 
@@ -683,7 +683,7 @@ func TestAddOnce_AfterRecurringPoolReuse(t *testing.T) {
 	defer tw.Stop()
 
 	// Recurring timer: its node returns to the pool on Stop.
-	recurring := tw.AddTimer(10*time.Millisecond, func() {})
+	recurring := tw.AddTimer(10*time.Millisecond, func() {}, false)
 	time.Sleep(30 * time.Millisecond)
 	recurring.Stop()
 
@@ -697,9 +697,9 @@ func TestAddOnce_AfterRecurringPoolReuse(t *testing.T) {
 
 	// One-shot reusing a pooled node: must fire exactly once.
 	var count atomic.Int32
-	tw.AddOnceTimer(20*time.Millisecond, func() {
+	tw.AddTimer(20*time.Millisecond, func() {
 		count.Add(1)
-	})
+	}, true)
 
 	time.Sleep(200 * time.Millisecond)
 	if c := count.Load(); c != 1 {
@@ -720,7 +720,7 @@ func TestConcurrentStopAndAdd(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range 1000 {
-				timer := tw.AddTimer(time.Millisecond, func() {})
+				timer := tw.AddTimer(time.Millisecond, func() {}, false)
 				timer.Stop()
 			}
 		}()
@@ -734,5 +734,314 @@ func TestConcurrentStopAndAdd(t *testing.T) {
 			t.Fatalf("ActiveCount = %d after concurrent Add/Stop, want 0", tw.ActiveCount())
 		}
 		time.Sleep(time.Millisecond)
+	}
+}
+
+// ---- NewTimer / NewScheduleTimer (construct-then-start) ----
+
+func TestNewTimer_NotStarted(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var fired atomic.Int32
+	timer := tw.NewTimer(30*time.Millisecond, func() {
+		fired.Store(1)
+	}, true)
+
+	// Constructed but not started: must not fire nor occupy the wheel.
+	time.Sleep(100 * time.Millisecond)
+	if fired.Load() != 0 {
+		t.Fatal("NewTimer fired before Start")
+	}
+	if got := tw.ActiveCount(); got != 0 {
+		t.Fatalf("ActiveCount = %d before Start, want 0", got)
+	}
+
+	timer.Start()
+	time.Sleep(100 * time.Millisecond)
+	if fired.Load() != 1 {
+		t.Fatal("NewTimer did not fire after Start")
+	}
+}
+
+func TestNewTimer_Recurring(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.NewTimer(30*time.Millisecond, func() {
+		count.Add(1)
+	}, false)
+	timer.Start()
+
+	time.Sleep(200 * time.Millisecond)
+	if c := count.Load(); c < 4 {
+		t.Fatalf("recurring NewTimer fired %d times, expected >=4", c)
+	}
+}
+
+func TestNewScheduleTimer_NotStarted(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.NewScheduleTimer(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
+		count.Add(1)
+	})
+
+	// Constructed but not started: must not fire nor occupy the wheel.
+	time.Sleep(100 * time.Millisecond)
+	if count.Load() != 0 {
+		t.Fatal("NewScheduleTimer fired before Start")
+	}
+	if got := tw.ActiveCount(); got != 0 {
+		t.Fatalf("ActiveCount = %d before Start, want 0", got)
+	}
+
+	timer.Start()
+	time.Sleep(200 * time.Millisecond)
+	if c := count.Load(); c < 4 {
+		t.Fatalf("NewScheduleTimer fired %d times after Start, expected >=4", c)
+	}
+}
+
+func TestNewScheduleTimer_NoNext(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	timer := tw.NewScheduleTimer(&nilSchedule{}, func() {})
+	timer.Start() // scheduler has no next expiry: nothing scheduled, no panic
+
+	if timer.IsRunning() {
+		t.Fatal("timer reported running when nothing was scheduled")
+	}
+	if got := tw.ActiveCount(); got != 0 {
+		t.Fatalf("ActiveCount = %d, want 0", got)
+	}
+}
+
+// ---- SetNext (dynamic next-delay callback) ----
+
+// ---- once + SetNext lifecycle ----
+//
+// A one-shot timer uses its *current* delay for each Start: the original delay
+// d before a SetNext, the fn() delay after one. Each Start fires exactly once
+// and then stops. SetNext never changes an already-queued fire (nextCmd only
+// records the callback).
+//
+//   - Scenario 1 (SetNext after the first Start): first fire at d, restart at fn().
+//   - Scenario 2 (SetNext before the first Start): the first fire already uses fn().
+//   - Scenario 3 (SetNext inside the callback) is an actor-layer pattern (the
+//     callback runs on the actor goroutine, the handle owner). It is not tested
+//     here because at the wheel layer callbacks run on the driver goroutine,
+//     which would race with the test goroutine driving the handle.
+
+func TestSetNext_Once_UsesNextFuncDelay(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.NewTimer(100*time.Millisecond, func() {
+		count.Add(1)
+	}, true) // one-shot, not started; d=100ms
+	timer.SetNext(func() time.Duration { return 20 * time.Millisecond }) // use 20ms for the single fire
+	timer.Start()
+
+	time.Sleep(50 * time.Millisecond) // fired at ~20ms, well before d=100ms
+	if c := count.Load(); c != 1 {
+		t.Fatalf("once + SetNext fired %d times by 50ms, expected 1 (used nextFunc delay, not d)", c)
+	}
+	if timer.IsRunning() {
+		t.Fatal("timer still running after once fire")
+	}
+}
+
+func TestSetNext_Once_RunningNoRecompute(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddTimer(150*time.Millisecond, func() {
+		count.Add(1)
+	}, true) // once, d=150ms
+	time.Sleep(50 * time.Millisecond) // still waiting for the first fire
+	timer.SetNext(func() time.Duration { return 10 * time.Millisecond })
+
+	// A nextCmd must NOT recompute a one-shot: the first fire stays at d=150ms.
+	// If it recomputed, the fire would move to ~60ms and count would be 1 here.
+	time.Sleep(50 * time.Millisecond) // now at ~100ms < d
+	if c := count.Load(); c != 0 {
+		t.Fatalf("once timer fired early (%d times), expected 0 (nextCmd must not recompute a one-shot)", c)
+	}
+
+	time.Sleep(80 * time.Millisecond) // now at ~180ms > d=150ms
+	if c := count.Load(); c != 1 {
+		t.Fatalf("once timer fired %d times, expected exactly 1", c)
+	}
+	if timer.IsRunning() {
+		t.Fatal("timer still running after once fire")
+	}
+}
+
+// Scenario 1: SetNext after the first Start — the restart uses the fn() delay.
+func TestSetNext_Once_StartAfterSetNext(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.NewTimer(50*time.Millisecond, func() {
+		count.Add(1)
+	}, true) // once, d=50ms
+	timer.Start() // first Start: no nextFunc yet → fire at d=50ms
+
+	time.Sleep(80 * time.Millisecond)
+	if c := count.Load(); c != 1 {
+		t.Fatalf("first Start fired %d times, expected 1 (d=50ms)", c)
+	}
+
+	timer.SetNext(func() time.Duration { return 20 * time.Millisecond })
+	timer.Start() // restart: nextFunc set → fire at fn()=20ms
+
+	time.Sleep(40 * time.Millisecond) // 20ms after restart
+	if c := count.Load(); c != 2 {
+		t.Fatalf("after restart fired %d times, expected 2 (SetNext delay used)", c)
+	}
+}
+
+func TestSetNext_StopsOnNonPositive(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddTimer(20*time.Millisecond, func() {
+		count.Add(1)
+	}, false) // recurring
+	timer.SetNext(func() time.Duration { return 0 }) // first fire at d, then stop
+
+	time.Sleep(200 * time.Millisecond)
+	if c := count.Load(); c != 1 {
+		t.Fatalf("timer fired %d times, expected 1 (first fire at d, then SetNext(0) stops)", c)
+	}
+	if timer.IsRunning() {
+		t.Fatal("timer reported running after SetNext returned 0")
+	}
+}
+
+func TestSetNext_DynamicSequence(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	delays := []time.Duration{20 * time.Millisecond, 40 * time.Millisecond, 0}
+	var idx atomic.Int32
+	var count atomic.Int32
+	timer := tw.AddTimer(20*time.Millisecond, func() {
+		count.Add(1)
+	}, false)
+	timer.SetNext(func() time.Duration {
+		i := idx.Add(1)
+		if int(i-1) >= len(delays) {
+			return 0
+		}
+		return delays[i-1]
+	})
+	// fn is invoked after each fire: first fire at d=20ms → delays[0] (20ms) →
+	// fire → delays[1] (40ms) → fire → delays[2] (0) stop. Total 3 fires.
+
+	time.Sleep(400 * time.Millisecond)
+	if c := count.Load(); c != 3 {
+		t.Fatalf("dynamic sequence fired %d times, expected 3 (20ms,40ms then stop)", c)
+	}
+}
+
+func TestNew_ThenSetNext_ThenStart(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.NewTimer(30*time.Millisecond, func() {
+		count.Add(1)
+	}, false) // recurring, not started
+	timer.SetNext(func() time.Duration { return 30 * time.Millisecond })
+	timer.Start()
+
+	time.Sleep(250 * time.Millisecond)
+	if c := count.Load(); c < 4 {
+		t.Fatalf("New+SetNext+Start fired %d times, expected >=4", c)
+	}
+}
+
+func TestSetNext_NilClears(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddTimer(20*time.Millisecond, func() {
+		count.Add(1)
+	}, true) // one-shot
+	timer.SetNext(func() time.Duration { return 20 * time.Millisecond })
+	timer.SetNext(nil) // revert to one-shot
+
+	time.Sleep(200 * time.Millisecond)
+	if c := count.Load(); c != 1 {
+		t.Fatalf("SetNext(nil) fired %d times, expected exactly 1", c)
+	}
+}
+
+func TestSetNext_StopStartKeepsDynamic(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddTimer(30*time.Millisecond, func() {
+		count.Add(1)
+	}, false)
+	timer.SetNext(func() time.Duration { return 30 * time.Millisecond })
+	timer.Stop()
+	timer.Start() // nextFunc must persist across restart
+
+	time.Sleep(150 * time.Millisecond)
+	if c := count.Load(); c < 3 {
+		t.Fatalf("timer fired %d times after restart, expected >=3 (nextFunc persisted)", c)
+	}
+}
+
+func TestSetNext_RejectedOnSchedule(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddScheduleTimer(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
+		count.Add(1)
+	})
+	timer.SetNext(func() time.Duration { return time.Hour }) // rejected: schedule is its own system
+	timer.SetNext(nil)                                       // also rejected, no panic
+
+	if timer.nextFunc != nil {
+		t.Fatal("SetNext was accepted on a schedule-driven timer")
+	}
+
+	time.Sleep(250 * time.Millisecond)
+	if c := count.Load(); c < 5 {
+		t.Fatalf("schedule timer fired %d times, expected >=5", c)
+	}
+}
+
+func TestSetNext_RaceFree(t *testing.T) {
+	tw := newTestWheel(10 * time.Millisecond)
+	defer tw.Stop()
+
+	var count atomic.Int32
+	timer := tw.AddTimer(20*time.Millisecond, func() {
+		count.Add(1)
+	}, false)
+	timer.SetNext(func() time.Duration { return 20 * time.Millisecond })
+
+	time.Sleep(80 * time.Millisecond)
+	for range 10 {
+		timer.SetNext(func() time.Duration { return 20 * time.Millisecond })
+		time.Sleep(time.Millisecond)
+	}
+	if count.Load() == 0 {
+		t.Fatal("timer did not fire with SetNext")
 	}
 }

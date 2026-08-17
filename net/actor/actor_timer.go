@@ -47,46 +47,30 @@ func (p *actorTimer) Pop() uint64 {
 	return timerID
 }
 
+func (p *actorTimer) New(delay time.Duration, fn func()) ITimerHandle {
+	return p.newTimerHandle(delay, fn, false)
+}
+
+func (p *actorTimer) NewOnce(delay time.Duration, fn func()) ITimerHandle {
+	return p.newTimerHandle(delay, fn, true)
+}
+
 func (p *actorTimer) Add(delay time.Duration, fn func()) ITimerHandle {
-	if delay < ctimeWheel.DefaultTick || fn == nil {
-		clog.Warnf("[ActorTimer] Add parameter error. delay = %+v", delay)
+	t := p.newTimerHandle(delay, fn, false)
+	if t == nil {
 		return nil
 	}
-
-	var timer ITimerHandle
-	timer = p.thisActor.system.timeWheel.AddTimer(delay, func() {
-		p.Push(timer.ID())
-	})
-
-	if timer == nil {
-		clog.Warnf("[Add] error. delay = %+v", delay)
-		return nil
-	}
-
-	p.addTimerInvoke(timer.ID(), fn)
-
-	return timer
+	t.Start()
+	return t
 }
 
 func (p *actorTimer) AddOnce(delay time.Duration, fn func()) ITimerHandle {
-	if delay < ctimeWheel.DefaultTick || fn == nil {
-		clog.Warnf("[AddOnce] parameter error. delay = %+v", delay)
+	t := p.newTimerHandle(delay, fn, true)
+	if t == nil {
 		return nil
 	}
-
-	var timer ITimerHandle
-	timer = p.thisActor.system.timeWheel.AddOnceTimer(delay, func() {
-		p.Push(timer.ID())
-	})
-
-	if timer == nil {
-		clog.Warnf("[AddOnce] error. d = %+v", delay)
-		return nil
-	}
-
-	p.addTimerInvoke(timer.ID(), fn)
-
-	return timer
+	t.Start()
+	return t
 }
 
 func (p *actorTimer) AddFixedHour(hour, minute, second int, fn func()) ITimerHandle {
@@ -135,6 +119,24 @@ func (p *actorTimer) RemoveAll() {
 		p.thisActor.system.timeWheel.RemoveTimer(id)
 		delete(p.timerInvokeMap, id)
 	}
+}
+
+// newTimerHandle validates the parameters and builds a timer handle bound to
+// the actor without starting it: the wheel callback only pushes the timer id
+// into the actor queue, and the business callback is registered for the actor
+// goroutine to invoke. Add/AddOnce call Start on it; New/NewOnce return it
+// unstarted.
+func (p *actorTimer) newTimerHandle(delay time.Duration, fn func(), once bool) ITimerHandle {
+	if delay < ctimeWheel.DefaultTick || fn == nil {
+		clog.Warnf("[Timer] parameter error. delay = %+v", delay)
+		return nil
+	}
+	var t ITimerHandle
+	t = p.thisActor.system.timeWheel.NewTimer(delay, func() {
+		p.Push(t.ID())
+	}, once)
+	p.addTimerInvoke(t.ID(), fn)
+	return t
 }
 
 func (p *actorTimer) addTimerInvoke(timerID uint64, fn func()) {

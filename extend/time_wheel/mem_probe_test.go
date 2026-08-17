@@ -53,7 +53,7 @@ func TestRecurringTimer_MemStable(t *testing.T) {
 
 	for i := range 1000 {
 		delay := time.Duration(50+i%1000) * time.Millisecond
-		tw.AddTimer(delay, func() {})
+		tw.AddTimer(delay, func() {}, false)
 	}
 
 	samples := 6
@@ -101,7 +101,7 @@ func TestOnceTimer_MemReleased(t *testing.T) {
 	handles := make([]*Timer, 0, n)
 	for i := range n {
 		delay := time.Duration(50+i%1000) * time.Millisecond
-		handles = append(handles, tw.AddOnceTimer(delay, func() {}))
+		handles = append(handles, tw.AddTimer(delay, func() {}, true))
 	}
 
 	// 等待全部触发完成（触发即 reset + ActiveCount--，无需等 removeCmd）。
