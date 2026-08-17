@@ -4,29 +4,22 @@ import (
 	"time"
 
 	ctimeWheel "github.com/cherry-game/cherry/extend/time_wheel"
-	cutils "github.com/cherry-game/cherry/extend/utils"
 	clog "github.com/cherry-game/cherry/logger"
 )
 
 type (
 	actorTimer struct {
-		queue                              // queue
-		thisActor    *Actor                // this actor
-		timerInfoMap map[uint64]*timerInfo // key:timerID,value:*timerInfo
-	}
-
-	timerInfo struct {
-		timer ITimerHandle
-		fn    func()
-		once  bool
+		queue          // queue
+		thisActor      *Actor
+		timerInvokeMap map[uint64]func() // key:timerID,value:business callback (invokeFunc)
 	}
 )
 
 func newTimer(thisActor *Actor) actorTimer {
 	return actorTimer{
-		queue:        newQueue(),
-		thisActor:    thisActor,
-		timerInfoMap: make(map[uint64]*timerInfo),
+		queue:          newQueue(),
+		thisActor:      thisActor,
+		timerInvokeMap: make(map[uint64]func()),
 	}
 }
 
@@ -61,7 +54,7 @@ func (p *actorTimer) Add(delay time.Duration, fn func()) ITimerHandle {
 	}
 
 	var timer ITimerHandle
-	timer = p.thisActor.system.timeWheel.Add(delay, func() {
+	timer = p.thisActor.system.timeWheel.AddTimer(delay, func() {
 		p.Push(timer.ID())
 	})
 
@@ -70,7 +63,7 @@ func (p *actorTimer) Add(delay time.Duration, fn func()) ITimerHandle {
 		return nil
 	}
 
-	p.addTimerInfo(timer, fn, false)
+	p.addTimerInvoke(timer.ID(), fn)
 
 	return timer
 }
@@ -82,7 +75,7 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func()) ITimerHandle {
 	}
 
 	var timer ITimerHandle
-	timer = p.thisActor.system.timeWheel.AddOnce(delay, func() {
+	timer = p.thisActor.system.timeWheel.AddOnceTimer(delay, func() {
 		p.Push(timer.ID())
 	})
 
@@ -91,7 +84,7 @@ func (p *actorTimer) AddOnce(delay time.Duration, fn func()) ITimerHandle {
 		return nil
 	}
 
-	p.addTimerInfo(timer, fn, true)
+	p.addTimerInvoke(timer.ID(), fn)
 
 	return timer
 }
@@ -116,46 +109,53 @@ func (p *actorTimer) AddSchedule(s ITimerSchedule, fn func()) ITimerHandle {
 	}
 
 	var timer ITimerHandle
-	timer = p.thisActor.system.timeWheel.AddSchedule(s, func() {
+	timer = p.thisActor.system.timeWheel.AddScheduleTimer(s, func() {
 		p.Push(timer.ID())
 	})
 
 	if timer == nil {
+		clog.Warnf("Build schedule fail. ITimerSchedule = %+v, fn = %+v", s, fn)
 		return nil
 	}
 
-	p.addTimerInfo(timer, fn, false)
+	p.addTimerInvoke(timer.ID(), fn)
 
 	return timer
 }
 
-func (p *actorTimer) RemoveAll() {
-	for _, info := range p.timerInfoMap {
-		info.timer.Stop()
+func (p *actorTimer) Remove(id uint64) {
+	if _, found := p.timerInvokeMap[id]; found {
+		p.thisActor.system.timeWheel.RemoveTimer(id)
+		delete(p.timerInvokeMap, id)
 	}
 }
 
-func (p *actorTimer) addTimerInfo(timer ITimerHandle, fn func(), once bool) {
-	p.timerInfoMap[timer.ID()] = &timerInfo{
-		timer: timer,
-		fn:    fn,
-		once:  once,
+func (p *actorTimer) RemoveAll() {
+	for id := range p.timerInvokeMap {
+		p.thisActor.system.timeWheel.RemoveTimer(id)
+		delete(p.timerInvokeMap, id)
 	}
+}
+
+func (p *actorTimer) addTimerInvoke(timerID uint64, fn func()) {
+	p.timerInvokeMap[timerID] = fn
 }
 
 func (p *actorTimer) invokeFunc(timerID uint64) {
-	value, found := p.timerInfoMap[timerID]
+	fn, found := p.timerInvokeMap[timerID]
 	if !found {
 		return
 	}
 
-	cutils.Try(func() {
-		value.fn()
-	}, func(errString string) {
-		clog.Error(errString)
-	})
+	defer func() {
+		if rev := recover(); rev != nil {
+			clog.Errorf("[%s] Timer invoke error. [timerID = %d, err = %+v]",
+				p.thisActor.Path(),
+				timerID,
+				rev,
+			)
+		}
+	}()
 
-	if value.once {
-		delete(p.timerInfoMap, timerID)
-	}
+	fn()
 }

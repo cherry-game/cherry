@@ -1,8 +1,12 @@
 package cherryTimeWheel
 
-import "time"
+import (
+	"sync/atomic"
+	"time"
+)
 
-// timerNode is an internal linked-list node. Only accessed by the driver goroutine.
+// timerNode is an internal linked-list node. Only accessed by the driver goroutine,
+// except running which is atomic and also written by the owning Timer (Stop).
 type timerNode struct {
 	id       uint64        // unique timer ID, key of nodeMap
 	expire   int64         // expiry tick (absolute tick count)
@@ -12,7 +16,8 @@ type timerNode struct {
 	index    int32         // slot index: 0~255 for near, 0~63 for levels
 	cb       func()        // business callback, invoked on expiry
 	interval time.Duration // recurring interval (0 for one-shot)
-	schedule Scheduler     // AddSchedule scheduler; nil = fixed interval or one-shot
+	schedule Scheduler     // AddScheduleTimer scheduler; nil = fixed interval or one-shot
+	running  atomic.Bool   // 1:1 with its Timer; driver checks before dispatch, owner reads via IsRunning
 }
 
 // listInsert inserts node at the head of the slot list pointed to by head.

@@ -13,7 +13,7 @@ func TestConcurrentStopAndTimerStop(t *testing.T) {
 
 	timers := make([]*Timer, 0, 1000)
 	for range 1000 {
-		timers = append(timers, tw.Add(time.Hour, func() {}))
+		timers = append(timers, tw.AddTimer(time.Hour, func() {}))
 	}
 
 	var wg sync.WaitGroup
@@ -48,8 +48,8 @@ func TestDispatchPanicDoesNotKillWheel(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(20*time.Millisecond, func() { panic("boom") })
-	tw.AddOnce(40*time.Millisecond, func() { fired.Store(1) })
+	tw.AddOnceTimer(20*time.Millisecond, func() { panic("boom") })
+	tw.AddOnceTimer(40*time.Millisecond, func() { fired.Store(1) })
 
 	time.Sleep(200 * time.Millisecond)
 	if fired.Load() != 1 {
@@ -62,7 +62,7 @@ func TestAddBeforeStart(t *testing.T) {
 	tw := NewTimeWheel(10 * time.Millisecond)
 
 	var fired atomic.Int32
-	timer := tw.AddOnce(50*time.Millisecond, func() { fired.Store(1) })
+	timer := tw.AddOnceTimer(50*time.Millisecond, func() { fired.Store(1) })
 	if timer == nil {
 		t.Fatal("AddOnce returned nil")
 	}
@@ -85,7 +85,7 @@ func TestCancelFreesNode(t *testing.T) {
 	const n = 1000
 	timers := make([]*Timer, n)
 	for i := range timers {
-		timers[i] = tw.AddOnce(time.Hour, func() {})
+		timers[i] = tw.AddOnceTimer(time.Hour, func() {})
 	}
 
 	// wait until all addCmds are consumed (AddOnce submits asynchronously)
@@ -99,7 +99,7 @@ func TestCancelFreesNode(t *testing.T) {
 	for _, tm := range timers {
 		tm.Stop()
 	}
-	// Stop is asynchronous; wait until the driver drains all removeCmds.
+	// The removeCmd reclaim is asynchronous; wait until the driver drains all removeCmds.
 	deadline = time.Now().Add(2 * time.Second)
 	for tw.ActiveCount() != 0 {
 		if time.Now().After(deadline) {
@@ -117,7 +117,7 @@ func BenchmarkAddOnceHint(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		tw.AddOnce(time.Hour, func() {})
+		tw.AddOnceTimer(time.Hour, func() {})
 	}
 }
 
@@ -129,7 +129,7 @@ func BenchmarkCancelHint(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		timer := tw.AddOnce(time.Hour, func() {})
+		timer := tw.AddOnceTimer(time.Hour, func() {})
 		timer.Stop()
 	}
 }

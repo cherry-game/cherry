@@ -37,13 +37,16 @@ type (
 		AddFixedHour(hour, minute, second int, fn func()) ITimerHandle // add daily timer at fixed hour:minute:second
 		AddFixedMinute(minute, second int, fn func()) ITimerHandle     // add hourly timer at fixed minute:second
 		AddSchedule(s ITimerSchedule, f func()) ITimerHandle           // add timer with custom schedule
+		Remove(id uint64)                                              // remove timer
 		RemoveAll()                                                    // remove all timers
 	}
 
 	ITimerHandle interface {
-		ID() uint64 // unique timer id
-		Start()     // start or restart the timer
-		Stop()      // stop the timer (asynchronous, may fire once more)
+		ID() uint64      // unique timer id
+		Start()          // start or restart the timer
+		Stop()           // stop the timer (immediate: no new callback starts after it returns)
+		IsOnce() bool    // one-shot vs recurring
+		IsRunning() bool // whether the timer is currently active
 	}
 
 	ITimerSchedule interface {

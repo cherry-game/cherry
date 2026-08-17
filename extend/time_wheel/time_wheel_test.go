@@ -19,7 +19,7 @@ func TestAddOnce_Fires(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(50*time.Millisecond, func() {
+	tw.AddOnceTimer(50*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -34,7 +34,7 @@ func TestAddOnce_FiresOnce(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.AddOnce(50*time.Millisecond, func() {
+	tw.AddOnceTimer(50*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -49,7 +49,7 @@ func TestAdd_Repeats(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.Add(30*time.Millisecond, func() {
+	tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -65,7 +65,7 @@ func TestAdd_SubTickInterval(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.Add(3*time.Millisecond, func() {
+	tw.AddTimer(3*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -80,7 +80,7 @@ func TestTimerStop_PreventsFire(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnce(200*time.Millisecond, func() {
+	timer := tw.AddOnceTimer(200*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -97,16 +97,15 @@ func TestTimerStopAndStart(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	timer := tw.Add(30*time.Millisecond, func() {
+	timer := tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
 	})
 
 	time.Sleep(120 * time.Millisecond)
 	timer.Stop()
 
-	// Stop is asynchronous: wait until the driver drains the removeCmd before
-	// asserting, otherwise the recurring timer's next expiry may fire once more
-	// in the window between submitRemove and the driver processing it.
+	// The removeCmd reclaim is asynchronous: wait until the driver drains it
+	// before asserting, so the node is fully detached.
 	deadline := time.Now().Add(time.Second)
 	for tw.ActiveCount() != 0 {
 		if time.Now().After(deadline) {
@@ -132,7 +131,7 @@ func TestTimerStart_WhileRunning(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.Add(20*time.Millisecond, func() {})
+	timer := tw.AddTimer(20*time.Millisecond, func() {})
 
 	time.Sleep(60 * time.Millisecond)
 	// Start while already running: the old node must be removed before the new one
@@ -153,7 +152,7 @@ func TestTimerStop_AfterFired(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnce(20*time.Millisecond, func() {
+	timer := tw.AddOnceTimer(20*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -170,7 +169,7 @@ func TestAddSchedule_EverySchedule(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.AddSchedule(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
+	tw.AddScheduleTimer(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
 		count.Add(1)
 	})
 
@@ -192,7 +191,7 @@ func TestAddSchedule_FixedDate(t *testing.T) {
 	}
 
 	var fired atomic.Int32
-	tw.AddSchedule(&FixedDateSchedule{Hour: -1, Minute: min, Second: sec}, func() {
+	tw.AddScheduleTimer(&FixedDateSchedule{Hour: -1, Minute: min, Second: sec}, func() {
 		fired.Store(1)
 	})
 
@@ -207,7 +206,7 @@ func TestCascade_NearWrap(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(300*time.Millisecond, func() {
+	tw.AddOnceTimer(300*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -222,13 +221,55 @@ func TestCascade_MultiLevel(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(20*time.Second, func() {
+	tw.AddOnceTimer(20*time.Second, func() {
 		fired.Store(1)
 	})
 
 	time.Sleep(25 * time.Second)
 	if fired.Load() != 1 {
 		t.Fatal("very long timer did not fire (multi-level cascade failed)")
+	}
+}
+
+// TestCascade_ResetCancelledNode verifies a cancelled node (running=false) is
+// reset by cascade instead of re-enqueued. Regression: cascade used to key on
+// cb != nil, but Stop clears running, not cb, so cancelled nodes lingered until
+// their slot was swept.
+func TestCascade_ResetCancelledNode(t *testing.T) {
+	tw := NewTimeWheel(10 * time.Millisecond)
+
+	node := &timerNode{id: 1}
+	node.expire = 1 << 14
+	node.cb = func() {}
+	node.running.Store(false) // Stop semantics: running=false, cb still set
+
+	tw.t[1][1] = node
+	tw.cascade(1, 1<<14) // idx = (1<<14 >> 14) & 0x3F = 1 → cascades t[1][1]
+
+	if node.cb != nil {
+		t.Fatal("cancelled node was re-enqueued instead of reset")
+	}
+	if node.interval != 0 || node.schedule != nil {
+		t.Fatal("cancelled node not fully reset")
+	}
+}
+
+// TestReset_ClearsLinks verifies reset clears the linked-list pointers, so a
+// finished node held by a Timer handle cannot keep sibling nodes reachable via
+// its residual next/prev (which would pin them in memory until the handle is
+// released).
+func TestReset_ClearsLinks(t *testing.T) {
+	tw := NewTimeWheel(10 * time.Millisecond)
+
+	a := &timerNode{id: 1}
+	b := &timerNode{id: 2}
+	a.next = b
+	b.prev = a
+
+	tw.reset(a)
+
+	if a.next != nil || a.prev != nil {
+		t.Fatal("reset should clear linked-list pointers")
 	}
 }
 
@@ -243,7 +284,7 @@ func TestConcurrentAddStop(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			tw.AddOnce(100*time.Millisecond, func() {})
+			tw.AddOnceTimer(100*time.Millisecond, func() {})
 		}()
 	}
 
@@ -256,7 +297,7 @@ func TestAddOnce_Dispatch(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(50*time.Millisecond, func() {
+	tw.AddOnceTimer(50*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -270,7 +311,7 @@ func TestAfterStop_NoMoreFires(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 
 	var count atomic.Int32
-	tw.Add(30*time.Millisecond, func() {
+	tw.AddTimer(30*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -312,7 +353,7 @@ func TestStop_Closed_NoRestart(t *testing.T) {
 	tw.Start()
 
 	var fired atomic.Int32
-	tw.AddOnce(50*time.Millisecond, func() {
+	tw.AddOnceTimer(50*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -332,7 +373,7 @@ func TestNewTimeWheel_TickFallback(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	tw.AddOnce(50*time.Millisecond, func() {
+	tw.AddOnceTimer(50*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -349,7 +390,7 @@ func TestTimerClear_PreventsFire(t *testing.T) {
 	defer tw.Stop()
 
 	var fired atomic.Int32
-	timer := tw.AddOnce(50*time.Millisecond, func() {
+	timer := tw.AddOnceTimer(50*time.Millisecond, func() {
 		fired.Store(1)
 	})
 
@@ -365,7 +406,7 @@ func TestTimerClear_Idempotent(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddOnce(50*time.Millisecond, func() {})
+	timer := tw.AddOnceTimer(50*time.Millisecond, func() {})
 	timer.Clear()
 	timer.Clear() // must not panic
 }
@@ -376,7 +417,7 @@ func TestTimerStop_AlreadyStopped(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddOnce(200*time.Millisecond, func() {})
+	timer := tw.AddOnceTimer(200*time.Millisecond, func() {})
 
 	timer.Stop()
 	timer.Stop() // must not panic (no-op after the first Stop)
@@ -389,7 +430,7 @@ func TestAddOnce_StopStart(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	timer := tw.AddOnce(100*time.Millisecond, func() {
+	timer := tw.AddOnceTimer(100*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -397,12 +438,12 @@ func TestAddOnce_StopStart(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 	timer.Stop()
 
-	// Start turns it into recurring mode
+	// Start keeps the original one-shot type
 	timer.Start()
 
 	time.Sleep(300 * time.Millisecond)
-	if c := count.Load(); c < 2 {
-		t.Fatalf("AddOnce + Stop + Start should fire repeatedly, got %d", c)
+	if c := count.Load(); c != 1 {
+		t.Fatalf("AddOnce + Stop + Start should fire once (one-shot kept), got %d", c)
 	}
 }
 
@@ -411,7 +452,7 @@ func TestAddOnce_StopStart(t *testing.T) {
 func TestStop_RemoveCmdAfterStop(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 
-	timer := tw.AddOnce(time.Hour, func() {})
+	timer := tw.AddOnceTimer(time.Hour, func() {})
 	tw.Stop()
 
 	timer.Stop() // must not panic after TimeWheel is stopped
@@ -429,7 +470,7 @@ func TestAddSchedule_NilNext(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.AddSchedule(&nilSchedule{}, func() {})
+	timer := tw.AddScheduleTimer(&nilSchedule{}, func() {})
 	if timer != nil {
 		t.Fatal("AddSchedule should return nil when Next returns zero time")
 	}
@@ -440,7 +481,7 @@ func TestAddSchedule_StopNoFire(t *testing.T) {
 	tw.Start()
 
 	var count atomic.Int32
-	tw.AddSchedule(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
+	tw.AddScheduleTimer(&EverySchedule{Interval: 30 * time.Millisecond}, func() {
 		count.Add(1)
 	})
 
@@ -468,7 +509,7 @@ func TestConcurrentStopStart(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			timer := tw.AddOnce(50*time.Millisecond, func() {
+			timer := tw.AddOnceTimer(50*time.Millisecond, func() {
 				count.Add(1)
 			})
 			timer.Stop()
@@ -487,7 +528,7 @@ func TestTimerStopStart_NodeIdentity(t *testing.T) {
 	tw := newTestWheel(10 * time.Millisecond)
 	defer tw.Stop()
 
-	timer := tw.Add(20*time.Millisecond, func() {})
+	timer := tw.AddTimer(20*time.Millisecond, func() {})
 
 	time.Sleep(30 * time.Millisecond)
 	timer.Stop()
@@ -515,7 +556,7 @@ func BenchmarkAddOnce(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		tw.AddOnce(time.Second, func() {})
+		tw.AddOnceTimer(time.Second, func() {})
 	}
 }
 
@@ -525,7 +566,7 @@ func BenchmarkAdd(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		tw.Add(time.Second, func() {})
+		tw.AddTimer(time.Second, func() {})
 	}
 }
 
@@ -535,7 +576,7 @@ func BenchmarkTimerStop(b *testing.B) {
 
 	b.ResetTimer()
 	for b.Loop() {
-		timer := tw.AddOnce(time.Hour, func() {})
+		timer := tw.AddOnceTimer(time.Hour, func() {})
 		timer.Stop()
 	}
 }
@@ -562,7 +603,7 @@ func TestMillionTimers(t *testing.T) {
 	for i := range n {
 		// scatter delays over 2s ~ 5s so all timers stay active while injecting
 		d := 2*time.Second + time.Duration(i%3000)*time.Millisecond
-		tw.AddOnce(d, func() { fired.Add(1) })
+		tw.AddOnceTimer(d, func() { fired.Add(1) })
 	}
 	t.Logf("inject %d timers in %v", n, time.Since(start))
 
@@ -602,7 +643,7 @@ func TestAddSchedule_SubTickInterval(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	tw.AddSchedule(&EverySchedule{Interval: 3 * time.Millisecond}, func() {
+	tw.AddScheduleTimer(&EverySchedule{Interval: 3 * time.Millisecond}, func() {
 		count.Add(1)
 	})
 
@@ -619,7 +660,7 @@ func TestTimerClear_ThenStart(t *testing.T) {
 	defer tw.Stop()
 
 	var count atomic.Int32
-	timer := tw.Add(20*time.Millisecond, func() {
+	timer := tw.AddTimer(20*time.Millisecond, func() {
 		count.Add(1)
 	})
 	timer.Clear()
@@ -642,7 +683,7 @@ func TestAddOnce_AfterRecurringPoolReuse(t *testing.T) {
 	defer tw.Stop()
 
 	// Recurring timer: its node returns to the pool on Stop.
-	recurring := tw.Add(10*time.Millisecond, func() {})
+	recurring := tw.AddTimer(10*time.Millisecond, func() {})
 	time.Sleep(30 * time.Millisecond)
 	recurring.Stop()
 
@@ -656,7 +697,7 @@ func TestAddOnce_AfterRecurringPoolReuse(t *testing.T) {
 
 	// One-shot reusing a pooled node: must fire exactly once.
 	var count atomic.Int32
-	tw.AddOnce(20*time.Millisecond, func() {
+	tw.AddOnceTimer(20*time.Millisecond, func() {
 		count.Add(1)
 	})
 
@@ -679,14 +720,14 @@ func TestConcurrentStopAndAdd(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			for range 1000 {
-				timer := tw.Add(time.Millisecond, func() {})
+				timer := tw.AddTimer(time.Millisecond, func() {})
 				timer.Stop()
 			}
 		}()
 	}
 	wg.Wait()
 
-	// Stop is asynchronous: wait until the driver drains all removeCmds.
+	// The removeCmd reclaim is asynchronous: wait until the driver drains all removeCmds.
 	deadline := time.Now().Add(time.Second)
 	for tw.ActiveCount() != 0 {
 		if time.Now().After(deadline) {

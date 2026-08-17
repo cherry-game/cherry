@@ -77,9 +77,10 @@ func (p *actorEvent) invokeFunc(data cfacade.IEventData) {
 
 	defer func() {
 		if rev := recover(); rev != nil {
-			clog.Errorf("[%s] Event invoke error. [data = %+v]",
+			clog.Errorf("[%s] Event invoke error. [data = %+v, err = %v]",
 				p.thisActor.Path(),
 				data,
+				rev,
 			)
 		}
 	}()
