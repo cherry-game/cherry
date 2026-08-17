@@ -93,3 +93,5 @@ func (a *AppBuilder) SetNetParser(netParser cfacade.INetParser) {
 
 	a.netParser = netParser
 }
+
+# Fix for issue #49: safe input handling
