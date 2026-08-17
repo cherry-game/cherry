@@ -1,55 +1,55 @@
 package cherryTimeWheel
 
-import (
-	"container/list"
-	"sync/atomic"
-	"unsafe"
-)
+import "time"
 
-// Timer represents a single event. When the Timer expires, the given
-// task will be executed.
+// Timer is a user-facing handle with Start/Stop/Clear.
+// It is NOT goroutine-safe: a Timer must be driven from a single goroutine (the
+// owner that created it). The underlying *timerNode is owned by the wheel's driver
+// goroutine and only mutated through the command channel.
 type Timer struct {
-	id         uint64
-	expiration int64 // in milliseconds
-	task       func()
-	// The bucket that holds the list to which this timer's element belongs.
-	//
-	// NOTE: This field may be updated and read concurrently,
-	// through Timer.Stop() and Bucket.Flush().
-	b       unsafe.Pointer // type: *bucket
-	element *list.Element  // The timer's element.
-	isAsync bool           // async execute task
+	id   uint64        // unique ID
+	tw   *TimeWheel    // owner
+	d    time.Duration // bound interval
+	f    func()        // bound callback
+	node *timerNode    // non-nil when running; single-goroutine owner only
 }
 
+// ID returns the timer's unique ID.
 func (t *Timer) ID() uint64 {
 	return t.id
 }
 
-func (t *Timer) getBucket() *bucket {
-	return (*bucket)(atomic.LoadPointer(&t.b))
-}
-
-func (t *Timer) setBucket(b *bucket) {
-	atomic.StorePointer(&t.b, unsafe.Pointer(b))
-}
-
-// Stop prevents the Timer from firing. It returns true if the call
-// stops the timer, false if the timer has already expired or been stopped.
-//
-// If the timer t has already expired and the t.task has been started in its own
-// goroutine; Stop does not wait for t.task to complete before returning. If the caller
-// needs to know whether t.task is completed, it must coordinate with t.task explicitly.
-func (t *Timer) Stop() bool {
-	stopped := false
-	for b := t.getBucket(); b != nil; b = t.getBucket() {
-		// If b.Remove is called just after the timing wheel's goroutine has:
-		//     1. removed t from b (through b.Flush -> b.remove)
-		//     2. moved t from b to another bucket ab (through b.Flush -> b.remove and ab.Add)
-		// this may fail to remove t due to the change of t's bucket.
-		stopped = b.Remove(t)
-
-		// Thus, here we re-get t's possibly new bucket (nil for case 1, or ab (non-nil) for case 2),
-		// and retry until the bucket becomes nil, which indicates that t has finally been removed.
+// Start starts (or restarts) the timer using the bound interval d and callback f.
+// After Start the timer keeps firing every d until Stop/Clear is called.
+func (t *Timer) Start() {
+	if t.f == nil {
+		return
 	}
-	return stopped
+	// Restart safety: the timer ID is shared, so a running node must be removed
+	// before enqueuing a new one, otherwise the wheel holds two nodes with the
+	// same id (the old one would be leaked until its slot is swept).
+	if t.node != nil {
+		t.Stop()
+	}
+	t.tw.startNode(t, true)
+}
+
+// Stop cancels the timer. Asynchronous: the removal is queued and processed by the
+// driver on a later cycle, so the callback may fire once more after Stop returns.
+// Stop clears the node immediately, so a subsequent Start builds a fresh node.
+func (t *Timer) Stop() {
+	if t.node == nil {
+		return
+	}
+	t.tw.submitRemove(t.id)
+	t.node = nil
+}
+
+// Clear stops the timer and releases references for safe reuse.
+func (t *Timer) Clear() {
+	if t.node != nil {
+		t.Stop()
+	}
+	t.node = nil
+	t.f = nil
 }

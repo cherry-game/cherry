@@ -35,6 +35,8 @@ type (
 		SetCallTimeout(d time.Duration)                                        // set RPC call timeout (default 3s)
 		SetArrivalTimeout(t int64)                                             // set message arrival timeout in ms (default 100ms)
 		SetExecutionTimeout(t int64)                                           // set handler execution timeout in ms (default 100ms)
+		SetTimerTick(d time.Duration)                                          // set time wheel tick (default 10ms, before startup)
+		SetTimerHint(n int)                                                    // set time wheel nodeMap pre-alloc hint
 	}
 
 	// InvokeFunc is the low-level dispatch hook called when a message arrives at an Actor.
