@@ -9,7 +9,7 @@ type Scheduler interface {
 	// Next returns the next execution time after the given (previous) time.
 	// It will return a zero time if no next time is scheduled.
 	//
-	// Times use the local clock (AddSchedule seeds with time.Now()).
+	// Times use the local clock (AddScheduleTimer seeds with time.Now()).
 	Next(time.Time) time.Time
 }
 

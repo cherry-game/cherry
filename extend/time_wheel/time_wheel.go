@@ -4,7 +4,8 @@
 //   - 512 slots (256 near + 4×64 levels)
 //   - Single driver goroutine, lock-free
 //   - MPSC submission via timerCmd interface
-//   - sync.Pool for timerNode reuse
+//   - timerNode is owned 1:1 by its Timer handle (no object pool; a node lives as
+//     long as its handle and is reclaimed by GC)
 //   - Dispatch runs synchronously in the driver goroutine and only fires timers;
 //     callbacks must be lightweight (business logic is pushed to actor queues by
 //     the upper layer, not executed inside the wheel)
@@ -15,10 +16,11 @@
 //   - submitAdd/submitRemove are safe to call from any number of goroutines concurrently.
 //   - A *Timer handle is NOT goroutine-safe; drive it from the single goroutine
 //     that created it.
-//   - Timer.Stop is asynchronous: the removal is queued and the callback may fire
-//     once more after Stop returns.
+//   - Timer.Stop is immediate: the node's running flag is cleared atomically, so no
+//     new callback starts after Stop returns (a callback already executing is not
+//     interrupted). A remove command is still queued to reclaim the node.
 //   - timerNode / nodeMap / wheel slots are owned by the driver goroutine and are
-//     only touched there.
+//     only touched there (the atomic running flag is also written by Stop).
 //
 // Cascade (bitwise, branch-free):
 //
@@ -33,8 +35,8 @@
 //     to a wrong slot and fire early, so keep delays within this ceiling.
 //   - The wheel advances on a fixed ticker instead of sleeping until the next
 //     expiry, so it burns a little CPU even when idle (negligible at 10ms).
-//   - submitAdd/submitRemove use a bounded MPSC buffer; Add/Stop block under backpressure,
-//     which only happens if the driver goroutine stalls.
+//   - submitAdd/submitRemove use a bounded MPSC buffer; AddTimer/RemoveTimer block
+//     under backpressure, which only happens if the driver goroutine stalls.
 //   - Stop is terminal: once stopped, the wheel is closed and cannot be restarted
 //     (Start becomes a no-op); create a new wheel instead.
 package cherryTimeWheel
@@ -73,7 +75,6 @@ type TimeWheel struct {
 	submitCh chan timerCmd // MPSC submit channel (single channel keeps FIFO-ordered)
 	exitCh   chan struct{}
 
-	nodePool  sync.Pool             // *timerNode pool
 	nodeMap   map[uint64]*timerNode // id → *timerNode (driver goroutine only)
 	activeNum atomic.Int64          // active timer count
 
@@ -98,10 +99,7 @@ func NewTimeWheelWithHint(tick time.Duration, hint int) *TimeWheel {
 	tw := &TimeWheel{
 		submitCh: make(chan timerCmd, SUBMIT_CAP),
 		nodeMap:  make(map[uint64]*timerNode, hint),
-		nodePool: sync.Pool{
-			New: func() any { return &timerNode{} },
-		},
-		tickDur: tick,
+		tickDur:  tick,
 	}
 	return tw
 }
@@ -185,26 +183,28 @@ func (tw *TimeWheel) drainCmds() {
 
 // ---- Internal (driver goroutine only) ----
 
-// recycle removes node from nodeMap (if it is still the current entry), clears
-// its callback and schedule, and returns it to the pool. Caller owns the
-// activeNum adjustment.
-func (tw *TimeWheel) recycle(node *timerNode) {
+// reset removes node from nodeMap (if it is still the current entry) and clears
+// its callback and schedule. The node stays alive while its Timer handle still
+// references it (running=false marks it finished). Caller owns the activeNum
+// adjustment.
+func (tw *TimeWheel) reset(node *timerNode) {
 	if n, ok := tw.nodeMap[node.id]; ok && n == node {
 		delete(tw.nodeMap, node.id)
 	}
 	node.cb = nil
 	node.interval = 0
 	node.schedule = nil
-	tw.nodePool.Put(node)
+	node.next = nil
+	node.prev = nil
 }
 
 func (tw *TimeWheel) handleAddNode(node *timerNode) {
 	// Defensive: replace a stale node with the same id if one is still present.
 	// Only happens if the single-goroutine Timer contract is violated (e.g. a
-	// concurrent Start); detach and recycle it so it isn't leaked.
+	// concurrent Start); detach and reset it so it isn't leaked.
 	if old, ok := tw.nodeMap[node.id]; ok {
 		tw.detachNode(old)
-		tw.recycle(old)
+		tw.reset(old)
 		tw.activeNum.Add(-1)
 	}
 	node.next = nil
@@ -262,12 +262,11 @@ func (tw *TimeWheel) cascade(level int, current int64) {
 	head := detachList(&tw.t[level][idx])
 	for node := head; node != nil; {
 		next := node.next
-		if node.cb != nil {
+		if node.running.Load() {
 			tw.enqueue(node)
 		} else {
-			// Defensive: a cancelled node (cb == nil) left in a slot is recycled
-			// consistently with dispatchList.
-			tw.recycle(node)
+			// A cancelled node left in a slot is reset consistently with dispatchList.
+			tw.reset(node)
 			tw.activeNum.Add(-1)
 		}
 		node = next
@@ -310,12 +309,20 @@ func (tw *TimeWheel) enqueue(node *timerNode) {
 // ---- Expiry & dispatch ----
 
 // dispatchList processes expired timers: runs the callback, then either
-// reschedules (schedule / recurring) or recycles (one-shot).
+// reschedules (schedule / recurring) or resets (one-shot).
 func (tw *TimeWheel) dispatchList(head *timerNode) {
 	for node := head; node != nil; {
 		next := node.next
 		if n, ok := tw.nodeMap[node.id]; ok && n == node {
 			delete(tw.nodeMap, node.id)
+		}
+
+		// Cancelled by Stop: reset without firing.
+		if !node.running.Load() {
+			tw.reset(node)
+			tw.activeNum.Add(-1)
+			node = next
+			continue
 		}
 
 		cutils.Try(func() {
@@ -326,12 +333,13 @@ func (tw *TimeWheel) dispatchList(head *timerNode) {
 
 		switch {
 		case node.schedule != nil:
-			// AddSchedule: reschedule by the scheduler until it returns zero time.
+			// AddScheduleTimer: reschedule by the scheduler until it returns zero time.
 			if nextExp := node.schedule.Next(tw.ticksToTime(tw.nowTicks())); !nextExp.IsZero() {
 				node.expire = tw.timeToTicks(nextExp)
 				tw.handleAddNode(node)
 			} else {
-				tw.recycle(node)
+				node.running.Store(false)
+				tw.reset(node)
 			}
 		case node.interval > 0:
 			// Recurring: reschedule at a fixed interval.
@@ -339,8 +347,9 @@ func (tw *TimeWheel) dispatchList(head *timerNode) {
 			node.expire = tw.nowTicks() + ticks
 			tw.handleAddNode(node)
 		default:
-			// One-shot: recycle.
-			tw.recycle(node)
+			// One-shot: reset.
+			node.running.Store(false)
+			tw.reset(node)
 		}
 
 		tw.activeNum.Add(-1)
@@ -350,67 +359,76 @@ func (tw *TimeWheel) dispatchList(head *timerNode) {
 
 // ---- Public API ----
 
-// Add creates a recurring timer and starts it.
-func (tw *TimeWheel) Add(d time.Duration, f func()) *Timer {
-	return tw.addTimer(d, f, true)
-}
-
-// AddOnce creates a one-shot timer.
-func (tw *TimeWheel) AddOnce(d time.Duration, f func()) *Timer {
+// AddTimer creates a recurring timer and starts it.
+func (tw *TimeWheel) AddTimer(d time.Duration, f func()) *Timer {
 	return tw.addTimer(d, f, false)
 }
 
-func (tw *TimeWheel) addTimer(d time.Duration, f func(), recurring bool) *Timer {
-	t := &Timer{
-		id: nextID(),
-		tw: tw,
-		d:  d,
-		f:  f,
-	}
-	tw.startNode(t, recurring)
-	return t
+// AddOnceTimer creates a one-shot timer.
+func (tw *TimeWheel) AddOnceTimer(d time.Duration, f func()) *Timer {
+	return tw.addTimer(d, f, true)
 }
 
-// startNode binds a node to the timer and submits it to the wheel. The
-// recurring flag marks the node as interval-driven (one-shot keeps interval
-// zero). The business callback is stored on the node so no per-timer closure
-// is allocated.
-func (tw *TimeWheel) startNode(t *Timer, recurring bool) {
-	ticks := tw.durationToTicks(t.d)
-	ticks = max(ticks, 1)
-	node := tw.nodePool.Get().(*timerNode)
-	node.id = t.id
-	node.expire = tw.nowTicks() + ticks
-	node.cb = t.f
-	node.interval = 0
-	if recurring {
-		node.interval = t.d
-	}
-	t.node = node
-	tw.submitAdd(node)
-}
-
-// AddSchedule creates a timer driven by a Scheduler.
-func (tw *TimeWheel) AddSchedule(s Scheduler, f func()) *Timer {
+// AddScheduleTimer creates a timer driven by a Scheduler.
+func (tw *TimeWheel) AddScheduleTimer(s Scheduler, f func()) *Timer {
 	firstExp := s.Next(time.Now())
 	if firstExp.IsZero() {
 		return nil
 	}
 
 	t := &Timer{
-		id: nextID(),
-		tw: tw,
-		f:  f,
+		id:   nextID(),
+		tw:   tw,
+		f:    f,
+		once: false,
 	}
 
-	node := tw.nodePool.Get().(*timerNode)
-	node.id = t.id
+	node := &timerNode{id: t.id}
 	node.expire = tw.timeToTicks(firstExp)
 	node.cb = f
 	node.schedule = s
+	node.running.Store(true)
 	t.node = node
 	tw.submitAdd(node)
 	return t
+}
+
+// RemoveTimer stops the timer with the given id. Asynchronous: the removal is
+// queued to the driver, so a callback already dispatching may still fire once.
+// Use Timer.Stop for an immediate cancel via the handle.
+func (tw *TimeWheel) RemoveTimer(id uint64) {
+	tw.submitRemove(id)
+}
+
+func (tw *TimeWheel) addTimer(d time.Duration, f func(), once bool) *Timer {
+	t := &Timer{
+		id:   nextID(),
+		tw:   tw,
+		d:    d,
+		f:    f,
+		once: once,
+	}
+	node := tw.startNode(t.id, t.f, t.d, once)
+	t.node = node
+	tw.submitAdd(node)
+	return t
+}
+
+// startNode builds a node bound to the given timer parameters. A recurring
+// timer (once=false) carries its interval for the driver to reschedule; a
+// one-shot keeps interval zero. The caller assigns the returned node to the
+// timer handle and submits it.
+func (tw *TimeWheel) startNode(id uint64, f func(), d time.Duration, once bool) *timerNode {
+	ticks := tw.durationToTicks(d)
+	ticks = max(ticks, 1)
+	node := &timerNode{id: id}
+	node.expire = tw.nowTicks() + ticks
+	node.cb = f
+	node.running.Store(true)
+	if !once {
+		node.interval = d
+	}
+	return node
 }
 
 // ---- Time conversion ----
