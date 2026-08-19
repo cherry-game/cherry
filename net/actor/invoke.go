@@ -11,7 +11,6 @@ import (
 	cutils "github.com/cherry-game/cherry/extend/utils"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
-	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
@@ -40,7 +39,7 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 
 	if err := EncodeRemoteArgs(app, fi, m); err != nil {
 		clog.Errorf("[InvokeRemoteFunc] encode args error. [message = %+v, err = %v]", m, err)
-		replyReponseCode(m, ccode.RPCRemoteExecuteError)
+		replyReponseCode(app, m, ccode.RPCRemoteExecuteError)
 		return
 	}
 
@@ -57,10 +56,10 @@ func InvokeRemoteFunc(app cfacade.IApplication, fi *creflect.FuncInfo, m *cfacad
 
 		cutils.Try(func() {
 			rsp := retValue(app, rets)
-			replyResponse(m, rsp)
+			replyResponse(app, m, rsp)
 
 		}, func(errString string) {
-			replyReponseCode(m, ccode.RPCRemoteExecuteError)
+			replyReponseCode(app, m, ccode.RPCRemoteExecuteError)
 			clog.Errorf("[InvokeRemoteFunc] invoke error. [message = %+v, err = %s]", m, errString)
 		})
 	} else {
@@ -173,25 +172,30 @@ func retValue(app cfacade.IApplication, rets []reflect.Value) *cproto.Response {
 	return rsp
 }
 
-func replyReponseCode(m *cfacade.Message, errCode int32) {
+func replyReponseCode(app cfacade.IApplication, m *cfacade.Message, errCode int32) {
 	rsp := &cproto.Response{
 		Code: errCode,
 	}
 
-	replyResponse(m, rsp)
+	replyResponse(app, m, rsp)
 }
 
 // replyResponse sends the cluster reply via NATS. It does NOT recycle the
 // message — processRemote's defer handles that, avoiding a double-recycle.
-func replyResponse(m *cfacade.Message, rsp *cproto.Response) {
+func replyResponse(app cfacade.IApplication, m *cfacade.Message, rsp *cproto.Response) {
 	replyData, err := proto.Marshal(rsp)
 	if err != nil {
 		clog.Warnf("Source = %s, Target = %s,  err := %v", m.Source, m.Target, err)
 		return
 	}
 
-	err = cnats.ReplySync(m.ReqID, m.Reply, replyData)
-	if err != nil {
+	if app == nil || app.Cluster() == nil {
+		clog.Warnf("[replyResponse] cluster is nil, drop reply. [source = %s, target = %s, reqID = %s]",
+			m.Source, m.Target, m.ReqID)
+		return
+	}
+
+	if err = app.Cluster().RawReply(m.ReqID, m.Reply, replyData); err != nil {
 		clog.Warn(err)
 	}
 }

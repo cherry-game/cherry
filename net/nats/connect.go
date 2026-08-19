@@ -18,11 +18,11 @@ type (
 	Connect struct {
 		options
 		*nats.Conn
-		id        int                  // connect id
+		name      string               // connect name, passed in by the caller
 		waiters   sync.Map             // map[string]chan *nats.Msg
 		subs      []*nats.Subscription // subscription list
 		subsMutex sync.RWMutex         // subscription mutex
-		reply     string               // request reply subject
+		reply     string               // request reply subject, set by SubscribeReply
 		stopStats chan struct{}        // notify statistics goroutine to exit
 		closeOnce sync.Once            // ensure Close only executes once
 	}
@@ -40,10 +40,9 @@ type (
 	OptionFunc func(o *options)
 )
 
-func NewConnect(id int, replySubject string, opts ...OptionFunc) *Connect {
+func NewConnect(name string, opts ...OptionFunc) *Connect {
 	conn := &Connect{
-		id:        id,
-		reply:     fmt.Sprintf("%s.%d", replySubject, id),
+		name:      name,
 		stopStats: make(chan struct{}),
 	}
 
@@ -70,7 +69,7 @@ func (p *Connect) Connect() {
 	for {
 		conn, err = nats.Connect(p.address, natsOpts...)
 		if err != nil {
-			clog.Warnf("[id = %d] Nats connect fail! retrying in 3 seconds. err = %s", p.id, err)
+			clog.Warnf("[name = %s] Nats connect fail! retrying in 3 seconds. err = %s", p.name, err)
 			time.Sleep(3 * time.Second)
 			continue
 		}
@@ -79,13 +78,11 @@ func (p *Connect) Connect() {
 
 	p.Conn = conn
 
-	p.initReplySubscribe()
-
 	if p.isStats {
 		go p.statistics()
 	}
 
-	clog.Infof("[id = %d] Nats connected! [reply = %s]", p.id, p.reply)
+	clog.Infof("[name = %s] Nats connected!", p.name)
 }
 
 func (p *Connect) Close() {
@@ -105,7 +102,7 @@ func (p *Connect) Close() {
 		p.Conn.Close()
 		p.clearWaiters()
 
-		clog.Infof("[id = %d] Nats closed", p.id)
+		clog.Infof("[name = %s] Nats closed", p.name)
 	})
 }
 
@@ -137,14 +134,14 @@ func (p *Connect) statistics() {
 				stats.Reconnects,
 			)
 		case <-p.stopStats:
-			clog.Infof("[id = %d] Statistics goroutine stopped", p.id)
+			clog.Infof("[name = %s] Statistics goroutine stopped", p.name)
 			return
 		}
 	}
 }
 
-func (p *Connect) GetID() int {
-	return p.id
+func (p *Connect) GetName() string {
+	return p.name
 }
 
 func (p *Connect) clearWaiters() {
@@ -157,8 +154,17 @@ func (p *Connect) clearWaiters() {
 	})
 }
 
-func (p *Connect) initReplySubscribe() {
-	err := p.Subscribe(p.reply, func(msg *nats.Msg) {
+// SubscribeReply sets this connect's reply subject and subscribes to it, so
+// that responses to RequestSync sent on this connect can be received. Call it
+// after Connect() on connects that will issue requests; the subject base should
+// be unique per node. Connects that only publish or subscribe do not need it.
+func (p *Connect) SubscribeReply(replySubject string) error {
+	if p.Conn == nil {
+		return cerror.Error("nats connection is nil")
+	}
+
+	p.reply = fmt.Sprintf("%s.%s", replySubject, p.name)
+	return p.Subscribe(p.reply, func(msg *nats.Msg) {
 		reqID := msg.Header.Get(REQ_ID)
 		if reqID == "" {
 			clog.Infof("header = %v, subject = %v", msg.Header, msg.Subject)
@@ -172,11 +178,6 @@ func (p *Connect) initReplySubscribe() {
 			close(ch)
 		}
 	})
-
-	if err != nil {
-		clog.Warnf("[initReplySubscribe] error = %v", err)
-	}
-
 }
 
 func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]byte, error) {
@@ -196,6 +197,9 @@ func (p *Connect) Request(subject string, data []byte, tod ...time.Duration) ([]
 func (p *Connect) RequestSync(reqID, subject string, data []byte, tod ...time.Duration) ([]byte, error) {
 	if p.Conn == nil {
 		return nil, fmt.Errorf("nats connection is nil")
+	}
+	if p.reply == "" {
+		return nil, cerror.Error("reply subject is empty, call SubscribeReply first")
 	}
 
 	ch := make(chan *nats.Msg, 1)
@@ -229,12 +233,12 @@ func (p *Connect) RequestSync(reqID, subject string, data []byte, tod ...time.Du
 		if _, existed := p.waiters.LoadAndDelete(reqID); existed {
 			close(ch)
 		}
-		clog.Warnf("[RequestSync] timeout. id = %d, reqID = %s", p.id, reqID)
+		clog.Warnf("[RequestSync] timeout. name = %s, reqID = %s", p.name, reqID)
 		return nil, cerror.ClusterRequestTimeout
 	}
 }
 
-func (p *Connect) ReplySync(reqID, reply string, data []byte) error {
+func (p *Connect) RequestReply(reqID, reply string, data []byte) error {
 	if p.Conn == nil {
 		return fmt.Errorf("nats connection is nil")
 	}
@@ -296,24 +300,24 @@ func (p *Connect) natsOptions() []nats.Option {
 
 	opts = append(opts, nats.DisconnectErrHandler(func(conn *nats.Conn, err error) {
 		if err != nil {
-			clog.Warnf("[id = %d] Disconnect error. [error = %v]", p.id, err)
+			clog.Warnf("[name = %s] Disconnect error. [error = %v]", p.name, err)
 		}
 	}))
 
 	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-		clog.Warnf("[id = %d] Reconnected [%s]", p.id, nc.ConnectedUrl())
+		clog.Warnf("[name = %s] Reconnected [%s]", p.name, nc.ConnectedUrl())
 	}))
 
 	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
 		if nc.LastError() != nil {
-			clog.Infof("[id = %d] error = %v", p.id, nc.LastError())
+			clog.Infof("[name = %s] error = %v", p.name, nc.LastError())
 		}
 		p.clearWaiters()
 	}))
 
 	opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		clog.Warnf("[id = %d] IsConnect = %v. %s on connection for subscription on %q",
-			p.id,
+		clog.Warnf("[name = %s] IsConnect = %v. %s on connection for subscription on %q",
+			p.name,
 			nc.IsConnected(),
 			err.Error(),
 			sub.Subject,
