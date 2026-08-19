@@ -23,11 +23,13 @@ type (
 	Component struct {
 		cfacade.Component
 		natsSubjects
-		prefix                string // cluster prefix
-		localSubject          string // local subject
-		remoteSubject         string // remote subject
-		replySubject          string // reply subject
-		remoteNodeTypeSubject string // remote node type subject
+		prefix                string         // cluster prefix
+		localSubject          string         // local subject
+		remoteSubject         string         // remote subject
+		replySubject          string         // reply subject
+		remoteNodeTypeSubject string         // remote node type subject
+		publishConnect        *cnats.Connect // send: Publish/Request/ReplySync
+		subscribeConnect      *cnats.Connect // receive: Subscribe
 	}
 
 	natsSubjects struct {
@@ -68,7 +70,12 @@ func (p *Component) Init() {
 }
 
 func (p *Component) OnStop() {
-	cnats.PoolClose()
+	if p.publishConnect != nil {
+		p.publishConnect.Close()
+	}
+	if p.subscribeConnect != nil {
+		p.subscribeConnect.Close()
+	}
 	clog.Info("Nats cluster execute OnStop().")
 }
 
@@ -84,7 +91,23 @@ func (p *Component) loadNatsConfig() {
 	p.remoteNodeTypeSubject = p.GetRemoteTypeSubject(p.prefix, p.App().NodeType())
 	p.replySubject = p.GetReplySubject(p.prefix, p.App().NodeType(), p.App().NodeID())
 
-	cnats.InitPool(p.replySubject, natsConfig, true)
+	var err error
+	p.publishConnect, err = cnats.NewConnectFromConfig(natsConfig, "cluster-publish")
+	if err != nil {
+		panic(err)
+	}
+	p.subscribeConnect, err = cnats.NewConnectFromConfig(natsConfig, "cluster-subscribe")
+	if err != nil {
+		panic(err)
+	}
+
+	p.publishConnect.Connect()
+	p.subscribeConnect.Connect()
+
+	// publishConnect 需要接收 RequestSync 的响应，订阅 reply
+	if err = p.publishConnect.SubscribeReply(p.replySubject); err != nil {
+		panic(err)
+	}
 }
 
 func (p *Component) localProcess() {
@@ -103,7 +126,7 @@ func (p *Component) localProcess() {
 		p.App().ActorSystem().PostLocal(msg)
 	}
 
-	err := cnats.Subscribe(p.localSubject, process)
+	err := p.subscribeConnect.Subscribe(p.localSubject, process)
 	if err != nil {
 		clog.Errorf("[localProcess] Create subscribe fail. [subject = %s, err = %v]",
 			p.localSubject,
@@ -133,7 +156,7 @@ func (p *Component) remoteProcess() {
 		p.App().ActorSystem().PostRemote(msg)
 	}
 
-	err := cnats.Subscribe(p.remoteSubject, process)
+	err := p.subscribeConnect.Subscribe(p.remoteSubject, process)
 	if err != nil {
 		clog.Errorf("[remoteProcess] Create subscribe fail. [subject = %s, err = %v]",
 			p.remoteSubject,
@@ -158,7 +181,7 @@ func (p *Component) remoteTypeProcess() {
 		p.App().ActorSystem().PostRemote(msg)
 	}
 
-	err := cnats.Subscribe(p.remoteNodeTypeSubject, process)
+	err := p.subscribeConnect.Subscribe(p.remoteNodeTypeSubject, process)
 	if err != nil {
 		clog.Errorf("[remoteTypeProcess] Create subscribe fail. [subject = %s, err = %v]",
 			p.remoteSubject,
@@ -187,7 +210,7 @@ func (p *Component) PublishLocal(nodeID string, msg *cfacade.Message) error {
 
 	nodeType := member.GetNodeType()
 	subject := p.GetLocalSubject(p.prefix, nodeType, nodeID)
-	err = cnats.Publish(subject, bytes)
+	err = p.publishConnect.Publish(subject, bytes)
 	if err != nil {
 		clog.Warnf("[PublishLocal] Nats publish fail. [nodeID = %s, err = %v]",
 			nodeID,
@@ -220,7 +243,7 @@ func (p *Component) PublishRemote(nodeID string, msg *cfacade.Message) error {
 
 	nodeType := member.GetNodeType()
 	subject := p.GetRemoteSubject(p.prefix, nodeType, nodeID)
-	err = cnats.Publish(subject, bytes)
+	err = p.publishConnect.Publish(subject, bytes)
 	if err != nil {
 		clog.Warnf("[PublishRemote] Nats publish fail. [nodeID = %s, err = %v]",
 			nodeID,
@@ -254,7 +277,7 @@ func (p *Component) PublishRemoteType(nodeType string, msg *cfacade.Message) err
 	}
 
 	subject := p.GetRemoteTypeSubject(p.prefix, nodeType)
-	err = cnats.Publish(subject, bytes)
+	err = p.publishConnect.Publish(subject, bytes)
 	if err != nil {
 		clog.Warnf("[PublishRemoteType] Nats publish fail. [nodeType = %s, err = %v]",
 			nodeType,
@@ -290,7 +313,7 @@ func (p *Component) RequestRemote(nodeID string, msg *cfacade.Message, timeout .
 	reqID := cnats.NewStringReqID()
 	subject := p.GetRemoteSubject(p.prefix, nodeType, nodeID)
 
-	natsData, err := cnats.RequestSync(reqID, subject, reqBytes, timeout...)
+	natsData, err := p.publishConnect.RequestSync(reqID, subject, reqBytes, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] Nats request fail. [nodeID = %s, err = %v]",
 			nodeID,
@@ -312,6 +335,22 @@ func (p *Component) RequestRemote(nodeID string, msg *cfacade.Message, timeout .
 	}
 
 	return rsp.Data, rsp.Code
+}
+
+// RawPublish publishes data to a raw subject via the publish connect.
+func (p *Component) RawPublish(subject string, data []byte) error {
+	return p.publishConnect.Publish(subject, data)
+}
+
+// RawRequest sends a request to a raw subject via the publish connect.
+func (p *Component) RawRequest(subject string, data []byte, timeout ...time.Duration) ([]byte, error) {
+	reqID := cnats.NewStringReqID()
+	return p.publishConnect.RequestSync(reqID, subject, data, timeout...)
+}
+
+// RawReply publishes a reqID-carrying message to a raw subject via the publish connect.
+func (p *Component) RawReply(reqID, replySubject string, data []byte) error {
+	return p.publishConnect.RequestReply(reqID, replySubject, data)
 }
 
 func (p *natsSubjects) GetLocalSubject(prefix, nodeType, nodeID string) string {

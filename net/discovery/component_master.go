@@ -34,10 +34,13 @@ type (
 	ComponentMaster struct {
 		ComponentDefault
 		natsSubjects
-		thisMember *cproto.Member     // local node's member info, updated on setting changes
-		masterID   string             // the designated master node ID from config
-		ctx        context.Context    // lifecycle context for background goroutines
-		cancel     context.CancelFunc // cancel func
+		thisMember       *cproto.Member     // local node's member info, updated on setting changes
+		masterID         string             // the designated master node ID from config
+		ctx              context.Context    // lifecycle context for background goroutines
+		cancel           context.CancelFunc // cancel func
+		replySubject     string             // reply subject base for RequestSync responses
+		publishConnect   *cnats.Connect     // send: Publish/RequestSync/ReplySync
+		subscribeConnect *cnats.Connect     // receive: Subscribe
 	}
 
 	natsSubjects struct {
@@ -142,6 +145,26 @@ func (m *ComponentMaster) loadThisMember() {
 		clog.Fatal("[loadMember] Master node id not in config.")
 	}
 
+	// The reply subject base must be unique per node (nodeID), otherwise two
+	// workers would subscribe the same reply subject and responses would cross-talk.
+	m.replySubject = fmt.Sprintf("cherry.%s.discovery.reply.%s", m.prefix, m.App().NodeID())
+
+	var err error
+	m.publishConnect, err = cnats.NewConnectFromConfig(config, "discovery-publish")
+	if err != nil {
+		panic(err)
+	}
+	m.subscribeConnect, err = cnats.NewConnectFromConfig(config, "discovery-subscribe")
+	if err != nil {
+		panic(err)
+	}
+	m.publishConnect.Connect()
+	m.subscribeConnect.Connect()
+
+	if err = m.publishConnect.SubscribeReply(m.replySubject); err != nil {
+		panic(err)
+	}
+
 	m.thisMember = NewMemberWithApp(m.App())
 
 	// Register self in the local member table
@@ -182,7 +205,7 @@ func (m *ComponentMaster) clientInit() {
 // addSubscribe handles "member added" broadcasts from the master.
 // New members are added to the local table unless they are self.
 func (m *ComponentMaster) addSubscribe() {
-	m.subscribe(m.addSubject, func(msg *nats.Msg) {
+	err := m.subscribeConnect.Subscribe(m.addSubject, func(msg *nats.Msg) {
 		addMember, err := m.bytes2Member(msg.Data)
 		if err != nil {
 			clog.Warnf("[addSubscribe] bytes to Member error. err = %s", err)
@@ -195,6 +218,9 @@ func (m *ComponentMaster) addSubscribe() {
 			}
 		}
 	})
+	if err != nil {
+		clog.Warnf("[addSubscribe] fail. subject = %s, err = %s", m.addSubject, err)
+	}
 }
 
 // clientTicker runs on worker nodes: every second it sends a heartbeat.
@@ -236,7 +262,7 @@ func (m *ComponentMaster) sendHeartbeat2Master() bool {
 	}
 
 	reqID := cnats.NewStringReqID()
-	rspData, err := cnats.RequestSync(reqID, m.heartbeatSubject, nodeIDBytes)
+	rspData, err := m.publishConnect.RequestSync(reqID, m.heartbeatSubject, nodeIDBytes)
 	if err != nil {
 		clog.Warnf("[sendHeartbeat2Master] Fail. master = %s, err = %s", m.masterID, err)
 		return false
@@ -255,7 +281,7 @@ func (m *ComponentMaster) sendRegister2Master() {
 	}
 
 	reqID := cnats.NewStringReqID()
-	rspData, err := cnats.RequestSync(reqID, m.registerSubject, memberBytes)
+	rspData, err := m.publishConnect.RequestSync(reqID, m.registerSubject, memberBytes)
 	if err != nil {
 		clog.Warnf("[sendRegister2Master] Fail. master = %s, err = %s", m.masterID, err)
 		return
@@ -289,7 +315,7 @@ func (m *ComponentMaster) sendUpdateMember() {
 		return
 	}
 
-	err = cnats.Publish(m.updateSubject, memberBytes)
+	err = m.publishConnect.Publish(m.updateSubject, memberBytes)
 	if err != nil {
 		clog.Warnf("[UpdateMember] Fail. master = %s, err = %s", m.masterID, err)
 		return
@@ -304,7 +330,7 @@ func (m *ComponentMaster) sendRemove(nodeID string) {
 		return
 	}
 
-	err = cnats.Publish(m.removeSubject, nodeBytes)
+	err = m.publishConnect.Publish(m.removeSubject, nodeBytes)
 	if err != nil {
 		clog.Warnf("[sendRemove] Publish fail. err = %s", err)
 	}
@@ -320,7 +346,7 @@ func (m *ComponentMaster) heartbeatCheck() {
 	for {
 		select {
 		case <-m.ctx.Done():
-			clog.Info(" heartbeat check is exit.")
+			clog.Info("[heartbeatCheck] check is exit.")
 			return
 		case <-ticker.C:
 			m.checkMemberTimeout()
@@ -357,7 +383,7 @@ func (m *ComponentMaster) checkMemberTimeout() {
 // Steps: 1) stamp heartbeat time on the new member, 2) add to local table,
 // 3) broadcast add to all workers, 4) reply with the full member list.
 func (m *ComponentMaster) registerSubscribe() {
-	m.subscribe(m.registerSubject, func(msg *nats.Msg) {
+	err := m.subscribeConnect.Subscribe(m.registerSubject, func(msg *nats.Msg) {
 		newMember, err := m.bytes2Member(msg.Data)
 		if err != nil {
 			clog.Warnf("[registerSubscribe] bytes to Member error. err = %s", err)
@@ -371,13 +397,16 @@ func (m *ComponentMaster) registerSubscribe() {
 		m.sendAdd(newMember)
 		m.replyMemberList(msg)
 	})
+	if err != nil {
+		clog.Warnf("[registerSubscribe] fail. subject = %s, err = %s", m.registerSubject, err)
+	}
 }
 
 // heartbeatSubscribe handles heartbeat pings on the master.
 // Known members get their LastAt timestamp updated and an empty reply.
 // Unknown members get a registerRequired marker reply to trigger full registration.
 func (m *ComponentMaster) heartbeatSubscribe() {
-	m.subscribe(m.heartbeatSubject, func(msg *nats.Msg) {
+	err := m.subscribeConnect.Subscribe(m.heartbeatSubject, func(msg *nats.Msg) {
 		nodeID, err := m.bytes2NodeID(msg.Data)
 		if err != nil {
 			clog.Warnf("[heartbeatSubscribe] bytes to NodeID error. err = %v", err)
@@ -391,12 +420,15 @@ func (m *ComponentMaster) heartbeatSubscribe() {
 			if protoMember, ok := value.(*cproto.Member); ok {
 				protoMember.LastAt = ctime.Now().ToMillisecond()
 			}
-			cnats.ReplySync(reqID, msg.Reply, nil)
+			m.publishConnect.RequestReply(reqID, msg.Reply, nil)
 		} else {
 			// Unknown node: signal it to send a full registration
-			cnats.ReplySync(reqID, msg.Reply, registerRequired)
+			m.publishConnect.RequestReply(reqID, msg.Reply, registerRequired)
 		}
 	})
+	if err != nil {
+		clog.Warnf("[heartbeatSubscribe] fail. subject = %s, err = %s", m.heartbeatSubject, err)
+	}
 }
 
 // replyMemberList sends the full member list back to a requesting node
@@ -409,7 +441,7 @@ func (m *ComponentMaster) replyMemberList(msg *nats.Msg) {
 	}
 
 	reqID := msg.Header.Get(cnats.REQ_ID)
-	err = cnats.ReplySync(reqID, msg.Reply, memberListBytes)
+	err = m.publishConnect.RequestReply(reqID, msg.Reply, memberListBytes)
 	if err != nil {
 		clog.Warnf("[replyMemberList] Reply fail. err = %s", err)
 	}
@@ -423,7 +455,7 @@ func (m *ComponentMaster) sendAdd(member *cproto.Member) {
 		return
 	}
 
-	err = cnats.Publish(m.addSubject, memberBytes)
+	err = m.publishConnect.Publish(m.addSubject, memberBytes)
 	if err != nil {
 		clog.Warnf("[sendAdd] Publish fail. err = %s", err)
 	}
@@ -432,7 +464,7 @@ func (m *ComponentMaster) sendAdd(member *cproto.Member) {
 // removeSubscribe handles incoming remove notifications.
 // Both master and workers ignore self-remove to prevent accidental self-deletion.
 func (m *ComponentMaster) removeSubscribe() {
-	m.subscribe(m.removeSubject, func(msg *nats.Msg) {
+	err := m.subscribeConnect.Subscribe(m.removeSubject, func(msg *nats.Msg) {
 		nodeID, err := m.bytes2NodeID(msg.Data)
 		if err != nil {
 			clog.Warnf("[removeSubscribe] bytes to NodeID error. err = %s", err)
@@ -446,12 +478,15 @@ func (m *ComponentMaster) removeSubscribe() {
 
 		m.ComponentDefault.RemoveMember(nodeID)
 	})
+	if err != nil {
+		clog.Warnf("[removeSubscribe] fail. subject = %s, err = %s", m.removeSubject, err)
+	}
 }
 
 // updateSubscribe handles incoming member update notifications.
 // Ignores updates from self to avoid echo loops.
 func (m *ComponentMaster) updateSubscribe() {
-	m.subscribe(m.updateSubject, func(msg *nats.Msg) {
+	err := m.subscribeConnect.Subscribe(m.updateSubject, func(msg *nats.Msg) {
 		member, err := m.bytes2Member(msg.Data)
 		if err != nil {
 			clog.Warnf("[updateSubscribe] bytes to member error. err = %s", err)
@@ -464,7 +499,9 @@ func (m *ComponentMaster) updateSubscribe() {
 
 		m.ComponentDefault.UpdateMember(member)
 	})
-
+	if err != nil {
+		clog.Warnf("[updateSubscribe] fail. subject = %s, err = %s", m.updateSubject, err)
+	}
 }
 
 // --- Serialization helpers ---
@@ -514,12 +551,16 @@ func (m *ComponentMaster) bytes2NodeID(data []byte) (string, error) {
 	return nodeIDProto.Value, nil
 }
 
-// subscribe is a thin wrapper around cnats.Subscribe that logs failures as warnings.
-func (m *ComponentMaster) subscribe(subject string, cb nats.MsgHandler) {
-	err := cnats.Subscribe(subject, cb)
-	if err != nil {
-		clog.Warnf("[subscribe] fail. subject = %s, err = %s", subject, err)
-		return
+// OnStop closes the nats connects and stops the background goroutines.
+func (m *ComponentMaster) OnStop() {
+	if m.publishConnect != nil {
+		m.publishConnect.Close()
+	}
+	if m.subscribeConnect != nil {
+		m.subscribeConnect.Close()
+	}
+	if m.cancel != nil {
+		m.cancel()
 	}
 }
 

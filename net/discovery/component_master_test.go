@@ -4,14 +4,18 @@ import (
 	"testing"
 
 	ctime "github.com/cherry-game/cherry/extend/time"
+	cnats "github.com/cherry-game/cherry/net/nats"
 	cproto "github.com/cherry-game/cherry/net/proto"
 )
 
 // newTestMaster creates a ComponentMaster with a mock app pre-configured
 // for testing. The mock provides a protobuf serializer and basic node identity.
+// An unconnected publishConnect is set so tests that trigger publish (e.g.
+// UpdateSetting) hit Publish's nil-connection guard instead of panicking.
 func newTestMaster(nodeID, masterID string) *ComponentMaster {
 	m := &ComponentMaster{
-		masterID: masterID,
+		masterID:       masterID,
+		publishConnect: cnats.NewConnect("test"),
 	}
 	app := &mockApp{
 		nodeID:   nodeID,
