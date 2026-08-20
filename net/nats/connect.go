@@ -116,7 +116,8 @@ func (p *Connect) statistics() {
 			p.subsMutex.RLock()
 			for _, sub := range p.subs {
 				if dropped, err := sub.Dropped(); err != nil {
-					clog.Errorf("Dropped messages. [subject = %s, dropped = %d, err = %v]",
+					clog.Warnf("[%s] Dropped messages. [subject = %s, dropped = %d, err = %v]",
+						p.name,
 						sub.Subject,
 						dropped,
 						err,
@@ -126,7 +127,9 @@ func (p *Connect) statistics() {
 			p.subsMutex.RUnlock()
 
 			stats := p.Stats()
-			clog.Debugf("[Statistics] InMsgs = %d, OutMsgs = %d, InBytes = %d, OutBytes = %d, Reconnects = %d",
+			clog.Debugf("[%s] Statistics MaxPayload = %d, InMsgs = %d, OutMsgs = %d, InBytes = %d, OutBytes = %d, Reconnects = %d",
+				p.name,
+				p.MaxPayload(),
 				stats.InMsgs,
 				stats.OutMsgs,
 				stats.InBytes,
@@ -134,7 +137,7 @@ func (p *Connect) statistics() {
 				stats.Reconnects,
 			)
 		case <-p.stopStats:
-			clog.Infof("[name = %s] Statistics goroutine stopped", p.name)
+			clog.Infof("[%s] Statistics goroutine stopped", p.name)
 			return
 		}
 	}
@@ -357,7 +360,7 @@ func (p *options) RequestTimeout() time.Duration {
 
 func (p *options) StatsInterval() time.Duration {
 	if p.statsInterval <= 0 {
-		return 30 * time.Second
+		return 60 * time.Second
 	}
 
 	return p.statsInterval
