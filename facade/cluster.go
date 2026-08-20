@@ -88,6 +88,15 @@ type (
 		// and an error code. If no timeout is specified, a default is used.
 		RequestRemote(nodeID string, msg *Message, timeout ...time.Duration) ([]byte, int32)
 
+		// RequestSync sends a request to a raw subject and blocks until a
+		// response is received or the optional timeout expires. A fresh reqID is
+		// generated and attached as a header; the reply is matched to this
+		// in-flight request through the connection's dedicated reply subject, so a
+		// late-arriving response after the timeout is discarded. Unlike
+		// RequestRemote, the subject is used as-is without a discovery lookup —
+		// for cross-node RPC against a well-known subject.
+		RequestSync(subject string, data []byte, timeout ...time.Duration) ([]byte, error)
+
 		// RequestReply publishes a message carrying a reqID header to a raw subject.
 		// It is the low-level wrapper used to send a cross-node response back to
 		// the requester: replySubject is the reply subject attached by the
