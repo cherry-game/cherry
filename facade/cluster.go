@@ -88,6 +88,13 @@ type (
 		// and an error code. If no timeout is specified, a default is used.
 		RequestRemote(nodeID string, msg *Message, timeout ...time.Duration) ([]byte, int32)
 
+		// RequestReply publishes a message carrying a reqID header to a raw subject.
+		// It is the low-level wrapper used to send a cross-node response back to
+		// the requester: replySubject is the reply subject attached by the
+		// requester, and the reqID header lets the requester match the reply to
+		// the in-flight request.
+		RequestReply(reqID, replySubject string, data []byte) error
+
 		// RawPublish publishes data to a raw subject (fire-and-forget, no response).
 		// Unlike PublishRemote/PublishRemoteType, the subject is used as-is without a
 		// discovery lookup — for integration with external services that subscribe to
@@ -99,12 +106,5 @@ type (
 		// is used as-is without a discovery lookup — for integration with external
 		// services that subscribe to a well-known subject.
 		RawRequest(subject string, data []byte, timeout ...time.Duration) ([]byte, error)
-
-		// RawReply publishes a message carrying a reqID header to a raw subject.
-		// It is the low-level wrapper used to send a cross-node response back to
-		// the requester: replySubject is the reply subject attached by the
-		// requester, and the reqID header lets the requester match the reply to
-		// the in-flight request.
-		RawReply(reqID, replySubject string, data []byte) error
 	}
 )

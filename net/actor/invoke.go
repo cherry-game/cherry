@@ -195,7 +195,7 @@ func replyResponse(app cfacade.IApplication, m *cfacade.Message, rsp *cproto.Res
 		return
 	}
 
-	if err = app.Cluster().RawReply(m.ReqID, m.Reply, replyData); err != nil {
+	if err = app.Cluster().RequestReply(m.ReqID, m.Reply, replyData); err != nil {
 		clog.Warn(err)
 	}
 }

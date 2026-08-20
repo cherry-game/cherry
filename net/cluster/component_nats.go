@@ -104,7 +104,6 @@ func (p *Component) loadNatsConfig() {
 	p.publishConnect.Connect()
 	p.subscribeConnect.Connect()
 
-	// publishConnect 需要接收 RequestSync 的响应，订阅 reply
 	if err = p.publishConnect.SubscribeReply(p.replySubject); err != nil {
 		panic(err)
 	}
@@ -310,10 +309,9 @@ func (p *Component) RequestRemote(nodeID string, msg *cfacade.Message, timeout .
 	}
 
 	nodeType := member.GetNodeType()
-	reqID := cnats.NewStringReqID()
 	subject := p.GetRemoteSubject(p.prefix, nodeType, nodeID)
 
-	natsData, err := p.publishConnect.RequestSync(reqID, subject, reqBytes, timeout...)
+	natsData, err := p.RequestSync(subject, reqBytes, timeout...)
 	if err != nil {
 		clog.Warnf("[RequestRemote] Nats request fail. [nodeID = %s, err = %v]",
 			nodeID,
@@ -337,6 +335,16 @@ func (p *Component) RequestRemote(nodeID string, msg *cfacade.Message, timeout .
 	return rsp.Data, rsp.Code
 }
 
+func (p *Component) RequestSync(subject string, data []byte, timeout ...time.Duration) ([]byte, error) {
+	reqID := cnats.NewStringReqID()
+	return p.publishConnect.RequestSync(reqID, subject, data, timeout...)
+}
+
+// RequestReply publishes a reqID-carrying message to a raw subject via the publish connect.
+func (p *Component) RequestReply(reqID, replySubject string, data []byte) error {
+	return p.publishConnect.RequestReply(reqID, replySubject, data)
+}
+
 // RawPublish publishes data to a raw subject via the publish connect.
 func (p *Component) RawPublish(subject string, data []byte) error {
 	return p.publishConnect.Publish(subject, data)
@@ -344,13 +352,7 @@ func (p *Component) RawPublish(subject string, data []byte) error {
 
 // RawRequest sends a request to a raw subject via the publish connect.
 func (p *Component) RawRequest(subject string, data []byte, timeout ...time.Duration) ([]byte, error) {
-	reqID := cnats.NewStringReqID()
-	return p.publishConnect.RequestSync(reqID, subject, data, timeout...)
-}
-
-// RawReply publishes a reqID-carrying message to a raw subject via the publish connect.
-func (p *Component) RawReply(reqID, replySubject string, data []byte) error {
-	return p.publishConnect.RequestReply(reqID, replySubject, data)
+	return p.publishConnect.Request(subject, data, timeout...)
 }
 
 func (p *natsSubjects) GetLocalSubject(prefix, nodeType, nodeID string) string {
