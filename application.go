@@ -165,9 +165,6 @@ func (a *Application) Startup() {
 		clog.Flush()
 	}()
 
-	// register actor system
-	a.Register(a.actorSystem)
-
 	// add connector component
 	if a.netParser != nil {
 		for _, connector := range a.netParser.Connectors() {

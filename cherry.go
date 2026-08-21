@@ -47,6 +47,9 @@ func (p *AppBuilder) Startup() {
 		app.Register(app.discovery)
 	}
 
+	// Register actor system
+	app.Register(app.actorSystem)
+
 	// Register custom components
 	app.Register(p.components...)
 
