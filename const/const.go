@@ -6,7 +6,7 @@ import (
 )
 
 const (
-	version = "1.6.4"
+	version = "1.6.5"
 )
 
 var logo = `
