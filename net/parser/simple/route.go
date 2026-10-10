@@ -20,7 +20,7 @@ type (
 		FuncName string // target function name
 	}
 
-// DataRouteFunc is called to route a decoded message to the target actor.
+	// DataRouteFunc is called to route a decoded message to the target actor.
 	DataRouteFunc func(agent *Agent, msg *Message, route *NodeRoute)
 )
 
@@ -43,8 +43,7 @@ func GetNodeRoute(mid uint32) (*NodeRoute, bool) {
 // when the target node type matches the agent's node, or forwards to a random
 // member of the target node type via the cluster.
 func DefaultDataRoute(agent *Agent, msg *Message, route *NodeRoute) {
-	session := agent.session
-	session.SetMID(msg.MID)
+	session := agent.NewSession(msg.MID)
 
 	// current node
 	if agent.NodeType() == route.NodeType {

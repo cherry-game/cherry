@@ -5,7 +5,6 @@ import (
 	"net"
 	"time"
 
-	cnet "github.com/cherry-game/cherry/extend/net"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cactor "github.com/cherry-game/cherry/net/actor"
@@ -15,7 +14,7 @@ import (
 )
 
 type (
-	actor struct {
+	Actor struct {
 		cactor.Base
 		agentActorID   string
 		connectors     []cfacade.IConnector
@@ -26,12 +25,12 @@ type (
 )
 
 // NewActor creates a new simple parser Actor with the given agent actor id.
-func NewActor(agentActorID string) *actor {
+func NewActor(agentActorID string) *Actor {
 	if agentActorID == "" {
 		panic("agentActorID is empty.")
 	}
 
-	parser := &actor{
+	parser := &Actor{
 		agentActorID: agentActorID,
 		connectors:   make([]cfacade.IConnector, 0),
 	}
@@ -40,12 +39,12 @@ func NewActor(agentActorID string) *actor {
 }
 
 // OnInit Actor初始化前触发该函数
-func (p *actor) OnInit() {
+func (p *Actor) OnInit() {
 	p.Remote().Register(ResponseFuncName, p.response)
 }
 
 // Load starts the parser: creates the agent actor and starts all registered connectors.
-func (p *actor) Load(app cfacade.IApplication) {
+func (p *Actor) Load(app cfacade.IApplication) {
 	if len(p.connectors) < 1 {
 		panic("Connectors is nil. Please call the AddConnector(...) method add IConnector.")
 	}
@@ -62,30 +61,23 @@ func (p *actor) Load(app cfacade.IApplication) {
 }
 
 // AddConnector registers a connector that will be started when the parser loads.
-func (p *actor) AddConnector(connector cfacade.IConnector) {
+func (p *Actor) AddConnector(connector cfacade.IConnector) {
 	p.connectors = append(p.connectors, connector)
 }
 
 // Connectors returns the list of registered connectors.
-func (p *actor) Connectors() []cfacade.IConnector {
+func (p *Actor) Connectors() []cfacade.IConnector {
 	return p.connectors
 }
 
 // AddNodeRoute maps a mid (message id) to a NodeRoute for routing incoming messages.
-func (p *actor) AddNodeRoute(mid uint32, nodeRoute *NodeRoute) {
+func (p *Actor) AddNodeRoute(mid uint32, nodeRoute *NodeRoute) {
 	AddNodeRoute(mid, nodeRoute)
 }
 
 // defaultOnConnectFunc 创建新连接时，通过当前agentActor创建child agent actor
-func (p *actor) defaultOnConnectFunc(conn net.Conn) {
-	session := &cproto.Session{
-		Sid:       nuid.Next(),
-		AgentPath: p.Path().String(),
-		Data:      map[string]string{},
-		Ip:        cnet.GetIPV4(conn.RemoteAddr()),
-	}
-
-	agent := NewAgent(p.App(), conn, session)
+func (p *Actor) defaultOnConnectFunc(conn net.Conn) {
+	agent := NewAgent(p.App(), conn, nuid.Next(), p.Path().String())
 
 	if p.onNewAgentFunc != nil {
 		p.onNewAgentFunc(agent)
@@ -96,33 +88,33 @@ func (p *actor) defaultOnConnectFunc(conn net.Conn) {
 }
 
 // SetOnNewAgent sets the callback that is invoked when a new agent connection is established.
-func (p *actor) SetOnNewAgent(fn OnNewAgentFunc) {
+func (p *Actor) SetOnNewAgent(fn OnNewAgentFunc) {
 	p.onNewAgentFunc = fn
 }
 
 // SetHeartbeatTime sets the heartbeat interval for agent connections.
-func (p *actor) SetHeartbeatTime(t time.Duration) {
+func (p *Actor) SetHeartbeatTime(t time.Duration) {
 	SetHeartbeatTime(t)
 }
 
 // SetWriteBacklog sets the size of the write and pending channel buffers.
-func (p *actor) SetWriteBacklog(backlog int) {
+func (p *Actor) SetWriteBacklog(backlog int) {
 	SetWriteBacklog(backlog)
 }
 
 // SetEndian sets the byte order used for encoding/decoding message headers.
-func (p *actor) SetEndian(e binary.ByteOrder) {
+func (p *Actor) SetEndian(e binary.ByteOrder) {
 	SetEndian(e)
 }
 
 // SetOnDataRoute sets the callback that handles routing of incoming data messages.
-func (*actor) SetOnDataRoute(fn DataRouteFunc) {
+func (*Actor) SetOnDataRoute(fn DataRouteFunc) {
 	if fn != nil {
 		onDataRouteFunc = fn
 	}
 }
 
-func (p *actor) response(rsp *cproto.PomeloResponse) {
+func (p *Actor) response(rsp *cproto.PomeloResponse) {
 	agent, found := GetAgentWithSID(rsp.Sid)
 	if !found {
 		if clog.PrintLevel(zapcore.DebugLevel) {

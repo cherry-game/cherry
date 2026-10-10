@@ -37,10 +37,10 @@ type (
 		chWrite       chan []byte
 	}
 
-// ActionFn is a deferred function executed in the client's event loop.
-	ActionFn    func() error
+	// ActionFn is a deferred function executed in the client's event loop.
+	ActionFn func() error
 
-// OnMessageFn is called when a push message arrives on a bound route.
+	// OnMessageFn is called when a push message arrives on a bound route.
 	OnMessageFn func(msg *pomeloMessage.Message)
 )
 

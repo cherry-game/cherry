@@ -25,16 +25,20 @@ type (
 	// Agent represents a single client connection. All conn.Write and teardown
 	// operations happen exclusively in writeChan's goroutine.
 	Agent struct {
-		cfacade.IApplication
-		conn        net.Conn
-		state       atomic.Int32
-		session     *cproto.Session
-		chDie       chan struct{}
-		chPending   chan *pendingMessage
-		chWrite     chan []byte
-		chKick      chan []byte
-		lastAt      atomic.Int64
-		onCloseFunc []OnCloseFunc
+		cfacade.IApplication                      // app
+		conn                 net.Conn             // low-level conn fd
+		state                atomic.Int32         // current agent state
+		sid                  cfacade.SID          // connection identity, set once at creation
+		uid                  atomic.Int64         // bound user id: written by Bind, read from several goroutines
+		ip                   string               // connection identity, set once at creation
+		agentPath            string               // the parser actor this connection belongs to, set once at creation
+		data                 *cproto.SessionData  // the connection's session key/values
+		chDie                chan struct{}        // signal writeChan to exit
+		chPending            chan *pendingMessage // pending response queue
+		chWrite              chan []byte          // raw bytes queue
+		chKick               chan []byte          // kick channel: write bytes then close within writeChan
+		lastAt               atomic.Int64         // last heartbeat unix time stamp
+		onCloseFunc          []OnCloseFunc        // on close agent
 	}
 
 	pendingMessage struct {
@@ -45,16 +49,26 @@ type (
 	OnCloseFunc func(*Agent)
 )
 
-// NewAgent creates an agent for a new connection.
-func NewAgent(app cfacade.IApplication, conn net.Conn, session *cproto.Session) *Agent {
+// NewAgent creates an agent for a new connection. It is the only way to build a
+// usable one: every field but the embedded application is unexported, so an Agent
+// literal written elsewhere has no connection, no channels and no session data.
+// Binding it into the lookup maps afterwards is the caller's job — see BindSID.
+//
+// sid and agentPath are connection identity: they are captured here and never
+// change, so any goroutine may read them. The session key/values start empty and
+// are reached through Data.
+func NewAgent(app cfacade.IApplication, conn net.Conn, sid cfacade.SID, agentPath string) *Agent {
 	agent := &Agent{
 		IApplication: app,
 		conn:         conn,
-		session:      session,
+		sid:          sid,
+		agentPath:    agentPath,
+		ip:           cnet.GetIPV4(conn.RemoteAddr()),
 		chDie:        make(chan struct{}),
 		chPending:    make(chan *pendingMessage, writeBacklog),
 		chWrite:      make(chan []byte, writeBacklog),
 		chKick:       make(chan []byte, 1),
+		data:         &cproto.SessionData{},
 	}
 
 	agent.state.Store(AgentInit)
@@ -81,16 +95,63 @@ func (a *Agent) SetState(state int32) bool {
 	return oldValue != state
 }
 
-func (a *Agent) Session() *cproto.Session {
-	return a.session
-}
-
-func (a *Agent) UID() cfacade.UID {
-	return a.session.Uid
-}
-
+// SID returns the session id.
 func (a *Agent) SID() cfacade.SID {
-	return a.session.Sid
+	return a.sid
+}
+
+// UID returns the bound user id.
+func (a *Agent) UID() cfacade.UID {
+	return a.uid.Load()
+}
+
+// SetUID binds a user id to this connection.
+func (a *Agent) SetUID(uid cfacade.UID) {
+	a.uid.Store(uid)
+}
+
+// IP returns the client ip address.
+func (a *Agent) IP() string {
+	return a.ip
+}
+
+// AgentPath returns the parser actor path this connection belongs to.
+func (a *Agent) AgentPath() string {
+	return a.agentPath
+}
+
+// Data returns this connection's session key/values. Its methods are safe to
+// call from any goroutine.
+func (a *Agent) Data() *cproto.SessionData {
+	return a.data
+}
+
+// GetData reads one session value off this connection — shorthand for Data().Get,
+// for the common case of reading a single key.
+func (a *Agent) GetData(key string) string {
+	return a.data.Get(key)
+}
+
+// SetData writes one session value on this connection — shorthand for Data().Set.
+func (a *Agent) SetData(key, value string) {
+	a.data.Set(key, value)
+}
+
+// NewSession builds a session for one message of this connection: a new object
+// carrying the connection's identity, a copy of its session data, and mid.
+//
+// A new object on every call is the point: writing the message id onto one
+// session shared by the connection's goroutines is a data race. Pass 0 where a
+// session is needed but no message is being routed.
+func (a *Agent) NewSession(mid uint32) *cproto.Session {
+	return &cproto.Session{
+		Sid:       a.sid,
+		Uid:       a.uid.Load(),
+		AgentPath: a.agentPath,
+		Ip:        a.ip,
+		Data:      a.data.Clone(),
+		Mid:       mid,
+	}
 }
 
 func (a *Agent) Bind(uid cfacade.UID) (*Agent, error) {
@@ -342,10 +403,7 @@ func (a *Agent) sendPending(mid uint32, payload interface{}) {
 }
 
 func (a *Agent) RemoteAddr() string {
-	if a.conn != nil {
-		return cnet.GetIPV4(a.conn.RemoteAddr())
-	}
-	return ""
+	return a.ip
 }
 
 func (p *pendingMessage) String() string {

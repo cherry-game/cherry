@@ -28,17 +28,17 @@ func Bind(sid cfacade.SID, uid cfacade.UID) (*Agent, error) {
 		return nil, cerr.Errorf("[uid = %d] less than 1.", uid)
 	}
 
-	agent, found := getAgent(sid)
+	agent, found := GetAgentWithSID(sid)
 	if !found {
 		return nil, cerr.Errorf("[sid = %s] does not exist.", sid)
 	}
 
 	var oldAgent *Agent
-	if oldSID, found := getSID(uid); found && oldSID != sid {
-		oldAgent, _ = getAgent(oldSID)
+	if oldSID, found := GetSID(uid); found && oldSID != sid {
+		oldAgent, _ = GetAgentWithSID(oldSID)
 	}
 
-	agent.session.Uid = uid
+	agent.SetUID(uid)
 	uidMap.Store(uid, sid)
 
 	return oldAgent, nil
@@ -52,7 +52,7 @@ func Unbind(sid cfacade.SID) {
 		return
 	}
 
-	if nowSID, ok := getSID(agent.UID()); ok && nowSID == sid {
+	if nowSID, ok := GetSID(agent.UID()); ok && nowSID == sid {
 		uidMap.Delete(agent.UID())
 	}
 
@@ -68,8 +68,8 @@ func popAgent(sid cfacade.SID) (*Agent, bool) {
 	return agentValue.(*Agent), true
 }
 
-// getAgent looks up an agent by session id.
-func getAgent(sid cfacade.SID) (*Agent, bool) {
+// GetAgentWithSID looks up an agent by session id.
+func GetAgentWithSID(sid cfacade.SID) (*Agent, bool) {
 	agentValue, found := sidAgentMap.Load(sid)
 	if !found {
 		return nil, false
@@ -77,21 +77,16 @@ func getAgent(sid cfacade.SID) (*Agent, bool) {
 	return agentValue.(*Agent), true
 }
 
-// GetAgentWithSID looks up an agent by session id (public).
-func GetAgentWithSID(sid cfacade.SID) (*Agent, bool) {
-	return getAgent(sid)
-}
-
 // GetAgentWithUID looks up an agent by user id.
 func GetAgentWithUID(uid cfacade.UID) (*Agent, bool) {
 	if uid < 1 {
 		return nil, false
 	}
-	sid, found := getSID(uid)
+	sid, found := GetSID(uid)
 	if !found {
 		return nil, false
 	}
-	return getAgent(sid)
+	return GetAgentWithSID(sid)
 }
 
 // GetAgent resolves an agent by sid first, falling back to uid.
@@ -105,8 +100,8 @@ func GetAgent(sid string, uid cfacade.UID) (*Agent, bool) {
 	return nil, false
 }
 
-// getSID returns the session id bound to the given user id.
-func getSID(uid int64) (cfacade.SID, bool) {
+// GetSID returns the session id bound to the given user id.
+func GetSID(uid int64) (cfacade.SID, bool) {
 	sidValue, found := uidMap.Load(uid)
 	if !found {
 		return "", false

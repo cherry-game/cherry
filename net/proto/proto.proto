@@ -48,6 +48,7 @@ message Session {
   int64 uid = 2;                  // user id
   string agentPath = 3;           // frontend actor agent path
   string ip = 4;                  // ip address
+  uint32 mid = 5;                 // message id of the message being routed; per message, not session state
   map<string, string> data = 7;   // extend data
 }
 

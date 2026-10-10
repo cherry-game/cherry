@@ -5,10 +5,6 @@ import (
 	cstring "github.com/cherry-game/cherry/extend/string"
 )
 
-const (
-	MIDKey = "mid"
-)
-
 func (x *Session) IsBind() bool {
 	return x.Uid > 0
 }
@@ -18,6 +14,8 @@ func (x *Session) ActorPath() string {
 }
 
 func (x *Session) Add(key string, value interface{}) {
+	x.ensureData()
+
 	x.Data[key] = cstring.ToString(value)
 }
 
@@ -30,15 +28,35 @@ func (x *Session) Set(key string, value string) {
 		return
 	}
 
+	x.ensureData()
+
 	x.Data[key] = value
 }
 
-func (x *Session) SetMID(mid uint32) {
-	x.Add(MIDKey, mid)
+// ensureData lazily allocates the data map before a write.
+//
+// A session that crossed the cluster arrives with a nil Data map whenever the
+// sender had nothing to send, because proto3 does not serialize an empty map.
+// Remote handlers do write session data, so allocate on demand rather than
+// panicking with "assignment to entry in nil map".
+func (x *Session) ensureData() {
+	if x.Data == nil {
+		x.Data = map[string]string{}
+	}
 }
 
+// SetMID sets the message id of the message currently being routed.
+//
+// mid is per message, not session state: only write it on the per-message
+// session copy built for a single incoming packet. Writing it on a session
+// shared with another goroutine is a data race.
+func (x *Session) SetMID(mid uint32) {
+	x.Mid = mid
+}
+
+// GetMID returns the message id of the message currently being routed.
 func (x *Session) GetMID() uint32 {
-	return uint32(x.GetUint(MIDKey))
+	return x.Mid
 }
 
 func (x *Session) ImportAll(data map[string]string) {

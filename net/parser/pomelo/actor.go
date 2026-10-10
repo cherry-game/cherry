@@ -5,7 +5,6 @@ import (
 	"time"
 
 	ccode "github.com/cherry-game/cherry/code"
-	cnet "github.com/cherry-game/cherry/extend/net"
 	cfacade "github.com/cherry-game/cherry/facade"
 	clog "github.com/cherry-game/cherry/logger"
 	cactor "github.com/cherry-game/cherry/net/actor"
@@ -25,7 +24,7 @@ type (
 		onInitFunc     func()
 	}
 
-// OnNewAgentFunc is called when a new agent connection is established.
+	// OnNewAgentFunc is called when a new agent connection is established.
 	OnNewAgentFunc func(newAgent *Agent)
 )
 
@@ -93,14 +92,7 @@ func (p *Actor) Connectors() []cfacade.IConnector {
 
 // defaultOnConnectFunc 创建新连接时，通过当前agentActor创建child agent actor
 func (p *Actor) defaultOnConnectFunc(conn net.Conn) {
-	session := &cproto.Session{
-		Sid:       nuid.Next(),
-		AgentPath: p.Path().String(),
-		Data:      map[string]string{},
-		Ip:        cnet.GetIPV4(conn.RemoteAddr()),
-	}
-
-	agent := NewAgent(p.App(), conn, session)
+	agent := NewAgent(p.App(), conn, nuid.Next(), p.Path().String())
 
 	if p.onNewAgentFunc != nil {
 		p.onNewAgentFunc(agent)

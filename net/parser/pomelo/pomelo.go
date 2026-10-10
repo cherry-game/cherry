@@ -9,7 +9,7 @@ import (
 
 // DefaultDataRoute default message route handler
 func DefaultDataRoute(agent *Agent, route *pmessage.Route, msg *pmessage.Message) {
-	session := BuildSession(agent, msg)
+	session := agent.NewSession(msg.ID)
 
 	// current node
 	if agent.NodeType() == route.NodeType() {
@@ -64,10 +64,4 @@ func ClusterLocalDataRoute(agent *Agent, session *cproto.Session, route *pmessag
 	message.Args = msg.Data
 
 	return agent.Cluster().PublishLocal(nodeID, message)
-}
-
-func BuildSession(agent *Agent, msg *pmessage.Message) *cproto.Session {
-	agent.session.SetMID(uint32(msg.ID))
-
-	return agent.session
 }

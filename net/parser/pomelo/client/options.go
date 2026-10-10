@@ -15,17 +15,17 @@ type (
 		isErrorBreak   bool                // an error occurs,is it break
 	}
 
-// Option is a functional option for configuring a Client.
+	// Option is a functional option for configuring a Client.
 	Option func(options *options)
 
-// HandshakeSys is the system data sent by the server during handshake.
+	// HandshakeSys is the system data sent by the server during handshake.
 	HandshakeSys struct {
 		Dict       map[string]uint16 `json:"dict"`
 		Heartbeat  int               `json:"heartbeat"`
 		Serializer string            `json:"serializer"`
 	}
 
-// HandshakeData is the complete handshake response from the server.
+	// HandshakeData is the complete handshake response from the server.
 	// HandshakeData struct
 	HandshakeData struct {
 		Code int          `json:"code"`

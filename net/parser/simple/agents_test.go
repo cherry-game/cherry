@@ -9,9 +9,8 @@ import (
 
 func newTestAgent(sid string) *Agent {
 	return &Agent{
-		session: &cproto.Session{
-			Sid: cfacade.SID(sid),
-		},
+		sid:  cfacade.SID(sid),
+		data: &cproto.SessionData{},
 	}
 }
 
