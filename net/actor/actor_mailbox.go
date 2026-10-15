@@ -40,6 +40,10 @@ func (p *mailbox) Register(funcName string, fn interface{}) {
 	p.funcMap[funcName] = &funcInfo
 }
 
+func (p *mailbox) Unregister(funcName string) {
+	delete(p.funcMap, funcName)
+}
+
 func (p *mailbox) GetFuncInfo(funcName string) (*creflect.FuncInfo, bool) {
 	funcInfo, found := p.funcMap[funcName]
 	return funcInfo, found

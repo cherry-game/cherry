@@ -25,8 +25,9 @@ type (
 
 type (
 	IMailBox interface {
-		Register(funcName string, fn interface{}) // register handler function
-		GetFuncInfo(funcName string) (*creflect.FuncInfo, bool)
+		Register(funcName string, fn interface{})               // register handler function
+		Unregister(funcName string)                             // unregister handler function
+		GetFuncInfo(funcName string) (*creflect.FuncInfo, bool) // get func info
 	}
 )
 
