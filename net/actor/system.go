@@ -305,12 +305,9 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		message.Target = target
 		message.FuncName = funcName
 		message.Args = arg
-		message.ChanResult = make(chan interface{}, 1) // Buffered (1)
-		// Keep the reply channel in a local variable. The receiving Actor may
-		// already have Recycle()d the Message (chanResult set to nil and the
-		// Message returned to the pool) before this goroutine evaluates the
-		// select below, so the field must not be read a second time.
-		resultChan := message.ChanResult
+
+		chanResult := make(chan interface{}, 1) // Buffered (1)
+		message.ChanResult = chanResult         // Keep the reply channel in a local variable.
 
 		if sourcePath.ActorID == targetPath.ActorID {
 			childActor, found := p.GetChildActor(targetPath.ActorID, targetPath.ChildID)
@@ -329,7 +326,7 @@ func (p *System) CallWait(source, target, funcName string, arg, reply any) int32
 		var result interface{}
 
 		select {
-		case result = <-resultChan:
+		case result = <-chanResult:
 			{
 				if result == nil {
 					clog.Warnf("[CallWait] Response is nil. [source = %s, target = %s, funcName = %s]",
