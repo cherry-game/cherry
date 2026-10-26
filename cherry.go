@@ -37,7 +37,7 @@ func (p *AppBuilder) Startup() {
 
 	if app.NodeMode() == Cluster {
 		if app.cluster == nil {
-			// Set deafult nats cluster
+			// Set default nats cluster
 			app.cluster = ccluster.New()
 		}
 		app.Register(app.cluster)
