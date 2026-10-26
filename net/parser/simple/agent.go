@@ -137,6 +137,11 @@ func (a *Agent) SetData(key, value string) {
 	a.data.Set(key, value)
 }
 
+// RemoveData removes one session value from this connection — shorthand for Data().Del.
+func (a *Agent) RemoveData(key string) {
+	a.data.Remove(key)
+}
+
 // NewSession builds a session for one message of this connection: a new object
 // carrying the connection's identity, a copy of its session data, and mid.
 //
