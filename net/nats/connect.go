@@ -318,12 +318,12 @@ func (p *Connect) natsOptions() []nats.Option {
 		p.clearWaiters()
 	}))
 
-	opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, sub *nats.Subscription, err error) {
-		clog.Warnf("[name = %s] IsConnect = %v. %s on connection for subscription on %q",
+	opts = append(opts, nats.ErrorHandler(func(nc *nats.Conn, _ *nats.Subscription, err error) {
+		clog.Warnf("[name = %s] IsConnected = %v. status = %v, err = %v",
 			p.name,
 			nc.IsConnected(),
+			nc.Status().String(),
 			err.Error(),
-			sub.Subject,
 		)
 	}))
 
